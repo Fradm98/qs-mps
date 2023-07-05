@@ -5,10 +5,11 @@ channels:
 dependencies:
   - black
   - jupyter
-  - matplotlib=3.5
-  - numpy=1.23
+  - matplotlib
+  - numpy
   - pip
-  - python=3.11
-  - scipy=1.9
-  - setuptools=63
-  - ncon
+  - python
+  - scipy
+  - setuptools
+  - pip:
+    - ncon
