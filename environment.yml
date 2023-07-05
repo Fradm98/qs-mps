@@ -1,0 +1,14 @@
+name: mps
+channels:
+  - conda-forge
+  - defaults
+dependencies:
+  - black
+  - jupyter
+  - matplotlib=3.5
+  - numpy=1.23
+  - pip
+  - python=3.11
+  - scipy=1.9
+  - setuptools=63
+  - ncon
