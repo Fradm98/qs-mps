@@ -1187,17 +1187,16 @@ class MPS:
                 [5,4,-3]
             ]
         )
-        self.sites[site - 1] = new_tensor.conjugate()
+        self.sites[site - 1] = new_tensor
         return self
 
-    def error(self, site, err_const, err_psi):
-        print(f"error constant: {err_const}")
-        err_mixed = self.braket(site=site, mixed=True)
-        print(f"error mixed: {err_mixed}")
-        err_rev = self.braket(site=site, rev=True)
-        print(f"error rev: {err_rev}")
-        print(f"error psi: {err_psi}")
-        err = err_const - err_mixed - err_rev + err_psi
+    def error(self, site):
+        A_dag_N_eff_A = self._compute_norm(site)
+        print(f"error A^dagger N_eff A: {A_dag_N_eff_A}")
+        A_dag_M = ncon([self.sites[site - 1].conjugate(), self.sites[site - 1]],[[1,2,3],[1,2,3]])
+        print(f"error A^dagger M: {A_dag_M}")
+        err = A_dag_N_eff_A - 2*A_dag_M.real
+        print(f"Total error: {err}")
         return err
     
     def clear_canonical(self):
