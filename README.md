@@ -13,8 +13,8 @@ Code for MPS of Quantum Many-Body Systems
 
 3) Create the Environment with all the needed python packages
 
-        conda env create -f ed-su2/environment.yml
-        conda activate su2
+        conda env create -f environment.yml
+        conda activate mps
 
 Enjoy 👏
 
