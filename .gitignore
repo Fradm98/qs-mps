@@ -162,3 +162,4 @@ cython_debug/
 # additional folders
 times_data/*
 bonds_data/*
+energy_data/*
