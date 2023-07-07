@@ -284,16 +284,20 @@ class MPS:
             ten = self.overlap_sites(array_1=array[i])
             env = ncon([env,ten],[[-1,-2,1,2],[1,2,-3,-4]])
         left = env
-        # print(left)
+        print("The left overlap of the state:")
+        print(left)
         env = ncon([a,a,a,a],[[-1],[-2],[-3],[-4]])
         right =env
         for i in range(self.L-1, site-1, -1):
             ten = self.overlap_sites(array_1=array[i])
             env = ncon([ten,env],[[-1,-2,1,2],[1,2,-3,-4]])
         right = env
-        # print(right)
+        print("The right overlap of the state:")
+        print(right)
 
         ten_site = self.overlap_sites(array_1=array[site - 1])
+        print(f"The tensor in the site {site}:")
+        print(ten_site)
         N = ncon([left,ten_site,right],[[-1,-2,1,2],[1,2,3,4],[3,4,-3,-4]])
         N = N[0,0,0,0].real
         print(f"-=-=-= Norm: {N}\n")
@@ -854,7 +858,7 @@ class MPS:
             ]
         )
         np.savetxt(f"times_data/H_eff_contraction_site_{site}_h_{self.h:.2f}", [time.perf_counter()-H_eff_time])
-        print(f"Time of H_eff contraction: {time.perf_counter()-H_eff_time}")
+        # print(f"Time of H_eff contraction: {time.perf_counter()-H_eff_time}")
 
         reshape_time = time.perf_counter()
         H = H.reshape(
@@ -862,10 +866,32 @@ class MPS:
             self.env_left[-1].shape[2] * self.d * self.env_right[-1].shape[2],
         )
         np.savetxt(f"times_data/H_eff_reshape_site_{site}_h_{self.h:.2f}", [time.perf_counter()-reshape_time])
-        print(f"Time of H_eff reshaping: {time.perf_counter()-reshape_time}")
+        # print(f"Time of H_eff reshaping: {time.perf_counter()-reshape_time}")
 
         return H
 
+    def N_eff(self, site):
+        array = self.sites
+        a = np.array([1])
+        env = ncon([a,a,a,a],[[-1],[-2],[-3],[-4]])
+
+        for i in range(site-1):
+            ten = self.overlap_sites(array_1=array[i])
+            env = ncon([env,ten],[[-1,-2,1,2],[1,2,-3,-4]])
+        left = env
+        left = ncon([a,a,left],[[1],[2],[1,2,-1,-2]])
+        print("The left overlap of the state:")
+        print(left)
+        env = ncon([a,a,a,a],[[-1],[-2],[-3],[-4]])
+        for i in range(self.L-1, site-1, -1):
+            ten = self.overlap_sites(array_1=array[i])
+            env = ncon([ten,env],[[-1,-2,1,2],[1,2,-3,-4]])
+        right = env
+        right = ncon([right,a,a],[[-1,-2,1,2],[1],[2]])
+        kron = np.eye(2)
+        N = ncon([left,kron,right],[[-1,-4],[-2,-5],[-3,-6]]).reshape((self.env_left[-1].shape[0]*self.d*self.env_right[-1].shape[0],self.env_left[-1].shape[0]*self.d*self.env_right[-1].shape[0]))
+        return N
+    
     def eigensolver(self, H_eff, site, v0=None):
         """
         eigensolver
@@ -884,7 +910,7 @@ class MPS:
         time_eig = time.perf_counter()
         e, v = eigsh(H_eff, k=1, which="SA", v0=v0)
         np.savetxt(f"times_data/eigsh_eigensolver_site_{site}_h_{self.h:.2f}", [time.perf_counter()-time_eig])
-        print(f"Time of eigsh during eigensolver for site {site}: {time.perf_counter()-time_eig}")
+        # print(f"Time of eigsh during eigensolver for site {site}: {time.perf_counter()-time_eig}")
         e_min = e[0]
         eigvec = np.array(v)
 
@@ -894,7 +920,7 @@ class MPS:
 
         return e_min
 
-    def update_state(self, sweep, site, trunc, e_tol, precision):   
+    def update_state(self, sweep, site, trunc, e_tol=10 ** (-15), precision=2):   
         """
         update_state
 
@@ -919,7 +945,7 @@ class MPS:
             time_svd = time.perf_counter()
             u, s, v = np.linalg.svd(m, full_matrices=False)
             np.savetxt(f"times_data/update_site_{site}_h_{self.h:.2f}", [time.perf_counter()-time_svd])
-            print(f"Time of svd during update state during sweeping {sweep} for site {site}: {time.perf_counter()-time_svd}")
+            # print(f"Time of svd during update state during sweeping {sweep} for site {site}: {time.perf_counter()-time_svd}")
             if trunc:
                 condition = s >= e_tol
                 s_trunc = np.extract(condition, s)
@@ -938,7 +964,12 @@ class MPS:
                 u = u.reshape(
                     self.env_left[-1].shape[0], self.d, self.env_right[-1].shape[0]
                 )
-
+            if site == self.L//2:
+                # print(f'Schmidt values:\n{s}')
+                np.savetxt(
+                        f"bonds_data/schmidt_values_middle_chain_{self.model}_L_{self.L}_chi_{self.chi}_h_{self.h:.{precision}f}",
+                        s,
+                    )
             next_site = ncon(
                 [np.diag(s), v, self.sites[site]], 
                 [
@@ -958,7 +989,7 @@ class MPS:
             time_svd = time.perf_counter()
             u, s, v = np.linalg.svd(m, full_matrices=False)
             np.savetxt(f"times_data/update_site_{site}_h_{self.h:.2f}", [time.perf_counter()-time_svd])
-            print(f"Time of svd during update state during sweeping {sweep} for site {site}: {time.perf_counter()-time_svd}")
+            # print(f"Time of svd during update state during sweeping {sweep} for site {site}: {time.perf_counter()-time_svd}")
             if trunc:
                 condition = s >= e_tol
                 s_trunc = np.extract(condition, s)
@@ -977,6 +1008,13 @@ class MPS:
                 v = v.reshape(
                     self.env_left[-1].shape[0], self.d, self.env_right[-1].shape[0]
                 )
+
+            if site == self.L//2:
+                # print(f'Schmidt values:\n{s}')
+                np.savetxt(
+                        f"bonds_data/schmidt_values_middle_chain_{self.model}_L_{self.L}_chi_{self.chi}_h_{self.h:.{precision}f}",
+                        s,
+                    )
 
             next_site = ncon(
                 [self.sites[site - 2], u, np.diag(s)], 
@@ -1076,7 +1114,7 @@ class MPS:
         env_time = time.perf_counter()
         self.envs()
         np.savetxt(f"times_data/env_h_{self.h:.2f}", [time.perf_counter()-env_time])
-        print(f"Time of env contraction: {time.perf_counter()-env_time}")
+        # print(f"Time of env contraction: {time.perf_counter()-env_time}")
         iter = 1
         for n in range(n_sweeps):
             print(f"Sweep n: {n}\n")
@@ -1095,15 +1133,15 @@ class MPS:
                 #     variances.append(v)
                 total_state_time = time.perf_counter()
                 self.update_state(sweeps[0], sites[i], trunc, e_tol, precision)
-                print(f"Total time of state updating: {time.perf_counter()-total_state_time}")
+                # print(f"Total time of state updating: {time.perf_counter()-total_state_time}")
                 update_env_time = time.perf_counter()
                 self.update_envs(sweeps[0], sites[i])
                 np.savetxt(f"times_data/update_env_h_{self.h:.2f}", [time.perf_counter()-update_env_time])
-                print(f"Time of env updating: {time.perf_counter()-update_env_time}")
+                # print(f"Time of env updating: {time.perf_counter()-update_env_time}")
                 iter += 1
-                print('\n=========================================')
-                print(f"Time of site {sites[i]} optimization: {time.perf_counter()-time_site}")
-                print('=========================================\n')
+                # print('\n=========================================')
+                # print(f"Time of site {sites[i]} optimization: {time.perf_counter()-time_site}")
+                # print('=========================================\n')
 
 
             middle_chain = np.loadtxt(f"bonds_data/schmidt_values_middle_chain_{self.model}_L_{self.L}_chi_{self.chi}_h_{self.h:.{precision}f}")
@@ -1187,13 +1225,14 @@ class MPS:
                 [5,4,-3]
             ]
         )
-        self.sites[site - 1] = new_tensor
-        return self
+        # self.sites[site - 1] = new_tensor
+        return self, new_tensor
 
-    def error(self, site):
-        A_dag_N_eff_A = self._compute_norm(site)
+    def error(self, site, N_eff, M):
+        N_eff = N_eff.reshape((self.env_left[-1].shape[2],self.d,self.env_right[-1].shape[2],self.env_left[-1].shape[2],self.d,self.env_right[-1].shape[2]))
+        A_dag_N_eff_A = ncon([N_eff,self.sites[site - 1],self.sites[site - 1].conjugate()],[[1,2,3,4,5,6],[1,2,3],[4,5,6]])
         print(f"error A^dagger N_eff A: {A_dag_N_eff_A}")
-        A_dag_M = ncon([self.sites[site - 1].conjugate(), self.sites[site - 1]],[[1,2,3],[1,2,3]])
+        A_dag_M = ncon([self.sites[site - 1].conjugate(), M],[[1,2,3],[1,2,3]])
         print(f"error A^dagger M: {A_dag_M}")
         err = A_dag_N_eff_A - 2*A_dag_M.real
         print(f"Total error: {err}")
