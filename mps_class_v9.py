@@ -880,16 +880,16 @@ class MPS:
             env = ncon([env,ten],[[-1,-2,1,2],[1,2,-3,-4]])
         left = env
         left = ncon([a,a,left],[[1],[2],[1,2,-1,-2]])
-        print("The left overlap of the state:")
-        print(left)
+        print(left.shape)
         env = ncon([a,a,a,a],[[-1],[-2],[-3],[-4]])
         for i in range(self.L-1, site-1, -1):
             ten = self.overlap_sites(array_1=array[i])
             env = ncon([ten,env],[[-1,-2,1,2],[1,2,-3,-4]])
         right = env
         right = ncon([right,a,a],[[-1,-2,1,2],[1],[2]])
+        print(right.shape)
         kron = np.eye(2)
-        N = ncon([left,kron,right],[[-1,-4],[-2,-5],[-3,-6]]).reshape((self.env_left[-1].shape[0]*self.d*self.env_right[-1].shape[0],self.env_left[-1].shape[0]*self.d*self.env_right[-1].shape[0]))
+        N = ncon([left,kron,right],[[-1,-4],[-2,-5],[-3,-6]]).reshape((self.env_left[-1].shape[2]*self.d*self.env_right[-1].shape[2],self.env_left[-1].shape[2]*self.d*self.env_right[-1].shape[2]))
         return N
     
     def eigensolver(self, H_eff, site, v0=None):
@@ -939,7 +939,7 @@ class MPS:
         if sweep == "right":
             # we want to write M (left,d,right) in LFC -> (left*d,right)
             m = self.sites[site - 1].reshape(
-                self.env_left[-1].shape[0] * self.d, self.env_right[-1].shape[0]
+                self.env_left[-1].shape[2] * self.d, self.env_right[-1].shape[2]
             )
             # np.savetxt(f"site_to_update/state_to_update_{self.model}_L_{self.L}_chi_{self.chi}_site_{site}_right_sweep_n_{n}", m)
             time_svd = time.perf_counter()
@@ -962,7 +962,7 @@ class MPS:
                         )
             else:
                 u = u.reshape(
-                    self.env_left[-1].shape[0], self.d, self.env_right[-1].shape[0]
+                    self.env_left[-1].shape[2], self.d, self.env_right[-1].shape[2]
                 )
             if site == self.L//2:
                 # print(f'Schmidt values:\n{s}')
@@ -984,7 +984,7 @@ class MPS:
         elif sweep == "left":
             # we want to write M (left,d,right) in RFC -> (left,d*right)
             m = self.sites[site - 1].reshape(
-                self.env_left[-1].shape[0], self.d * self.env_right[-1].shape[0]
+                self.env_left[-1].shape[2], self.d * self.env_right[-1].shape[2]
             )
             time_svd = time.perf_counter()
             u, s, v = np.linalg.svd(m, full_matrices=False)
@@ -1006,7 +1006,7 @@ class MPS:
                     )
             else:
                 v = v.reshape(
-                    self.env_left[-1].shape[0], self.d, self.env_right[-1].shape[0]
+                    self.env_left[-1].shape[2], self.d, self.env_right[-1].shape[2]
                 )
 
             if site == self.L//2:
