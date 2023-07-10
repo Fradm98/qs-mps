@@ -470,3 +470,23 @@ def flipping_half(op, L):
     for i in range(L//2):
         O = before(O)
     return O
+
+# ---------------------------------------------------------------------------------------
+# Truncation
+# ---------------------------------------------------------------------------------------
+def truncation(array, threshold):
+    """
+    truncation
+
+    This function truncates the entries of an array according to the preselected
+    threshold. 
+
+    array: np.ndarray - array to truncate
+    threshold: float - level of the truncation
+
+    """
+    if not isinstance(array, np.ndarray):
+        raise TypeError(f"array should be an ndarray, not a {type(array)}")
+    if not np.isscalar(threshold) and not isinstance(threshold, float):
+        raise TypeError(f"threshold should be a SCALAR FLOAT, not a {type(threshold)}")
+    return np.where(np.abs(np.real(array)) > threshold, array, 0)
