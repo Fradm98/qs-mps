@@ -342,18 +342,15 @@ class MPS:
         self.w = w_tot
         return self
     
-    def flipping_mpo(self):
-        I = np.eye(2)
+    def flipping_mps(self):
         X = np.array([[0,1],[1,0]])
-        O = np.zeros((2,2))
-        w_tot = []
-        for i in range(self.L):
-            alpha = 0
-            if i >= self.L//2:
-                alpha = 1
-            w = np.array([[I,alpha*X],[O,I]])
-            w_tot.append(w)
-        self.w = w_tot
+        if len(self.sites) % 2 == 0:
+            new_site = ncon([self.sites[self.L // 2 - 1],X],[[-1,1,-3],[1,-2]])
+            self.sites[self.L // 2 - 1] = new_site
+
+        new_site = ncon([self.sites[self.L // 2],X],[[-1,1,-3],[1,-2]])
+        self.sites[self.L // 2] = new_site
+
         return self
 
     def mpo_Z2_one_ladder(self):
@@ -447,14 +444,14 @@ class MPS:
         X = np.array([[0,1],[1,0]])
         Z = np.array([[1,0],[0,-1]])
         w_tot = []
-        w_loc = np.array(expm(-1j*h_ev*delta/2*X)) 
-        w_in = np.array([[np.sqrt(np.cos(J_ev*delta))*I, -1j*np.sqrt(np.sin(J_ev*delta))*Z]])
+        w_loc = np.array(expm(1j*h_ev*delta/2*X)) 
+        w_in = np.array([[np.sqrt(np.cos(J_ev*delta))*I, 1j*np.sqrt(np.sin(J_ev*delta))*Z]])
         w_in = ncon([w_in, w_loc, w_loc],[[-1,-2,1,2],[-3,1],[2,-4]])
         w_fin = np.array([[np.sqrt(np.cos(J_ev*delta))*I, np.sqrt(np.sin(J_ev*delta))*Z]])
         w_fin = ncon([w_fin.T, w_loc, w_loc],[[1,2,-1,-2],[-3,1],[2,-4]])
         w_tot.append(w_in)
         for _ in range(1, self.L-1):
-            w = np.array([[np.cos(J_ev*delta)*I,-1j*np.sqrt(np.cos(J_ev*delta)*np.sin(J_ev*delta))*Z],[np.sqrt(np.cos(J_ev*delta)*np.sin(J_ev*delta))*Z, -1j*np.sin(J_ev*delta)*I]])
+            w = np.array([[np.cos(J_ev*delta)*I,1j*np.sqrt(np.cos(J_ev*delta)*np.sin(J_ev*delta))*Z],[np.sqrt(np.cos(J_ev*delta)*np.sin(J_ev*delta))*Z, 1j*np.sin(J_ev*delta)*I]])
             w = ncon([w, w_loc, w_loc],[[-1,-2,1,2],[-3,1],[2,-4]])
             w_tot.append(w)
         
