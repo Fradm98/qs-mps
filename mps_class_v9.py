@@ -449,6 +449,7 @@ class MPS:
         w_in = ncon([w_in, w_loc, w_loc],[[-1,-2,1,2],[-3,1],[2,-4]])
         w_fin = np.array([[np.sqrt(np.cos(J_ev*delta))*I, np.sqrt(np.sin(J_ev*delta))*Z]])
         w_fin = ncon([w_fin.T, w_loc, w_loc],[[1,2,-1,-2],[-3,1],[2,-4]])
+        # w_fin = np.swapaxes(w_fin, axis1=0,axis2=1)
         w_tot.append(w_in)
         for _ in range(1, self.L-1):
             w = np.array([[np.cos(J_ev*delta)*I,1j*np.sqrt(np.cos(J_ev*delta)*np.sin(J_ev*delta))*Z],[np.sqrt(np.cos(J_ev*delta)*np.sin(J_ev*delta))*Z, 1j*np.sin(J_ev*delta)*I]])
@@ -621,6 +622,16 @@ class MPS:
             w_tot.append(w_mag)
         self.w = w_tot
         return self
+
+    def mps_local_exp_val(self, op):
+        chain = []
+        self.clear_envs()
+        for i in range(1,self.L+1):
+            self.single_operator_Ising(site=i, op=op)
+            self.envs(site=i)
+            chain.append(self.braket(site=i))
+        self.clear_envs()
+        return chain
 
     def envs(self, site=1, sm=False, fm=False, opt=False, ancilla=False, mixed=False, rev=False):
         """
@@ -1315,7 +1326,7 @@ class MPS:
                     [-1,2,-3],
                     [-2,-4,2,-5],
                 ],
-                ).reshape((array[i].shape[0]*self.w[i].shape[0],array[i].shape[1],array[i].shape[2]*self.w[i].shape[1]))
+                ).reshape((array[i].shape[0]*self.w[i].shape[0],self.d,array[i].shape[2]*self.w[i].shape[1]))
         return self
 
     def save_sites(self, precision=2):
