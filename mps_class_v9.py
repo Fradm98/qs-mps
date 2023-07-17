@@ -80,10 +80,15 @@ class MPS:
                         2 ** (self.L // 2 - i), self.d, 2 ** (self.L // 2 - i - 1)
                     )
                 )
+        elif type_shape == "rectangular":
+            sites.append(np.random.rand(1, self.d, chi))
+            for _ in range(self.L-2):
+                sites.append(np.random.rand(chi, self.d, chi))
+            sites.append(np.random.rand(chi, self.d, 1))
 
         return self
 
-    def canonical_form(self, svd_direction="left", e_tol=10 ** (-15), ancilla=False):
+    def canonical_form(self, svd_direction="left", e_tol=10 ** (-15), ancilla=False, trunc=False):
         """
         canonical_form
 
@@ -97,14 +102,14 @@ class MPS:
 
         """
         if svd_direction == "left":
-            self.left_svd(e_tol, ancilla)
+            self.left_svd(e_tol, ancilla, trunc)
 
         elif svd_direction == "right":
-            self.right_svd(e_tol, ancilla)
+            self.right_svd(e_tol, ancilla, trunc)
 
         return self
 
-    def right_svd(self, e_tol, ancilla):
+    def right_svd(self, e_tol, ancilla, trunc):
         """
         right_svd
 
@@ -160,7 +165,7 @@ class MPS:
 
         return self
 
-    def left_svd(self, e_tol, ancilla):
+    def left_svd(self, e_tol, ancilla, trunc):
         """
         left_svd
 
@@ -193,18 +198,27 @@ class MPS:
                 new_site.reshape(new_site.shape[0], self.d * new_site.shape[2]),
                 full_matrices=False,
             )
-            condition = s >= e_tol
-            s_trunc = np.extract(condition, s)
-            s_trunc = s_trunc / np.linalg.norm(s_trunc)
-            s_trunc = s / np.linalg.norm(s)
             bond_r = v.shape[1] // self.d
-            v = v.reshape(v.shape[0], self.d, bond_r)
-            v = v[: len(s_trunc), :, :]
+            v = v.reshape((v.shape[0], self.d, bond_r))
+            if trunc:
+                condition = s >= e_tol
+                s_trunc = np.extract(condition, s)
+                s_trunc = s_trunc / np.linalg.norm(s_trunc)
+                s_trunc = s / np.linalg.norm(s)
+                v = v[: len(s_trunc), :, :]
+                bonds.append(s_trunc)
+                u = u[:, : len(s_trunc)]
+                psi = ncon(
+                    [u, np.diag(s_trunc)],
+                    [
+                        [-1,1],
+                        [1,-2],
+                    ],
+                )
             sites[i] = v
-            bonds.append(s_trunc)
-            u = u[:, : len(s_trunc)]
+            bonds.append(s)
             psi = ncon(
-                [u, np.diag(s_trunc)],
+                [u, np.diag(s)],
                 [
                     [-1,1],
                     [1,-2],
@@ -214,7 +228,7 @@ class MPS:
         bonds.append(s_init)
         bonds.reverse()
         # print(f"Time of svd during canonical form: {time.perf_counter()-time_cf}")
-        # np.savetxt(f"times_data/svd_canonical_form_h_{self.h:.2f}", [time.perf_counter()-time_cf])
+        # np.savetxt(f"results/times_data/svd_canonical_form_h_{self.h:.2f}", [time.perf_counter()-time_cf])
         return self
 
     def braket(self, site, ancilla=False, mixed=False, rev=False):
@@ -445,15 +459,19 @@ class MPS:
         Z = np.array([[1,0],[0,-1]])
         w_tot = []
         w_loc = np.array(expm(1j*h_ev*delta/2*X)) 
-        w_in = np.array([[np.sqrt(np.cos(J_ev*delta))*I, 1j*np.sqrt(np.sin(J_ev*delta))*Z]])
-        w_in = ncon([w_in, w_loc, w_loc],[[-1,-2,1,2],[-3,1],[2,-4]])
-        w_fin = np.array([[np.sqrt(np.cos(J_ev*delta))*I, np.sqrt(np.sin(J_ev*delta))*Z]])
-        w_fin = ncon([w_fin.T, w_loc, w_loc],[[1,2,-1,-2],[-3,1],[2,-4]])
+        w_even = np.array([[np.sqrt(np.cos(J_ev*delta))*I, 1j*np.sqrt(np.sin(J_ev*delta))*Z]])
+        w_even_3 = np.array([np.sqrt(np.cos(J_ev*delta))*I, 1j*np.sqrt(np.sin(J_ev*delta))*Z])
+        w_in = ncon([w_even, w_loc, w_loc],[[-1,-2,1,2],[-3,1],[2,-4]])
+        w_odd = np.array([[np.sqrt(np.cos(J_ev*delta))*I, np.sqrt(np.sin(J_ev*delta))*Z]])
+        w_odd_3 = np.array([np.sqrt(np.cos(J_ev*delta))*I, np.sqrt(np.sin(J_ev*delta))*Z])
+        w_fin = ncon([w_odd.T, w_loc, w_loc],[[1,2,-1,-2],[-3,1],[2,-4]])
         # w_fin = np.swapaxes(w_fin, axis1=0,axis2=1)
         w_tot.append(w_in)
-        for _ in range(1, self.L-1):
-            w = np.array([[np.cos(J_ev*delta)*I,1j*np.sqrt(np.cos(J_ev*delta)*np.sin(J_ev*delta))*Z],[np.sqrt(np.cos(J_ev*delta)*np.sin(J_ev*delta))*Z, 1j*np.sin(J_ev*delta)*I]])
-            w = ncon([w, w_loc, w_loc],[[-1,-2,1,2],[-3,1],[2,-4]])
+        for site in range(2, self.L):
+            if site%2 == 0:
+                w = ncon([w_loc,w_even_3,w_loc,w_odd_3.T],[[1,-4],[-2,2,1],[3,2],[3,-3,-1]])
+            else:
+                w = ncon([w_odd_3.T,w_loc,w_even_3,w_loc],[[-4,1,-1],[2,1],[-2,3,2],[-3,3]])
             w_tot.append(w)
         
         w_tot.append(w_fin)
@@ -865,7 +883,7 @@ class MPS:
                 [-3,2,-6],
             ]
         )
-        np.savetxt(f"times_data/H_eff_contraction_site_{site}_h_{self.h:.2f}", [time.perf_counter()-H_eff_time])
+        np.savetxt(f"results/times_data/H_eff_contraction_site_{site}_h_{self.h:.2f}", [time.perf_counter()-H_eff_time])
         # print(f"Time of H_eff contraction: {time.perf_counter()-H_eff_time}")
 
         reshape_time = time.perf_counter()
@@ -873,7 +891,7 @@ class MPS:
             self.env_left[-1].shape[0] * self.d * self.env_right[-1].shape[0],
             self.env_left[-1].shape[2] * self.d * self.env_right[-1].shape[2],
         )
-        np.savetxt(f"times_data/H_eff_reshape_site_{site}_h_{self.h:.2f}", [time.perf_counter()-reshape_time])
+        np.savetxt(f"results/times_data/H_eff_reshape_site_{site}_h_{self.h:.2f}", [time.perf_counter()-reshape_time])
         # print(f"Time of H_eff reshaping: {time.perf_counter()-reshape_time}")
 
         return H
@@ -917,7 +935,7 @@ class MPS:
         """
         time_eig = time.perf_counter()
         e, v = eigsh(H_eff, k=1, which="SA", v0=v0)
-        np.savetxt(f"times_data/eigsh_eigensolver_site_{site}_h_{self.h:.2f}", [time.perf_counter()-time_eig])
+        np.savetxt(f"results/times_data/eigsh_eigensolver_site_{site}_h_{self.h:.2f}", [time.perf_counter()-time_eig])
         # print(f"Time of eigsh during eigensolver for site {site}: {time.perf_counter()-time_eig}")
         e_min = e[0]
         eigvec = np.array(v)
@@ -952,7 +970,7 @@ class MPS:
             # np.savetxt(f"site_to_update/state_to_update_{self.model}_L_{self.L}_chi_{self.chi}_site_{site}_right_sweep_n_{n}", m)
             time_svd = time.perf_counter()
             u, s, v = np.linalg.svd(m, full_matrices=False)
-            np.savetxt(f"times_data/update_site_{site}_h_{self.h:.2f}", [time.perf_counter()-time_svd])
+            np.savetxt(f"results/times_data/update_site_{site}_h_{self.h:.2f}", [time.perf_counter()-time_svd])
             # print(f"Time of svd during update state during sweeping {sweep} for site {site}: {time.perf_counter()-time_svd}")
             if trunc:
                 condition = s >= e_tol
@@ -965,7 +983,7 @@ class MPS:
                 if site == self.L//2:
                     # print(f'Schmidt values:\n{s}')
                     np.savetxt(
-                            f"bonds_data/schmidt_values_middle_chain_{self.model}_L_{self.L}_chi_{self.chi}_h_{self.h:.{precision}f}",
+                            f"results/bonds_data/schmidt_values_middle_chain_{self.model}_L_{self.L}_chi_{self.chi}_h_{self.h:.{precision}f}",
                             s,
                         )
             else:
@@ -975,7 +993,7 @@ class MPS:
             if site == self.L//2:
                 # print(f'Schmidt values:\n{s}')
                 np.savetxt(
-                        f"bonds_data/schmidt_values_middle_chain_{self.model}_L_{self.L}_chi_{self.chi}_h_{self.h:.{precision}f}",
+                        f"results/bonds_data/schmidt_values_middle_chain_{self.model}_L_{self.L}_chi_{self.chi}_h_{self.h:.{precision}f}",
                         s,
                     )
             next_site = ncon(
@@ -996,7 +1014,7 @@ class MPS:
             )
             time_svd = time.perf_counter()
             u, s, v = np.linalg.svd(m, full_matrices=False)
-            np.savetxt(f"times_data/update_site_{site}_h_{self.h:.2f}", [time.perf_counter()-time_svd])
+            np.savetxt(f"results/times_data/update_site_{site}_h_{self.h:.2f}", [time.perf_counter()-time_svd])
             # print(f"Time of svd during update state during sweeping {sweep} for site {site}: {time.perf_counter()-time_svd}")
             if trunc:
                 condition = s >= e_tol
@@ -1009,7 +1027,7 @@ class MPS:
                 if site == self.L // 2:
                     # print(f"Schmidt values:\n{s}")
                     np.savetxt(
-                        f"bonds_data/schmidt_values_middle_chain_{self.model}_L_{self.L}_chi_{self.chi}_h_{self.h:.{precision}f}",
+                        f"results/bonds_data/schmidt_values_middle_chain_{self.model}_L_{self.L}_chi_{self.chi}_h_{self.h:.{precision}f}",
                         s,
                     )
             else:
@@ -1020,7 +1038,7 @@ class MPS:
             if site == self.L//2:
                 # print(f'Schmidt values:\n{s}')
                 np.savetxt(
-                        f"bonds_data/schmidt_values_middle_chain_{self.model}_L_{self.L}_chi_{self.chi}_h_{self.h:.{precision}f}",
+                        f"results/bonds_data/schmidt_values_middle_chain_{self.model}_L_{self.L}_chi_{self.chi}_h_{self.h:.{precision}f}",
                         s,
                     )
 
@@ -1078,7 +1096,7 @@ class MPS:
             else:
                 self.env_left.append(E_l)
                 self.env_right.pop(-1)
-            np.savetxt(f"times_data/update_env_{site}_h_{self.h:.2f}", [time.perf_counter()-time_upd_env])
+            np.savetxt(f"results/times_data/update_env_{site}_h_{self.h:.2f}", [time.perf_counter()-time_upd_env])
 
         if sweep == "left":
             array = self.sites[site - 1]
@@ -1121,7 +1139,7 @@ class MPS:
         # tensor_shapes(self.w)
         env_time = time.perf_counter()
         self.envs()
-        np.savetxt(f"times_data/env_h_{self.h:.2f}", [time.perf_counter()-env_time])
+        np.savetxt(f"results/times_data/env_h_{self.h:.2f}", [time.perf_counter()-env_time])
         # print(f"Time of env contraction: {time.perf_counter()-env_time}")
         iter = 1
         for n in range(n_sweeps):
@@ -1144,7 +1162,7 @@ class MPS:
                 # print(f"Total time of state updating: {time.perf_counter()-total_state_time}")
                 update_env_time = time.perf_counter()
                 self.update_envs(sweeps[0], sites[i])
-                np.savetxt(f"times_data/update_env_h_{self.h:.2f}", [time.perf_counter()-update_env_time])
+                np.savetxt(f"results/times_data/update_env_h_{self.h:.2f}", [time.perf_counter()-update_env_time])
                 # print(f"Time of env updating: {time.perf_counter()-update_env_time}")
                 iter += 1
                 # print('\n=========================================')
@@ -1152,7 +1170,7 @@ class MPS:
                 # print('=========================================\n')
 
 
-            middle_chain = np.loadtxt(f"bonds_data/schmidt_values_middle_chain_{self.model}_L_{self.L}_chi_{self.chi}_h_{self.h:.{precision}f}")
+            middle_chain = np.loadtxt(f"results/bonds_data/schmidt_values_middle_chain_{self.model}_L_{self.L}_chi_{self.chi}_h_{self.h:.{precision}f}")
             s_min = np.min(middle_chain)
 
             if s_min < e_tol:
@@ -1160,17 +1178,17 @@ class MPS:
                 print('=========================================')
                 print('Optimal Schmidt values achieved, breaking the DMRG optimization algorithm\n')
                 
-                np.savetxt(f"energy_data/energies_sweeping_{self.model}_two_charges_L_{self.L}_chi_{self.chi}_h_{self.h:.{precision}f}", energies)
+                np.savetxt(f"results/energy_data/energies_sweeping_{self.model}_two_charges_L_{self.L}_chi_{self.chi}_h_{self.h:.{precision}f}", energies)
                 if var:
-                    np.savetxt(f"energy_data/variances_sweeping_{self.model}_L_{self.L}_chi_{self.chi}_h_{self.h:.{precision}f}", variances)
+                    np.savetxt(f"results/energy_data/variances_sweeping_{self.model}_L_{self.L}_chi_{self.chi}_h_{self.h:.{precision}f}", variances)
 
             # print("reversing the sweep")
             sweeps.reverse()
             sites.reverse()
 
-        np.savetxt(f"energy_data/energies_sweeping_{self.model}_two_charges_L_{self.L}_chi_{self.chi}_h_{self.h:.{precision}f}", energies)
+        np.savetxt(f"results/energy_data/energies_sweeping_{self.model}_two_charges_L_{self.L}_chi_{self.chi}_h_{self.h:.{precision}f}", energies)
         if var:
-            np.savetxt(f"energy_data/variances_sweeping_{self.model}_L_{self.L}_chi_{self.chi}_h_{self.h:.{precision}f}", variances)
+            np.savetxt(f"results/energy_data/variances_sweeping_{self.model}_L_{self.L}_chi_{self.chi}_h_{self.h:.{precision}f}", variances)
         return energies
 
     def TEBD_ising(self, trunc, trotter_steps, delta, h_ev, J_ev, e_tol=10 ** (-15), n_sweeps=2, precision=2):
@@ -1342,12 +1360,12 @@ class MPS:
         # shapes of the tensors
         shapes = tensor_shapes(self.sites)
         np.savetxt(
-            f"sites_data/shapes_sites_{self.model}_L_{self.L}_chi_{self.chi}_h_{self.h:.{precision}f}", shapes, fmt='%1.i'#, delimiter=','
+            f"results/sites_data/shapes_sites_{self.model}_L_{self.L}_chi_{self.chi}_h_{self.h:.{precision}f}", shapes, fmt='%1.i'#, delimiter=','
         )
         # flattening of the tensors
         tensor = [element for site in self.sites for element in site.flatten()]
         np.savetxt(
-            f"sites_data/tensor_sites_{self.model}_L_{self.L}_chi_{self.chi}_h_{self.h:.{precision}f}", tensor
+            f"results/sites_data/tensor_sites_{self.model}_L_{self.L}_chi_{self.chi}_h_{self.h:.{precision}f}", tensor
         )
 
     def load_sites(self, precision=2):
@@ -1363,19 +1381,19 @@ class MPS:
         """
         # # loading of the shapes
         # shapes = np.loadtxt(
-        #     f"sites_data/shapes_sites_{self.model}_two_charges_L_{self.L}_chi_{self.chi}_h_{self.h:.{precision}f}"
+        #     f"results/sites_data/shapes_sites_{self.model}_two_charges_L_{self.L}_chi_{self.chi}_h_{self.h:.{precision}f}"
         # ).astype(int)
         # # loading of the flat tensors
         # filedata = np.loadtxt(
-        #     f"sites_data/tensor_sites_{self.model}_two_charges_L_{self.L}_chi_{self.chi}_h_{self.h:.{precision}f}"
+        #     f"results/sites_data/tensor_sites_{self.model}_two_charges_L_{self.L}_chi_{self.chi}_h_{self.h:.{precision}f}"
         # )
         # loading of the shapes
         shapes = np.loadtxt(
-            f"sites_data/shapes_sites_L_{self.L}_chi_{self.chi}_h_{self.h:.{precision}f}"
+            f"results/sites_data/shapes_sites_L_{self.L}_chi_{self.chi}_h_{self.h:.{precision}f}"
         ).astype(int)
         # loading of the flat tensors
         filedata = np.loadtxt(
-            f"sites_data/tensor_sites_L_{self.L}_chi_{self.chi}_h_{self.h:.{precision}f}"
+            f"results/sites_data/tensor_sites_L_{self.L}_chi_{self.chi}_h_{self.h:.{precision}f}"
         )
         # auxiliary function to get the indices where to split
         labels = get_labels(shapes)

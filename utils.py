@@ -2,6 +2,7 @@ import numpy as np
 from scipy.optimize import curve_fit
 import os
 from ncon import ncon 
+import matplotlib.pyplot as plt
 
 # ---------------------------------------------------------------------------------------
 # Tensor shapes
@@ -490,3 +491,10 @@ def truncation(array, threshold):
     if not np.isscalar(threshold) and not isinstance(threshold, float):
         raise TypeError(f"threshold should be a SCALAR FLOAT, not a {type(threshold)}")
     return np.where(np.abs(np.real(array)) > threshold, array, 0)
+
+
+def create_sequential_colors(num_colors, colormap_name):
+    colormap = plt.cm.get_cmap(colormap_name)
+    colormap_values = np.linspace(0, 1, num_colors)
+    colors = [colormap(value) for value in colormap_values]
+    return colors

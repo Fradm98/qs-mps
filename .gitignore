@@ -163,3 +163,7 @@ cython_debug/
 times_data/*
 bonds_data/*
 energy_data/*
+
+# figures and results
+results/*
+figures/*
