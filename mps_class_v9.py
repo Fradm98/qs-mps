@@ -1323,8 +1323,8 @@ class MPS:
             self.sites[i] = ncon(
                 [array[i], self.w[i]],
                 [
-                    [-1,2,-3],
-                    [-2,-4,2,-5],
+                    [-1,2,-4],
+                    [-2,-5,2,-3],
                 ],
                 ).reshape((array[i].shape[0]*self.w[i].shape[0],self.d,array[i].shape[2]*self.w[i].shape[1]))
         return self
