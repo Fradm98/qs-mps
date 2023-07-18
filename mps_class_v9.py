@@ -2,7 +2,7 @@ import numpy as np
 from ncon import ncon
 from scipy.sparse.linalg import eigsh
 from scipy.linalg import expm
-from utils import variance, tensor_shapes, get_labels
+from utils import variance, tensor_shapes, get_labels, mps_to_vector
 import time
 
 class MPS:
@@ -270,7 +270,7 @@ class MPS:
         return sandwich
 
     def overlap_sites(self, array_1, array_2=None):
-        if array_2 == None:
+        if array_2 is None:
             array_2 = array_1
         return ncon([array_1, array_2.conjugate()],[[-1,1,-3],[-2,1,-4]])
     
@@ -297,20 +297,20 @@ class MPS:
             ten = self.overlap_sites(array_1=array[i])
             env = ncon([env,ten],[[-1,-2,1,2],[1,2,-3,-4]])
         left = env
-        print("The left overlap of the state:")
-        print(left)
+        # print("The left overlap of the state:")
+        # print(left)
         env = ncon([a,a,a,a],[[-1],[-2],[-3],[-4]])
         right =env
         for i in range(self.L-1, site-1, -1):
             ten = self.overlap_sites(array_1=array[i])
             env = ncon([ten,env],[[-1,-2,1,2],[1,2,-3,-4]])
         right = env
-        print("The right overlap of the state:")
-        print(right)
+        # print("The right overlap of the state:")
+        # print(right)
 
         ten_site = self.overlap_sites(array_1=array[site - 1])
-        print(f"The tensor in the site {site}:")
-        print(ten_site)
+        # print(f"The tensor in the site {site}:")
+        # print(ten_site)
         N = ncon([left,ten_site,right],[[-1,-2,1,2],[1,2,3,4],[3,4,-3,-4]])
         N = N[0,0,0,0].real
         print(f"-=-=-= Norm: {N}\n")
@@ -914,8 +914,9 @@ class MPS:
         right = ncon([right,a,a],[[-1,-2,1,2],[1],[2]])
         print(right.shape)
         kron = np.eye(2)
-        N = ncon([left,kron,right],[[-1,-4],[-2,-5],[-3,-6]]).reshape((self.env_left[-1].shape[2]*self.d*self.env_right[-1].shape[2],self.env_left[-1].shape[2]*self.d*self.env_right[-1].shape[2]))
-        return N
+        # N = ncon([left,kron,right],[[-1,-4],[-2,-5],[-3,-6]]).reshape((self.env_left[-1].shape[2]*self.d*self.env_right[-1].shape[2],self.env_left[-1].shape[2]*self.d*self.env_right[-1].shape[2]))
+        N = ncon([left,kron,right],[[-1,-4],[-2,-5],[-3,-6]]).reshape((left.shape[0]*self.d*right.shape[0],left.shape[1]*self.d*right.shape[1]))
+        return N, left.shape, right.shape
     
     def eigensolver(self, H_eff, site, v0=None):
         """
@@ -1239,6 +1240,38 @@ class MPS:
         self.ancilla_sites = self.sites
         return self, errors[-1]
  
+    def direct_mpo_evolution(self, trotter_steps, delta, h_ev, J_ev, fidelity=False):
+        """
+        direct_mpo_evolution
+
+        This function computes the magnetization and (on demand) the fidelity
+        of the trotter evolved MPS by the MPO direct application.
+
+        trotter_steps: int - number of times we apply the mpo to the mps
+        delta: float - time interval which defines the evolution per step
+        h_ev: float - value of the external field in the evolving hamiltonian
+        J_ev: float - value of the Ising interaction in the evolving hamiltonian
+        fidelity: bool - we can compute the fidelity with the initial state 
+                if the chain is small enough. By default False
+                
+        """
+        overlap = []
+        mag_mpo_tot = []
+        Z = np.array([[1,0],[0,-1]])
+        if fidelity:
+            psi = mps_to_vector(self.sites)
+        for T in range(trotter_steps):
+            print(f"------ Trotter steps: {T} -------")
+            print(f"Bond dim: {self.sites[self.L//2].shape[0]}")
+            self.mpo_Ising_time_ev(delta=delta, h_ev=h_ev, J_ev=1)
+            self.mpo_to_mps()
+            # self.save_sites()
+            mag_mpo_tot.append(np.real(self.mps_local_exp_val(op=Z)))
+            if fidelity:
+                psi_new_mpo = mps_to_vector(self.sites)
+                overlap.append(psi_new_mpo.T.conjugate() @ psi)
+        return mag_mpo_tot, overlap
+    
     def contraction_with_ancilla(self, site):
         ancilla_sites = self.ancilla_sites
         new_tensor = ncon(

@@ -87,7 +87,7 @@ U_new = csr_matrix(U_new)
 psi_new = psi
 mag_exact_tot = []
 mag_mpo_tot = []
-trotter_steps = 8
+trotter_steps = 6
 overlap = []
 L = 11
 spin = MPS(L=L, d=2, model="Ising", chi=32, J=1, h=0, eps=0)
