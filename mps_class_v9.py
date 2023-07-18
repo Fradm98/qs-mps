@@ -204,7 +204,6 @@ class MPS:
                 condition = s >= e_tol
                 s_trunc = np.extract(condition, s)
                 s_trunc = s_trunc / np.linalg.norm(s_trunc)
-                s_trunc = s / np.linalg.norm(s)
                 v = v[: len(s_trunc), :, :]
                 bonds.append(s_trunc)
                 u = u[:, : len(s_trunc)]
