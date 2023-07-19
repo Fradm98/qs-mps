@@ -198,10 +198,25 @@ def compression(classe, trunc, e_tol=10 ** (-15), n_sweeps=2, precision=2):
         sites.reverse()
     
     return classe, errors[-1]
+
+def exact_time_ev(L, delta, h_t):
+    X = np.array([[0,1],[1,0]])
+    Z = np.array([[1,0],[0,-1]])
+    H = H_ising_gen(L=L, op_l=Z, op_t=X, J=1, h_l=0, h_t=0)
+    e, v = np.linalg.eig(H)
+    psi = v[:,0]
+    flip = single_site_op(op=X, site=L // 2 + 1, L=L)
+    psi = flip @ psi
+    H_ev = H_ising_gen(L=L, op_l=Z, op_t=X, J=1, h_l=0, h_t=h_t)
+    U = expm(-1j*delta*H_ev)
+    U_new = truncation(array=U, threshold=1e-16)
+    U_new = csr_matrix(U_new)
+    return U_new, psi
+
 # %%
 L = 11
-opt_chain = MPS(L=L, d=2, model="Ising", chi=16, J=1, h=0, eps=0)
-opt_chain._random_state(seed=3, chi=16, type_shape="rectangular")
+opt_chain = MPS(L=L, d=2, model="Ising", chi=100, J=1, h=0, eps=0)
+opt_chain._random_state(seed=3, chi=100, type_shape="rectangular")
 opt_chain.canonical_form(trunc=False)
 opt_chain._compute_norm(site=1)
 opt_chain.ancilla_sites = spin.sites
@@ -217,7 +232,6 @@ fidelity = psi_uncompressed.T.conjugate() @ psi_compressed
 print(f"Fidelity: {fidelity}")
 # %%
 # comparison with exact
-
 L = 11
 delta = 0.6
 X = np.array([[0,1],[1,0]])
@@ -246,16 +260,59 @@ spin.flipping_mps()
 magnetization = [single_site_op(op=Z, site=i, L=L) for i in range(1,L+1)]
 for T in range(trotter_steps):
     psi_new = U_new @ psi_new
-    # mag_exact = []
-    # print(f"Bond dim: {spin.sites[spin.L//2].shape[0]}")
-    # spin.mpo_Ising_time_ev(delta=delta, h_ev=h_ev, J_ev=1)
-    # spin.mpo_to_mps()
-    # for i in range(L):
-    #     mag_exact.append((psi_new.T.conjugate() @ magnetization[i] @ psi_new).real)
-    # print(f"----- trotter step {T} --------")
-    # mag_exact_tot.append(mag_exact)
-    # psi_new_mpo = mps_to_vector(spin.sites)
-    # overlap.append(psi_new.T.conjugate() @ psi_new_mpo)
 fidelity = psi_compressed.T.conjugate() @ psi_new
+print(f"Fidelity: {fidelity}")
+# %%
+# trotter compression
+# initialize the chain in h_t = 0
+L = 11
+spin = MPS(L=L, d=2, model="Ising", chi=32, J=1, h=0, eps=0)
+spin._random_state(seed=3, chi=32)
+spin.canonical_form()
+energies = spin.sweeping(trunc=True)
+spin.flipping_mps()
+trotter_steps = 8
+delta = 0.6
+h_ev = 0.3
+chi_max = [32,64]
+fidelity = False
+mag_mpo_tot, errors, overlap = spin.compressed_mpo_evolution(trotter_steps=trotter_steps, fidelity=fidelity, delta=delta, h_ev=h_ev, chi_max=chi_max)
+# %%
+# visualization
+plt.title(f"MPS: $\delta = {delta}$; $h_{{t-ev}} = {h_ev}$")
+plt.imshow(mag_mpo_tot, cmap="seismic", vmin=-1, vmax=1, aspect=1)
+plt.show()
+plt.title(f"Error for $\chi_{{max}}$: $\delta = {delta}$; $h_{{t-ev}} = {h_ev}$")
+plt.plot(errors)
+plt.show()
+if fidelity:
+    plt.title("Fidelity $\left<\psi_{MPS}(t)|\psi_{MPS}(t=0)\\right>$: " + f"$\delta = {delta}$; $h_{{t-ev}} = {h_ev}$")
+    plt.plot(overlap)
+    plt.show()
+
+
+# %%
+# comparison with exact
+L = 11
+delta = 0.6
+h_t = 0.3
+Z = np.array([[1,0],[0,-1]])
+U_new, psi = exact_time_ev(L, delta, h_t)
+psi_new = psi
+psi_compressed = mps_to_vector(spin.sites)
+mag_exact_tot = []
+magnetization = [single_site_op(op=Z, site=i, L=L) for i in range(1,L+1)]
+for T in range(trotter_steps):
+    psi_new = U_new @ psi_new
+    mag_exact = []
+    for i in range(L):
+        mag_exact.append((psi_new.T.conjugate() @ magnetization[i] @ psi_new).real)
+    print(f"----- trotter step {T} --------")
+    mag_exact_tot.append(mag_exact)
+fidelity = psi_compressed.T.conjugate() @ psi_new
+# %%
+plt.title(f"Exact: $\delta = {delta}$; $h_{{t-ev}} = {h_t}$")
+plt.imshow(mag_exact_tot, cmap="seismic", vmin=-1, vmax=1, aspect=1)
+plt.show()
 print(f"Fidelity: {fidelity}")
 # %%

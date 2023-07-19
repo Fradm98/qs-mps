@@ -1,8 +1,10 @@
 import numpy as np
 from ncon import ncon
 from scipy.sparse.linalg import eigsh
-from scipy.linalg import expm
-from utils import variance, tensor_shapes, get_labels, mps_to_vector
+from scipy.sparse import csr_matrix, identity
+from checks import *
+from scipy.linalg import expm, solve
+from utils import *
 import time
 
 class MPS:
@@ -297,6 +299,11 @@ class MPS:
             ten = self.overlap_sites(array_1=array[i])
             env = ncon([env,ten],[[-1,-2,1,2],[1,2,-3,-4]])
         left = env
+        # left_matrix = ncon([a,a,left],[[1],[2],[1,2,-1,-2]])
+        # left_matrix = truncation(left_matrix, 1e-15)
+        # left_matrix = csr_matrix(left_matrix)
+        # print(left_matrix)
+        # check_matrix(left_matrix,identity(left_matrix.shape[0]))
         # print("The left overlap of the state:")
         # print(left)
         env = ncon([a,a,a,a],[[-1],[-2],[-3],[-4]])
@@ -305,6 +312,11 @@ class MPS:
             ten = self.overlap_sites(array_1=array[i])
             env = ncon([ten,env],[[-1,-2,1,2],[1,2,-3,-4]])
         right = env
+        # right_matrix = ncon([right,a,a],[[-1,-2,1,2],[1],[2]])
+        # right_matrix = truncation(right_matrix, 1e-15)
+        # right_matrix = csr_matrix(right_matrix)
+        # print(right_matrix)
+        # check_matrix(right_matrix,identity(right_matrix.shape[0]))
         # print("The right overlap of the state:")
         # print(right)
 
@@ -1272,6 +1284,53 @@ class MPS:
                 overlap.append(psi_new_mpo.T.conjugate() @ psi)
         return mag_mpo_tot, overlap
     
+    def compressed_mpo_evolution(self, trotter_steps, fidelity, delta, h_ev, chi_max):
+        """
+        direct_mpo_evolution
+
+        This function computes the magnetization and (on demand) the fidelity
+        of the trotter evolved MPS by the MPO direct application.
+
+        trotter_steps: int - number of times we apply the mpo to the mps
+        delta: float - time interval which defines the evolution per step
+        h_ev: float - value of the external field in the evolving hamiltonian
+        J_ev: float - value of the Ising interaction in the evolving hamiltonian
+        fidelity: bool - we can compute the fidelity with the initial state 
+                if the chain is small enough. By default False
+                
+        """
+        overlap = []
+        mag_mpo_tot = []
+        errors = []
+        Z = np.array([[1,0],[0,-1]])
+        opt_chain = MPS(L=self.L, d=self.d, model=self.model, chi=chi_max[0], J=1, h=0, eps=0)
+        opt_chain._random_state(seed=3, chi=chi_max[0], type_shape="trapezoidal")
+        opt_chain.canonical_form(trunc=True)
+        opt_chain._compute_norm(site=1)
+        i = 0
+        if fidelity:
+            psi = mps_to_vector(self.sites)
+        for T in range(trotter_steps):
+            print(f"------ Trotter steps: {T} -------")
+            self.mpo_Ising_time_ev(delta=delta, h_ev=h_ev, J_ev=1)
+            self.mpo_to_mps()
+            print(f"Bond dim: {self.sites[self.L//2].shape[0]}")
+            if self.sites[self.L//2].shape[0] > chi_max[i]:
+                print("Doing the compression...")
+                opt_chain.ancilla_sites = self.sites
+                opt_chain._compute_norm(site=1, ancilla=True)
+                compressed_chain, error = opt_chain.compression(trunc=True)
+                print(f"Error to compress {self.sites[self.L//2].shape[0]} to {chi_max}: {error}")
+                errors.append(error)
+                self.sites = compressed_chain.sites
+                i += 1
+            # self.save_sites()
+            mag_mpo_tot.append(np.real(self.mps_local_exp_val(op=Z)))
+            if fidelity:
+                psi_new_mpo = mps_to_vector(self.sites)
+                overlap.append(psi_new_mpo.T.conjugate() @ psi)
+        return mag_mpo_tot, errors, overlap
+
     def contraction_with_ancilla(self, site):
         ancilla_sites = self.ancilla_sites
         new_tensor = ncon(
@@ -1285,6 +1344,171 @@ class MPS:
         )
         # self.sites[site - 1] = new_tensor
         return self, new_tensor
+
+    def lin_sys(self, M, N_eff, site, l_shape, r_shape):
+        M_new = M.flatten()
+        new_site = solve(N_eff, M_new)
+        new_site = new_site.reshape((l_shape[0], self.d, r_shape[0]))
+        self.sites[site - 1] = new_site
+        return self
+
+    def compute_M(self, site, rev=False):
+        """
+        _compute_M
+
+        This function computes the rank-3 tensor, in a specific site,
+        given by the contraction of our variational state (phi) saved in self.sites,
+        and the uncompressed state (psi) saved in self.ancilla_sites.
+
+        site: int - site where to execute the tensor contraction
+
+        """
+        array_1 = self.ancilla_sites
+        array_2 = self.sites
+        if rev:
+            array_1 = self.sites
+            array_2 = self.ancilla_sites
+        a = np.array([1])
+        env = ncon([a,a,a,a],[[-1],[-2],[-3],[-4]])
+        left = env
+
+        for i in range(site-1):
+            ten = self.overlap_sites(array_1=array_1[i], array_2=array_2[i])
+            env = ncon([env,ten],[[-1,-2,1,2],[1,2,-3,-4]])
+        left = env
+        # print("The left overlap of the state:")
+        # print(left)
+        env = ncon([a,a,a,a],[[-1],[-2],[-3],[-4]])
+        right = env
+        for i in range(self.L-1, site-1, -1):
+            ten = self.overlap_sites(array_1=array_1[i], array_2=array_2[i])
+            env = ncon([ten,env],[[-1,-2,1,2],[1,2,-3,-4]])
+        right = env
+        # print("The right overlap of the state:")
+        # print(right)
+
+        M = ncon([a,a,left,array_1[site - 1],right,a,a],[[1],[2],[1,2,3,-1],[3,-2,4],[4,-3,5,6],[5],[6]])
+        return M
+
+    def error_phi_psi(self, site, M, N_eff):
+        phi_psi = ncon([M,self.sites[site-1].conjugate()],[[1,2,3],[1,2,3]])
+        print("<psi|psi>:")
+        psi_psi = self._compute_norm(site=site, ancilla=True)
+        print("<phi|phi>:")
+        phi_phi = self._compute_norm(site=site)
+        M_rev = self.compute_M(site, rev=True)
+        psi_phi = ncon([M_rev,self.ancilla_sites[site-1].conjugate()],[[1,2,3],[1,2,3]])
+        error = psi_psi - psi_phi - phi_psi + phi_phi
+        return error
+
+    def update_state_compressed(self, sweep, site, trunc, e_tol=10 ** (-15), precision=2):   
+        """
+        update_state
+
+        This function updates the self.a and classe.b lists of tensors composing
+        the mps. The update depends on the sweep direction. We take the classe.m
+        extracted from the eigensolver and we decomposed via svd.
+
+        sweep: string - direction of the sweeping. Could be "left" or "right"
+        site: int - indicates which site the DMRG is optimizing
+        trunc: bool - if True will truncate the the Schmidt values and save the
+                state accordingly.
+        e_tol: float - the tolerance accepted to truncate the Schmidt values
+        precision: int - indicates the precision of the parameter h
+
+        """
+        if sweep == "right":
+            # we want to write M (left,d,right) in LFC -> (left*d,right)
+            m = self.sites[site - 1].reshape(
+                self.sites[site - 1].shape[0] * self.d, self.sites[site - 1].shape[2]
+            )
+            u, s, v = np.linalg.svd(m, full_matrices=False)
+            if trunc:
+                condition = s >= e_tol
+                s_trunc = np.extract(condition, s)
+                s = s_trunc / np.linalg.norm(s_trunc)
+                bond_l = u.shape[0] // self.d
+                u = u.reshape(bond_l, self.d, u.shape[1])
+                u = u[:, :, : len(s)]
+                v = v[: len(s), :]
+            else:
+                u = u.reshape(
+                    self.sites[site - 1].shape[0], self.d, self.sites[site - 1].shape[2]
+                )
+            next_site = ncon(
+                [np.diag(s), v, self.sites[site]], 
+                [
+                    [-1,1],
+                    [1,2],
+                    [2,-2,-3],
+                ],
+            )
+            self.sites[site - 1] = u
+            self.sites[site] = next_site
+
+        elif sweep == "left":
+            # we want to write M (left,d,right) in RFC -> (left,d*right)
+            m = self.sites[site - 1].reshape(
+                self.sites[site - 1].shape[0], self.d * self.sites[site - 1].shape[2]
+            )
+            u, s, v = np.linalg.svd(m, full_matrices=False)
+            if trunc:
+                condition = s >= e_tol
+                s_trunc = np.extract(condition, s)
+                s = s_trunc / np.linalg.norm(s_trunc)
+                bond_r = v.shape[1] // self.d
+                v = v.reshape(v.shape[0], self.d, bond_r)
+                v = v[: len(s), :, :]
+                u = u[:, : len(s)]
+            else:
+                v = v.reshape(
+                    self.sites[site - 1].shape[0], self.d, self.sites[site - 1].shape[2]
+                )
+            next_site = ncon(
+                [self.sites[site - 2], u, np.diag(s)], 
+                [
+                    [-1,-2,1],
+                    [1,2],
+                    [2,-3],
+                ],
+            )
+            self.sites[site - 1] = v
+            self.sites[site - 2] = next_site
+
+        return self
+
+    def compression(self, trunc, e_tol=10 ** (-15), n_sweeps=2, precision=2):
+        sweeps = ["right", "left"]
+        sites = np.arange(1, self.L + 1).tolist()
+        errors = []
+
+        iter = 1
+        for n in range(n_sweeps):
+            print(f"Sweep n: {n}\n")
+            for i in range(self.L - 1):
+                # time_N_eff = time.perf_counter()
+                N_eff, l_shape, r_shape = self.N_eff(site=sites[i])
+                # print(f"Time of N_eff: {time.perf_counter()-time_N_eff}")
+                # time_compute_M = time.perf_counter()
+                M = self.compute_M(sites[i])
+                # print(f"Time of compute M: {time.perf_counter()-time_compute_M}")
+                # time_lin_sys = time.perf_counter()
+                self.lin_sys(M, N_eff, sites[i], l_shape, r_shape)
+                # print(f"Time of lin sys: {time.perf_counter()-time_lin_sys}")
+                # time_error = time.perf_counter()
+                err = self.error_phi_psi(site=sites[i], N_eff=N_eff, M=M)
+                # print(f"Time of error: {time.perf_counter()-time_error}")
+                print(f"error per site {sites[i]}: {err:.5f}")
+                # time_update = time.perf_counter()
+                self.update_state_compressed(sweeps[0], sites[i], trunc, e_tol, precision)
+                # print(f"Time of update state: {time.perf_counter()-time_update}")
+                errors.append(err)
+                iter += 1
+
+            sweeps.reverse()
+            sites.reverse()
+        
+        return self, errors[-1]
 
     def error(self, site, N_eff, M):
         N_eff = N_eff.reshape((self.env_left[-1].shape[2],self.d,self.env_right[-1].shape[2],self.env_left[-1].shape[2],self.d,self.env_right[-1].shape[2]))

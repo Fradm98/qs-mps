@@ -25,7 +25,7 @@ spin.flipping_mps()
 # time evolution to h_t = h_ev
 X = np.array([[0,1],[1,0]])
 Z = np.array([[1,0],[0,-1]])
-trotter_steps = 8
+trotter_steps = 6
 delta = 0.6
 h_ev = 0.1
 fidelity = True
@@ -38,7 +38,6 @@ for T in range(trotter_steps):
     print(f"Bond dim: {spin.sites[spin.L//2].shape[0]}")
     spin.mpo_Ising_time_ev(delta=delta, h_ev=h_ev, J_ev=1)
     spin.mpo_to_mps()
-    # spin.save_sites()
     mag_mpo_tot.append(np.real(spin.mps_local_exp_val(op=Z)))
     if fidelity:
         psi_new_mpo = mps_to_vector(spin.sites)
@@ -79,7 +78,7 @@ e, v = np.linalg.eig(H)
 psi = v[:,0]
 flip = single_site_op(op=X, site=L // 2 + 1, L=L)
 psi = flip @ psi
-h_t = 0.1
+h_t = 0.3
 H_ev = H_ising_gen(L=L, op_l=Z, op_t=X, J=1, h_l=0, h_t=h_t)
 U = expm(-1j*delta*H_ev)
 U_new = truncation(array=U, threshold=1e-16)
@@ -118,7 +117,6 @@ plt.title("Fidelity $\left<\psi_{exact}(t)|\psi_{MPS}(t)\\right>$: " + f"$\delta
 plt.plot(np.abs(overlap))
 plt.ylim((np.min(np.abs(overlap))-0.005,1))
 plt.show()
-
 
 #######################
 #######################
