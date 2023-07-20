@@ -271,12 +271,12 @@ spin._random_state(seed=3, chi=32)
 spin.canonical_form()
 energies = spin.sweeping(trunc=True)
 spin.flipping_mps()
-trotter_steps = 8
-delta = 0.6
-h_ev = 0.3
-chi_max = [32,64]
-fidelity = False
-mag_mpo_tot, errors, overlap = spin.compressed_mpo_evolution(trotter_steps=trotter_steps, fidelity=fidelity, delta=delta, h_ev=h_ev, chi_max=chi_max)
+# trotter_steps = 8
+# delta = 0.6
+# h_ev = 0.3
+# chi_max = [32,50,50]
+# fidelity = False
+# mag_mpo_tot, errors, overlap = spin.compressed_mpo_evolution(trotter_steps=trotter_steps, fidelity=fidelity, delta=delta, h_ev=h_ev, chi_max=chi_max)
 # %%
 # visualization
 plt.title(f"MPS: $\delta = {delta}$; $h_{{t-ev}} = {h_ev}$")
@@ -289,8 +289,6 @@ if fidelity:
     plt.title("Fidelity $\left<\psi_{MPS}(t)|\psi_{MPS}(t=0)\\right>$: " + f"$\delta = {delta}$; $h_{{t-ev}} = {h_ev}$")
     plt.plot(overlap)
     plt.show()
-
-
 # %%
 # comparison with exact
 L = 11

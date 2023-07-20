@@ -28,7 +28,7 @@ Z = np.array([[1,0],[0,-1]])
 trotter_steps = 6
 delta = 0.6
 h_ev = 0.1
-fidelity = True
+fidelity = False
 if fidelity:
     psi = mps_to_vector(spin.sites)
 mag_mpo_tot = []
@@ -78,7 +78,7 @@ e, v = np.linalg.eig(H)
 psi = v[:,0]
 flip = single_site_op(op=X, site=L // 2 + 1, L=L)
 psi = flip @ psi
-h_t = 0.3
+h_t = 0.1
 H_ev = H_ising_gen(L=L, op_l=Z, op_t=X, J=1, h_l=0, h_t=h_t)
 U = expm(-1j*delta*H_ev)
 U_new = truncation(array=U, threshold=1e-16)
@@ -115,7 +115,8 @@ plt.show()
 
 plt.title("Fidelity $\left<\psi_{exact}(t)|\psi_{MPS}(t)\\right>$: " + f"$\delta = {delta}$; $h_{{t-ev}} = {h_t}$")
 plt.plot(np.abs(overlap))
-plt.ylim((np.min(np.abs(overlap))-0.005,1))
+plt.hlines(y=1-delta**2, xmin=0, xmax=trotter_steps-1)
+plt.ylim((1-delta**2-0.005,1))
 plt.show()
 
 #######################

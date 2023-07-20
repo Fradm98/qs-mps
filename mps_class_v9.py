@@ -1157,6 +1157,7 @@ class MPS:
         for n in range(n_sweeps):
             print(f"Sweep n: {n}\n")
             for i in range(self.L - 1):
+                self._compute_norm(site=sites[i])
                 time_site = time.perf_counter()
                 H = self.H_eff(sites[i])
                 # np.savetxt(f"effective_ham/H_eff_{self.model}_L_{self.L}_h_{self.h:.2f}_chi_{self.chi}_site_{sites[i]}_sweep_n_{n}", H)
@@ -1164,7 +1165,7 @@ class MPS:
                     H_eff=H, site=sites[i]
                 )  # , v0=self.sites[sites[i]].flatten()
                 energies.append(energy)
-                
+
                 # if var:
                 #     sm = self.mpo_second_moment(opt=True)
                 #     v = variance(first_m=energy, sm=sm)
@@ -1181,7 +1182,6 @@ class MPS:
                 # print(f"Time of site {sites[i]} optimization: {time.perf_counter()-time_site}")
                 # print('=========================================\n')
 
-
             middle_chain = np.loadtxt(f"results/bonds_data/schmidt_values_middle_chain_{self.model}_L_{self.L}_chi_{self.chi}_h_{self.h:.{precision}f}")
             s_min = np.min(middle_chain)
 
@@ -1189,7 +1189,7 @@ class MPS:
                 print('\n=========================================')
                 print('=========================================')
                 print('Optimal Schmidt values achieved, breaking the DMRG optimization algorithm\n')
-                
+
                 np.savetxt(f"results/energy_data/energies_sweeping_{self.model}_two_charges_L_{self.L}_chi_{self.chi}_h_{self.h:.{precision}f}", energies)
                 if var:
                     np.savetxt(f"results/energy_data/variances_sweeping_{self.model}_L_{self.L}_chi_{self.chi}_h_{self.h:.{precision}f}", variances)
@@ -1307,6 +1307,7 @@ class MPS:
         opt_chain._random_state(seed=3, chi=chi_max[0], type_shape="trapezoidal")
         opt_chain.canonical_form(trunc=True)
         opt_chain._compute_norm(site=1)
+        guess = opt_chain.sites
         i = 0
         if fidelity:
             psi = mps_to_vector(self.sites)
@@ -1317,12 +1318,14 @@ class MPS:
             print(f"Bond dim: {self.sites[self.L//2].shape[0]}")
             if self.sites[self.L//2].shape[0] > chi_max[i]:
                 print("Doing the compression...")
-                opt_chain.ancilla_sites = self.sites
-                opt_chain._compute_norm(site=1, ancilla=True)
-                compressed_chain, error = opt_chain.compression(trunc=True)
+                self.ancilla_sites = self.sites
+                psi = self.sites
+                self._compute_norm(site=1, ancilla=True)
+                self.sites = guess
+                error = self.compression(trunc=False, psi=psi)
                 print(f"Error to compress {self.sites[self.L//2].shape[0]} to {chi_max}: {error}")
                 errors.append(error)
-                self.sites = compressed_chain.sites
+                guess = self.sites
                 i += 1
             # self.save_sites()
             mag_mpo_tot.append(np.real(self.mps_local_exp_val(op=Z)))
@@ -1345,12 +1348,14 @@ class MPS:
         # self.sites[site - 1] = new_tensor
         return self, new_tensor
 
-    def lin_sys(self, M, N_eff, site, l_shape, r_shape):
+    def lin_sys(self, M, N_eff, sweep, l_shape, r_shape):
         M_new = M.flatten()
         new_site = solve(N_eff, M_new)
-        new_site = new_site.reshape((l_shape[0], self.d, r_shape[0]))
-        self.sites[site - 1] = new_site
-        return self
+        if sweep == 'right':
+            new_site = new_site.reshape((l_shape[0] * self.d, r_shape[0]))
+        elif sweep == 'left':
+            new_site = new_site.reshape((l_shape[0], self.d * r_shape[0]))
+        return new_site
 
     def compute_M(self, site, rev=False):
         """
@@ -1390,18 +1395,19 @@ class MPS:
         M = ncon([a,a,left,array_1[site - 1],right,a,a],[[1],[2],[1,2,3,-1],[3,-2,4],[4,-3,5,6],[5],[6]])
         return M
 
-    def error_phi_psi(self, site, M, N_eff):
-        phi_psi = ncon([M,self.sites[site-1].conjugate()],[[1,2,3],[1,2,3]])
+    def error_phi_psi(self, site, M):
+        phi_psi = ncon([M,self.sites[site - 1].conjugate()],[[1,2,3],[1,2,3]])
         print("<psi|psi>:")
         psi_psi = self._compute_norm(site=site, ancilla=True)
         print("<phi|phi>:")
         phi_phi = self._compute_norm(site=site)
-        M_rev = self.compute_M(site, rev=True)
-        psi_phi = ncon([M_rev,self.ancilla_sites[site-1].conjugate()],[[1,2,3],[1,2,3]])
+        # M_rev = self.compute_M(site, rev=True)
+        # psi_phi = ncon([M_rev,self.ancilla_sites[site-1].conjugate()],[[1,2,3],[1,2,3]])
+        psi_phi = phi_psi.conjugate()
         error = psi_psi - psi_phi - phi_psi + phi_phi
         return error
 
-    def update_state_compressed(self, sweep, site, trunc, e_tol=10 ** (-15), precision=2):   
+    def update_state_compressed(self, sweep, new_site, site, trunc, e_tol=10 ** (-15), precision=2):
         """
         update_state
 
@@ -1419,9 +1425,8 @@ class MPS:
         """
         if sweep == "right":
             # we want to write M (left,d,right) in LFC -> (left*d,right)
-            m = self.sites[site - 1].reshape(
-                self.sites[site - 1].shape[0] * self.d, self.sites[site - 1].shape[2]
-            )
+            tensor_shapes(self.sites)
+            m = new_site
             u, s, v = np.linalg.svd(m, full_matrices=False)
             if trunc:
                 condition = s >= e_tol
@@ -1433,24 +1438,23 @@ class MPS:
                 v = v[: len(s), :]
             else:
                 u = u.reshape(
-                    self.sites[site - 1].shape[0], self.d, self.sites[site - 1].shape[2]
+                    new_site.shape[0]//self.d, self.d, new_site.shape[1]
                 )
-            next_site = ncon(
-                [np.diag(s), v, self.sites[site]], 
-                [
-                    [-1,1],
-                    [1,2],
-                    [2,-2,-3],
-                ],
-            )
+            # next_site = ncon(
+            #     [np.diag(s), v, self.sites[site]], 
+            #     [
+            #         [-1,1],
+            #         [1,2],
+            #         [2,-2,-3],
+            #     ],
+            # )
             self.sites[site - 1] = u
-            self.sites[site] = next_site
+            # self.sites[site] = next_site
 
         elif sweep == "left":
             # we want to write M (left,d,right) in RFC -> (left,d*right)
-            m = self.sites[site - 1].reshape(
-                self.sites[site - 1].shape[0], self.d * self.sites[site - 1].shape[2]
-            )
+            tensor_shapes(self.sites)
+            m = new_site
             u, s, v = np.linalg.svd(m, full_matrices=False)
             if trunc:
                 condition = s >= e_tol
@@ -1462,45 +1466,52 @@ class MPS:
                 u = u[:, : len(s)]
             else:
                 v = v.reshape(
-                    self.sites[site - 1].shape[0], self.d, self.sites[site - 1].shape[2]
+                    new_site.shape[0], self.d, new_site.shape[1]//self.d
                 )
-            next_site = ncon(
-                [self.sites[site - 2], u, np.diag(s)], 
-                [
-                    [-1,-2,1],
-                    [1,2],
-                    [2,-3],
-                ],
-            )
+            # next_site = ncon(
+            #     [self.sites[site - 2], u, np.diag(s)], 
+            #     [
+            #         [-1,-2,1],
+            #         [1,2],
+            #         [2,-3],
+            #     ],
+            # )
             self.sites[site - 1] = v
-            self.sites[site - 2] = next_site
+            # self.sites[site - 2] = next_site
 
         return self
 
-    def compression(self, trunc, e_tol=10 ** (-15), n_sweeps=2, precision=2):
+    def compression(self, trunc, psi, e_tol=10 ** (-15), n_sweeps=2, precision=2):
         sweeps = ["right", "left"]
         sites = np.arange(1, self.L + 1).tolist()
         errors = []
-
+        self.ancilla_sites = psi
+        vec = mps_to_vector(psi)
         iter = 1
         for n in range(n_sweeps):
+            print("------------------------------------")
             print(f"Sweep n: {n}\n")
             for i in range(self.L - 1):
+                print("----------")
+                print(f"Site: {i}\n")
                 # time_N_eff = time.perf_counter()
                 N_eff, l_shape, r_shape = self.N_eff(site=sites[i])
                 # print(f"Time of N_eff: {time.perf_counter()-time_N_eff}")
                 # time_compute_M = time.perf_counter()
-                M = self.compute_M(sites[i])
+                M = self.compute_M(site=sites[i])
                 # print(f"Time of compute M: {time.perf_counter()-time_compute_M}")
                 # time_lin_sys = time.perf_counter()
-                self.lin_sys(M, N_eff, sites[i], l_shape, r_shape)
+                print(f"\nnorm of psi: {vec.T.conjugate() @ vec}\n")
+                new_site = self.lin_sys(M=M, N_eff=N_eff, sweep=sweeps[0], l_shape=l_shape, r_shape=r_shape)
+                self.update_state_compressed(sweeps[0], new_site, sites[i], trunc, e_tol, precision)
+                # self.sites[sites[i] - 1] = new_site
                 # print(f"Time of lin sys: {time.perf_counter()-time_lin_sys}")
                 # time_error = time.perf_counter()
-                err = self.error_phi_psi(site=sites[i], N_eff=N_eff, M=M)
+                err = self.error_phi_psi(site=sites[i], M=M)
                 # print(f"Time of error: {time.perf_counter()-time_error}")
                 print(f"error per site {sites[i]}: {err:.5f}")
                 # time_update = time.perf_counter()
-                self.update_state_compressed(sweeps[0], sites[i], trunc, e_tol, precision)
+                # self.update_state_compressed(sweeps[0], sites[i], trunc, e_tol, precision)
                 # print(f"Time of update state: {time.perf_counter()-time_update}")
                 errors.append(err)
                 iter += 1
@@ -1508,7 +1519,7 @@ class MPS:
             sweeps.reverse()
             sites.reverse()
         
-        return self, errors[-1]
+        return errors[-1]
 
     def error(self, site, N_eff, M):
         N_eff = N_eff.reshape((self.env_left[-1].shape[2],self.d,self.env_right[-1].shape[2],self.env_left[-1].shape[2],self.d,self.env_right[-1].shape[2]))
