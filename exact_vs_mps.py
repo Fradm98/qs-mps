@@ -14,44 +14,70 @@ import matplotlib as mpl
 # mps: h_t = 0 --> h_t = h_ev
 # ---------------------------------------------------------
 # initialize the chain in h_t = 0
-L = 11
-spin = MPS(L=L, d=2, model="Ising", chi=32, J=1, h=0, eps=0)
-spin._random_state(seed=3, chi=32)
-spin.canonical_form()
-energies = spin.sweeping(trunc=True)
-spin.flipping_mps()
-
 # %%
 # time evolution to h_t = h_ev
-X = np.array([[0,1],[1,0]])
-Z = np.array([[1,0],[0,-1]])
-trotter_steps = 6
-delta = 0.6
-h_ev = 0.1
+L = 15
+trotter_steps = 60
+delta = 0.2
+h_ev = 0.3
 fidelity = True
-if fidelity:
-    psi = mps_to_vector(spin.sites)
-mag_mpo_tot = []
-overlap_init = []
-overlap = []
-for T in range(trotter_steps):
-    print(f"Bond dim: {spin.sites[spin.L//2].shape[0]}")
-    spin.mpo_Ising_time_ev(delta=delta, h_ev=h_ev, J_ev=1)
-    spin.mpo_to_mps()
-    mag_mpo_tot.append(np.real(spin.mps_local_exp_val(op=Z)))
-    if fidelity:
-        psi_new_mpo = mps_to_vector(spin.sites)
-        overlap_init.append(psi_new_mpo.T.conjugate() @ psi)
+chis = [2, 8, 16]
+mag_chis = []
+for chi in chis:
+    spin = MPS(L=L, d=2, model="Ising", chi=chi, J=1, h=0, eps=0)
+    spin._random_state(seed=3, chi=chi)
+    spin.canonical_form()
+    energies = spin.sweeping(trunc=True)
+    spin.flipping_mps()
+    mag_mpo_tot, overlap = spin.direct_mpo_evolution(trotter_steps=trotter_steps, delta=delta, h_ev=h_ev, J_ev=1, fidelity=fidelity)
+    mag_chis.append(mag_mpo_tot)
 
 # %%
+L = 13
+trotter_steps = 2
+Z = np.array([[1,0],[0,-1]])
+mag_tot = H_loc(L=L, op=Z)
+psi_0 = exact_initial_state(L=L, h_t=0)
+exact_mag = []
+local_mag_tot = []
+magnetization = [single_site_op(op=Z, site=i, L=L) for i in range(1,L+1)]
+for T in range(trotter_steps):
+    U_ev = exact_evolution_operator(L=L, h_t=h_ev, delta=delta, trotter_step=T)
+    psi = U_ev @ psi_0
+    mag = psi.T.conjugate() @ mag_tot @ psi
+    exact_mag.append(mag)
+    local_mag = []
+    for i in range(L):
+        local_mag.append((psi.T.conjugate() @ magnetization[i] @ psi).real)
+    local_mag_tot.append(local_mag)
+# %%
 # visualization
-plt.title(f"MPS: $\delta = {delta}$; $h_{{t-ev}} = {h_ev}$")
-plt.imshow(mag_mpo_tot, cmap="seismic", vmin=-1, vmax=1, aspect=1)
+for mag_mpo, chi in zip(mag_chis, chis):
+    plt.title("MPS total magnetization: " + f"$\delta = {delta}$; $h_{{t-ev}} = {h_ev}$")
+    plt.ylabel("magnetization")
+    plt.xlabel("time (s)")
+    plt.plot(delta*np.arange(trotter_steps), mag_mpo, linestyle="--", label=f"$\chi = {chi}$")
+
+plt.plot(delta*np.arange(trotter_steps), exact_mag, label=f"exact: $L={L}$")
+plt.legend()
 plt.show()
+# plt.title(f"MPS: $\delta = {delta}$; $h_{{t-ev}} = {h_ev}$")
+# plt.imshow(mag_mpo_tot, cmap="seismic", vmin=-1, vmax=1, aspect=1)
+# plt.show()
 if fidelity:
-    plt.title("Fidelity $\left<\psi_{MPS}(t)|\psi_{MPS}(t=0)\\right>$: " + f"$\delta = {delta}$; $h_{{t-ev}} = {h_ev}$")
-    plt.plot(overlap_init)
+    plt.title("Fidelity $\left<\psi_{MPS}(t)|\psi_{exact}(t)\\right>$: " + f"$\delta = {delta}$; $h_{{t-ev}} = {h_ev}$")
+    plt.plot(np.abs(overlap))
     plt.show()
+
+plt.title(f"Exact: $\delta = {delta}$; $h_{{t-ev}} = {h_ev}$")
+plt.imshow(local_mag_tot, cmap="seismic", vmin=-1, vmax=1, aspect=0.1)
+plt.show()
+# plt.title("MPS total magnetization: " + f"$\delta = {delta}$; $h_{{t-ev}} = {h_ev}$")
+# plt.ylabel("magnetization")
+# plt.xlabel("time (s)")
+# plt.plot(delta*np.arange(trotter_steps), mag_mpo_tot, label=f"$\chi = {spin.chi}$")
+# plt.legend()
+# plt.show()
 # %%
 # check the Schmidt values in the middle of the time evolved chain
 site = spin.L//2
@@ -105,8 +131,8 @@ for T in range(trotter_steps):
         mag_exact.append((psi_new.T.conjugate() @ magnetization[i] @ psi_new).real)
     print(f"----- trotter step {T} --------")
     mag_exact_tot.append(mag_exact)
-    psi_new_mpo = mps_to_vector(spin.sites)
-    overlap.append(psi_new.T.conjugate() @ psi_new_mpo)
+    # psi_new_mpo = mps_to_vector(spin.sites)
+    # overlap.append(psi_new.T.conjugate() @ psi_new_mpo)
 
 # %%
 plt.title(f"Exact: $\delta = {delta}$; $h_{{t-ev}} = {h_t}$")
@@ -161,7 +187,7 @@ for T in range(trotter_steps):
     entropy.append(von_neumann_entropy(s))
     if fidelity:
         psi_new_mpo = mps_to_vector(spin.sites)
-        overlap_init.append(psi_new_mpo.T.conjugate() @ psi)
+        overlap.append(psi_new_mpo.T.conjugate() @ psi)
        
 # %%
 # visualization
@@ -170,10 +196,13 @@ plt.imshow(mag_mpo_tot, cmap="seismic", vmin=-1, vmax=1, aspect=3)
 plt.show()
 if fidelity:
     plt.title("Fidelity $\left<\psi_{exact}(t)|\psi_{exact}(t=0)\\right>$: " + f"$\delta = {delta}$; $h_{{t-ev}} = {h_ev}$")
-    plt.plot(overlap_init)
+    plt.plot(overlap)
     plt.show()
 plt.title("Entropy MPS: " + f"$\delta = {delta}$; $h_{{t-ev}} = {h_ev}$")
 plt.plot(np.log(np.abs(entropy)))
 plt.show()
+
+# %%
+# total mag
 
 # %%

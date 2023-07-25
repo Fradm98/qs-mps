@@ -90,7 +90,7 @@ class MPS:
 
         return self
 
-    def canonical_form(self, svd_direction="left", e_tol=10 ** (-15), ancilla=False, trunc=False):
+    def canonical_form(self, svd_direction="left", e_tol=10 ** (-15), ancilla=False, trunc=True):
         """
         canonical_form
 
@@ -132,7 +132,7 @@ class MPS:
             bonds = self.ancilla_bonds
 
         bonds.append(s_init)
-        for i in range(self.L - 1):
+        for i in range(self.L):
             new_site = ncon(
                 [psi, sites[i]],
                 [
@@ -144,26 +144,31 @@ class MPS:
                 new_site.reshape(new_site.shape[0] * self.d, new_site.shape[2]),
                 full_matrices=False,
             )
+            bond_l = u.shape[0] // self.d
+            u = u.reshape(bond_l, self.d, u.shape[1])
             condition = s >= e_tol
             s_trunc = np.extract(condition, s)
             s_trunc = s_trunc / np.linalg.norm(s_trunc)
             s_trunc = s / np.linalg.norm(s)
-            bond_l = u.shape[0] // self.d
-            u = u.reshape(bond_l, self.d, u.shape[1])
             u = u[:, :, : len(s_trunc)]
             sites[i] = u
             bonds.append(s_trunc)
             v = v[: len(s_trunc), :]
+
+            if u.shape[1] > self.chi:
+                    u = u[:, :, :self.chi]
+                    s = s[:self.chi]
+                    v = v[:self.chi, :]
             psi = ncon(
-                [np.diag(s_trunc), v],
+                [np.diag(s), v],
                 [
                     [-1,1],
                     [1,-2],
                 ],
             )
-        bond_r = v.shape[1] // self.d
-        sites[-1] = psi.reshape(v.shape[0], self.d, bond_r)
-        bonds.append(s_init)
+        # bond_r = v.shape[1] // self.d
+        # sites[-1] = psi.reshape(v.shape[0], self.d, bond_r)
+        # bonds.append(s_init)
 
         return self
 
@@ -203,19 +208,23 @@ class MPS:
             bond_r = v.shape[1] // self.d
             v = v.reshape((v.shape[0], self.d, bond_r))
             if trunc:
-                condition = s >= e_tol
-                s_trunc = np.extract(condition, s)
-                s_trunc = s_trunc / np.linalg.norm(s_trunc)
-                v = v[: len(s_trunc), :, :]
-                bonds.append(s_trunc)
-                u = u[:, : len(s_trunc)]
-                psi = ncon(
-                    [u, np.diag(s_trunc)],
-                    [
-                        [-1,1],
-                        [1,-2],
-                    ],
-                )
+                if v.shape[0] > self.chi:
+                    v = v[:self.chi, :, :]
+                    s = s[:self.chi]
+                    u = u[:, :self.chi]
+                # condition = s >= e_tol
+                # s_trunc = np.extract(condition, s)
+                # s_trunc = s_trunc / np.linalg.norm(s_trunc)
+                # v = v[:len(s_trunc), :, :]
+                # bonds.append(s_trunc)
+                # u = u[:, :len(s_trunc)]
+                # psi = ncon(
+                #     [u, np.diag(s_trunc)],
+                #     [
+                #         [-1,1],
+                #         [1,-2],
+                #     ],
+                # )
             sites[i] = v
             bonds.append(s)
             psi = ncon(
@@ -1271,17 +1280,25 @@ class MPS:
         mag_mpo_tot = []
         Z = np.array([[1,0],[0,-1]])
         if fidelity:
-            psi = mps_to_vector(self.sites)
+            psi_exact_0 = exact_initial_state(L=self.L, h_t=self.h)
         for T in range(trotter_steps):
             print(f"------ Trotter steps: {T} -------")
             print(f"Bond dim: {self.sites[self.L//2].shape[0]}")
             self.mpo_Ising_time_ev(delta=delta, h_ev=h_ev, J_ev=1)
             self.mpo_to_mps()
+            # self.canonical_form()
+            self.canonical_form(svd_direction="left")
+            self.canonical_form(svd_direction="right")
+            tensor_shapes(self.sites)
             # self.save_sites()
-            mag_mpo_tot.append(np.real(self.mps_local_exp_val(op=Z)))
+            # mag_mpo_tot.append(np.real(self.mps_local_exp_val(op=Z)))
+            self.order_param_Ising(op=Z)
+            mag_mpo_tot.append(np.real(self.mpo_first_moment()))
             if fidelity:
+                U = exact_evolution_operator(L=self.L, h_t=h_ev, delta=delta, trotter_step=(T+1))
+                psi_exact = U @ psi_exact_0
                 psi_new_mpo = mps_to_vector(self.sites)
-                overlap.append(psi_new_mpo.T.conjugate() @ psi)
+                overlap.append(psi_new_mpo.T.conjugate() @ psi_exact)
         return mag_mpo_tot, overlap
     
     def compressed_mpo_evolution(self, trotter_steps, fidelity, delta, h_ev, chi_max):

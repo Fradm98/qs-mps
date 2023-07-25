@@ -1,5 +1,7 @@
 import numpy as np
 from scipy.optimize import curve_fit
+from scipy.sparse.linalg import expm
+from scipy.sparse import csr_matrix
 import os
 from ncon import ncon 
 import matplotlib.pyplot as plt
@@ -498,3 +500,23 @@ def create_sequential_colors(num_colors, colormap_name):
     colormap_values = np.linspace(0, 1, num_colors)
     colors = [colormap(value) for value in colormap_values]
     return colors
+
+def exact_initial_state(L, h_t):
+    X = np.array([[0,1],[1,0]])
+    Z = np.array([[1,0],[0,-1]])
+    H = H_ising_gen(L=L, op_l=Z, op_t=X, J=1, h_l=0, h_t=h_t)
+    e, v = np.linalg.eig(H)
+    psi = v[:,0]
+    flip = single_site_op(op=X, site=L // 2 + 1, L=L)
+    psi = flip @ psi
+    return psi
+
+def exact_evolution_operator(L, h_t, delta, trotter_step):
+    X = np.array([[0,1],[1,0]])
+    Z = np.array([[1,0],[0,-1]])
+    H_ev = H_ising_gen(L=L, op_l=Z, op_t=X, J=1, h_l=0, h_t=h_t)
+    time = delta*trotter_step
+    U = expm(-1j*time*H_ev)
+    U_new = truncation(array=U, threshold=1e-16)
+    U_new = csr_matrix(U_new)
+    return U_new
