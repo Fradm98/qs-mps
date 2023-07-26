@@ -82,6 +82,7 @@ class MPS:
                         2 ** (self.L // 2 - i), self.d, 2 ** (self.L // 2 - i - 1)
                     )
                 )
+
         elif type_shape == "rectangular":
             sites.append(np.random.rand(1, self.d, chi))
             for _ in range(self.L-2):
@@ -132,7 +133,7 @@ class MPS:
             bonds = self.ancilla_bonds
 
         bonds.append(s_init)
-        for i in range(self.L):
+        for i in range(self.L-1):
             new_site = ncon(
                 [psi, sites[i]],
                 [
@@ -146,19 +147,20 @@ class MPS:
             )
             bond_l = u.shape[0] // self.d
             u = u.reshape(bond_l, self.d, u.shape[1])
-            condition = s >= e_tol
-            s_trunc = np.extract(condition, s)
-            s_trunc = s_trunc / np.linalg.norm(s_trunc)
-            s_trunc = s / np.linalg.norm(s)
-            u = u[:, :, : len(s_trunc)]
-            sites[i] = u
-            bonds.append(s_trunc)
-            v = v[: len(s_trunc), :]
+            if trunc:
+                condition = s >= e_tol
+                s_trunc = np.extract(condition, s)
+                s_trunc = s_trunc / np.linalg.norm(s_trunc)
+                s_trunc = s / np.linalg.norm(s)
+                u = u[:, :, : len(s_trunc)]
+                bonds.append(s_trunc)
+                v = v[: len(s_trunc), :]
 
             if u.shape[1] > self.chi:
                     u = u[:, :, :self.chi]
                     s = s[:self.chi]
                     v = v[:self.chi, :]
+            sites[i] = u
             psi = ncon(
                 [np.diag(s), v],
                 [
@@ -166,8 +168,8 @@ class MPS:
                     [1,-2],
                 ],
             )
-        # bond_r = v.shape[1] // self.d
-        # sites[-1] = psi.reshape(v.shape[0], self.d, bond_r)
+        bond_r = v.shape[1] // self.d
+        sites[-1] = psi.reshape(v.shape[0], self.d, bond_r)
         # bonds.append(s_init)
 
         return self
@@ -234,9 +236,11 @@ class MPS:
                     [1,-2],
                 ],
             )
-            
-        bonds.append(s_init)
-        bonds.reverse()
+        
+        # bond_l = u.shape[0] // self.d
+        # sites[0] = psi.reshape(bond_l,self.d,u.shape[1])
+        # bonds.append(s_init)
+        # bonds.reverse()
         # print(f"Time of svd during canonical form: {time.perf_counter()-time_cf}")
         # np.savetxt(f"results/times_data/svd_canonical_form_h_{self.h:.2f}", [time.perf_counter()-time_cf])
         return self
@@ -384,6 +388,14 @@ class MPS:
 
         new_site = ncon([self.sites[self.L // 2],X],[[-1,1,-3],[1,-2]])
         self.sites[self.L // 2] = new_site
+
+        return self
+    
+    def flip_all_mps(self):
+        X = np.array([[0,1],[1,0]])
+        for i in range(self.L):
+            new_site = ncon([self.sites[i],X],[[-1,1,-3],[1,-2]])
+            self.sites[i] = new_site
 
         return self
 
@@ -1291,9 +1303,9 @@ class MPS:
             self.canonical_form(svd_direction="right")
             tensor_shapes(self.sites)
             # self.save_sites()
-            # mag_mpo_tot.append(np.real(self.mps_local_exp_val(op=Z)))
-            self.order_param_Ising(op=Z)
-            mag_mpo_tot.append(np.real(self.mpo_first_moment()))
+            mag_mpo_tot.append(np.real(self.mps_local_exp_val(op=Z)))
+            # self.order_param_Ising(op=Z)
+            # mag_mpo_tot.append(np.real(self.mpo_first_moment()))
             if fidelity:
                 U = exact_evolution_operator(L=self.L, h_t=h_ev, delta=delta, trotter_step=(T+1))
                 psi_exact = U @ psi_exact_0

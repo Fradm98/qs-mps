@@ -13,75 +13,78 @@ import matplotlib as mpl
 # ---------------------------------------------------------
 # mps: h_t = 0 --> h_t = h_ev
 # ---------------------------------------------------------
-# initialize the chain in h_t = 0
-# %%
 # time evolution to h_t = h_ev
-L = 15
-trotter_steps = 60
+L = 9
+trotter_steps = 10
 delta = 0.2
-h_ev = 0.3
+h_ev = 0.5
 fidelity = True
 chis = [2, 8, 16]
 mag_chis = []
+overlap_chis = []
 for chi in chis:
+    # initialize the chain in h_t = 0
     spin = MPS(L=L, d=2, model="Ising", chi=chi, J=1, h=0, eps=0)
     spin._random_state(seed=3, chi=chi)
     spin.canonical_form()
     energies = spin.sweeping(trunc=True)
     spin.flipping_mps()
+    # time evolution and expectation values computation
     mag_mpo_tot, overlap = spin.direct_mpo_evolution(trotter_steps=trotter_steps, delta=delta, h_ev=h_ev, J_ev=1, fidelity=fidelity)
     mag_chis.append(mag_mpo_tot)
+    overlap_chis.append(overlap)
 
 # %%
-L = 13
-trotter_steps = 2
+L = 9
+trotter_steps = 10
 Z = np.array([[1,0],[0,-1]])
-trotter_steps = 6
-delta = 0.6
-h_ev = 0.1
-fidelity = True
-if fidelity:
-    psi = mps_to_vector(spin.sites)
-mag_mpo_tot = []
-overlap_init = []
-overlap = []
+delta = 0.2
+h_ev = 0.5
+
+psi_0 = exact_initial_state(L=L, h_t=0)
+mag_tot = H_loc(L=L, op=Z)
+magnetization = [single_site_op(op=Z, site=i, L=L) for i in range(1,L+1)]
+mag_exact_tot = []
+mag_exact_loc = []
 for T in range(trotter_steps):
     U_ev = exact_evolution_operator(L=L, h_t=h_ev, delta=delta, trotter_step=T)
     psi = U_ev @ psi_0
     mag = psi.T.conjugate() @ mag_tot @ psi
-    exact_mag.append(mag)
+    mag_exact_tot.append(mag)
     local_mag = []
     for i in range(L):
         local_mag.append((psi.T.conjugate() @ magnetization[i] @ psi).real)
-    local_mag_tot.append(local_mag)
+    mag_exact_loc.append(local_mag)
 # %%
-# visualization
+# visualization of total magnetizations exact vs mps
 for mag_mpo, chi in zip(mag_chis, chis):
     plt.title("MPS total magnetization: " + f"$\delta = {delta}$; $h_{{t-ev}} = {h_ev}$")
     plt.ylabel("magnetization")
     plt.xlabel("time (s)")
     plt.plot(delta*np.arange(trotter_steps), mag_mpo, linestyle="--", label=f"$\chi = {chi}$")
 
-plt.plot(delta*np.arange(trotter_steps), exact_mag, label=f"exact: $L={L}$")
+plt.plot(delta*np.arange(trotter_steps), mag_exact_tot, label=f"exact: $L={L}$")
 plt.legend()
 plt.show()
-# plt.title(f"MPS: $\delta = {delta}$; $h_{{t-ev}} = {h_ev}$")
-# plt.imshow(mag_mpo_tot, cmap="seismic", vmin=-1, vmax=1, aspect=1)
-# plt.show()
+# %%
+# fidelity visualization with mps of largest chi
 if fidelity:
+    
+    for overlap, chi in zip(overlap_chis, chis):
+        plt.plot(np.abs(overlap), label=f'$\chi = {chi}')
     plt.title("Fidelity $\left<\psi_{MPS}(t)|\psi_{exact}(t)\\right>$: " + f"$\delta = {delta}$; $h_{{t-ev}} = {h_ev}$")
-    plt.plot(np.abs(overlap))
     plt.show()
 
+# visualization of exact local magnetization
 plt.title(f"Exact: $\delta = {delta}$; $h_{{t-ev}} = {h_ev}$")
-plt.imshow(local_mag_tot, cmap="seismic", vmin=-1, vmax=1, aspect=0.1)
+plt.imshow(mag_exact_loc, cmap="seismic", vmin=-1, vmax=1, aspect=0.1)
 plt.show()
-# plt.title("MPS total magnetization: " + f"$\delta = {delta}$; $h_{{t-ev}} = {h_ev}$")
-# plt.ylabel("magnetization")
-# plt.xlabel("time (s)")
-# plt.plot(delta*np.arange(trotter_steps), mag_mpo_tot, label=f"$\chi = {spin.chi}$")
-# plt.legend()
-# plt.show()
+# %%
+# visualization of mps local magnetization
+for mag_loc, chi in zip(mag_chis, chis):
+    plt.title(f"Exact: $\delta = {delta}$; $h_{{t-ev}} = {h_ev}, \chi = {chi}$")
+    plt.imshow(mag_loc, cmap="seismic", vmin=-1, vmax=1, aspect=0.1)
+    plt.show()
 # %%
 # check the Schmidt values in the middle of the time evolved chain
 site = spin.L//2

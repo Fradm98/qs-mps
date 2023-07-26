@@ -1,0 +1,207 @@
+# %%
+from mps_class_v9 import MPS
+from utils import *
+import numpy as np
+import matplotlib.pyplot as plt
+import matplotlib.gridspec as gridspec
+
+# %%
+def mixed_canonical(mps):
+    s_init = np.array([1])
+    psi = np.diag(s_init)
+    
+    sites = mps.sites
+    for i in range(mps.L - 1, mps.L//2, -1):
+        new_site = ncon(
+            [sites[i], psi],
+            [
+                [-1,-2,1],
+                [1,-3],
+            ],
+        )
+        u, s, v = np.linalg.svd(
+            new_site.reshape(new_site.shape[0], mps.d * new_site.shape[2]),
+            full_matrices=False,
+        )
+        bond_r = v.shape[1] // mps.d
+        v = v.reshape((v.shape[0], mps.d, bond_r))
+        sites[i] = v
+        psi = ncon(
+            [u, np.diag(s)],
+            [
+                [-1,1],
+                [1,-2],
+            ],
+        )
+    s_init = np.array([1])
+    psi = np.diag(s_init)
+
+    for i in range(mps.L//2+1):
+        new_site = ncon(
+            [psi, sites[i]],
+            [
+                [-1,1],
+                [1,-2,-3],
+            ],
+        )
+        u, s, v = np.linalg.svd(
+            new_site.reshape(new_site.shape[0] * mps.d, new_site.shape[2]),
+            full_matrices=False,
+        )
+        bond_l = u.shape[0] // mps.d
+        u = u.reshape(bond_l, mps.d, u.shape[1])
+        sites[i] = u
+        psi = ncon(
+            [np.diag(s), v],
+            [
+                [-1,1],
+                [1,-2],
+            ],
+        )
+    return mps
+
+def trunc_mps(mps, chi):
+    mps.canonical_form(trunc=True, svd_direction="left")
+    mps.canonical_form(trunc=True, svd_direction="right")
+    mps._compute_norm(1)
+    return mps
+
+def exact_magnetization_loc(psi, magnetization):
+    local_mag = []
+    for i in range(L):
+        local_mag.append((psi.T.conjugate() @ magnetization[i] @ psi).real)
+    return local_mag
+
+def exact_magnetization_tot(psi, magnetization):
+    total_mag = psi.T.conjugate() @ magnetization @ psi
+    return total_mag
+
+def exact_evolution(L, T, psi_0): # , mag_tot, mag_loc
+    print(f"Trotter step: {T}")
+    U_ev = exact_evolution_operator(L=L, h_t=h_ev, delta=delta, trotter_step=T)
+    psi = U_ev @ psi_0
+    return psi
+
+def direct_TEBD(trotter_steps, delta, h_ev, J_ev, chi_max, mag_mps_loc, mag_mps_tot, trunc, fidelity):
+    overlap = []
+    for T in range(trotter_steps):
+        print(f"Trotter step: {T}")
+        chain.mpo_Ising_time_ev(delta=delta, h_ev=h_ev, J_ev=J_ev)
+        new_chain = chain.mpo_to_mps()
+        if trunc:
+            new_chain = trunc_mps(chain, chi=chi_max)
+        mag_mps_loc.append(np.real(new_chain.mps_local_exp_val(op=Z)))
+        new_chain.order_param_Ising(op=Z)
+        mag_mps_tot.append(new_chain.mpo_first_moment().real)
+        if fidelity:
+            psi_mps = mps_to_vector(new_chain.sites)
+            psi = exact_evolution(chain.L, T, psi_0)
+            overlap.append(psi_mps.T.conjugate() @ psi)
+    return mag_mps_loc, mag_mps_tot, overlap
+
+def plot_three_colormaps(arr_1, arr_2, arr_3, cmap):
+    # Create a sample data for demonstration
+    x = np.linspace(0, 10, 100)
+    y = np.sin(x)
+
+    # Create the main figure with a grid layout
+    fig = plt.figure()
+    gs = gridspec.GridSpec(2, 2, width_ratios=[1, 1], height_ratios=[1, 1])
+
+    # Plot data with the first colormap in the first row, first column
+    ax1 = plt.subplot(gs[0, 0])
+    im1 = ax1.imshow(arr_1, cmap=cmap, aspect=0.1)
+    ax1.set_title('Exact')
+
+    # Plot data with the second colormap in the first row, second column
+    ax2 = plt.subplot(gs[0, 1])
+    im2 = ax2.imshow(arr_2, cmap=cmap, aspect=0.1)
+    ax2.set_title('MPS')
+
+    # Plot data with the third colormap in the second row, centered
+    ax3 = plt.subplot(gs[1, :])
+    im3 = ax3.imshow(arr_3, cmap=cmap, aspect=0.1, vmin=-0.5, vmax=0.5)
+    ax3.set_title('Difference')
+
+    # Add colorbars to each subplot
+    fig.colorbar(im1, ax=ax1)
+    fig.colorbar(im2, ax=ax2)
+    fig.colorbar(im3, ax=ax3)
+
+    # Adjust layout and display the plot
+    # plt.tight_layout()
+    plt.subplots_adjust(left=0.1, right=0.9, bottom=0.1, top=0.9, wspace=0.4, hspace=0.6)
+    plt.show()
+# %%
+L = 9
+d = 2
+h_0 = 0
+J = 1
+chis = [2, 4, 16]
+Z = np.array([[1,0],[0,-1]])
+# exact initial state and observables
+psi_0 = exact_initial_state(L=L, h_t=0)
+mag_tot = H_loc(L=L, op=Z)
+magnetization = [single_site_op(op=Z, site=i, L=L) for i in range(1,L+1)]
+total_mag = []
+local_mag = []
+total_mag.append(exact_magnetization_tot(psi=psi_0, magnetization=mag_tot))
+local_mag.append(exact_magnetization_loc(psi=psi_0, magnetization=magnetization))
+# attempt of loop
+trotter_steps = 100
+delta = 0.1
+h_ev = 0.5
+trunc = True
+mag_mps_tot_chi = []
+mag_mps_loc_chi = []
+overlap_chi = []
+for chi in chis:
+    # initializing the chain
+    chain = MPS(L=L, d=d, model="Ising", chi=2, h=h_0, J=J, eps=0)
+    chain._random_state(seed=7)
+    chain.canonical_form()
+    chain.sweeping(trunc=True)
+    print(np.real(chain.mps_local_exp_val(op=Z)))
+    chain.flipping_mps()
+    chain.flip_all_mps()
+    # computing expectation values before trotter
+    mag_mps_loc = []
+    mag_mps_tot = []
+    print(np.real(chain.mps_local_exp_val(op=Z)))
+    mag_mps_loc.append(np.real(chain.mps_local_exp_val(op=Z)))
+    chain.order_param_Ising(op=Z)
+    mag_mps_tot.append(chain.mpo_first_moment().real)
+    chi_max = chi
+    chain.chi = chi
+    # trotter evolution for a specific chi
+    mag_mps_loc, mag_mps_tot, overlap = direct_TEBD(trotter_steps, delta, h_ev, J, chi_max, mag_mps_loc, mag_mps_tot, trunc, fidelity=True)
+    mag_mps_tot_chi.append(mag_mps_tot)
+    mag_mps_loc_chi.append(mag_mps_loc)
+    overlap_chi.append(overlap)
+# %%
+# ============================
+for T in range(trotter_steps):
+    print(f"Trotter step: {T}")
+    U_ev = exact_evolution_operator(L=L, h_t=h_ev, delta=delta, trotter_step=T)
+    psi = U_ev @ psi_0
+    total_mag.append(exact_magnetization_tot(psi=psi, magnetization=mag_tot))
+    local_mag.append(exact_magnetization_loc(psi=psi, magnetization=magnetization))
+# %%
+plt.plot(total_mag, label=f"exact: $L = {L}$")
+for mag_mps_tot, chi in zip(mag_mps_tot_chi, chis):
+    plt.plot(mag_mps_tot, 'o', label=f"mps: $\chi = {chi}$")
+plt.legend()
+plt.show()
+
+cmap = 'seismic'
+arr_1 = local_mag
+arr_2 = mag_mps_loc_chi[-1]
+arr_3 = np.asarray(arr_1) - np.asarray(arr_2)
+plot_three_colormaps(arr_1, arr_2, arr_3, cmap)
+
+# %%
+plt.title("Fidelities with changing bond dimension")
+for overlap, chi in zip(overlap_chi, chis):
+    plt.plot(np.abs(overlap), 'o', label=f"$\chi = {chi}$")
+plt.legend()
+plt.show()
