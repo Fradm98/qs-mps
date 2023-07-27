@@ -7,7 +7,6 @@ import scipy
 from scipy.linalg import expm
 from scipy.sparse import csr_matrix
 import matplotlib.pyplot as plt
-
 # %%
 # ---------------------------------------------------------
 # mps: h_t = 0 --> h_t = h_ev

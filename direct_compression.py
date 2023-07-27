@@ -102,7 +102,7 @@ def direct_TEBD(trotter_steps, delta, h_ev, J_ev, chi_max, mag_mps_loc, mag_mps_
             overlap.append(psi_mps.T.conjugate() @ psi)
     return mag_mps_loc, mag_mps_tot, overlap, ent_ent
 
-def plot_three_colormaps(arr_1, arr_2, arr_3, cmap):
+def plot_three_colormaps(arr_1, arr_2, arr_3, cmap, aspect):
     # Create a sample data for demonstration
     x = np.linspace(0, 10, 100)
     y = np.sin(x)
@@ -113,17 +113,17 @@ def plot_three_colormaps(arr_1, arr_2, arr_3, cmap):
 
     # Plot data with the first colormap in the first row, first column
     ax1 = plt.subplot(gs[0, 0])
-    im1 = ax1.imshow(arr_1, cmap=cmap, aspect=0.1)
+    im1 = ax1.imshow(arr_1, cmap=cmap, aspect=aspect)
     ax1.set_title('Exact')
 
     # Plot data with the second colormap in the first row, second column
     ax2 = plt.subplot(gs[0, 1])
-    im2 = ax2.imshow(arr_2, cmap=cmap, aspect=0.1)
+    im2 = ax2.imshow(arr_2, cmap=cmap, aspect=aspect)
     ax2.set_title('MPS: L compression')
 
     # Plot data with the third colormap in the second row, centered
     ax3 = plt.subplot(gs[1, :])
-    im3 = ax3.imshow(arr_3, cmap=cmap, aspect=0.1, vmin=-0.5, vmax=0.5)
+    im3 = ax3.imshow(arr_3, cmap=cmap, aspect=aspect, vmin=-0.5, vmax=0.5)
     ax3.set_title('Difference')
 
     # Add colorbars to each subplot
@@ -140,26 +140,23 @@ L = 9
 d = 2
 h_0 = 0
 J = 1
-chis = [2, 4, 16]
+chis = [2]
 Z = np.array([[1,0],[0,-1]])
 # exact initial state and observables
 psi_0 = exact_initial_state(L=L, h_t=0)
 mag_tot = H_loc(L=L, op=Z)
 magnetization = [single_site_op(op=Z, site=i, L=L) for i in range(1,L+1)]
-total_mag = []
-local_mag = []
-total_mag.append(exact_magnetization_tot(psi=psi_0, magnetization=mag_tot))
-local_mag.append(exact_magnetization_loc(psi=psi_0, magnetization=magnetization))
 # attempt of loop
-trotter_steps = 50
-delta = 0.1
+trotter_steps = [5,6,7,8]
+deltas = [1/T for T in trotter_steps]
+chi = 2
 h_ev = 0.5
-trunc = True
+trunc = False
 mag_mps_tot_chi = []
 mag_mps_loc_chi = []
 overlap_chi = []
 entr_chi = []
-for chi in chis:
+for trott, delta in zip(trotter_steps, deltas):
     # initializing the chain
     chain = MPS(L=L, d=d, model="Ising", chi=2, h=h_0, J=J, eps=0)
     chain._random_state(seed=7)
@@ -179,19 +176,28 @@ for chi in chis:
     chi_max = chi
     chain.chi = chi
     # trotter evolution for a specific chi
-    mag_mps_loc, mag_mps_tot, overlap, ent_ent = direct_TEBD(trotter_steps, delta, h_ev, J, chi_max, mag_mps_loc, mag_mps_tot, trunc, fidelity=True)
+    mag_mps_loc, mag_mps_tot, overlap, ent_ent = direct_TEBD(trott, delta, h_ev, J, chi_max, mag_mps_loc, mag_mps_tot, trunc, fidelity=True)
     mag_mps_tot_chi.append(mag_mps_tot)
     mag_mps_loc_chi.append(mag_mps_loc)
     overlap_chi.append(overlap)
     entr_chi.append(ent_ent)
 # %%
 # ============================
-for T in range(trotter_steps):
-    print(f"Trotter step: {T}")
-    U_ev = exact_evolution_operator(L=L, h_t=h_ev, delta=delta, trotter_step=T)
-    psi = U_ev @ psi_0
-    total_mag.append(exact_magnetization_tot(psi=psi, magnetization=mag_tot))
-    local_mag.append(exact_magnetization_loc(psi=psi, magnetization=magnetization))
+total_mag_tr = []
+local_mag_tr = []
+for delta, trott in zip(deltas, trotter_steps):
+    total_mag = []
+    local_mag = []
+    total_mag.append(exact_magnetization_tot(psi=psi_0, magnetization=mag_tot))
+    local_mag.append(exact_magnetization_loc(psi=psi_0, magnetization=magnetization))
+    for T in range(trott):
+        print(f"Trotter step: {T}")
+        U_ev = exact_evolution_operator(L=L, h_t=h_ev, delta=delta, trotter_step=T)
+        psi = U_ev @ psi_0
+        total_mag.append(exact_magnetization_tot(psi=psi, magnetization=mag_tot))
+        local_mag.append(exact_magnetization_loc(psi=psi, magnetization=magnetization))
+    total_mag_tr.append(total_mag)
+    local_mag_tr.append(local_mag)
 overlap_init = psi_0_mps.T.conjugate() @ psi_0
 # %%
 # ============================
@@ -206,6 +212,17 @@ for mag_mps_tot, chi in zip(mag_mps_tot_chi, chis):
     plt.plot(delta*np.arange(trotter_steps+1), mag_mps_tot, 'o', label=f"mps: $\chi = {chi}$")
 plt.legend()
 plt.show()
+
+# %%
+# Total magnetization no compression different deltas
+plt.title("Magnetization order parameter")
+plt.xlabel("time $(t = \delta · N)$", fontsize=14)
+plt.ylabel("Expectation value $\quad$ $\left<\sum_i \sigma_i^z\\right>$")
+for mag_mps_tot, total_mag, delta, trott in zip(mag_mps_tot_chi, total_mag_tr, deltas, trotter_steps):
+    plt.plot(delta*np.arange(trott+1), total_mag, label=f"exact: $trotter = {trott}$")
+    plt.plot(delta*np.arange(trott+1), mag_mps_tot, 'o', label=f"mps: $trotter = {trott}$")
+plt.legend()
+plt.show()
 # %%
 # Total magnetization NO compression
 chi = chain.sites[L//2].shape[0]
@@ -217,12 +234,22 @@ plt.plot(delta*np.arange(trotter_steps+1), mag_mps_tot_chi[-1], 'o', label=f"mps
 plt.legend()
 plt.show()
 # %%
+# Total magnetization error NO compression
+chi = chain.sites[L//2].shape[0]
+plt.title("Magnetization order parameter")
+plt.xlabel("time $(t = \delta · N)$", fontsize=14)
+plt.ylabel("relative error $\quad$ $(\left<M_{exact}\\right> - \left<M_{MPS}\\right>)/\left<M_{exact}\\right>$")
+plt.plot(delta*np.arange(trotter_steps+1), (np.asarray(total_mag)-np.asarray(mag_mps_tot_chi[-1]))/np.asarray(total_mag), label=f"difference exact - $\chi={chi}$:  $L = {L}$")
+plt.legend()
+plt.show()
+# %%
 # Local magnetization compression
 cmap = 'seismic'
 arr_1 = local_mag
 arr_2 = mag_mps_loc_chi[-1]
 arr_3 = np.asarray(arr_1) - np.asarray(arr_2)
-plot_three_colormaps(arr_1, arr_2, arr_3, cmap)
+aspect = 1
+plot_three_colormaps(arr_1, arr_2, arr_3, cmap, aspect)
 
 # %%
 # Fidelity compression
@@ -241,19 +268,25 @@ plt.hlines(y=error, xmin=plt.xlim()[0], xmax=plt.xlim()[1], color='red', linesty
 plt.xlabel("time $(t = \delta · N)$", fontsize=14)
 plt.ylabel("$\left<\psi_{MPS} (t)| \psi_{exact} (t)\\right>$", fontsize=14)
 # plt.yscale('log')
-plt.ylim((0.9,1.01))
-plt.savefig('figures/fidelity_L_compression_zoom', transparent=True)
-# plt.legend()
+# plt.ylim((0.9,1.01))
+# plt.savefig('figures/fidelity_L_compression', transparent=True)
+plt.legend()
 plt.show()
 
 # %%
 # Fidelity NO compression
 plt.title("Fidelity: No compression")
 overlap = overlap_chi[-1]
+error_2 = [1 - T*delta**3 for T in range(1,trotter_steps+1)]
+error = [1 - T*delta**2 for T in range(1,trotter_steps+1)]
 plt.plot(delta*np.arange(trotter_steps), np.abs(overlap), 'o', label=f"$\chi = {chi}$")
+plt.plot(delta*np.arange(trotter_steps), error_2, color='red', linestyle=':', label=f"trotter error 2º order at $t={delta*trotter_steps}$")
+plt.plot(delta*np.arange(trotter_steps), error, color='red', linestyle='--', label=f"trotter error 1º order at $t={delta*trotter_steps}$")
 plt.xlabel("time $(t = \delta · N)$", fontsize=14)
 plt.ylabel("$\left<\psi_{MPS} (t)| \psi_{exact} (t)\\right>$", fontsize=14)
-plt.legend()
+plt.yscale('log')
+# plt.ylim(0.9995, 1.000)
+plt.legend(loc='lower left', fontsize=14)
 plt.show()
 
 # %%
