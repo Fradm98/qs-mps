@@ -62,7 +62,7 @@ def mixed_canonical(mps):
 
 def trunc_mps(mps, chi):
     mps.canonical_form(trunc=True, svd_direction="left")
-    mps.canonical_form(trunc=True, svd_direction="right")
+    # mps.canonical_form(trunc=True, svd_direction="right")
     mps._compute_norm(1)
     return mps
 
@@ -84,6 +84,7 @@ def exact_evolution(L, T, psi_0): # , mag_tot, mag_loc
 
 def direct_TEBD(trotter_steps, delta, h_ev, J_ev, chi_max, mag_mps_loc, mag_mps_tot, trunc, fidelity):
     overlap = []
+    ent_ent = []
     for T in range(trotter_steps):
         print(f"Trotter step: {T}")
         chain.mpo_Ising_time_ev(delta=delta, h_ev=h_ev, J_ev=J_ev)
@@ -93,11 +94,13 @@ def direct_TEBD(trotter_steps, delta, h_ev, J_ev, chi_max, mag_mps_loc, mag_mps_
         mag_mps_loc.append(np.real(new_chain.mps_local_exp_val(op=Z)))
         new_chain.order_param_Ising(op=Z)
         mag_mps_tot.append(new_chain.mpo_first_moment().real)
+        u,s,v = np.linalg.svd(new_chain.sites[new_chain.L//2].reshape((new_chain.sites[new_chain.L//2].shape[0]*new_chain.d,new_chain.sites[new_chain.L//2].shape[2])))
+        ent_ent.append(von_neumann_entropy(s))
         if fidelity:
             psi_mps = mps_to_vector(new_chain.sites)
             psi = exact_evolution(chain.L, T, psi_0)
             overlap.append(psi_mps.T.conjugate() @ psi)
-    return mag_mps_loc, mag_mps_tot, overlap
+    return mag_mps_loc, mag_mps_tot, overlap, ent_ent
 
 def plot_three_colormaps(arr_1, arr_2, arr_3, cmap):
     # Create a sample data for demonstration
@@ -116,7 +119,7 @@ def plot_three_colormaps(arr_1, arr_2, arr_3, cmap):
     # Plot data with the second colormap in the first row, second column
     ax2 = plt.subplot(gs[0, 1])
     im2 = ax2.imshow(arr_2, cmap=cmap, aspect=0.1)
-    ax2.set_title('MPS')
+    ax2.set_title('MPS: L compression')
 
     # Plot data with the third colormap in the second row, centered
     ax3 = plt.subplot(gs[1, :])
@@ -148,13 +151,14 @@ local_mag = []
 total_mag.append(exact_magnetization_tot(psi=psi_0, magnetization=mag_tot))
 local_mag.append(exact_magnetization_loc(psi=psi_0, magnetization=magnetization))
 # attempt of loop
-trotter_steps = 100
+trotter_steps = 50
 delta = 0.1
 h_ev = 0.5
 trunc = True
 mag_mps_tot_chi = []
 mag_mps_loc_chi = []
 overlap_chi = []
+entr_chi = []
 for chi in chis:
     # initializing the chain
     chain = MPS(L=L, d=d, model="Ising", chi=2, h=h_0, J=J, eps=0)
@@ -164,6 +168,7 @@ for chi in chis:
     print(np.real(chain.mps_local_exp_val(op=Z)))
     chain.flipping_mps()
     chain.flip_all_mps()
+    psi_0_mps = mps_to_vector(chain.sites)
     # computing expectation values before trotter
     mag_mps_loc = []
     mag_mps_tot = []
@@ -174,10 +179,11 @@ for chi in chis:
     chi_max = chi
     chain.chi = chi
     # trotter evolution for a specific chi
-    mag_mps_loc, mag_mps_tot, overlap = direct_TEBD(trotter_steps, delta, h_ev, J, chi_max, mag_mps_loc, mag_mps_tot, trunc, fidelity=True)
+    mag_mps_loc, mag_mps_tot, overlap, ent_ent = direct_TEBD(trotter_steps, delta, h_ev, J, chi_max, mag_mps_loc, mag_mps_tot, trunc, fidelity=True)
     mag_mps_tot_chi.append(mag_mps_tot)
     mag_mps_loc_chi.append(mag_mps_loc)
     overlap_chi.append(overlap)
+    entr_chi.append(ent_ent)
 # %%
 # ============================
 for T in range(trotter_steps):
@@ -186,13 +192,32 @@ for T in range(trotter_steps):
     psi = U_ev @ psi_0
     total_mag.append(exact_magnetization_tot(psi=psi, magnetization=mag_tot))
     local_mag.append(exact_magnetization_loc(psi=psi, magnetization=magnetization))
+overlap_init = psi_0_mps.T.conjugate() @ psi_0
 # %%
-plt.plot(total_mag, label=f"exact: $L = {L}$")
+# ============================
+# visualization
+# ============================
+# Total magnetization compression
+plt.title("Magnetization order parameter")
+plt.xlabel("time $(t = \delta · N)$", fontsize=14)
+plt.ylabel("Expectation value $\quad$ $\left<\sum_i \sigma_i^z\\right>$")
+plt.plot(delta*np.arange(trotter_steps+1), total_mag, label=f"exact: $L = {L}$")
 for mag_mps_tot, chi in zip(mag_mps_tot_chi, chis):
-    plt.plot(mag_mps_tot, 'o', label=f"mps: $\chi = {chi}$")
+    plt.plot(delta*np.arange(trotter_steps+1), mag_mps_tot, 'o', label=f"mps: $\chi = {chi}$")
 plt.legend()
 plt.show()
-
+# %%
+# Total magnetization NO compression
+chi = chain.sites[L//2].shape[0]
+plt.title("Magnetization order parameter")
+plt.xlabel("time $(t = \delta · N)$", fontsize=14)
+plt.ylabel("Expectation value $\quad$ $\left<\sum_i \sigma_i^z\\right>$")
+plt.plot(delta*np.arange(trotter_steps+1), total_mag, label=f"exact: $L = {L}$")
+plt.plot(delta*np.arange(trotter_steps+1), mag_mps_tot_chi[-1], 'o', label=f"mps: $\chi = {chi}$")
+plt.legend()
+plt.show()
+# %%
+# Local magnetization compression
 cmap = 'seismic'
 arr_1 = local_mag
 arr_2 = mag_mps_loc_chi[-1]
@@ -200,8 +225,65 @@ arr_3 = np.asarray(arr_1) - np.asarray(arr_2)
 plot_three_colormaps(arr_1, arr_2, arr_3, cmap)
 
 # %%
+# Fidelity compression
+from checks import commutator
+from scipy.sparse.linalg import norm
+X = np.array([[0,1],[1,0]])
+Z = np.array([[1,0],[0,-1]])
+A = csr_matrix(H_loc(L=L, op=X))
+B = csr_matrix(H_int(L=L, op=Z))
+error = 1-(delta**3)/12*norm(commutator(B,commutator(B,A)))+(delta**3)/24*norm(commutator(A,commutator(A,B)))
 plt.title("Fidelities with changing bond dimension")
 for overlap, chi in zip(overlap_chi, chis):
-    plt.plot(np.abs(overlap), 'o', label=f"$\chi = {chi}$")
+    overlap = [overlap_init] + overlap
+    plt.plot(delta*np.arange(trotter_steps+1), np.abs(overlap), 'o', label=f"$\chi = {chi}$")
+plt.hlines(y=error, xmin=plt.xlim()[0], xmax=plt.xlim()[1], color='red', linestyles=':', label="trotter error")
+plt.xlabel("time $(t = \delta · N)$", fontsize=14)
+plt.ylabel("$\left<\psi_{MPS} (t)| \psi_{exact} (t)\\right>$", fontsize=14)
+# plt.yscale('log')
+plt.ylim((0.9,1.01))
+plt.savefig('figures/fidelity_L_compression_zoom', transparent=True)
+# plt.legend()
+plt.show()
+
+# %%
+# Fidelity NO compression
+plt.title("Fidelity: No compression")
+overlap = overlap_chi[-1]
+plt.plot(delta*np.arange(trotter_steps), np.abs(overlap), 'o', label=f"$\chi = {chi}$")
+plt.xlabel("time $(t = \delta · N)$", fontsize=14)
+plt.ylabel("$\left<\psi_{MPS} (t)| \psi_{exact} (t)\\right>$", fontsize=14)
 plt.legend()
 plt.show()
+
+# %%
+# entanglement compression
+plt.title("Entanglement entropy")
+plt.xlabel("time $(t = \delta · N)$", fontsize=14)
+plt.ylabel("$\sum_i \\alpha_i^2 log_2(\\alpha_i^2)$")
+for entr, chi in zip(entr_chi, chis):
+    plt.plot(delta*np.arange(trotter_steps), np.abs(entr), marker='o', linestyle='-', label=f"mps: $\chi = {chi}$")
+plt.legend()
+plt.show()
+# %%
+# entanglement NO compression
+plt.title("Entanglement entropy")
+plt.xlabel("time $(t = \delta · N)$", fontsize=14)
+plt.ylabel("$\sum_i \\alpha_i^2 log_2(\\alpha_i^2)$")
+plt.plot(delta*np.arange(trotter_steps), np.abs(entr_chi[-1]), 'o', label=f"mps: $\chi = {chi}$")
+plt.legend()
+plt.show()
+# %%
+from checks import commutator
+from scipy.sparse.linalg import norm
+X = np.array([[0,1],[1,0]])
+Z = np.array([[1,0],[0,-1]])
+A = csr_matrix(H_loc(L=L, op=X))
+B = csr_matrix(H_int(L=L, op=Z))
+print(1-delta**2*norm(commutator(A,B)))
+
+# %%
+errors = [(t**3)/12*norm(commutator(B,commutator(B,A)))+(t**3)/24*norm(commutator(A,commutator(A,B))) for t in delta*np.arange(trotter_steps)]
+# %%
+plt.plot(delta*np.arange(trotter_steps), errors)
+# %%
