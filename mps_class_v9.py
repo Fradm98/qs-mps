@@ -490,24 +490,45 @@ class MPS:
         X = np.array([[0,1],[1,0]])
         Z = np.array([[1,0],[0,-1]])
         w_tot = []
-        w_loc = np.array(expm(1j*h_ev*delta/2*X)) 
+        w_loc_4 = np.array(expm(1j*h_ev*delta/4*X)) 
+        w_loc_2 = np.array(expm(1j*h_ev*delta/2*X)) 
         w_even = np.array([[np.sqrt(np.cos(J_ev*delta))*I, 1j*np.sqrt(np.sin(J_ev*delta))*Z]])
         w_even_3 = np.array([np.sqrt(np.cos(J_ev*delta))*I, 1j*np.sqrt(np.sin(J_ev*delta))*Z])
-        w_in = ncon([w_even, w_loc, w_loc],[[-1,-2,1,2],[-3,1],[2,-4]])
+        w_in = ncon([w_even, w_loc_4, w_loc_4, w_loc_2],[[-1,-2,1,2],[3,1],[2,-4],[3,-3]])
         w_odd = np.array([[np.sqrt(np.cos(J_ev*delta))*I, np.sqrt(np.sin(J_ev*delta))*Z]])
         w_odd_3 = np.array([np.sqrt(np.cos(J_ev*delta))*I, np.sqrt(np.sin(J_ev*delta))*Z])
-        w_fin = ncon([w_odd.T, w_loc, w_loc],[[1,2,-1,-2],[-3,1],[2,-4]])
+        w_fin = ncon([w_odd.T, w_loc_4, w_loc_4, w_loc_2],[[1,2,-1,-2],[3,1],[2,-4],[3,-3]])
         # w_fin = np.swapaxes(w_fin, axis1=0,axis2=1)
         w_tot.append(w_in)
         for site in range(2, self.L):
             if site%2 == 0:
-                w = ncon([w_loc,w_even_3,w_loc,w_odd_3.T],[[1,-4],[-2,2,1],[3,2],[3,-3,-1]])
+                w = ncon([w_loc_4,w_even_3,w_loc_2,w_odd_3.T,w_loc_4],[[1,-4],[-2,2,1],[3,2],[3,4,-1],[-3,4]])
             else:
-                w = ncon([w_odd_3.T,w_loc,w_even_3,w_loc],[[-4,1,-1],[2,1],[-2,3,2],[-3,3]])
+                w = ncon([w_loc_4,w_odd_3.T,w_loc_2,w_even_3,w_loc_4],[[1,-4],[1,2,-1],[3,2],[-2,4,3],[-3,4]])
             w_tot.append(w)
         
         w_tot.append(w_fin)
         self.w = w_tot
+
+        # w_tot = []
+        # w_loc = np.array(expm(1j*h_ev*delta/2*X)) 
+        # w_even = np.array([[np.sqrt(np.cos(J_ev*delta))*I, 1j*np.sqrt(np.sin(J_ev*delta))*Z]])
+        # w_even_3 = np.array([np.sqrt(np.cos(J_ev*delta))*I, 1j*np.sqrt(np.sin(J_ev*delta))*Z])
+        # w_in = ncon([w_even,w_loc,w_loc],[[-1,-2,1,2],[2,-4],[1,-3]])
+        # w_odd = np.array([[np.sqrt(np.cos(J_ev*delta))*I, np.sqrt(np.sin(J_ev*delta))*Z]])
+        # w_odd_3 = np.array([np.sqrt(np.cos(J_ev*delta))*I, np.sqrt(np.sin(J_ev*delta))*Z])
+        # w_fin = ncon([w_odd.T,w_loc, w_loc],[[1,2,-1,-2],[2,-4],[1,-3]])
+        # # w_fin = np.swapaxes(w_fin, axis1=0,axis2=1)
+        # w_tot.append(w_in)
+        # for site in range(2, self.L):
+        #     if site%2 == 0:
+        #         w = ncon([w_loc,w_even_3,w_loc,w_odd_3.T],[[1,-4],[-2,2,1],[3,2],[3,-3,-1]])
+        #     else:
+        #         w = ncon([w_odd_3.T,w_loc,w_even_3,w_loc],[[-4,1,-1],[2,1],[-2,3,2],[-3,3]])
+        #     w_tot.append(w)
+        
+        # w_tot.append(w_fin)
+        # self.w = w_tot
         return self
     
     def mpo_Ising_O_dag_O(self):

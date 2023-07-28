@@ -3,6 +3,7 @@ from mps_class_v9 import MPS
 from utils import *
 import numpy as np
 import matplotlib.pyplot as plt
+import scipy
 # %%
 L = 9
 d = 2
@@ -100,4 +101,16 @@ axs[0].set_title('Exact')
 axs[1].imshow(mag_mps_loc, cmap='seismic', vmax=1, vmin=-1)
 axs[1].set_title('MPS')
 
+# %%
+L=5
+X = np.array([[0,1],[1,0]])
+H = csr_matrix(H_loc(L=L, op=X))
+# %%
+h_loc = [1/2*(single_site_op(op=X, site=j, L=L) + single_site_op(op=X, site=j+1, L=L)) for j in range(1,L)]
+# %%
+h_loc_new = [csr_matrix(h) for h in h_loc]
+zero = np.zeros((2**L,2**L))
+for h_loc in h_loc_new:
+    zero = np.add(zero, h_loc)
+    
 # %%

@@ -212,7 +212,18 @@ for mag_mps_tot, chi in zip(mag_mps_tot_chi, chis):
     plt.plot(delta*np.arange(trotter_steps+1), mag_mps_tot, 'o', label=f"mps: $\chi = {chi}$")
 plt.legend()
 plt.show()
-
+# %%
+# ============================
+# visualization
+# ============================
+# Total magnetization Error compression
+plt.title("Magnetization order parameter Error")
+plt.xlabel("time $(t = \delta · N)$", fontsize=14)
+plt.ylabel("Error")
+for mag_mps_tot, chi in zip(mag_mps_tot_chi, chis):
+    plt.plot(delta*np.arange(trotter_steps+1), np.abs(np.asarray(total_mag)-np.asarray(mag_mps_tot))/np.asarray(total_mag), 'o', label=f"mps: $\chi = {chi}$")
+plt.legend()
+plt.show()
 # %%
 # Total magnetization no compression different deltas
 plt.title("Magnetization order parameter")
@@ -248,7 +259,7 @@ cmap = 'seismic'
 arr_1 = local_mag
 arr_2 = mag_mps_loc_chi[-1]
 arr_3 = np.asarray(arr_1) - np.asarray(arr_2)
-aspect = 1
+aspect = 0.1
 plot_three_colormaps(arr_1, arr_2, arr_3, cmap, aspect)
 
 # %%
@@ -259,12 +270,13 @@ X = np.array([[0,1],[1,0]])
 Z = np.array([[1,0],[0,-1]])
 A = csr_matrix(H_loc(L=L, op=X))
 B = csr_matrix(H_int(L=L, op=Z))
-error = 1-(delta**3)/12*norm(commutator(B,commutator(B,A)))+(delta**3)/24*norm(commutator(A,commutator(A,B)))
+delta_opt = 0.1
+error_2 = [1 - T*delta_opt**3 for T in range(trotter_steps+1)]
 plt.title("Fidelities with changing bond dimension")
 for overlap, chi in zip(overlap_chi, chis):
     overlap = [overlap_init] + overlap
-    plt.plot(delta*np.arange(trotter_steps+1), np.abs(overlap), 'o', label=f"$\chi = {chi}$")
-plt.hlines(y=error, xmin=plt.xlim()[0], xmax=plt.xlim()[1], color='red', linestyles=':', label="trotter error")
+    plt.plot(np.linspace(0,t,trotter_steps+1), np.abs(overlap), 'o', label=f"$\chi = {chi}, \delta = {delta:.2f}$")
+# plt.plot(np.linspace(0,1,trotter_steps+1), error_2, color='red', linestyle=':', label=f"trotter error for $\delta = {delta_opt}$")
 plt.xlabel("time $(t = \delta · N)$", fontsize=14)
 plt.ylabel("$\left<\psi_{MPS} (t)| \psi_{exact} (t)\\right>$", fontsize=14)
 # plt.yscale('log')
@@ -275,18 +287,36 @@ plt.show()
 
 # %%
 # Fidelity NO compression
-plt.title("Fidelity: No compression")
 overlap = overlap_chi[-1]
-error_2 = [1 - T*delta**3 for T in range(1,trotter_steps+1)]
-error = [1 - T*delta**2 for T in range(1,trotter_steps+1)]
-plt.plot(delta*np.arange(trotter_steps), np.abs(overlap), 'o', label=f"$\chi = {chi}$")
-plt.plot(delta*np.arange(trotter_steps), error_2, color='red', linestyle=':', label=f"trotter error 2º order at $t={delta*trotter_steps}$")
-plt.plot(delta*np.arange(trotter_steps), error, color='red', linestyle='--', label=f"trotter error 1º order at $t={delta*trotter_steps}$")
+overlap = [overlap_init] + overlap
+# %%
+overlap_symm = [1.0000000000000002,
+ (0.8214598035063064-0.5306764685238107j),  
+ (0.8219851579008668-0.5295464666971555j),
+ (0.8228594558968224-0.5270196114890093j),
+ (0.8239929856458802-0.5234175350211067j),
+ (0.825260689130872-0.5192251638384628j),
+ (0.8265316771641906-0.5149710319426287j),
+ (0.8276934782218862-0.5111089764747592j)]
+from scipy.sparse.linalg import norm
+from checks import commutator
+X = np.array([[0,1],[1,0]])
+Z = np.array([[1,0],[0,-1]])
+A = csr_matrix(H_loc(L=L, op=X))
+B = csr_matrix(H_int(L=L, op=Z))
+comm = commutator(A,B)
+error_2 = [1 - T*delta**3 for T in range(trotter_steps+1)]
+error = [1 - T*delta**2 for T in range(trotter_steps+1)]
+plt.title("Fidelity: No compression")
+plt.plot(np.linspace(0,1,trotter_steps+1), np.abs(overlap), 'o', label=f"$\chi = {chi}$")
+plt.plot(np.linspace(0,1,trotter_steps+1), np.abs(overlap_symm), 'o', label=f"local op divided")
+plt.plot(np.linspace(0,1,trotter_steps+1), error_2, color='red', linestyle=':', label=f"trotter error 2º order at $t={delta*trotter_steps}$")
+# plt.plot(np.linspace(0,1,trotter_steps+1), error, color='red', linestyle='--', label=f"trotter error 1º order at $t={delta*trotter_steps}$")
 plt.xlabel("time $(t = \delta · N)$", fontsize=14)
 plt.ylabel("$\left<\psi_{MPS} (t)| \psi_{exact} (t)\\right>$", fontsize=14)
-plt.yscale('log')
+# plt.yscale('log')
 # plt.ylim(0.9995, 1.000)
-plt.legend(loc='lower left', fontsize=14)
+plt.legend(loc='best', fontsize=14)
 plt.show()
 
 # %%
@@ -308,7 +338,6 @@ plt.legend()
 plt.show()
 # %%
 from checks import commutator
-from scipy.sparse.linalg import norm
 X = np.array([[0,1],[1,0]])
 Z = np.array([[1,0],[0,-1]])
 A = csr_matrix(H_loc(L=L, op=X))
@@ -319,4 +348,69 @@ print(1-delta**2*norm(commutator(A,B)))
 errors = [(t**3)/12*norm(commutator(B,commutator(B,A)))+(t**3)/24*norm(commutator(A,commutator(A,B))) for t in delta*np.arange(trotter_steps)]
 # %%
 plt.plot(delta*np.arange(trotter_steps), errors)
+# %%
+
+
+
+# %%
+L = 9
+d = 2
+h_0 = 0
+J = 1
+chis = [16, 32]
+Z = np.array([[1,0],[0,-1]])
+# exact initial state and observables
+psi_0 = exact_initial_state(L=L, h_t=0)
+mag_tot = H_loc(L=L, op=Z)
+magnetization = [single_site_op(op=Z, site=i, L=L) for i in range(1,L+1)]
+total_mag = []
+local_mag = []
+total_mag.append(exact_magnetization_tot(psi=psi_0, magnetization=mag_tot))
+local_mag.append(exact_magnetization_loc(psi=psi_0, magnetization=magnetization))
+# attempt of loop
+t = 10
+delta = 0.01
+trotter_steps = int(t/delta)
+chi = 2
+h_ev = 0.5
+trunc = True
+mag_mps_tot_chi = []
+mag_mps_loc_chi = []
+overlap_chi = []
+entr_chi = []
+for chi in chis:
+    # initializing the chain
+    chain = MPS(L=L, d=d, model="Ising", chi=2, h=h_0, J=J, eps=0)
+    chain._random_state(seed=7)
+    chain.canonical_form()
+    chain.sweeping(trunc=True)
+    print(np.real(chain.mps_local_exp_val(op=Z)))
+    chain.flipping_mps()
+    chain.flip_all_mps()
+    psi_0_mps = mps_to_vector(chain.sites)
+    # computing expectation values before trotter
+    mag_mps_loc = []
+    mag_mps_tot = []
+    print(np.real(chain.mps_local_exp_val(op=Z)))
+    mag_mps_loc.append(np.real(chain.mps_local_exp_val(op=Z)))
+    chain.order_param_Ising(op=Z)
+    mag_mps_tot.append(chain.mpo_first_moment().real)
+    chi_max = chi
+    chain.chi = chi
+    print("here")
+    # trotter evolution for a specific chi
+    mag_mps_loc, mag_mps_tot, overlap, ent_ent = direct_TEBD(trotter_steps, delta, h_ev, J, chi_max, mag_mps_loc, mag_mps_tot, trunc, fidelity=True)
+    mag_mps_tot_chi.append(mag_mps_tot)
+    mag_mps_loc_chi.append(mag_mps_loc)
+    overlap_chi.append(overlap)
+    entr_chi.append(ent_ent)
+# %%
+# ============================
+for T in range(trotter_steps):
+    print(f"Trotter step: {T}")
+    U_ev = exact_evolution_operator(L=L, h_t=h_ev, delta=delta, trotter_step=T)
+    psi = U_ev @ psi_0
+    total_mag.append(exact_magnetization_tot(psi=psi, magnetization=mag_tot))
+    local_mag.append(exact_magnetization_loc(psi=psi, magnetization=magnetization))
+overlap_init = psi_0_mps.T.conjugate() @ psi_0
 # %%
