@@ -5,6 +5,7 @@ from scipy.sparse import csr_matrix, identity
 from checks import *
 from scipy.linalg import expm, solve
 from utils import *
+import matplotlib.pyplot as plt
 import time
 
 class MPS:
@@ -377,6 +378,12 @@ class MPS:
         return self
     
     def flipping_mps(self):
+        """
+        flipping_mps
+
+        This function flips the mps middle site with the operator X, pretending to be in the computational (Z) basis.
+        
+        """
         X = np.array([[0,1],[1,0]])
         if len(self.sites) % 2 == 0:
             new_site = ncon([self.sites[self.L // 2 - 1],X],[[-1,1,-3],[1,-2]])
@@ -1173,7 +1180,10 @@ class MPS:
                     H_eff=H, site=sites[i]
                 )  # , v0=self.sites[sites[i]].flatten()
                 energies.append(energy)
-                
+                # N, l, r = self.N_eff(site=sites[i])
+                # print(f"The N_eff for site {sites[i]} is:")
+                # plt.imshow(N, cmap='viridis')
+                # plt.show()
                 # if var:
                 #     sm = self.mpo_second_moment(opt=True)
                 #     v = variance(first_m=energy, sm=sm)
@@ -1261,7 +1271,7 @@ class MPS:
         self.ancilla_sites = self.sites
         return self, errors[-1]
  
-    def direct_mpo_evolution(self, trotter_steps, delta, h_ev, J_ev, fidelity=False):
+    def direct_mpo_evolution(self, trotter_steps, delta, h_ev, J_ev, fidelity=False, trunc=True):
         """
         direct_mpo_evolution
 
@@ -1277,29 +1287,42 @@ class MPS:
                 
         """
         overlap = []
-        mag_mpo_tot = []
+        mag_mps_tot = []
+        mag_mps_loc = []
         Z = np.array([[1,0],[0,-1]])
         if fidelity:
             psi_exact_0 = exact_initial_state(L=self.L, h_t=self.h)
         for T in range(trotter_steps):
             print(f"------ Trotter steps: {T} -------")
-            print(f"Bond dim: {self.sites[self.L//2].shape[0]}")
+            
             self.mpo_Ising_time_ev(delta=delta, h_ev=h_ev, J_ev=1)
             self.mpo_to_mps()
+            print(f"Bond dim: {self.sites[self.L//2].shape[0]}")
             # self.canonical_form()
-            self.canonical_form(svd_direction="left")
-            self.canonical_form(svd_direction="right")
+            if trunc:
+                self.canonical_form(svd_direction="left")
+                self.canonical_form(svd_direction="right")
             tensor_shapes(self.sites)
             # self.save_sites()
-            # mag_mpo_tot.append(np.real(self.mps_local_exp_val(op=Z)))
+            # mag_mps_tot.append(np.real(self.mps_local_exp_val(op=Z)))
+            
+            # total
             self.order_param_Ising(op=Z)
-            mag_mpo_tot.append(np.real(self.mpo_first_moment()))
+            mag_mps_tot.append(np.real(self.mpo_first_moment()))
+            
+            # local
+            mag_loc = []
+            for i in range(self.L):
+                self.single_operator_Ising(site=i+1, op=Z)
+                mag_loc.append(self.mpo_first_moment().real)
+            mag_mps_loc.append(mag_loc)
+
             if fidelity:
                 U = exact_evolution_operator(L=self.L, h_t=h_ev, delta=delta, trotter_step=(T+1))
                 psi_exact = U @ psi_exact_0
                 psi_new_mpo = mps_to_vector(self.sites)
-                overlap.append(psi_new_mpo.T.conjugate() @ psi_exact)
-        return mag_mpo_tot, overlap
+                overlap.append(np.abs((psi_new_mpo.T.conjugate() @ psi_exact).real))
+        return mag_mps_tot, mag_mps_loc, overlap
     
     def compressed_mpo_evolution(self, trotter_steps, fidelity, delta, h_ev, chi_max):
         """

@@ -45,7 +45,6 @@ if fidelity:
     plt.show()
 # %%
 # compression functions
-
 def lin_sys(classe, M, N_eff, site, l_shape, r_shape):
     M_new = M.flatten()
     new_site = scipy.linalg.solve(N_eff, M_new)

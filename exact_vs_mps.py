@@ -16,8 +16,8 @@ import matplotlib as mpl
 # initialize the chain in h_t = 0
 # %%
 # time evolution to h_t = h_ev
-L = 15
-trotter_steps = 60
+L = 11
+trotter_steps = 5
 delta = 0.2
 h_ev = 0.3
 fidelity = True
@@ -33,8 +33,10 @@ for chi in chis:
     mag_chis.append(mag_mpo_tot)
 
 # %%
-L = 13
+L = 9
 trotter_steps = 2
+delta = 0.2
+h_ev = 0.3
 Z = np.array([[1,0],[0,-1]])
 mag_tot = H_loc(L=L, op=Z)
 psi_0 = exact_initial_state(L=L, h_t=0)
@@ -202,7 +204,3 @@ plt.title("Entropy MPS: " + f"$\delta = {delta}$; $h_{{t-ev}} = {h_ev}$")
 plt.plot(np.log(np.abs(entropy)))
 plt.show()
 
-# %%
-# total mag
-
-# %%
