@@ -13,7 +13,7 @@ L = 9
 h_t = 0
 h_ev = 0.3
 t = 20
-trotter_steps = 20
+trotter_steps = 100
 delta = t/trotter_steps
 psi_exact = exact_initial_state(L=L, h_t=h_t)
 
