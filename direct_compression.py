@@ -259,7 +259,7 @@ cmap = 'seismic'
 arr_1 = local_mag
 arr_2 = mag_mps_loc_chi[-1]
 arr_3 = np.asarray(arr_1) - np.asarray(arr_2)
-aspect = 0.1
+aspect = 0.01
 plot_three_colormaps(arr_1, arr_2, arr_3, cmap, aspect)
 
 # %%
@@ -357,7 +357,7 @@ L = 9
 d = 2
 h_0 = 0
 J = 1
-chis = [16, 32]
+chis = [64]
 Z = np.array([[1,0],[0,-1]])
 # exact initial state and observables
 psi_0 = exact_initial_state(L=L, h_t=0)
@@ -369,7 +369,7 @@ total_mag.append(exact_magnetization_tot(psi=psi_0, magnetization=mag_tot))
 local_mag.append(exact_magnetization_loc(psi=psi_0, magnetization=magnetization))
 # attempt of loop
 t = 10
-delta = 0.01
+delta = 0.02
 trotter_steps = int(t/delta)
 chi = 2
 h_ev = 0.5
