@@ -933,14 +933,20 @@ class MPS:
             env = ncon([env,ten],[[-1,-2,1,2],[1,2,-3,-4]])
         left = env
         left = ncon([a,a,left],[[1],[2],[1,2,-1,-2]])
-        print(left.shape)
+        print(csr_matrix(truncation(left, threshold=1e-16)))
+        plt.title("left")
+        plt.imshow(left.real, vmin=0, vmax=1)
+        plt.show()
         env = ncon([a,a,a,a],[[-1],[-2],[-3],[-4]])
         for i in range(self.L-1, site-1, -1):
             ten = self.overlap_sites(array_1=array[i])
             env = ncon([ten,env],[[-1,-2,1,2],[1,2,-3,-4]])
         right = env
         right = ncon([right,a,a],[[-1,-2,1,2],[1],[2]])
-        print(right.shape)
+        print(csr_matrix(truncation(right, threshold=1e-16)))
+        plt.title("right")
+        plt.imshow(right.real, vmin=0, vmax=1)
+        plt.show()
         kron = np.eye(2)
         # N = ncon([left,kron,right],[[-1,-4],[-2,-5],[-3,-6]]).reshape((self.env_left[-1].shape[2]*self.d*self.env_right[-1].shape[2],self.env_left[-1].shape[2]*self.d*self.env_right[-1].shape[2]))
         N = ncon([left,kron,right],[[-1,-4],[-2,-5],[-3,-6]]).reshape((left.shape[0]*self.d*right.shape[0],left.shape[1]*self.d*right.shape[1]))

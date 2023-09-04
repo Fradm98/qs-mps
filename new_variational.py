@@ -12,8 +12,8 @@ from scipy.sparse import csr_array
 L = 9
 h_t = 0
 h_ev = 0.3
-t = 20
-trotter_steps = 100
+t = 0.4
+trotter_steps = 4
 delta = t/trotter_steps
 psi_exact = exact_initial_state(L=L, h_t=h_t)
 
@@ -169,6 +169,8 @@ def update_state(classe, sweep, site, trunc, e_tol=10 ** (-15), precision=2):
             # print(m)
             # u, s, v = scipy.sparse.linalg.svds(m, k=min(m.shape)-1)
             u, s, v = np.linalg.svd(m, full_matrices=False)
+            
+            print(f"Schmidt sum: {sum(s**2)}")
             if trunc:
                 condition = s >= e_tol
                 s_trunc = np.extract(condition, s)
@@ -198,6 +200,7 @@ def update_state(classe, sweep, site, trunc, e_tol=10 ** (-15), precision=2):
                 classe.sites[site - 1].shape[0], classe.d * classe.sites[site - 1].shape[2]
             )
             u, s, v = np.linalg.svd(m, full_matrices=False)
+            print(f"Schmidt sum: {sum(s**2)}")
             if trunc:
                 condition = s >= e_tol
                 s_trunc = np.extract(condition, s)
@@ -219,7 +222,7 @@ def update_state(classe, sweep, site, trunc, e_tol=10 ** (-15), precision=2):
                 ],
             )
             classe.sites[site - 1] = v
-            # classe.sites[site - 2] = next_site
+            classe.sites[site - 2] = next_site
 
         return classe
 
@@ -234,7 +237,7 @@ def compression(classe, trunc, e_tol=10 ** (-15), n_sweeps=2, precision=2):
         for i in range(classe.L - 1):
             print(f"\n============= Site: {sites[i]} ===================\n")
             N_eff, l_shape, r_shape = classe.N_eff(site=sites[i])
-            N_eff = truncation(array=N_eff, threshold=1e-16)
+            N_eff = truncation(array=N_eff, threshold=1e-15)
             N_eff_sp = csr_matrix(N_eff)
             print("After N_eff")
             classe._compute_norm(site=1)
@@ -247,18 +250,19 @@ def compression(classe, trunc, e_tol=10 ** (-15), n_sweeps=2, precision=2):
             # plt.show()
             M = compute_M(classe, sites[i])
 
-            A = classe.sites[sites[i]-1]
-            A_new = truncation(A, threshold=1e-16)
-            A_new = A_new.reshape(A_new.shape[0]*A_new.shape[1],A_new.shape[2])
-            A_new = csr_matrix(A_new)
-            print(A_new)
-            print(A.shape)
+            # A = classe.sites[sites[i]-1]
+            # A_new = truncation(A, threshold=1e-16)
+            # A_new = A_new.reshape(A_new.shape[0]*A_new.shape[1],A_new.shape[2])
+            # A_new = csr_matrix(A_new)
+            # print(A_new)
+            # print(A.shape)
             print("After M")
             classe._compute_norm(site=1)
 
             lin_sys(classe, M, N_eff_sp, sites[i], l_shape, r_shape)
+            # classe.sites[sites[i]-1] = M
             print("After linear system")
-            classe._compute_norm(site=1)        
+            classe._compute_norm(site=1)
             
             err = error(classe,  site=sites[i], N_eff=N_eff, M=M)
             print("After err")
@@ -266,9 +270,9 @@ def compression(classe, trunc, e_tol=10 ** (-15), n_sweeps=2, precision=2):
 
             # print(f"error per site {sites[i]}: {err:.5f}")
             errors.append(err)
-            # update_state(classe, sweeps[0], sites[i], trunc, e_tol, precision)
+            update_state(classe, sweeps[0], sites[i], trunc, e_tol, precision)
             print("After update state")
-            classe.canonical_form()
+            # classe.canonical_form()
             classe._compute_norm(site=1)
             
 
@@ -386,6 +390,8 @@ np.savetxt(f"results\\fidelity_data\\fidelity_L_{L}_delta_{delta}_h_ev_{h_ev}", 
 
 # we can put the initial state in the ancilla sites argument
 chain.ancilla_sites = chain.sites
+chain.canonical_form()
+chain._compute_norm(site=1)
 # we use as a guess state the ground state that is already in sites
 Z = np.array([[1,0],[0,-1]])
 
@@ -394,7 +400,7 @@ for t in range(1):
     print(f"------ Trotter steps: {t+5} -------")
     chain.mpo_Ising_time_ev(delta=delta, h_ev=h_ev, J_ev=1)
     chain._compute_norm(site=1)
-    err = compression(chain, trunc=True, n_sweeps=2)
+    err = compression(chain, trunc=True, n_sweeps=4)
     chain.ancilla_sites = chain.sites
     err_tot.append(err)
 
@@ -429,9 +435,9 @@ plt.legend()
 plt.show()
 
 # fidelity
-overlap.reverse()
-overlap.append(fidelity)
-overlap.reverse()
+# overlap.reverse()
+# overlap.append(fidelity)
+# overlap.reverse()
 plt.plot(delta*np.arange(5+1), overlap)
 
 # %%
