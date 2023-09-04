@@ -5,6 +5,7 @@ from scipy.sparse import csr_matrix
 import os
 from ncon import ncon 
 import matplotlib.pyplot as plt
+from matplotlib import gridspec
 
 # ---------------------------------------------------------------------------------------
 # Tensor shapes
@@ -494,13 +495,9 @@ def truncation(array, threshold):
         raise TypeError(f"threshold should be a SCALAR FLOAT, not a {type(threshold)}")
     return np.where(np.abs(np.real(array)) > threshold, array, 0)
 
-
-def create_sequential_colors(num_colors, colormap_name):
-    colormap = plt.cm.get_cmap(colormap_name)
-    colormap_values = np.linspace(0, 1, num_colors)
-    colors = [colormap(value) for value in colormap_values]
-    return colors
-
+# ---------------------------------------------------------------------------------------
+# Exact Initial State
+# ---------------------------------------------------------------------------------------
 def exact_initial_state(L, h_t):
     X = np.array([[0,1],[1,0]])
     Z = np.array([[1,0],[0,-1]])
@@ -511,6 +508,9 @@ def exact_initial_state(L, h_t):
     psi = flip @ psi
     return psi
 
+# ---------------------------------------------------------------------------------------
+# Exact Evolution Operator
+# ---------------------------------------------------------------------------------------
 def exact_evolution_operator(L, h_t, delta, trotter_step):
     X = np.array([[0,1],[1,0]])
     Z = np.array([[1,0],[0,-1]])
@@ -520,3 +520,39 @@ def exact_evolution_operator(L, h_t, delta, trotter_step):
     U_new = truncation(array=U, threshold=1e-16)
     U_new = csr_matrix(U_new)
     return U_new
+
+# visualization tools
+
+def plot_side_by_side(data1, data2, cmap='viridis', title1='Imshow 1', title2='Imshow 2'):
+    # Create a figure and a grid layout
+    fig = plt.figure(figsize=(10, 5))
+    gs = gridspec.GridSpec(1, 2, width_ratios=[1, 0.05])  # 1 row, 2 columns, width ratio for colorbar
+
+    # Add subplots to the grid
+    ax1 = plt.subplot(gs[0])
+    ax2 = plt.subplot(gs[1])
+
+    # Plot the imshow plots on the subplots
+    im1 = ax1.imshow(data1, cmap=cmap, vmin=-1, vmax=1, aspect='auto')
+    im2 = ax2.imshow(data2, cmap=cmap, vmin=-1, vmax=1, aspect='auto')
+
+    # Remove the x and y ticks on the colorbar subplot
+    ax2.set_xticks([])
+    ax2.set_yticks([])
+
+    # Create a colorbar for the second plot on the right
+    cbar = plt.colorbar(im2, cax=ax2)
+
+    # Set labels for the colorbar and plots
+    ax1.set_title(title1)
+    ax2.set_title(title2)
+
+    # Adjust layout and display the plot
+    plt.tight_layout()
+    plt.show()
+
+def create_sequential_colors(num_colors, colormap_name):
+    colormap = plt.cm.get_cmap(colormap_name)
+    colormap_values = np.linspace(0, 1, num_colors)
+    colors = [colormap(value) for value in colormap_values]
+    return colors

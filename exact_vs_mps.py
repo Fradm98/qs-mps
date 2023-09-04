@@ -35,8 +35,8 @@ for chi in chis:
     overlap_chis.append(overlap)
 
 # %%
-L = 9
-trotter_steps = 10
+L = 13
+trotter_steps = 2
 Z = np.array([[1,0],[0,-1]])
 delta = 0.2
 h_ev = 0.5
@@ -210,7 +210,3 @@ plt.title("Entropy MPS: " + f"$\delta = {delta}$; $h_{{t-ev}} = {h_ev}$")
 plt.plot(np.log(np.abs(entropy)))
 plt.show()
 
-# %%
-# total mag
-
-# %%
