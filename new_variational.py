@@ -259,8 +259,10 @@ def compression(classe, trunc, e_tol=10 ** (-15), n_sweeps=2, precision=2):
             print("After M")
             classe._compute_norm(site=1)
 
-            lin_sys(classe, M, N_eff_sp, sites[i], l_shape, r_shape)
-            # classe.sites[sites[i]-1] = M
+            t_plus_dt = ncon([classe.sites[sites[i]-1].conjugate(),M],[[1,2,3],[1,2,3]])
+            print(f"The overlap of states at t and t+dt is: {t_plus_dt}")
+            # lin_sys(classe, M, N_eff_sp, sites[i], l_shape, r_shape)
+            classe.sites[sites[i]-1] = M
             print("After linear system")
             classe._compute_norm(site=1)
             
@@ -400,7 +402,7 @@ for t in range(1):
     print(f"------ Trotter steps: {t+5} -------")
     chain.mpo_Ising_time_ev(delta=delta, h_ev=h_ev, J_ev=1)
     chain._compute_norm(site=1)
-    err = compression(chain, trunc=True, n_sweeps=4)
+    err = compression(chain, trunc=True, n_sweeps=2)
     chain.ancilla_sites = chain.sites
     err_tot.append(err)
 
@@ -425,7 +427,7 @@ for t in range(1):
     overlap.append(np.abs((psi_new_mps.T.conjugate() @ psi_new).real))
     
 # %%
-# visualization 
+# visualization
 
 # total
 chi = chain.sites[L//2].shape[0]
