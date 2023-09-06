@@ -1112,8 +1112,6 @@ class MPS:
             else:
                 if mixed:
                     ancilla_array = self.ancilla_sites[site - 1]
-                    self.mpo_dagger()
-                    self.w = self.w_dag
                 E_l = self.env_left[-1]
             E_l = ncon(
                 [E_l,ancilla_array,self.w[site - 1],array.conjugate()],
@@ -1130,7 +1128,7 @@ class MPS:
             else:
                 self.env_left.append(E_l)
                 self.env_right.pop(-1)
-            np.savetxt(f"results/times_data/update_env_{site}_h_{self.h:.2f}", [time.perf_counter()-time_upd_env])
+            # np.savetxt(f"results/times_data/update_env_{site}_h_{self.h:.2f}", [time.perf_counter()-time_upd_env])
 
         if sweep == "left":
             array = self.sites[site - 1]
