@@ -1301,12 +1301,11 @@ class MPS:
             
             self.mpo_Ising_time_ev(delta=delta, h_ev=h_ev, J_ev=1)
             self.mpo_to_mps()
-            print(f"Bond dim: {self.sites[self.L//2].shape[0]}")
-            # self.canonical_form()
+            # print(f"Bond dim: {self.sites[self.L//2].shape[0]}")
             if trunc:
                 self.canonical_form(svd_direction="left")
                 self.canonical_form(svd_direction="right")
-            tensor_shapes(self.sites)
+            # tensor_shapes(self.sites)
             # self.save_sites()
             # mag_mps_tot.append(np.real(self.mps_local_exp_val(op=Z)))
             
@@ -1634,17 +1633,28 @@ class MPS:
         fm = ncon([self.env_left[0], self.env_right[-1]], [[1, 2, 3, 4, 5, 6], [1, 2, 3, 4, 5, 6]])
         return fm
 
-    def mpo_to_mps(self):
+    def mpo_to_mps(self, ancilla=False):
 
         array = self.sites
         for i in range(self.L):
-            self.sites[i] = ncon(
-                [array[i], self.w[i]],
-                [
-                    [-1,2,-4],
-                    [-2,-5,2,-3],
-                ],
-                ).reshape((array[i].shape[0]*self.w[i].shape[0],self.d,array[i].shape[2]*self.w[i].shape[1]))
+            if ancilla:
+                # print("here ancilla sites")
+                self.ancilla_sites[i] = ncon(
+                    [array[i], self.w[i]],
+                    [
+                        [-1,2,-4],
+                        [-2,-5,2,-3],
+                    ],
+                    ).reshape((array[i].shape[0]*self.w[i].shape[0],self.d,array[i].shape[2]*self.w[i].shape[1]))
+            else:
+                # print("here sites")
+                self.sites[i] = ncon(
+                    [array[i], self.w[i]],
+                    [
+                        [-1,2,-4],
+                        [-2,-5,2,-3],
+                    ],
+                    ).reshape((array[i].shape[0]*self.w[i].shape[0],self.d,array[i].shape[2]*self.w[i].shape[1]))
         return self
 
     def save_sites(self, precision=2):

@@ -524,28 +524,24 @@ def exact_evolution_operator(L, h_t, delta, trotter_step):
 # visualization tools
 
 def plot_side_by_side(data1, data2, cmap='viridis', title1='Imshow 1', title2='Imshow 2'):
-    # Create a figure and a grid layout
-    fig = plt.figure(figsize=(10, 5))
-    gs = gridspec.GridSpec(1, 2, width_ratios=[1, 0.05])  # 1 row, 2 columns, width ratio for colorbar
-
-    # Add subplots to the grid
-    ax1 = plt.subplot(gs[0])
-    ax2 = plt.subplot(gs[1])
+    # Create a figure and subplots
+    fig, (ax1, ax2) = plt.subplots(1, 2, figsize=(10, 5))
 
     # Plot the imshow plots on the subplots
-    im1 = ax1.imshow(data1, cmap=cmap, vmin=-1, vmax=1, aspect='auto')
-    im2 = ax2.imshow(data2, cmap=cmap, vmin=-1, vmax=1, aspect='auto')
+    im1 = ax1.imshow(data1, cmap=cmap, vmin=-1, vmax=1, aspect="auto")
+    im2 = ax2.imshow(data2, cmap=cmap, vmin=-1, vmax=1, aspect="auto")
 
-    # Remove the x and y ticks on the colorbar subplot
-    ax2.set_xticks([])
+    # Set titles for the subplots
+    ax1.set_title(title1)
+    ax2.set_title(title2)
+
+    # Remove ticks from the colorbar subplot
+    # ax2.set_xticks([])
     ax2.set_yticks([])
 
     # Create a colorbar for the second plot on the right
-    cbar = plt.colorbar(im2, cax=ax2)
-
-    # Set labels for the colorbar and plots
-    ax1.set_title(title1)
-    ax2.set_title(title2)
+    cbar = fig.colorbar(im2, ax=ax2)
+    cbar = fig.colorbar(im1, ax=ax1)
 
     # Adjust layout and display the plot
     plt.tight_layout()
