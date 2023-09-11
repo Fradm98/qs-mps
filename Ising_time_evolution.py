@@ -3,7 +3,6 @@
 
 # In[1]:
 
-
 # import packages
 from mps_class_v9 import MPS
 from utils import *
@@ -16,16 +15,14 @@ import time
 
 # In[2]:
 
-
 # exact state and evolution
 L = 9
 h_t = 0
 h_ev = 0.3
-t = 5.5
-trotter_steps = 55
+t = 5
+trotter_steps = 50
 delta = t/trotter_steps
-psi_exact = exact_initial_state(L=L, h_t=h_t)
-
+psi_exact = exact_initial_state(L=L, h_t=h_t, h_l=1e-7).reshape(2**L,1)
 # we save the exact states to compute the fidelity
 exact_states = []
 exact_states.append(psi_exact)
@@ -33,6 +30,7 @@ exact_states.append(psi_exact)
 Z = np.array([[1,0],[0,-1]])
 # local
 mag_loc_op = [single_site_op(op=Z, site=i, L=L) for i in range(1,L+1)]
+
 # total
 mag_tot_op = H_loc(L=L, op=Z)
 
@@ -42,19 +40,19 @@ mag_exact_tot = []
 # local
 mag_exact = []
 for i in range(L):
-    mag_exact.append((psi_exact.T.conjugate() @ mag_loc_op[i] @ psi_exact).real)
+    mag_exact.append((psi_exact.T.conjugate() @ mag_loc_op[i] @ psi_exact).data.real)
 mag_exact_loc.append(mag_exact)
 
 # total
-mag = psi_exact.T.conjugate() @ mag_tot_op @ psi_exact
+mag = (psi_exact.T.conjugate() @ mag_tot_op @ psi_exact).data
 mag_exact_tot.append(mag.real)
 
 states = []
 for trott in range(1,trotter_steps+1):
     # compute the U in the time we are interested in, that is, delta*trott
-    U = exact_evolution_operator(L, h_t=h_ev, delta=delta, trotter_step=trott)
+    psi_new = exact_evolution(L, psi_init=psi_exact, delta=delta, trotter_step=trott, h_t=h_ev)
     # final state after U time evolution
-    psi_new = U @ psi_exact
+    # psi_new = U @ psi_exact
     states.append(psi_new)
     # exact_states.append(psi_new)
     # compute the total and local magnetization at that time
@@ -62,12 +60,12 @@ for trott in range(1,trotter_steps+1):
     # local
     mag_exact = []
     for i in range(L):
-        mag_exact.append((psi_new.T.conjugate() @ mag_loc_op[i] @ psi_new).real)
+        mag_exact.append((psi_new.T.conjugate() @ mag_loc_op[i] @ psi_new).data.real)
     print(f"----- trotter step {trott} --------")
     mag_exact_loc.append(mag_exact)
 
     # total
-    mag = psi_new.T.conjugate() @ mag_tot_op @ psi_new
+    mag = (psi_new.T.conjugate() @ mag_tot_op @ psi_new).data
     mag_exact_tot.append(mag.real)
 
 
@@ -501,8 +499,39 @@ def compression(classe, trunc_tol, trunc_chi, e_tol=10 ** (-15), n_sweeps=2, pre
 # The maximum bond dimension is $2^{L/2}$ so in our case $\chi_{max} = 2^{4} = 16 $. This $\chi_{max}$ is reached in $4$ trotter steps, hence we perform a direct application of the mpo anc compare with the exact time evolution
 
 # In[5]:
-
-
+L = 9
+n_points = 100
+ks = 20
+spectrum = compute_ising_spectrum(L=L, h_l=1e-7, n_points=n_points, k=ks)
+# %%
+deltas = [0.1,0.2,0.4,1.0]
+colors = create_sequential_colors(num_colors=len(deltas), colormap_name='viridis')
+energy = []
+plt.title(f"Energy spectrum $vs$ $h$ - (L={L})")
+idx = 0
+for k in range(ks):
+    energy_k = np.asarray(spectrum)[:,k]
+    energy.append(energy_k)
+    
+    if (k == 2**1 - 1) or (k == 2**4 + 2 - 1) or (k == ks - 1):
+        plt.plot(np.linspace(0,2,n_points), energy_k, alpha=0.5, color=colors[idx], label=f"Energy k={idx}")
+        idx += 1
+    else:
+        plt.plot(np.linspace(0,2,n_points), energy_k, alpha=0.5, color=colors[idx])
+plt.ylabel("Energy levels")
+plt.xlabel("trasverse field (h)")
+plt.legend()
+plt.show()
+gap = np.abs(np.asarray(energy)[0]) - np.abs(np.asarray(energy)[2])
+plt.title(f"Energy gap $vs$ $\delta$ - (L={L})")
+plt.plot(np.linspace(0,2,n_points), gap)
+for i, delta in enumerate(deltas):
+    plt.hlines(y=delta, xmin=0, xmax=2, colors=colors[i], label=f"$\delta = {delta}$")
+plt.ylabel("Energy gap ($E_{k=0} - E_{k=2}$ non degenerate)")
+plt.xlabel("trasverse field (h)")
+plt.legend()
+plt.show()
+# %%
 # main compression algorithm
 
 # ground state

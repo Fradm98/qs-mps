@@ -1,11 +1,12 @@
 import numpy as np
 from scipy.optimize import curve_fit
-from scipy.sparse.linalg import expm
-from scipy.sparse import csr_matrix
+from scipy.sparse.linalg import expm, eigsh, expm_multiply
+from scipy.sparse import csr_matrix, csc_matrix, csc_array, kron as spkron
 import os
 from ncon import ncon 
 import matplotlib.pyplot as plt
 from matplotlib import gridspec
+from typing import Union
 
 # ---------------------------------------------------------------------------------------
 # Tensor shapes
@@ -262,7 +263,7 @@ Defining a series of functions to have single and double site operators
 # ---------------------------------------------------------------------------------------
 # Before
 # ---------------------------------------------------------------------------------------
-def before(next):
+def before(next: csr_matrix):
     """
     before
 
@@ -274,12 +275,13 @@ def before(next):
 
     """
     id = np.eye(2)
-    return np.kron(id,next)
+    id = csr_matrix(id)
+    return spkron(id,next)
 
 # ---------------------------------------------------------------------------------------
 # Before Tot
 # ---------------------------------------------------------------------------------------
-def before_tot(next, site):
+def before_tot(next: csr_matrix, site: int):
     """
     before_tot
 
@@ -299,7 +301,7 @@ def before_tot(next, site):
 # ---------------------------------------------------------------------------------------
 # After
 # ---------------------------------------------------------------------------------------
-def after(op, site, L):
+def after(op: csr_matrix, site: int, L: int):
     """
     after
 
@@ -313,17 +315,18 @@ def after(op, site, L):
             identities to be applied after the operator op
     """
     next = np.eye(2)
+    next = csr_matrix(next)
     if site < L:
         for i in range(site,L-1):
             next = before(next)
-        return np.kron(op,next)
+        return spkron(op,next)
     else:
         return op
 
 # ---------------------------------------------------------------------------------------
 # Single site operator
 # ---------------------------------------------------------------------------------------
-def single_site_op(op, site, L):
+def single_site_op(op: Union[csr_matrix, np.ndarray], site: int, L: int):
     """
     single_site_op
 
@@ -337,13 +340,18 @@ def single_site_op(op, site, L):
             identities to be applied after the operator op
 
     """
+    assert isinstance(op, (csr_matrix, np.ndarray)), "Input must be a NumPy array or a sparse CSR op"
+    
+    if isinstance(op, np.ndarray):
+        # Convert the NumPy array to a CSR matrix
+        op = csr_matrix(op)
     op_tot = before_tot(after(op, site, L), site=site)
     return op_tot
 
 # ---------------------------------------------------------------------------------------
 # Double After
 # ---------------------------------------------------------------------------------------
-def double_after(op, site, L):
+def double_after(op: Union[csr_matrix, np.ndarray], site: int, L: int):
     """
     double_after
 
@@ -357,19 +365,26 @@ def double_after(op, site, L):
             identities to be applied after the operator op
 
     """
+    assert isinstance(op, (csr_matrix, np.ndarray)), "Input must be a NumPy array or a sparse CSR matrix"
+    
+    if isinstance(op, np.ndarray):
+        # Convert the NumPy array to a CSR matrix
+        op = csr_matrix(op)
+
     next = np.eye(2)
+    next = csr_matrix(next)
     if site <= L-2:
         for i in range(site+1,L-1):
             next = before(next)
-        next = np.kron(op,next)
-        return np.kron(op,next)
+        next = spkron(op,next)
+        return spkron(op,next)
     else:
-        return np.kron(op,op)
+        return spkron(op,op)
 
 # ---------------------------------------------------------------------------------------
 # Two-site operator
 # ---------------------------------------------------------------------------------------
-def two_site_op(op, site, L):
+def two_site_op(op: csr_matrix, site: int, L: int):
     """
     two_site_op
 
@@ -403,7 +418,7 @@ and other special operators, e.g. flipping half of the spins' chain
 # ---------------------------------------------------------------------------------------
 # Interaction Hamiltonian
 # ---------------------------------------------------------------------------------------
-def H_int(L, op):
+def H_int(L: int, op: csr_matrix):
     """
     H_int
 
@@ -421,7 +436,7 @@ def H_int(L, op):
 # ---------------------------------------------------------------------------------------
 # Local Hamiltonian
 # ---------------------------------------------------------------------------------------
-def H_loc(L, op):
+def H_loc(L: int, op: csr_matrix):
     """
     H_int
 
@@ -439,7 +454,7 @@ def H_loc(L, op):
 # ---------------------------------------------------------------------------------------
 # Ising Hamiltonian
 # ---------------------------------------------------------------------------------------
-def H_ising_gen(L, op_l, op_t, J, h_l, h_t):
+def H_ising_gen(L: int, op_l: csr_matrix, op_t: csr_matrix, J: float, h_l: float, h_t: float)->csr_matrix:
     """
     H_ising_gen
 
@@ -457,7 +472,7 @@ def H_ising_gen(L, op_l, op_t, J, h_l, h_t):
 # ---------------------------------------------------------------------------------------
 # Flipping half
 # ---------------------------------------------------------------------------------------
-def flipping_half(op, L):
+def flipping_half(op: csr_matrix, L: int):
     """
     flipping_half
 
@@ -469,7 +484,7 @@ def flipping_half(op, L):
     """
     O = op
     for i in range(L//2-1):
-        O = np.kron(op,O)
+        O = spkron(op,O)
 
     for i in range(L//2):
         O = before(O)
@@ -489,37 +504,63 @@ def truncation(array, threshold):
     threshold: float - level of the truncation
 
     """
-    if not isinstance(array, np.ndarray):
-        raise TypeError(f"array should be an ndarray, not a {type(array)}")
-    if not np.isscalar(threshold) and not isinstance(threshold, float):
-        raise TypeError(f"threshold should be a SCALAR FLOAT, not a {type(threshold)}")
-    return np.where(np.abs(np.real(array)) > threshold, array, 0)
+    if isinstance(array, np.ndarray):
+        return np.where(np.abs(np.real(array)) > threshold, array, 0)
+    if isinstance(array, csc_matrix):
+        # Apply the thresholding operation on the csc_matrix
+        filtered_matrix = csc_matrix((array.shape), dtype=array.dtype)
+        # Apply the thresholding operation
+        filtered_matrix.data = array.data * (array.data > threshold)
+        return filtered_matrix
 
 # ---------------------------------------------------------------------------------------
 # Exact Initial State
 # ---------------------------------------------------------------------------------------
-def exact_initial_state(L, h_t):
+def exact_initial_state(L: int, h_t: float, h_l: float = 0)->csc_array:
     X = np.array([[0,1],[1,0]])
+    X = csr_matrix(X)
     Z = np.array([[1,0],[0,-1]])
-    H = H_ising_gen(L=L, op_l=Z, op_t=X, J=1, h_l=0, h_t=h_t)
-    e, v = np.linalg.eig(H)
+    Z = csr_matrix(Z)
+    H = H_ising_gen(L=L, op_l=Z, op_t=X, J=1, h_l=h_l, h_t=h_t)
+    e, v = eigsh(H, k=1, which="SA")
+    print(f"first 6 igenvalues SA (Smallest (algebraic) eigenvalues): {e}")
     psi = v[:,0]
     flip = single_site_op(op=X, site=L // 2 + 1, L=L)
-    psi = flip @ psi
+    psi = csc_array(flip @ psi)
     return psi
 
 # ---------------------------------------------------------------------------------------
-# Exact Evolution Operator
+# Compute Ising Spectrum
 # ---------------------------------------------------------------------------------------
-def exact_evolution_operator(L, h_t, delta, trotter_step):
+def compute_ising_spectrum(L: int, h_l: float = 0, n_points: int = 100, k: int = 6):
     X = np.array([[0,1],[1,0]])
+    X = csr_matrix(X)
     Z = np.array([[1,0],[0,-1]])
-    H_ev = H_ising_gen(L=L, op_l=Z, op_t=X, J=1, h_l=0, h_t=h_t)
+    Z = csr_matrix(Z)
+    h_ts = np.linspace(0,2,n_points)
+    eigvals = []
+    for h_t in h_ts:
+        H = H_ising_gen(L=L, op_l=Z, op_t=X, J=1, h_l=h_l, h_t=h_t)
+        e, v = eigsh(H, k=k, which="SA")
+        print(f"first 6 igenvalues SA (Smallest (algebraic) eigenvalues): {e}")
+        eigvals.append(e)
+    return eigvals
+
+# ---------------------------------------------------------------------------------------
+# Exact Evolution
+# ---------------------------------------------------------------------------------------
+def exact_evolution(L: int, psi_init: csc_array, trotter_step: int, delta: float, h_t: float, h_l: float = 0):
+    X = np.array([[0,1],[1,0]])
+    X = csr_matrix(X)
+    Z = np.array([[1,0],[0,-1]])
+    Z = csr_matrix(Z)
+    H_ev = H_ising_gen(L=L, op_l=Z, op_t=X, J=1, h_l=h_l, h_t=h_t)
     time = delta*trotter_step
-    U = expm(-1j*time*H_ev)
-    U_new = truncation(array=U, threshold=1e-16)
-    U_new = csr_matrix(U_new)
-    return U_new
+    H_ev = -1j*time*H_ev.tocsc()
+    # U = expm(-1j*time*H_ev.tocsc())
+    # U_new = truncation(array=U, threshold=1e-15)
+    psi_ev = expm_multiply(H_ev, psi_init)
+    return psi_ev
 
 # visualization tools
 
