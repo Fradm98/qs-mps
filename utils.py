@@ -516,14 +516,14 @@ def truncation(array, threshold):
 # ---------------------------------------------------------------------------------------
 # Exact Initial State
 # ---------------------------------------------------------------------------------------
-def exact_initial_state(L: int, h_t: float, h_l: float = 0)->csc_array:
+def exact_initial_state(L: int, h_t: float, h_l: float = 0, k: int = 1)->csc_array:
     X = np.array([[0,1],[1,0]])
     X = csr_matrix(X)
     Z = np.array([[1,0],[0,-1]])
     Z = csr_matrix(Z)
     H = H_ising_gen(L=L, op_l=Z, op_t=X, J=1, h_l=h_l, h_t=h_t)
-    e, v = eigsh(H, k=1, which="SA")
-    print(f"first 6 igenvalues SA (Smallest (algebraic) eigenvalues): {e}")
+    e, v = eigsh(H, k=k, which="SA")
+    print(f"first {k} eigenvalue(s) SA (Smallest (algebraic) eigenvalues): {e}")
     psi = v[:,0]
     flip = single_site_op(op=X, site=L // 2 + 1, L=L)
     psi = csc_array(flip @ psi)

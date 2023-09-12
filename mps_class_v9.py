@@ -381,7 +381,8 @@ class MPS:
         """
         flipping_mps
 
-        This function flips the mps middle site with the operator X, pretending to be in the computational (Z) basis.
+        This function flips the mps middle site with the operator X, 
+        assuming to be in the computational (Z) basis.
         
         """
         X = np.array([[0,1],[1,0]])
@@ -391,6 +392,21 @@ class MPS:
 
         new_site = ncon([self.sites[self.L // 2],X],[[-1,1,-3],[1,-2]])
         self.sites[self.L // 2] = new_site
+
+        return self
+    
+    def flipping_all(self):
+        """
+        flipping_all
+
+        This function flips all the sites of the mps with the operator X, 
+        assuming to be in the computational (Z) basis.
+        
+        """
+        X = np.array([[0,1],[1,0]])
+        for i in range(self.L):
+            new_site = ncon([self.sites[i],X],[[-1,1,-3],[1,-2]])
+            self.sites[i] = new_site
 
         return self
 
@@ -923,7 +939,7 @@ class MPS:
 
         return H
 
-    def N_eff(self, site):
+    def _N_eff(self, site):   
         array = self.sites
         a = np.array([1])
         env = ncon([a,a,a,a],[[-1],[-2],[-3],[-4]])
@@ -933,20 +949,20 @@ class MPS:
             env = ncon([env,ten],[[-1,-2,1,2],[1,2,-3,-4]])
         left = env
         left = ncon([a,a,left],[[1],[2],[1,2,-1,-2]])
-        print(csr_matrix(truncation(left, threshold=1e-16)))
-        plt.title("left")
-        plt.imshow(left.real, vmin=0, vmax=1)
-        plt.show()
+        # print(csr_matrix(truncation(left, threshold=1e-15)))
+        # plt.title("left")
+        # plt.imshow(left.real, vmin=0, vmax=1)
+        # plt.show()
         env = ncon([a,a,a,a],[[-1],[-2],[-3],[-4]])
         for i in range(self.L-1, site-1, -1):
             ten = self.overlap_sites(array_1=array[i])
             env = ncon([ten,env],[[-1,-2,1,2],[1,2,-3,-4]])
         right = env
         right = ncon([right,a,a],[[-1,-2,1,2],[1],[2]])
-        print(csr_matrix(truncation(right, threshold=1e-16)))
-        plt.title("right")
-        plt.imshow(right.real, vmin=0, vmax=1)
-        plt.show()
+        # print(csr_matrix(truncation(right, threshold=1e-15)))
+        # plt.title("right")
+        # plt.imshow(right.real, vmin=0, vmax=1)
+        # plt.show()
         kron = np.eye(2)
         # N = ncon([left,kron,right],[[-1,-4],[-2,-5],[-3,-6]]).reshape((self.env_left[-1].shape[2]*self.d*self.env_right[-1].shape[2],self.env_left[-1].shape[2]*self.d*self.env_right[-1].shape[2]))
         N = ncon([left,kron,right],[[-1,-4],[-2,-5],[-3,-6]]).reshape((left.shape[0]*self.d*right.shape[0],left.shape[1]*self.d*right.shape[1]))
@@ -1294,25 +1310,37 @@ class MPS:
         mag_mps_tot = []
         mag_mps_loc = []
         Z = np.array([[1,0],[0,-1]])
+
+        # total
+        self.order_param_Ising(op=Z)
+        mag_mps_tot.append(np.real(self.mpo_first_moment()))
+
+        # local
+        mag_loc = []
+        for i in range(self.L):
+            self.single_operator_Ising(site=i+1, op=Z)
+            mag_loc.append(self.mpo_first_moment().real)
+        mag_mps_loc.append(mag_loc)
+
         if fidelity:
             psi_exact_0 = exact_initial_state(L=self.L, h_t=self.h)
+            psi_new_mpo = mps_to_vector(self.sites)
+            overlap.append(np.abs((psi_new_mpo.T.conjugate() @ psi_exact_0).real))
         for T in range(trotter_steps):
             print(f"------ Trotter steps: {T} -------")
-            
+
             self.mpo_Ising_time_ev(delta=delta, h_ev=h_ev, J_ev=1)
             self.mpo_to_mps()
-            # print(f"Bond dim: {self.sites[self.L//2].shape[0]}")
             if trunc:
                 self.canonical_form(svd_direction="left")
                 self.canonical_form(svd_direction="right")
             # tensor_shapes(self.sites)
             # self.save_sites()
-            # mag_mps_tot.append(np.real(self.mps_local_exp_val(op=Z)))
-            
+
             # total
             self.order_param_Ising(op=Z)
             mag_mps_tot.append(np.real(self.mpo_first_moment()))
-            
+
             # local
             mag_loc = []
             for i in range(self.L):
@@ -1321,13 +1349,12 @@ class MPS:
             mag_mps_loc.append(mag_loc)
 
             if fidelity:
-                U = exact_evolution_operator(L=self.L, h_t=h_ev, delta=delta, trotter_step=(T+1))
-                psi_exact = U @ psi_exact_0
+                psi_exact = exact_evolution(L=self.L, psi_init=psi_exact_0, trotter_step=(T+1), delta=delta, h_t=h_ev)
                 psi_new_mpo = mps_to_vector(self.sites)
                 overlap.append(np.abs((psi_new_mpo.T.conjugate() @ psi_exact).real))
         return mag_mps_tot, mag_mps_loc, overlap
-    
-    def compressed_mpo_evolution(self, trotter_steps, fidelity, delta, h_ev, chi_max):
+
+    def variational_mps_evolution(self, trotter_steps: int, delta: float, h_ev: float, n_sweeps: int = 2, fidelity: bool = False):
         """
         direct_mpo_evolution
 
@@ -1343,59 +1370,104 @@ class MPS:
                 
         """
         overlap = []
-        mag_mpo_tot = []
-        errors = []
+        mag_mps_tot = []
+        mag_mps_loc = []
         Z = np.array([[1,0],[0,-1]])
-        opt_chain = MPS(L=self.L, d=self.d, model=self.model, chi=chi_max[0], J=1, h=0, eps=0)
-        opt_chain._random_state(seed=3, chi=chi_max[0], type_shape="trapezoidal")
-        opt_chain.canonical_form(trunc=True)
-        opt_chain._compute_norm(site=1)
-        i = 0
+
+        # total
+        self.order_param_Ising(op=Z)
+        test = np.real(self.mpo_first_moment())
+        tolerance = 1e-6  # Adjust this to your desired level of precision
+        # Check if the absolute difference between the two numbers is within the tolerance
+        if abs(test.__float__() + (self.L-2)) < tolerance:
+            self.flipping_all()
+        mag_mps_tot.append(np.real(self.mpo_first_moment()))
+
+        # local
+        mag_loc = []
+        for i in range(self.L):
+            self.single_operator_Ising(site=i+1, op=Z)
+            mag_loc.append(self.mpo_first_moment().real)
+        mag_mps_loc.append(mag_loc)
+            
+
+        # fidelity
         if fidelity:
-            psi = mps_to_vector(self.sites)
-        for T in range(trotter_steps):
-            print(f"------ Trotter steps: {T} -------")
+            psi_exact_0 = exact_initial_state(L=self.L, h_t=self.h, h_l=self.eps).reshape(2**self.L,1)
+            psi_new_mpo = mps_to_vector(self.sites)
+            overlap.append(np.abs((psi_new_mpo.T.conjugate() @ psi_exact_0).real))
+        
+        # initialize ancilla
+        self.canonical_form()
+        self._compute_norm(site=1)
+        self.ancilla_sites = self.sites
+
+        errors = []
+        for trott in range(trotter_steps):
+            print(f"------ Trotter steps: {trott} -------")
             self.mpo_Ising_time_ev(delta=delta, h_ev=h_ev, J_ev=1)
-            self.mpo_to_mps()
-            print(f"Bond dim: {self.sites[self.L//2].shape[0]}")
-            if self.sites[self.L//2].shape[0] > chi_max[i]:
-                print("Doing the compression...")
-                opt_chain.ancilla_sites = self.sites
-                opt_chain._compute_norm(site=1, ancilla=True)
-                compressed_chain, error = opt_chain.compression(trunc=True)
-                print(f"Error to compress {self.sites[self.L//2].shape[0]} to {chi_max}: {error}")
-                errors.append(error)
-                self.sites = compressed_chain.sites
-                i += 1
-            # self.save_sites()
-            mag_mpo_tot.append(np.real(self.mps_local_exp_val(op=Z)))
+            self.mpo_to_mps(ancilla=True)
+            self.canonical_form(ancilla=True, trunc=True)
+            error = self.compression(delta=delta, trotter_step=trott, trunc_tol=False, trunc_chi=True, n_sweeps=n_sweeps, err=True)
+            errors.append(error)
+            print(self.chi)
+            tensor_shapes(self.sites)
+            # local
+            mag = []
+            for i in range(self.L):
+                self.single_operator_Ising(site=i+1, op=Z)
+                mag.append(self.mpo_first_moment().real)
+            mag_mps_loc.append(mag)
+
+            # total
+            self.order_param_Ising(op=Z)
+            mag_mps_tot.append(np.real(self.mpo_first_moment()))
+
             if fidelity:
+                psi_exact = exact_evolution(L=self.L, psi_init=psi_exact_0, trotter_step=(trott+1), delta=delta, h_t=h_ev)
                 psi_new_mpo = mps_to_vector(self.sites)
-                overlap.append(psi_new_mpo.T.conjugate() @ psi)
-        return mag_mpo_tot, errors, overlap
+                overlap.append(np.abs((psi_new_mpo.T.conjugate() @ psi_exact).real))
+        return mag_mps_tot, mag_mps_loc, overlap, errors
 
-    def contraction_with_ancilla(self, site):
-        ancilla_sites = self.ancilla_sites
-        new_tensor = ncon(
-            [self.env_left[-1], ancilla_sites[site-1], self.w[site-1], self.env_right[-1]],
-            [
-                [1,2,-1],
-                [1,3,5],
-                [2,4,3,-2],
-                [5,4,-3]
-            ]
-        )
-        # self.sites[site - 1] = new_tensor
-        return self, new_tensor
+    def environments_ev(self, site):
+        a = np.array([1])
+        E_l = ncon([a,a],[[-1],[-2]])
+        E_r = E_l
+        env_right = []
+        env_left = []
 
-    def lin_sys(self, M, N_eff, site, l_shape, r_shape):
-        M_new = M.flatten()
-        new_site = solve(N_eff, M_new)
-        new_site = new_site.reshape((l_shape[0], self.d, r_shape[0]))
-        self.sites[site - 1] = new_site
+        env_right.append(E_r)
+        env_left.append(E_l)
+        array = self.sites
+        ancilla_array = self.ancilla_sites
+
+        for i in range(1, site):
+            E_l = ncon(
+                [E_l, ancilla_array[i - 1], array[i - 1].conjugate()],
+                [
+                    [1,3],
+                    [1,2,-1],
+                    [3,2,-2],
+                ],
+                )
+            env_left.append(E_l)
+
+        for j in range(self.L, site, -1):
+            E_r = ncon(
+                [E_r, ancilla_array[j - 1], array[j - 1].conjugate()],
+                [
+                    [1,3],
+                    [-1,2,1],
+                    [-3,2,3],
+                ],
+                )
+            env_right.append(E_r)
+
+        self.env_right = env_right
+        self.env_left = env_left
         return self
-
-    def compute_M(self, site, rev=False):
+    
+    def compute_M_no_mpo(self, site):
         """
         _compute_M
 
@@ -1406,58 +1478,32 @@ class MPS:
         site: int - site where to execute the tensor contraction
 
         """
-        array_1 = self.ancilla_sites
-        array_2 = self.sites
-        if rev:
-            array_1 = self.sites
-            array_2 = self.ancilla_sites
-        a = np.array([1])
-        env = ncon([a,a,a,a],[[-1],[-2],[-3],[-4]])
-        left = env
-
-        for i in range(site-1):
-            ten = self.overlap_sites(array_1=array_1[i], array_2=array_2[i])
-            env = ncon([env,ten],[[-1,-2,1,2],[1,2,-3,-4]])
-        left = env
-        # print("The left overlap of the state:")
-        # print(left)
-        env = ncon([a,a,a,a],[[-1],[-2],[-3],[-4]])
-        right = env
-        for i in range(self.L-1, site-1, -1):
-            ten = self.overlap_sites(array_1=array_1[i], array_2=array_2[i])
-            env = ncon([ten,env],[[-1,-2,1,2],[1,2,-3,-4]])
-        right = env
-        # print("The right overlap of the state:")
-        # print(right)
-
-        M = ncon([a,a,left,array_1[site - 1],right,a,a],[[1],[2],[1,2,3,-1],[3,-2,4],[4,-3,5,6],[5],[6]])
+        M = ncon([self.env_left[-1],self.ancilla_sites[site-1],self.env_right[-1]],[[1,-1],[1,-2,2],[2,-3]])
         return M
 
-    def error_phi_psi(self, site, M, N_eff):
-        phi_psi = ncon([M,self.sites[site-1].conjugate()],[[1,2,3],[1,2,3]])
-        print("<psi|psi>:")
-        psi_psi = self._compute_norm(site=site, ancilla=True)
-        print("<phi|phi>:")
-        phi_phi = self._compute_norm(site=site)
-        M_rev = self.compute_M(site, rev=True)
-        psi_phi = ncon([M_rev,self.ancilla_sites[site-1].conjugate()],[[1,2,3],[1,2,3]])
-        error = psi_psi - psi_phi - phi_psi + phi_phi
+    def error(self, site, M, N_eff):
+        AM = ncon([M,self.sites[site-1].conjugate()],[[1,2,3],[1,2,3]])
+        A = self.sites[site-1].flatten()
+        AN_effA = ncon([A,N_eff,A.conjugate()],[[1],[1,2],[2]])
+        error = AN_effA - 2*AM.real
         return error
 
-    def update_state_compressed(self, sweep, site, trunc, e_tol=10 ** (-15), precision=2):   
+    def update_state_ev(self, sweep, site, delta, trotter_step, trunc_tol, trunc_chi, e_tol=10 ** (-15), precision=2):   
         """
         update_state
 
-        This function updates the self.a and classe.b lists of tensors composing
-        the mps. The update depends on the sweep direction. We take the classe.m
-        extracted from the eigensolver and we decomposed via svd.
+        This function updates the state accoring to the sweeping direction and
+        the truncation procedure, if applied. The state undergoes in any 
+        case a svd procedure to obtain the schmidt values and unitary matrices.
 
         sweep: string - direction of the sweeping. Could be "left" or "right"
-        site: int - indicates which site the DMRG is optimizing
-        trunc: bool - if True will truncate the the Schmidt values and save the
-                state accordingly.
+        site: int - indicates which site the TEBD is optimizing
+        trunc_tol: bool - if True will truncate the the Schmidt values according to
+                        a tolerance value e_tol
+        trunc_chi: bool - if True will truncate the the Schmidt values according to
+                        a maximum (fixed) bond dimension
         e_tol: float - the tolerance accepted to truncate the Schmidt values
-        precision: int - indicates the precision of the parameter h
+        precision: int - indicates the precision to save parameters
 
         """
         if sweep == "right":
@@ -1466,7 +1512,9 @@ class MPS:
                 self.sites[site - 1].shape[0] * self.d, self.sites[site - 1].shape[2]
             )
             u, s, v = np.linalg.svd(m, full_matrices=False)
-            if trunc:
+            
+            
+            if trunc_tol:
                 condition = s >= e_tol
                 s_trunc = np.extract(condition, s)
                 s = s_trunc / np.linalg.norm(s_trunc)
@@ -1474,12 +1522,34 @@ class MPS:
                 u = u.reshape(bond_l, self.d, u.shape[1])
                 u = u[:, :, : len(s)]
                 v = v[: len(s), :]
+                if site == self.L//2:
+                    # print(f'Schmidt values:\n{s}')
+                    np.savetxt(
+                            f"results/bonds_data/schmidt_values_middle_chain_{self.model}_L_{self.L}_chi_{self.chi}_trotter_step_{trotter_step}_delta_{delta}",
+                            s,
+                        )
+            elif trunc_chi:
+                s_trunc = s[:self.chi]
+                s = s / np.linalg.norm(s_trunc)
+                # print(f"Schmidt Values:\n{s}")
+                bond_l = u.shape[0] // self.d
+                u = u.reshape(bond_l, self.d, u.shape[1])
+                u = u[:, :, : len(s)]
+                v = v[: len(s), :]
+                if site == self.L//2:
+                    # print(f'Schmidt values:\n{s}')
+                    np.savetxt(
+                            f"results/bonds_data/schmidt_values_middle_chain_{self.model}_L_{self.L}_chi_{self.chi}_trotter_step_{trotter_step}_delta_{delta}",
+                            s,
+                        )
             else:
                 u = u.reshape(
                     self.sites[site - 1].shape[0], self.d, self.sites[site - 1].shape[2]
                 )
+            
+            # print(f"Schmidt sum: {sum(s**2)}")
             next_site = ncon(
-                [np.diag(s), v, self.sites[site]], 
+                [np.diag(s), v, self.sites[site]],
                 [
                     [-1,1],
                     [1,2],
@@ -1495,7 +1565,8 @@ class MPS:
                 self.sites[site - 1].shape[0], self.d * self.sites[site - 1].shape[2]
             )
             u, s, v = np.linalg.svd(m, full_matrices=False)
-            if trunc:
+            
+            if trunc_tol:
                 condition = s >= e_tol
                 s_trunc = np.extract(condition, s)
                 s = s_trunc / np.linalg.norm(s_trunc)
@@ -1503,10 +1574,31 @@ class MPS:
                 v = v.reshape(v.shape[0], self.d, bond_r)
                 v = v[: len(s), :, :]
                 u = u[:, : len(s)]
+                if site == self.L//2:
+                    # print(f'Schmidt values:\n{s}')
+                    np.savetxt(
+                            f"results/bonds_data/schmidt_values_middle_chain_{self.model}_L_{self.L}_chi_{self.chi}_trotter_step_{trotter_step}_delta_{delta}",
+                            s,
+                        )
+            elif trunc_chi:
+                s_trunc = s[:self.chi]
+                s = s / np.linalg.norm(s_trunc)
+                # print(f"Schmidt Values:\n{s}")
+                bond_r = v.shape[1] // self.d
+                v = v.reshape(v.shape[0], self.d, bond_r)
+                v = v[: len(s), :, :]
+                u = u[:, : len(s)]
+                if site == self.L//2:
+                    # print(f'Schmidt values:\n{s}')
+                    np.savetxt(
+                            f"results/bonds_data/schmidt_values_middle_chain_{self.model}_L_{self.L}_chi_{self.chi}_trotter_step_{trotter_step}_delta_{delta}",
+                            s,
+                        )
             else:
                 v = v.reshape(
                     self.sites[site - 1].shape[0], self.d, self.sites[site - 1].shape[2]
                 )
+            # print(f"Schmidt sum: {sum(s**2)}")
             next_site = ncon(
                 [self.sites[site - 2], u, np.diag(s)], 
                 [
@@ -1520,48 +1612,97 @@ class MPS:
 
         return self
 
-    def compression(self, trunc, e_tol=10 ** (-15), n_sweeps=2, precision=2):
+    def update_envs_ev(self, sweep, site):
+        """
+        update_envs
+
+        This function updates the left and right environments for the next
+        site optimization performed by the eigensolver. After the update of the mps
+        in LCF and RCF we can compute the new environment and throw the one we do not need.
+
+        sweep: string - direction of the sweeping. Could be "left" or "right"
+        site: int - site we are optimizing
+
+        """
+        if sweep == "right":
+            array = self.sites[site - 1]
+            ancilla_array = self.ancilla_sites[site - 1]
+            E_l = self.env_left[-1]
+            E_l = ncon(
+                [E_l,ancilla_array,array.conjugate()],
+                [
+                    [1,3],
+                    [1,2,-1],
+                    [3,2,-3],
+                ],
+            )
+            self.env_left.append(E_l)
+            self.env_right.pop(-1)
+
+        if sweep == "left":
+            array = self.sites[site - 1]
+            ancilla_array = self.ancilla_sites[site - 1]
+            E_r = self.env_right[-1]
+            E_r = ncon(
+                [E_r,ancilla_array,array.conjugate()],
+                [
+                    [1,3],
+                    [-1,2,1],
+                    [-3,2,3],
+                ],
+            )
+            self.env_right.append(E_r)
+            self.env_left.pop(-1)
+
+        return self
+
+    def compression(self, delta, trotter_step: int, trunc_tol: float, trunc_chi: int, e_tol: float = 10 ** (-15), n_sweeps: int = 2, precision: int = 2, err: bool = False):
+        """
+        compression
+
+        This function compress the mps self.sites by a variational method that 
+        tries to compress the uncompressed state in the ancilla_sites. We
+        reduce the distance between these two states.
+
+        trunc_tol: bool - if True will truncate the the Schmidt values according to
+                        a tolerance value e_tol
+        trunc_chi: bool - if True will truncate the the Schmidt values according to
+                        a maximum (fixed) bond dimension
+        e_tol: float - the tolerance accepted to truncate the Schmidt values
+        n_sweeps: int - number of sweepings
+        precision: int - precision of the floats to save
+        err: bool - decide if we want to monitor the error or not. Default is false
+        """
         sweeps = ["right", "left"]
         sites = np.arange(1, self.L + 1).tolist()
         errors = []
 
+        self.environments_ev(site=1)
         iter = 1
         for n in range(n_sweeps):
-            print(f"Sweep n: {n}\n")
+            # print(f"Sweep n: {n}\n")
             for i in range(self.L - 1):
-                # time_N_eff = time.perf_counter()
-                N_eff, l_shape, r_shape = self.N_eff(site=sites[i])
-                # print(f"Time of N_eff: {time.perf_counter()-time_N_eff}")
-                # time_compute_M = time.perf_counter()
-                M = self.compute_M(sites[i])
-                # print(f"Time of compute M: {time.perf_counter()-time_compute_M}")
-                # time_lin_sys = time.perf_counter()
-                self.lin_sys(M, N_eff, sites[i], l_shape, r_shape)
-                # print(f"Time of lin sys: {time.perf_counter()-time_lin_sys}")
-                # time_error = time.perf_counter()
-                err = self.error_phi_psi(site=sites[i], N_eff=N_eff, M=M)
-                # print(f"Time of error: {time.perf_counter()-time_error}")
-                print(f"error per site {sites[i]}: {err:.5f}")
-                # time_update = time.perf_counter()
-                self.update_state_compressed(sweeps[0], sites[i], trunc, e_tol, precision)
-                # print(f"Time of update state: {time.perf_counter()-time_update}")
-                errors.append(err)
+                # print(f"\n============= Site: {sites[i]} ===================\n")
+                if err:
+                    N_eff, l_shape, r_shape = self._N_eff(site=sites[i])
+                
+                M = self.compute_M_no_mpo(sites[i])
+                
+                if err:
+                    errs = self.error(site=sites[i], N_eff=N_eff, M=M)
+                    print(f"Error at site {sites[i]} for trotter step {trotter_step}: {errs}")
+                    errors.append(errs)
+
+                self.sites[sites[i]-1] = M
+                self.update_state_ev(sweeps[0], sites[i], delta, trotter_step, trunc_tol, trunc_chi, e_tol, precision)
+                self.update_envs_ev(sweeps[0], sites[i])
+
                 iter += 1
 
             sweeps.reverse()
             sites.reverse()
         
-        return self, errors[-1]
-
-    def error(self, site, N_eff, M):
-        N_eff = N_eff.reshape((self.env_left[-1].shape[2],self.d,self.env_right[-1].shape[2],self.env_left[-1].shape[2],self.d,self.env_right[-1].shape[2]))
-        A_dag_N_eff_A = ncon([N_eff,self.sites[site - 1],self.sites[site - 1].conjugate()],[[1,2,3,4,5,6],[1,2,3],[4,5,6]])
-        print(f"error A^dagger N_eff A: {A_dag_N_eff_A}")
-        A_dag_M = ncon([self.sites[site - 1].conjugate(), M],[[1,2,3],[1,2,3]])
-        print(f"error A^dagger M: {A_dag_M}")
-        err = A_dag_N_eff_A - 2*A_dag_M.real
-        print(f"Total error: {err}")
-        return err
+        return errors
     
     def clear_canonical(self):
         self.sites.clear()

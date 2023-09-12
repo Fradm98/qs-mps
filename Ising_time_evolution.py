@@ -17,10 +17,10 @@ import time
 
 # exact state and evolution
 L = 9
-h_t = 0
-h_ev = 0.3
-t = 5
-trotter_steps = 50
+h_t = 2
+h_ev = 1.75
+t = 10
+trotter_steps = 200
 delta = t/trotter_steps
 psi_exact = exact_initial_state(L=L, h_t=h_t, h_l=1e-7).reshape(2**L,1)
 # we save the exact states to compute the fidelity
@@ -51,8 +51,6 @@ states = []
 for trott in range(1,trotter_steps+1):
     # compute the U in the time we are interested in, that is, delta*trott
     psi_new = exact_evolution(L, psi_init=psi_exact, delta=delta, trotter_step=trott, h_t=h_ev)
-    # final state after U time evolution
-    # psi_new = U @ psi_exact
     states.append(psi_new)
     # exact_states.append(psi_new)
     # compute the total and local magnetization at that time
@@ -74,7 +72,7 @@ for trott in range(1,trotter_steps+1):
 
 # visualization of exact evolution
 # local
-plt.imshow(mag_exact_loc, cmap='seismic', vmin=-1, vmax=1, aspect=0.1)
+plt.imshow(mag_exact_loc, cmap='seismic', vmin=-1*1e-6, vmax=1*1e-6, aspect=0.05)
 plt.show()
 # total
 plt.title(f"Total Magnetization for $\delta = {delta}$ ;" + " $h_{ev} =$" + f"{h_ev}")
@@ -108,7 +106,7 @@ def _braket(ket, bra, w):
     sandwich = ncon([ket,w,bra.conjugate()],[[-1,1,-4],[-2,-5,1,2],[-3,2,-6]])
     return sandwich
 
-def environments(classe, site):
+def environments_ev(classe, site):
     a = np.array([1])
     E_l = ncon([a,a],[[-1],[-2]])
     E_r = E_l
@@ -252,7 +250,7 @@ def compute_M(classe, site, rev=False):
         M = ncon([classe.env_left[-1],classe.ancilla_sites[site-1],classe.w[site-1],classe.env_right[-1]],[[1,4,-1],[1,2,3],[4,5,2,-2],[3,5,-3]])
         return M
 
-def compute_M_no_mpo(classe, site, rev=False):
+def compute_M_no_mpo(classe, site):
     """
     _compute_M
 
@@ -263,30 +261,6 @@ def compute_M_no_mpo(classe, site, rev=False):
     site: int - site where to execute the tensor contraction
 
     """
-    # array_1 = classe.ancilla_sites
-    # array_2 = classe.sites
-    # if rev:
-    #     array_1 = classe.sites
-    #     array_2 = classe.ancilla_sites
-    # a = np.array([1])
-    # env = ncon([a,a],[[-1],[-3]])
-
-    # for i in range(site-1):
-    #     ten = ncon([array_1[i],array_2[i].conjugate()],[[-1,1,-3],[-2,1,-4]])
-    #     env = ncon([env,ten],[[1,2],[1,2,-1,-2]])
-    # left = env
-    # # print("The left overlap of the state:")
-    # # print(left)
-    # env = ncon([a,a],[[-1],[-2]])
-    # for i in range(classe.L-1, site-1, -1):
-    #     ten = ncon([array_1[i],array_2[i].conjugate()],[[-1,1,-3],[-2,1,-4]])
-    #     # print(f"braket shape: {ten.shape}")
-    #     # print(f"env shape: {env.shape}")
-    #     env = ncon([ten,env],[[-1,-2,1,2],[1,2]])
-    # right = env
-    # # print("The right overlap of the state:")
-
-    # M = ncon([left,array_1[site - 1],right],[[1,-1],[1,-2,2],[2,-3]])
     M = ncon([classe.env_left[-1],classe.ancilla_sites[site-1],classe.env_right[-1]],[[1,-1],[1,-2,2],[2,-3]])
     return M
 
@@ -297,7 +271,7 @@ def error(classe, site, M, N_eff):
     error = AN_effA - 2*AM.real
     return error
 
-def update_state(classe, sweep, site, trunc_tol, trunc_chi, e_tol=10 ** (-15), precision=2):   
+def update_state_ev(classe, sweep, site, trunc_tol, trunc_chi, e_tol=10 ** (-15), precision=2):   
     """
     update_state
 
@@ -399,7 +373,7 @@ def update_state(classe, sweep, site, trunc_tol, trunc_chi, e_tol=10 ** (-15), p
 
     return classe
 
-def update_envs(classe, sweep, site):
+def update_envs_ev(classe, sweep, site):
     """
     update_envs
 
@@ -443,48 +417,31 @@ def update_envs(classe, sweep, site):
 
     return classe
 
-def compression(classe, trunc_tol, trunc_chi, e_tol=10 ** (-15), n_sweeps=2, precision=2):
+def compression(classe, trunc_tol, trunc_chi, e_tol=10 ** (-15), n_sweeps=2, precision=2, err=False):
     sweeps = ["right", "left"]
     sites = np.arange(1, classe.L + 1).tolist()
     errors = []
 
-    environments(classe, site=1)
+    environments_ev(classe, site=1)
     iter = 1
     for n in range(n_sweeps):
         # print(f"Sweep n: {n}\n")
         for i in range(classe.L - 1):
             # print(f"\n============= Site: {sites[i]} ===================\n")
-            # N_eff, l_shape, r_shape = _N_eff(classe, site=sites[i])
-            # N_eff = truncation(array=N_eff, threshold=1e-15)
-            # N_eff_sp = csr_matrix(N_eff)
-            # print("After N_eff")
-            # classe._compute_norm(site=1)
+            if err:
+                N_eff, l_shape, r_shape = _N_eff(classe, site=sites[i])
+                N_eff = truncation(array=N_eff, threshold=1e-15)
+                N_eff_sp = csr_matrix(N_eff)
             
             M = compute_M_no_mpo(classe, sites[i])
-            # t_plus_dt = sandwich_site_ancilla_site(classe, sites[i])
-            # print(f"The overlap of states phi and Opsi is: {t_plus_dt}")
-            # print("After M")
-            # classe._compute_norm(site=1)
-
-            # lin_sys(classe, M, N_eff_sp, sites[i], l_shape, r_shape)
             classe.sites[sites[i]-1] = M
-            # t_plus_dt = ncon([classe.sites[sites[i]-1].conjugate(),M],[[1,2,3],[1,2,3]])
-            # print(f"The overlap of states phi (updated) and Opsi is: {t_plus_dt}")
-            # print("After linear system")
-            # classe._compute_norm(site=1)
-            
-            # err = error(classe,  site=sites[i], N_eff=N_eff, M=M)
-            # print("After err")
-            # classe._compute_norm(site=1)
 
-            # print(f"error per site {sites[i]}: {err:.5f}")
-            # errors.append(err)
-            update_state(classe, sweeps[0], sites[i], trunc_tol, trunc_chi, e_tol, precision)
-            update_envs(classe, sweeps[0], sites[i])
-            # classe.update_envs(sweeps[0], sites[i], mixed=True)
-            # print("After update state")
-            # classe.canonical_form()
-            # classe._compute_norm(site=1)
+            if err:
+                errs = error(classe,  site=sites[i], N_eff=N_eff, M=M)
+                errors.append(errs)
+
+            update_state_ev(classe, sweeps[0], sites[i], trunc_tol, trunc_chi, e_tol, precision)
+            update_envs_ev(classe, sweeps[0], sites[i])
 
             iter += 1
 
@@ -499,15 +456,17 @@ def compression(classe, trunc_tol, trunc_chi, e_tol=10 ** (-15), n_sweeps=2, pre
 # The maximum bond dimension is $2^{L/2}$ so in our case $\chi_{max} = 2^{4} = 16 $. This $\chi_{max}$ is reached in $4$ trotter steps, hence we perform a direct application of the mpo anc compare with the exact time evolution
 
 # In[5]:
+# spectrum computation
 L = 9
 n_points = 100
 ks = 20
-spectrum = compute_ising_spectrum(L=L, h_l=1e-7, n_points=n_points, k=ks)
+spectrum = compute_ising_spectrum(L=L, h_l=1e-4, n_points=n_points, k=ks)
 # %%
+# visualization
 deltas = [0.1,0.2,0.4,1.0]
 colors = create_sequential_colors(num_colors=len(deltas), colormap_name='viridis')
 energy = []
-plt.title(f"Energy spectrum $vs$ $h$ - (L={L})")
+plt.title(f"Energy spectrum $vs$ $h$   -   (L={L})")
 idx = 0
 for k in range(ks):
     energy_k = np.asarray(spectrum)[:,k]
@@ -523,11 +482,11 @@ plt.xlabel("trasverse field (h)")
 plt.legend()
 plt.show()
 gap = np.abs(np.asarray(energy)[0]) - np.abs(np.asarray(energy)[2])
-plt.title(f"Energy gap $vs$ $\delta$ - (L={L})")
-plt.plot(np.linspace(0,2,n_points), gap)
+plt.title("Energy gap $\Delta^{-1}$ $vs$ $\delta$   -   " + f"(L={L})")
+plt.plot(np.linspace(0,2,n_points), 1/gap, color='indianred', label="$\Delta^{-1}$")
 for i, delta in enumerate(deltas):
     plt.hlines(y=delta, xmin=0, xmax=2, colors=colors[i], label=f"$\delta = {delta}$")
-plt.ylabel("Energy gap ($E_{k=0} - E_{k=2}$ non degenerate)")
+plt.ylabel("Energy gap ($1/(E_{k=0} - E_{k=1})$ non degenerate)")
 plt.xlabel("trasverse field (h)")
 plt.legend()
 plt.show()
@@ -580,27 +539,25 @@ for L in Ls:
     chain.sweeping(trunc=True, n_sweeps=2)
     chain.flipping_mps()
     tot_time = time.perf_counter()
-    mag_tot_ev, mag_loc_ev, overlap = chain.direct_mpo_evolution(trotter_steps=trotter_steps, delta=delta, h_ev=h_ev, J_ev=1, fidelity=False, trunc=True)
+    mag_mps_tot, mag_mps_loc, overlap = chain.direct_mpo_evolution(trotter_steps=trotter_steps, delta=delta, h_ev=h_ev, J_ev=1, fidelity=False, trunc=True)
     comp_time.append(time.perf_counter()-tot_time)
     print(f"bond dimesion in the middle of the chain: {chain.sites[L//2].shape[0]}")
     # print(f"Trotter time for direct (SVD) compression: {time.perf_counter()-tot_time}")
 np.savetxt(f"results/times_data/svd_truncation_different_Ls_trotter_{trotter_steps}", comp_time)
 
-
-# # total
-# mag_mps_tot = mag_tot + mag_tot_ev
-
-# # local
-# mag_loc_ev.reverse()
-# mag_mps_loc = mag_loc_ev
-# mag_mps_loc.append(mag_loc)
-# mag_mps_loc.reverse()
-
-# fidelity
-# overlap.reverse()
-# overlap.append(fidelity)
-# overlap.reverse()
-
+# %%
+# visualization of times
+Ls = [7,9,11,13,15,17,19,21]
+svd_trunc = np.loadtxt("results/times_data/svd_truncation_different_Ls_trotter_50")
+var_trunc = np.loadtxt("results/times_data/variational_truncation_different_Ls_trotter_50")
+plt.title("50 trotter steps with different truncation techniques")
+plt.plot(Ls, svd_trunc, label="svd")
+plt.plot(Ls, var_trunc, label="variational (max bond dim)")
+plt.xticks(Ls, ['7', '9', '11', '13', '15', '17', '19', '21'])
+plt.xlabel("Chain size (L)")
+plt.ylabel("Computational time (s)")
+plt.legend()
+plt.show()
 
 # In[7]:
 
@@ -614,7 +571,7 @@ data2 = mag_mps_loc
 title1 = "Exact quench (local mag)"
 title2 = "MPS quench (local mag)"
 # title1 = title2
-plot_side_by_side_(data1=data1, data2=data2, cmap='seismic', title1=title1, title2=title2)
+plot_side_by_side(data1=data1, data2=data2, cmap='seismic', title1=title1, title2=title2)
 
 # total
 # chi = chain.sites[L//2].shape[0]
@@ -773,20 +730,6 @@ for L in Ls:
         chain.canonical_form(ancilla=True, trunc=False)
         compression(chain, trunc=True, n_sweeps=n_sweeps)
 
-        # local
-        mag = []
-        for i in range(chain.L):
-            chain.single_operator_Ising(site=i+1, op=Z)
-            mag.append(chain.mpo_first_moment().real)
-        mag_mps_loc.append(mag)
-
-        # total
-        chain.order_param_Ising(op=Z)
-        mag_mps_tot.append(np.real(chain.mpo_first_moment()))
-
-        # fidelity
-        U_new = exact_evolution_operator(L=L, h_t=h_ev, delta=delta, trotter_step=trott+1)
-        psi_new = U_new @ psi_exact
 
         # total
         mag = (psi_new.T.conjugate() @ mag_tot_op @ psi_new).real
@@ -828,21 +771,9 @@ for i in range(1,L//2+1):
     chain.canonical_form()
     chain.sweeping(trunc=True, n_sweeps=2)
     chain.flipping_mps()
-    
-    mag_mps_loc = []
-    mag_mps_tot = []
-    # local
-    mag_loc = []
-    for i in range(chain.L):
-        chain.single_operator_Ising(site=i+1, op=Z)
-        mag_loc.append(chain.mpo_first_moment())
-    mag_mps_loc.append(mag_loc)
+    mag_mps_tot, mag_mps_loc, overlap = chain.variational_mps_evolution(trotter_steps=trotter_steps, delta=delta, h_ev=h_ev, fidelity=True)
 
-    # total
-    chain.order_param_Ising(op=Z)
-    mag_mps_tot.append(np.real(chain.mpo_first_moment()))
-
-    # exact
+    ## exact
     mag_exact_loc = []
     mag_exact_tot = []
 
@@ -856,54 +787,21 @@ for i in range(1,L//2+1):
     mag = psi_exact.T.conjugate() @ mag_tot_op @ psi_exact
     mag_exact_tot.append(mag.real)
 
-    # fidelity
-    psi_mps = mps_to_vector(chain.sites)
-    overlap = []
-    overlap.append(np.abs((psi_exact.T.conjugate() @ psi_mps).real))
-
-    chain.canonical_form()
-    chain._compute_norm(site=1)
-    chain.ancilla_sites = chain.sites
-
-    tot_time = time.perf_counter()
     for trott in range(trotter_steps):
-        print(f"------ Trotter steps: {trott} -------")
-        chain.mpo_Ising_time_ev(delta=delta, h_ev=h_ev, J_ev=1)
-        chain.mpo_to_mps(ancilla=True)
-        chain.canonical_form(ancilla=True, trunc=True)
-        compression(chain, trunc_tol=False, trunc_chi=True, n_sweeps=n_sweeps)
-        print(chain.chi)
-        tensor_shapes(chain.sites)
-        # local
-        mag = []
-        for i in range(chain.L):
-            chain.single_operator_Ising(site=i+1, op=Z)
-            mag.append(chain.mpo_first_moment().real)
-        mag_mps_loc.append(mag)
-
-        # total
-        chain.order_param_Ising(op=Z)
-        mag_mps_tot.append(np.real(chain.mpo_first_moment()))
-        # comp_time.append(time.perf_counter()-tot_time)
-
         # exact
-        U_new = exact_evolution_operator(L=L, h_t=h_ev, delta=delta, trotter_step=trott+1)
+        U_new = exact_evolution(L=L, psi_init=psi_exact, trotter_step=trott+1, delta=delta, h_t=h_ev)
         psi_new = U_new @ psi_exact
 
         # total
         mag = (psi_new.T.conjugate() @ mag_tot_op @ psi_new).real
         mag_exact_tot.append(mag)
-        
+
         # local
         mag_exact = []
         for i in range(L):
             mag_exact.append((psi_new.T.conjugate() @ mag_loc_op[i] @ psi_new).real)
         mag_exact_loc.append(mag_exact)
-        
-        # fidelity
-        psi_new_mps = mps_to_vector(chain.sites)
-        overlap.append(np.abs((psi_new_mps.T.conjugate() @ psi_new).real))
-    
+
     np.savetxt(f"results/mag_data/mag_mps_tot_L_{L}_delta_{delta}_chi_{chi}", mag_mps_tot)
     np.savetxt(f"results/mag_data/mag_mps_loc_L_{L}_delta_{delta}_chi_{chi}", mag_mps_loc)
     np.savetxt(f"results/mag_data/mag_exact_tot_L_{L}_delta_{delta}_chi_{chi}", mag_exact_tot)
