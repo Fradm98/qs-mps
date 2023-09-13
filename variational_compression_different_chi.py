@@ -19,44 +19,12 @@ L = 9
 n_sweeps = 4
 
 # exact
-psi_exact = exact_initial_state(L=L, h_t=h_t, h_l=1e-5).reshape(2**L,1)
-Z = np.array([[1,0],[0,-1]])
-# local
-mag_loc_op = [single_site_op(op=Z, site=i, L=L) for i in range(1,L+1)]
-# total
-mag_tot_op = H_loc(L=L, op=Z)
-
-mag_exact_loc = []
-mag_exact_tot = []
-
-# local
-mag_exact = []
-for i in range(L):
-    mag_exact.append((psi_exact.T.conjugate() @ mag_loc_op[i] @ psi_exact).data[0].real)
-mag_exact_loc.append(mag_exact)
-
-# total
-mag = (psi_exact.T.conjugate() @ mag_tot_op @ psi_exact).data
-mag_exact_tot.append(mag.real)
-
-print("Starting the exact evolution")
-for trott in range(trotter_steps):
-    # exact
-    psi_new = exact_evolution(L=L, psi_init=psi_exact, trotter_step=trott+1, delta=delta, h_t=h_ev)
-
-    # local
-    mag_exact = []
-    for i in range(L):
-        mag_exact.append((psi_new.T.conjugate() @ mag_loc_op[i] @ psi_new).data[0].real)
-    mag_exact_loc.append(mag_exact)
-
-    # total
-    mag = (psi_new.T.conjugate() @ mag_tot_op @ psi_new).data
-    mag_exact_tot.append(mag.real)
+mag_exact_loc, mag_exact_tot = exact_evolution(L=L, h_t=h_t, h_ev=h_ev, delta=delta, trotter_steps=trotter_steps)
 
 np.savetxt(f"results/mag_data/mag_exact_tot_L_{L}_delta_{delta}_trott_{trotter_steps}", mag_exact_tot)
 np.savetxt(f"results/mag_data/mag_exact_loc_L_{L}_delta_{delta}_trott_{trotter_steps}", mag_exact_loc)
 
+# variational truncation mps
 for i in range(1,L//2+1):
     chi = 2**i
     chain = MPS(L=L, d=2, model='Ising', chi=chi, h=h_t, eps=1e-5, J=1)
@@ -71,7 +39,7 @@ for i in range(1,L//2+1):
     np.savetxt(f"results/fidelity_data/fidelity_L_{L}_delta_{delta}_chi_{chi}", overlap)
 
 
-# %%
+ # %%
 # visualization
 
 # total

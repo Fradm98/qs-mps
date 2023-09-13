@@ -1424,7 +1424,7 @@ class MPS:
             mag_mps_tot.append(np.real(self.mpo_first_moment()))
 
             if fidelity:
-                psi_exact = exact_evolution(L=self.L, psi_init=psi_exact_0, trotter_step=(trott+1), delta=delta, h_t=h_ev)
+                psi_exact = U_evolution(L=self.L, psi_init=psi_exact_0, trotter_step=(trott+1), delta=delta, h_t=h_ev)
                 psi_new_mpo = mps_to_vector(self.sites)
                 overlap.append(np.abs((psi_new_mpo.T.conjugate() @ psi_exact).real))
         return mag_mps_tot, mag_mps_loc, overlap, errors

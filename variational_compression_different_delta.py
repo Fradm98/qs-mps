@@ -44,7 +44,7 @@ trotter_steps = 50
 delta = 0.1
 for trott in range(trotter_steps):
     # exact
-    psi_new = exact_evolution(L=L, psi_init=psi_exact, trotter_step=trott+1, delta=delta, h_t=h_ev)
+    psi_new = U_evolution(L=L, psi_init=psi_exact, trotter_step=trott+1, delta=delta, h_t=h_ev)
 
     # local
     mag_exact = []

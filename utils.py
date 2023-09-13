@@ -462,38 +462,40 @@ def H_ising_gen(L: int, op_l: csr_matrix, op_t: csr_matrix, J: float, h_l: float
     interaction terms with given parameters and operators.
 
     L: int - Total number of spins in the chain
-    op_int: np.ndarray - operator defining the two-site interaction term
-    op_loc: np.ndarray - operator defining the single-site local term
+    op_l: np.ndarray - operator defining the two-site interaction term
+    op_t: np.ndarray - operator defining the single-site local term
     J: float - couppling constant of the interaction term
-    h: float - couppling constant of the local term
+    h_l: float - couppling constant of the local logitudinal term
+    h_t: float - couppling constant of the local transverse term
     """    
     return - J*H_int(L, op=op_l) - h_l*H_loc(L, op_l) - h_t*H_loc(L, op_t)
 
 # ---------------------------------------------------------------------------------------
 # Flipping half
 # ---------------------------------------------------------------------------------------
-def flipping_half(op: csr_matrix, L: int):
+def flipping_half(L: int, op: csr_matrix):
     """
     flipping_half
 
     This function flips the half of the spin states to the right of the chain.
     To achieve the flipping it is important a correct choice of the operator
-
+    
+    L: int - chain size
     op: np.ndarray - flipping operator. E.g. spin in Z basis -> op=X
 
     """
     O = op
-    for i in range(L//2-1):
+    for _ in range(L//2-1):
         O = spkron(op,O)
 
-    for i in range(L//2):
+    for _ in range(L//2):
         O = before(O)
     return O
 
 # ---------------------------------------------------------------------------------------
 # Truncation
 # ---------------------------------------------------------------------------------------
-def truncation(array, threshold):
+def truncation(array: Union[np.ndarray, csc_matrix, csr_matrix], threshold: float):
     """
     truncation
 
@@ -506,7 +508,7 @@ def truncation(array, threshold):
     """
     if isinstance(array, np.ndarray):
         return np.where(np.abs(np.real(array)) > threshold, array, 0)
-    if isinstance(array, csc_matrix):
+    if isinstance(array, csc_matrix) or isinstance(array, csr_matrix):
         # Apply the thresholding operation on the csc_matrix
         filtered_matrix = csc_matrix((array.shape), dtype=array.dtype)
         # Apply the thresholding operation
@@ -514,25 +516,21 @@ def truncation(array, threshold):
         return filtered_matrix
 
 # ---------------------------------------------------------------------------------------
-# Exact Initial State
-# ---------------------------------------------------------------------------------------
-def exact_initial_state(L: int, h_t: float, h_l: float = 0, k: int = 1)->csc_array:
-    X = np.array([[0,1],[1,0]])
-    X = csr_matrix(X)
-    Z = np.array([[1,0],[0,-1]])
-    Z = csr_matrix(Z)
-    H = H_ising_gen(L=L, op_l=Z, op_t=X, J=1, h_l=h_l, h_t=h_t)
-    e, v = eigsh(H, k=k, which="SA")
-    print(f"first {k} eigenvalue(s) SA (Smallest (algebraic) eigenvalues): {e}")
-    psi = v[:,0]
-    flip = single_site_op(op=X, site=L // 2 + 1, L=L)
-    psi = csc_array(flip @ psi)
-    return psi
-
-# ---------------------------------------------------------------------------------------
 # Compute Ising Spectrum
 # ---------------------------------------------------------------------------------------
 def compute_ising_spectrum(L: int, h_l: float = 0, n_points: int = 100, k: int = 6):
+    """
+    compute_ising_spectrum
+
+    This function is computing the spectrum of an Ising Hamiltonian wrt the trnaverse field.
+
+    L: int - chain size
+    h_l: float - initial longitudinal field parameter. 
+        Can be used to break the symmetry of the ground state for h_t = 0
+    n_points: int - number of point in the transverse field we want to evaluate the spectrum. By default a 100 points
+    k: int - number of eigenvalues we want to compute. By default 6
+
+    """
     X = np.array([[0,1],[1,0]])
     X = csr_matrix(X)
     Z = np.array([[1,0],[0,-1]])
@@ -547,9 +545,50 @@ def compute_ising_spectrum(L: int, h_l: float = 0, n_points: int = 100, k: int =
     return eigvals
 
 # ---------------------------------------------------------------------------------------
-# Exact Evolution
+# Exact Initial State
 # ---------------------------------------------------------------------------------------
-def exact_evolution(L: int, psi_init: csc_array, trotter_step: int, delta: float, h_t: float, h_l: float = 0):
+def exact_initial_state(L: int, h_t: float, h_l: float = 0, k: int = 1)->csc_array:
+    """
+    exact_initial_state
+
+    This function is computing the initial state given by an Ising Hamiltonian.
+
+    L: int - chain size
+    h_t: float - initial transverse field parameter
+    h_l: float - initial longitudinal field parameter
+    k: int - number of eigenvalues we want to compute. By default 1
+
+    """
+    X = np.array([[0,1],[1,0]])
+    X = csr_matrix(X)
+    Z = np.array([[1,0],[0,-1]])
+    Z = csr_matrix(Z)
+    H = H_ising_gen(L=L, op_l=Z, op_t=X, J=1, h_l=h_l, h_t=h_t)
+    e, v = eigsh(H, k=k, which="SA")
+    print(f"first {k} eigenvalue(s) SA (Smallest (algebraic) eigenvalues): {e}")
+    psi = v[:,0]
+    flip = single_site_op(op=X, site=L // 2 + 1, L=L)
+    psi = csc_array(flip @ psi)
+    return psi
+
+# ---------------------------------------------------------------------------------------
+# U Evolution
+# ---------------------------------------------------------------------------------------
+def U_evolution(L: int, psi_init: csc_array, trotter_step: int, delta: float, h_t: float, h_l: float = 0):
+    """
+    U_evolution
+
+    This function applies a time evolution operator to some initial state. 
+    The evolution operator uses the Ising hamiltonian with some tunable parameters.
+    
+    L: int - chain size
+    psi_init: csc_array - initial state to be evolved
+    trotter_step: int - indicates the specific trotter step we are evolving
+    delta: float - indicates the time step we are taking at each trotter step
+    h_t: float - initial transverse field parameter
+    h_l: float - initial longitudinal field parameter
+
+    """
     X = np.array([[0,1],[1,0]])
     X = csr_matrix(X)
     Z = np.array([[1,0],[0,-1]])
@@ -562,9 +601,84 @@ def exact_evolution(L: int, psi_init: csc_array, trotter_step: int, delta: float
     psi_ev = expm_multiply(H_ev, psi_init)
     return psi_ev
 
-# visualization tools
+# ---------------------------------------------------------------------------------------
+# Exact Evolution
+# ---------------------------------------------------------------------------------------
+def exact_evolution(L: int, h_t: float, h_ev: float, delta: float, trotter_steps: int):
+    """
+    exact_evolution
 
+    This function evolves an initial state for trotter steps times.
+    We extract at each time step the local and total magnetization.
+    
+    L: int - chain size
+    trotter_step: int - indicates the specific trotter step we are evolving
+    delta: float - indicates the time step we are taking at each trotter step
+    h_t: float - initial transverse field parameter
+    h_l: float - initial longitudinal field parameter
+    
+    """
+    psi_exact = exact_initial_state(L=L, h_t=h_t).reshape(2**L,1)
+    Z = np.array([[1,0],[0,-1]])
+    # local
+    mag_loc_op = [single_site_op(op=Z, site=i, L=L) for i in range(1,L+1)]
+    # total
+    mag_tot_op = H_loc(L=L, op=Z)
+
+    mag_exact_loc = []
+    mag_exact_tot = []
+
+    # local
+    mag_exact = []
+    for i in range(L):
+        mag_exact.append((psi_exact.T.conjugate() @ mag_loc_op[i] @ psi_exact).data[0].real)
+    mag_exact_loc.append(mag_exact)
+
+    # total
+    mag = (psi_exact.T.conjugate() @ mag_tot_op @ psi_exact).data
+    mag_exact_tot.append(mag.real)
+
+    for trott in range(trotter_steps):
+        # exact
+        psi_new = U_evolution(L=L, psi_init=psi_exact, trotter_step=trott+1, delta=delta, h_t=h_ev)
+
+        # local
+        mag_exact = []
+        for i in range(L):
+            mag_exact.append((psi_new.T.conjugate() @ mag_loc_op[i] @ psi_new).data[0].real)
+        mag_exact_loc.append(mag_exact)
+
+        # total
+        mag = (psi_new.T.conjugate() @ mag_tot_op @ psi_new).data
+        mag_exact_tot.append(mag.real)
+    return mag_exact_loc, mag_exact_tot
+
+# ---------------------------------------------------------------------------------------
+# ---------------------------------------------------------------------------------------
+# ---------------------------------------------------------------------------------------
+"""
+Visualization tools
+"""
+# ---------------------------------------------------------------------------------------
+# ---------------------------------------------------------------------------------------
+# ---------------------------------------------------------------------------------------
+
+# ---------------------------------------------------------------------------------------
+# Plot Side By Side
+# ---------------------------------------------------------------------------------------
 def plot_side_by_side(data1, data2, cmap='viridis', title1='Imshow 1', title2='Imshow 2'):
+    """
+    plot_side_by_side
+
+    This visualization function creates two plots of colormaps one next to the other.
+
+    data1: data of the left colormap
+    data2: data of the right colormap
+    cmap: string - colormap chosen to visualize the two colormap. Should be the same. By default 'viridis'
+    title1: string - title of the left colormap
+    title2: string - title of the right colormap
+
+    """
     # Create a figure and subplots
     fig, (ax1, ax2) = plt.subplots(1, 2, figsize=(10, 5))
 
@@ -588,7 +702,19 @@ def plot_side_by_side(data1, data2, cmap='viridis', title1='Imshow 1', title2='I
     plt.tight_layout()
     plt.show()
 
+# ---------------------------------------------------------------------------------------
+# Create Sequential Colors
+# ---------------------------------------------------------------------------------------
 def create_sequential_colors(num_colors, colormap_name):
+    """
+    create_sequential_colors
+
+    This function creates a sequence of colors extracted from a specified colormap.
+
+    num_colors: int - number of colors we want to extract
+    colormap_name: string - colormap name we want to use
+
+    """
     colormap = plt.cm.get_cmap(colormap_name)
     colormap_values = np.linspace(0, 1, num_colors)
     colors = [colormap(value) for value in colormap_values]
