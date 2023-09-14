@@ -1,5 +1,6 @@
 from scipy.sparse import isspmatrix
 import numpy as np
+
 # from simsio import logger
 from scipy.sparse.linalg import norm
 

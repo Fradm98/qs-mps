@@ -3,7 +3,7 @@ from scipy.optimize import curve_fit
 from scipy.sparse.linalg import expm, eigsh, expm_multiply
 from scipy.sparse import csr_matrix, csc_matrix, csc_array, kron as spkron
 import os
-from ncon import ncon 
+from ncon import ncon
 import matplotlib.pyplot as plt
 from matplotlib import gridspec
 from typing import Union
@@ -24,12 +24,13 @@ def tensor_shapes(lists):
     shapes = [array.shape for array in lists]
     for i in range(len(lists)):
         print(lists[i].shape)
-    
+
     return shapes
+
 
 # ---------------------------------------------------------------------------------------
 # Get labels
-# ---------------------------------------------------------------------------------------    
+# ---------------------------------------------------------------------------------------
 def get_labels(shapes):
     """
     get_labels
@@ -41,7 +42,7 @@ def get_labels(shapes):
     by the product of the shape of each tensor which is saved in shapes.
     Once we know the elements in one tensor we sum the product of
     shapes to get the correct index in the list.
-    
+
     shapes: list - list of shapes of the tensors of, e.g., a mps.
     """
     labels = []
@@ -51,10 +52,11 @@ def get_labels(shapes):
         labels.append(label)
     return labels
 
+
 # ---------------------------------------------------------------------------------------
 # Variance
 # ---------------------------------------------------------------------------------------
-def variance(first_m,sm):
+def variance(first_m, sm):
     """
     variance
 
@@ -66,6 +68,7 @@ def variance(first_m,sm):
 
     """
     return np.abs(sm - first_m**2)
+
 
 # ---------------------------------------------------------------------------------------
 # Binder's Cumulant
@@ -79,9 +82,10 @@ def binders_cumul(fourth_m, sm):
 
     fourth_m: float - it is the fourth momentum of the, e.g., magnetization
     sm: float - it is the second momentum of the, e.g., the magnetization
-    
+
     """
-    return 1 - fourth_m/(3*sm**2)
+    return 1 - fourth_m / (3 * sm**2)
+
 
 # ---------------------------------------------------------------------------------------
 # k values
@@ -97,13 +101,14 @@ def k_values(L):
 
     """
     ks = []
-    add = 2*np.pi/L
-    k = -(L-1)*np.pi/L
+    add = 2 * np.pi / L
+    k = -(L - 1) * np.pi / L
     ks.append(k)
-    for _ in range(L-1):
-        ks.append(ks[-1]+add)
+    for _ in range(L - 1):
+        ks.append(ks[-1] + add)
 
     return ks
+
 
 # ---------------------------------------------------------------------------------------
 # Ground state
@@ -121,9 +126,10 @@ def ground_state(L):
     ks = k_values(L)
     e_0 = []
     for k in ks:
-        e_0.append(np.sqrt(2+2*np.cos(k)))
+        e_0.append(np.sqrt(2 + 2 * np.cos(k)))
 
-    return - sum(e_0)
+    return -sum(e_0)
+
 
 # ---------------------------------------------------------------------------------------
 # Von Neumann Entropy
@@ -138,7 +144,8 @@ def von_neumann_entropy(s):
     s: np.ndarray - array of Schmidt values of a system
 
     """
-    return -np.sum((s**2)*np.log2(s**2))
+    return -np.sum((s**2) * np.log2(s**2))
+
 
 # ---------------------------------------------------------------------------------------
 # Renaming
@@ -169,7 +176,7 @@ def renaming(folder, hs):
         n = os.path.splitext(file)[0]
         for h in hs:
             # We take the precision we are interested in saving
-            h = f'{h:.2f}'
+            h = f"{h:.2f}"
             # We split the filename where the point is
             h = os.path.splitext(h)[1]
             if h in oldName:
@@ -178,6 +185,7 @@ def renaming(folder, hs):
                 # print(newName)
                 # Rename the file
                 os.rename(oldName, newName)
+
 
 # ---------------------------------------------------------------------------------------
 # Fitting
@@ -197,58 +205,63 @@ def fitting(xs, results, guess):
     guess: Any - guess values to assign for the optimization
 
     """
-    assert len(xs) == len(results), f"The x and y must have the same dimension, but x has dim({len(xs)}) and y has dim({len(results)})"
+    assert len(xs) == len(
+        results
+    ), f"The x and y must have the same dimension, but x has dim({len(xs)}) and y has dim({len(results)})"
     # define the function to fit
     def fit(x, c, corr_length):
-        return c/6*np.log(x - np.log(x/corr_length + np.exp(-x/corr_length)))
-    
+        return c / 6 * np.log(x - np.log(x / corr_length + np.exp(-x / corr_length)))
+
     # fit your data with a given guess
     param_opt, covar_opt = curve_fit(fit, xs, results, guess)
     return param_opt, covar_opt
+
 
 def mps_to_vector(mps):
     D = mps[0].shape[0]
     a = np.zeros(D)
     a[0] = 1
-    a = ncon([a,mps[0]],[[1],[1,-1,-2]])
-    for i in range(1,len(mps)):
-        a_index = list(range(-i,0))
+    a = ncon([a, mps[0]], [[1], [1, -1, -2]])
+    for i in range(1, len(mps)):
+        a_index = list(range(-i, 0))
         a_index.reverse()
         a_index.append(1)
-        a = ncon([a,mps[i]],[a_index,[1,-(i+1),-(i+2)]])
+        a = ncon([a, mps[i]], [a_index, [1, -(i + 1), -(i + 2)]])
 
-    a_index = list(range(-i-1,0))
+    a_index = list(range(-i - 1, 0))
     a_index.reverse()
     a_index.append(1)
     b = np.zeros(D)
     b[-1] = 1
-    final_vec = ncon([a,b.T],[a_index,[1]])
-    final_vec = final_vec.reshape(2**len(mps))
+    final_vec = ncon([a, b.T], [a_index, [1]])
+    final_vec = final_vec.reshape(2 ** len(mps))
     return final_vec
- 
+
+
 def mpo_to_matrix(mpo):
     v_l = np.zeros(mpo[0].shape[0])
     v_l[0] = 1
     L = len(mpo)
-    a = ncon([v_l,mpo[0]],[[1],[1,-(2*L+1),-1,-(L+1)]])
-    for i in range(1,L):
-        first_index = list(range(-i,0))
+    a = ncon([v_l, mpo[0]], [[1], [1, -(2 * L + 1), -1, -(L + 1)]])
+    for i in range(1, L):
+        first_index = list(range(-i, 0))
         first_index.reverse()
-        second_index = list(range(-(L+i),-L))
+        second_index = list(range(-(L + i), -L))
         second_index.reverse()
         a_index = first_index + second_index + [1]
-        a = ncon([a,mpo[i]],[a_index,[1,-(2*L+1),-(i+1),-(L+i+1)]])
+        a = ncon([a, mpo[i]], [a_index, [1, -(2 * L + 1), -(i + 1), -(L + i + 1)]])
 
-    first_index = list(range(-i-1,0))
+    first_index = list(range(-i - 1, 0))
     first_index.reverse()
-    second_index = list(range(-(L+i)-1,-L))
+    second_index = list(range(-(L + i) - 1, -L))
     second_index.reverse()
     a_index = first_index + second_index + [1]
     v_r = np.zeros(mpo[0].shape[0])
     v_r[-1] = 1
-    final_matrix = ncon([a,v_r.T],[a_index,[1]])
-    final_matrix = final_matrix.reshape((2**L,2**L))
+    final_matrix = ncon([a, v_r.T], [a_index, [1]])
+    final_matrix = final_matrix.reshape((2**L, 2**L))
     return final_matrix
+
 
 # ---------------------------------------------------------------------------------------
 # ---------------------------------------------------------------------------------------
@@ -276,7 +289,8 @@ def before(next: csr_matrix):
     """
     id = np.eye(2)
     id = csr_matrix(id)
-    return spkron(id,next)
+    return spkron(id, next)
+
 
 # ---------------------------------------------------------------------------------------
 # Before Tot
@@ -290,13 +304,14 @@ def before_tot(next: csr_matrix, site: int):
 
     next: np.ndarray - Usually choose the operator that you want to add after
             an identity, e.g. I,next = I,X,I,I
-    site: int - The site where the operator is acting. Indicates the number of 
+    site: int - The site where the operator is acting. Indicates the number of
             identities to be applied before
 
     """
-    for i in range(site-1):
+    for i in range(site - 1):
         next = before(next)
     return next
+
 
 # ---------------------------------------------------------------------------------------
 # After
@@ -306,22 +321,23 @@ def after(op: csr_matrix, site: int, L: int):
     after
 
     This function takes into account on which site the operator is acting
-    and how many site there are left after it to leave unaltered, 
+    and how many site there are left after it to leave unaltered,
     e.g. we act with identity.
-    
+
     op: np.ndarray - operator defining our single site generalized operator
     site: int - The site where the operator is acting
-    L: int - Chain length. The difference (L-site) indicates the number of 
+    L: int - Chain length. The difference (L-site) indicates the number of
             identities to be applied after the operator op
     """
     next = np.eye(2)
     next = csr_matrix(next)
     if site < L:
-        for i in range(site,L-1):
+        for i in range(site, L - 1):
             next = before(next)
-        return spkron(op,next)
+        return spkron(op, next)
     else:
         return op
+
 
 # ---------------------------------------------------------------------------------------
 # Single site operator
@@ -336,17 +352,20 @@ def single_site_op(op: Union[csr_matrix, np.ndarray], site: int, L: int):
 
     op: np.ndarray - operator defining our single site generalized operator
     site: int - The site where the operator is acting
-    L: int - Chain length. The difference (L-site) indicates the number of 
+    L: int - Chain length. The difference (L-site) indicates the number of
             identities to be applied after the operator op
 
     """
-    assert isinstance(op, (csr_matrix, np.ndarray)), "Input must be a NumPy array or a sparse CSR op"
-    
+    assert isinstance(
+        op, (csr_matrix, np.ndarray)
+    ), "Input must be a NumPy array or a sparse CSR op"
+
     if isinstance(op, np.ndarray):
         # Convert the NumPy array to a CSR matrix
         op = csr_matrix(op)
     op_tot = before_tot(after(op, site, L), site=site)
     return op_tot
+
 
 # ---------------------------------------------------------------------------------------
 # Double After
@@ -355,31 +374,34 @@ def double_after(op: Union[csr_matrix, np.ndarray], site: int, L: int):
     """
     double_after
 
-    This function takes into account on which site the two-site operator 
-    is acting and how many site there are left after it to leave unaltered, 
+    This function takes into account on which site the two-site operator
+    is acting and how many site there are left after it to leave unaltered,
     e.g. we act with identity.
-    
+
     op: np.ndarray - operator defining our two-site generalized operator
     site: int - The tuple (site,site+1) is where the operator is acting
-    L: int - Chain length. The difference (L-site+1) indicates the number of 
+    L: int - Chain length. The difference (L-site+1) indicates the number of
             identities to be applied after the operator op
 
     """
-    assert isinstance(op, (csr_matrix, np.ndarray)), "Input must be a NumPy array or a sparse CSR matrix"
-    
+    assert isinstance(
+        op, (csr_matrix, np.ndarray)
+    ), "Input must be a NumPy array or a sparse CSR matrix"
+
     if isinstance(op, np.ndarray):
         # Convert the NumPy array to a CSR matrix
         op = csr_matrix(op)
 
     next = np.eye(2)
     next = csr_matrix(next)
-    if site <= L-2:
-        for i in range(site+1,L-1):
+    if site <= L - 2:
+        for i in range(site + 1, L - 1):
             next = before(next)
-        next = spkron(op,next)
-        return spkron(op,next)
+        next = spkron(op, next)
+        return spkron(op, next)
     else:
-        return spkron(op,op)
+        return spkron(op, op)
+
 
 # ---------------------------------------------------------------------------------------
 # Two-site operator
@@ -394,13 +416,13 @@ def two_site_op(op: csr_matrix, site: int, L: int):
 
     op: np.ndarray - operator defining our two-site generalized operator
     site: int - The tuple (site,site+1) is where the operator is acting
-    L: int - Chain length. The difference (L-site+1) indicates the number of 
+    L: int - Chain length. The difference (L-site+1) indicates the number of
             identities to be applied after the operator op
-            
+
     """
     assert site < L, "Site out of bounds"
-    
-    op_tot = before_tot(double_after(op,site,L), site)
+
+    op_tot = before_tot(double_after(op, site, L), site)
     return op_tot
 
 
@@ -429,9 +451,10 @@ def H_int(L: int, op: csr_matrix):
 
     """
     h = 0
-    for site in range(1,L):
+    for site in range(1, L):
         h += two_site_op(op, site, L)
     return h
+
 
 # ---------------------------------------------------------------------------------------
 # Local Hamiltonian
@@ -444,17 +467,20 @@ def H_loc(L: int, op: csr_matrix):
 
     L: int - Total number of spins in the chain
     op: np.ndarray - operator defining the single-site local term
-    
+
     """
     h = 0
-    for site in range(1,L+1):
+    for site in range(1, L + 1):
         h += single_site_op(op, site, L)
     return h
+
 
 # ---------------------------------------------------------------------------------------
 # Ising Hamiltonian
 # ---------------------------------------------------------------------------------------
-def H_ising_gen(L: int, op_l: csr_matrix, op_t: csr_matrix, J: float, h_l: float, h_t: float)->csr_matrix:
+def H_ising_gen(
+    L: int, op_l: csr_matrix, op_t: csr_matrix, J: float, h_l: float, h_t: float
+) -> csr_matrix:
     """
     H_ising_gen
 
@@ -467,8 +493,9 @@ def H_ising_gen(L: int, op_l: csr_matrix, op_t: csr_matrix, J: float, h_l: float
     J: float - couppling constant of the interaction term
     h_l: float - couppling constant of the local logitudinal term
     h_t: float - couppling constant of the local transverse term
-    """    
-    return - J*H_int(L, op=op_l) - h_l*H_loc(L, op_l) - h_t*H_loc(L, op_t)
+    """
+    return -J * H_int(L, op=op_l) - h_l * H_loc(L, op_l) - h_t * H_loc(L, op_t)
+
 
 # ---------------------------------------------------------------------------------------
 # Flipping half
@@ -479,18 +506,19 @@ def flipping_half(L: int, op: csr_matrix):
 
     This function flips the half of the spin states to the right of the chain.
     To achieve the flipping it is important a correct choice of the operator
-    
+
     L: int - chain size
     op: np.ndarray - flipping operator. E.g. spin in Z basis -> op=X
 
     """
     O = op
-    for _ in range(L//2-1):
-        O = spkron(op,O)
+    for _ in range(L // 2 - 1):
+        O = spkron(op, O)
 
-    for _ in range(L//2):
+    for _ in range(L // 2):
         O = before(O)
     return O
+
 
 # ---------------------------------------------------------------------------------------
 # Truncation
@@ -500,7 +528,7 @@ def truncation(array: Union[np.ndarray, csc_matrix, csr_matrix], threshold: floa
     truncation
 
     This function truncates the entries of an array according to the preselected
-    threshold. 
+    threshold.
 
     array: np.ndarray - array to truncate
     threshold: float - level of the truncation
@@ -515,6 +543,7 @@ def truncation(array: Union[np.ndarray, csc_matrix, csr_matrix], threshold: floa
         filtered_matrix.data = array.data * (array.data > threshold)
         return filtered_matrix
 
+
 # ---------------------------------------------------------------------------------------
 # Compute Ising Spectrum
 # ---------------------------------------------------------------------------------------
@@ -525,17 +554,17 @@ def compute_ising_spectrum(L: int, h_l: float = 0, n_points: int = 100, k: int =
     This function is computing the spectrum of an Ising Hamiltonian wrt the trnaverse field.
 
     L: int - chain size
-    h_l: float - initial longitudinal field parameter. 
+    h_l: float - initial longitudinal field parameter.
         Can be used to break the symmetry of the ground state for h_t = 0
     n_points: int - number of point in the transverse field we want to evaluate the spectrum. By default a 100 points
     k: int - number of eigenvalues we want to compute. By default 6
 
     """
-    X = np.array([[0,1],[1,0]])
+    X = np.array([[0, 1], [1, 0]])
     X = csr_matrix(X)
-    Z = np.array([[1,0],[0,-1]])
+    Z = np.array([[1, 0], [0, -1]])
     Z = csr_matrix(Z)
-    h_ts = np.linspace(0,2,n_points)
+    h_ts = np.linspace(0, 2, n_points)
     eigvals = []
     for h_t in h_ts:
         H = H_ising_gen(L=L, op_l=Z, op_t=X, J=1, h_l=h_l, h_t=h_t)
@@ -544,10 +573,11 @@ def compute_ising_spectrum(L: int, h_l: float = 0, n_points: int = 100, k: int =
         eigvals.append(e)
     return eigvals
 
+
 # ---------------------------------------------------------------------------------------
 # Exact Initial State
 # ---------------------------------------------------------------------------------------
-def exact_initial_state(L: int, h_t: float, h_l: float = 0, k: int = 1)->csc_array:
+def exact_initial_state(L: int, h_t: float, h_l: float = 1e-7, k: int = 1) -> csc_array:
     """
     exact_initial_state
 
@@ -559,28 +589,36 @@ def exact_initial_state(L: int, h_t: float, h_l: float = 0, k: int = 1)->csc_arr
     k: int - number of eigenvalues we want to compute. By default 1
 
     """
-    X = np.array([[0,1],[1,0]])
+    X = np.array([[0, 1], [1, 0]])
     X = csr_matrix(X)
-    Z = np.array([[1,0],[0,-1]])
+    Z = np.array([[1, 0], [0, -1]])
     Z = csr_matrix(Z)
     H = H_ising_gen(L=L, op_l=Z, op_t=X, J=1, h_l=h_l, h_t=h_t)
     e, v = eigsh(H, k=k, which="SA")
     print(f"first {k} eigenvalue(s) SA (Smallest (algebraic) eigenvalues): {e}")
-    psi = v[:,0]
+    psi = v[:, 0]
     flip = single_site_op(op=X, site=L // 2 + 1, L=L)
     psi = csc_array(flip @ psi)
     return psi
 
+
 # ---------------------------------------------------------------------------------------
 # U Evolution
 # ---------------------------------------------------------------------------------------
-def U_evolution(L: int, psi_init: csc_array, trotter_step: int, delta: float, h_t: float, h_l: float = 0):
+def U_evolution(
+    L: int,
+    psi_init: csc_array,
+    trotter_step: int,
+    delta: float,
+    h_t: float,
+    h_l: float = 0,
+):
     """
     U_evolution
 
-    This function applies a time evolution operator to some initial state. 
+    This function applies a time evolution operator to some initial state.
     The evolution operator uses the Ising hamiltonian with some tunable parameters.
-    
+
     L: int - chain size
     psi_init: csc_array - initial state to be evolved
     trotter_step: int - indicates the specific trotter step we are evolving
@@ -589,39 +627,43 @@ def U_evolution(L: int, psi_init: csc_array, trotter_step: int, delta: float, h_
     h_l: float - initial longitudinal field parameter
 
     """
-    X = np.array([[0,1],[1,0]])
+    X = np.array([[0, 1], [1, 0]])
     X = csr_matrix(X)
-    Z = np.array([[1,0],[0,-1]])
+    Z = np.array([[1, 0], [0, -1]])
     Z = csr_matrix(Z)
     H_ev = H_ising_gen(L=L, op_l=Z, op_t=X, J=1, h_l=h_l, h_t=h_t)
-    time = delta*trotter_step
-    H_ev = -1j*time*H_ev.tocsc()
+    time = delta * trotter_step
+    H_ev = -1j * time * H_ev.tocsc()
     # U = expm(-1j*time*H_ev.tocsc())
     # U_new = truncation(array=U, threshold=1e-15)
     psi_ev = expm_multiply(H_ev, psi_init)
     return psi_ev
 
+
 # ---------------------------------------------------------------------------------------
 # Exact Evolution
 # ---------------------------------------------------------------------------------------
-def exact_evolution(L: int, h_t: float, h_ev: float, delta: float, trotter_steps: int):
+def exact_evolution(
+    L: int, h_t: float, h_ev: float, delta: float, trotter_steps: int, h_l: float = 1e-7
+):
     """
     exact_evolution
 
     This function evolves an initial state for trotter steps times.
     We extract at each time step the local and total magnetization.
-    
+
     L: int - chain size
     trotter_step: int - indicates the specific trotter step we are evolving
     delta: float - indicates the time step we are taking at each trotter step
     h_t: float - initial transverse field parameter
     h_l: float - initial longitudinal field parameter
-    
+    h_ev: float - evolution transverse field parameter
+
     """
-    psi_exact = exact_initial_state(L=L, h_t=h_t).reshape(2**L,1)
-    Z = np.array([[1,0],[0,-1]])
+    psi_exact = exact_initial_state(L=L, h_t=h_t, h_l=h_l).reshape(2**L, 1)
+    Z = np.array([[1, 0], [0, -1]])
     # local
-    mag_loc_op = [single_site_op(op=Z, site=i, L=L) for i in range(1,L+1)]
+    mag_loc_op = [single_site_op(op=Z, site=i, L=L) for i in range(1, L + 1)]
     # total
     mag_tot_op = H_loc(L=L, op=Z)
 
@@ -631,7 +673,9 @@ def exact_evolution(L: int, h_t: float, h_ev: float, delta: float, trotter_steps
     # local
     mag_exact = []
     for i in range(L):
-        mag_exact.append((psi_exact.T.conjugate() @ mag_loc_op[i] @ psi_exact).data[0].real)
+        mag_exact.append(
+            (psi_exact.T.conjugate() @ mag_loc_op[i] @ psi_exact).data[0].real
+        )
     mag_exact_loc.append(mag_exact)
 
     # total
@@ -639,19 +683,25 @@ def exact_evolution(L: int, h_t: float, h_ev: float, delta: float, trotter_steps
     mag_exact_tot.append(mag.real)
 
     for trott in range(trotter_steps):
+        print(f"-------- Trotter step {trott} ---------")
         # exact
-        psi_new = U_evolution(L=L, psi_init=psi_exact, trotter_step=trott+1, delta=delta, h_t=h_ev)
+        psi_new = U_evolution(
+            L=L, psi_init=psi_exact, trotter_step=trott + 1, delta=delta, h_t=h_ev
+        )
 
         # local
         mag_exact = []
         for i in range(L):
-            mag_exact.append((psi_new.T.conjugate() @ mag_loc_op[i] @ psi_new).data[0].real)
+            mag_exact.append(
+                (psi_new.T.conjugate() @ mag_loc_op[i] @ psi_new).data[0].real
+            )
         mag_exact_loc.append(mag_exact)
 
         # total
         mag = (psi_new.T.conjugate() @ mag_tot_op @ psi_new).data
         mag_exact_tot.append(mag.real)
-    return mag_exact_loc, mag_exact_tot
+    return psi_new, mag_exact_loc, mag_exact_tot
+
 
 # ---------------------------------------------------------------------------------------
 # ---------------------------------------------------------------------------------------
@@ -666,7 +716,9 @@ Visualization tools
 # ---------------------------------------------------------------------------------------
 # Plot Side By Side
 # ---------------------------------------------------------------------------------------
-def plot_side_by_side(data1, data2, cmap='viridis', title1='Imshow 1', title2='Imshow 2'):
+def plot_side_by_side(
+    data1, data2, cmap="viridis", title1="Imshow 1", title2="Imshow 2"
+):
     """
     plot_side_by_side
 
@@ -701,6 +753,7 @@ def plot_side_by_side(data1, data2, cmap='viridis', title1='Imshow 1', title2='I
     # Adjust layout and display the plot
     plt.tight_layout()
     plt.show()
+
 
 # ---------------------------------------------------------------------------------------
 # Create Sequential Colors

@@ -7,9 +7,13 @@ from scipy.linalg import expm, solve
 from utils import *
 import matplotlib.pyplot as plt
 import time
+import warnings
+
 
 class MPS:
-    def __init__(self, L, d, model=str, chi=None, w=None, h=None, eps=None, J=None, charges=None):
+    def __init__(
+        self, L, d, model=str, chi=None, w=None, h=None, eps=None, J=None, charges=None
+    ):
         self.L = L
         self.d = d
         self.model = model
@@ -51,7 +55,7 @@ class MPS:
         sites = self.sites
         if ancilla:
             sites = self.ancilla_sites
-            
+
         if type_shape == "trapezoidal":
             chi = int(np.log2(chi))
             assert (
@@ -85,13 +89,15 @@ class MPS:
                 )
         elif type_shape == "rectangular":
             sites.append(np.random.rand(1, self.d, chi))
-            for _ in range(self.L-2):
+            for _ in range(self.L - 2):
                 sites.append(np.random.rand(chi, self.d, chi))
             sites.append(np.random.rand(chi, self.d, 1))
 
         return self
 
-    def canonical_form(self, svd_direction="left", e_tol=10 ** (-15), ancilla=False, trunc=True):
+    def canonical_form(
+        self, svd_direction="left", e_tol=10 ** (-15), ancilla=False, trunc_chi=False, trunc_tol=True
+    ):
         """
         canonical_form
 
@@ -105,14 +111,14 @@ class MPS:
 
         """
         if svd_direction == "left":
-            self.left_svd(e_tol, ancilla, trunc)
+            self.left_svd(e_tol, ancilla, trunc_chi, trunc_tol)
 
         elif svd_direction == "right":
-            self.right_svd(e_tol, ancilla, trunc)
+            self.right_svd(e_tol, ancilla, trunc_chi, trunc_tol)
 
         return self
 
-    def right_svd(self, e_tol, ancilla, trunc):
+    def right_svd(self, e_tol, ancilla, trunc_chi, trunc_tol):
         """
         right_svd
 
@@ -137,8 +143,8 @@ class MPS:
             new_site = ncon(
                 [psi, sites[i]],
                 [
-                    [-1,1],
-                    [1,-2,-3],
+                    [-1, 1],
+                    [1, -2, -3],
                 ],
             )
             u, s, v = np.linalg.svd(
@@ -157,14 +163,14 @@ class MPS:
             v = v[: len(s_trunc), :]
 
             if u.shape[1] > self.chi:
-                    u = u[:, :, :self.chi]
-                    s = s[:self.chi]
-                    v = v[:self.chi, :]
+                u = u[:, :, : self.chi]
+                s = s[: self.chi]
+                v = v[: self.chi, :]
             psi = ncon(
                 [np.diag(s), v],
                 [
-                    [-1,1],
-                    [1,-2],
+                    [-1, 1],
+                    [1, -2],
                 ],
             )
         # bond_r = v.shape[1] // self.d
@@ -173,7 +179,7 @@ class MPS:
 
         return self
 
-    def left_svd(self, e_tol, ancilla, trunc):
+    def left_svd(self, e_tol, ancilla, trunc_chi, trunc_tol):
         """
         left_svd
 
@@ -186,7 +192,7 @@ class MPS:
         """
         s_init = np.array([1])
         psi = np.diag(s_init)
-        
+
         sites = self.sites
         bonds = self.bonds
         if ancilla:
@@ -198,8 +204,8 @@ class MPS:
             new_site = ncon(
                 [sites[i], psi],
                 [
-                    [-1,-2,1],
-                    [1,-3],
+                    [-1, -2, 1],
+                    [1, -3],
                 ],
             )
             u, s, v = np.linalg.svd(
@@ -208,34 +214,30 @@ class MPS:
             )
             bond_r = v.shape[1] // self.d
             v = v.reshape((v.shape[0], self.d, bond_r))
-            if trunc:
+            if trunc_chi:
                 if v.shape[0] > self.chi:
-                    v = v[:self.chi, :, :]
-                    s = s[:self.chi]
-                    u = u[:, :self.chi]
-                # condition = s >= e_tol
-                # s_trunc = np.extract(condition, s)
-                # s_trunc = s_trunc / np.linalg.norm(s_trunc)
-                # v = v[:len(s_trunc), :, :]
-                # bonds.append(s_trunc)
-                # u = u[:, :len(s_trunc)]
-                # psi = ncon(
-                #     [u, np.diag(s_trunc)],
-                #     [
-                #         [-1,1],
-                #         [1,-2],
-                #     ],
-                # )
+                    v = v[: self.chi, :, :]
+                    s = s[: self.chi]
+                    u = u[:, : self.chi]
+                    s = s / np.linalg.norm(s)
+            if trunc_tol:
+                condition = s >= e_tol
+                s_trunc = np.extract(condition, s)
+                s = s_trunc / np.linalg.norm(s_trunc)
+                v = v[:len(s), :, :]
+                bonds.append(s)
+                u = u[:, :len(s)]
+
             sites[i] = v
             bonds.append(s)
             psi = ncon(
                 [u, np.diag(s)],
                 [
-                    [-1,1],
-                    [1,-2],
+                    [-1, 1],
+                    [1, -2],
                 ],
             )
-            
+
         bonds.append(s_init)
         bonds.reverse()
         # print(f"Time of svd during canonical form: {time.perf_counter()-time_cf}")
@@ -248,7 +250,7 @@ class MPS:
         env_right = self.env_right
         env_left = self.env_left
         w = self.w
-        
+
         if ancilla:
             ket = self.ancilla_sites
             bra = ket
@@ -260,33 +262,33 @@ class MPS:
         elif rev:
             ket = self.sites
             bra = self.ancilla_sites
-            w = self.w            
+            w = self.w
             env_left = self.env_left_sm
             env_right = self.env_right_sm
-            
+
         # print(f"env_left:{env_left[-1].shape}")
         # print(f"ket:{ket[site - 1].shape}")
         # print(f"w:{w[site - 1].shape}")
         # print(f"bra:{bra[site - 1].shape}")
         # print(f"env_right:{env_right[-1].shape}")
         sandwich = ncon(
-            [env_left[-1], ket[site - 1], w[site - 1], bra[site - 1].conjugate(), env_right[-1]],
             [
-                [1,4,7],
-                [1,3,2],
-                [4,5,3,6],
-                [7,6,8],
-                [2,5,8]
-            ]
+                env_left[-1],
+                ket[site - 1],
+                w[site - 1],
+                bra[site - 1].conjugate(),
+                env_right[-1],
+            ],
+            [[1, 4, 7], [1, 3, 2], [4, 5, 3, 6], [7, 6, 8], [2, 5, 8]],
         )
         return sandwich
 
     def overlap_sites(self, array_1, array_2=None):
         if array_2 is None:
             array_2 = array_1
-        return ncon([array_1, array_2.conjugate()],[[-1,1,-3],[-2,1,-4]])
-    
-    def _compute_norm(self, site, ancilla=False):
+        return ncon([array_1, array_2.conjugate()], [[-1, 1, -3], [-2, 1, -4]])
+
+    def _compute_norm(self, site, ancilla=False, mixed=False):
         """
         _compute_norm
 
@@ -294,47 +296,58 @@ class MPS:
         It takes the attributes .sites and .bonds of the class which gives us
         mps in canonical form (Vidal notation).
 
-        svd_direction: string - the direction the svd was performed. From left to right
-                        is "right" and from right to left is "left"
+        site: int - sites in the chain
+        ancilla: bool - if True we compute the norm of the ancilla_sites mps. By default False
+        mixed: bool - if True we compute the braket between the ancilla_sites and the sites mps. By default False
 
         """
-        array = self.sites
-        if ancilla:
-            array = self.ancilla_sites
         a = np.array([1])
-        env = ncon([a,a,a,a],[[-1],[-2],[-3],[-4]])
+        env = ncon([a, a, a, a], [[-1], [-2], [-3], [-4]])
         left = env
+        if mixed:
+            array_1 = self.ancilla_sites
+            array_2 = self.sites
 
-        for i in range(site-1):
-            ten = self.overlap_sites(array_1=array[i])
-            env = ncon([env,ten],[[-1,-2,1,2],[1,2,-3,-4]])
-        left = env
-        # left_matrix = ncon([a,a,left],[[1],[2],[1,2,-1,-2]])
-        # left_matrix = truncation(left_matrix, 1e-15)
-        # left_matrix = csr_matrix(left_matrix)
-        # print(left_matrix)
-        # check_matrix(left_matrix,identity(left_matrix.shape[0]))
-        # print("The left overlap of the state:")
-        # print(left)
-        env = ncon([a,a,a,a],[[-1],[-2],[-3],[-4]])
-        right =env
-        for i in range(self.L-1, site-1, -1):
-            ten = self.overlap_sites(array_1=array[i])
-            env = ncon([ten,env],[[-1,-2,1,2],[1,2,-3,-4]])
-        right = env
-        # right_matrix = ncon([right,a,a],[[-1,-2,1,2],[1],[2]])
-        # right_matrix = truncation(right_matrix, 1e-15)
-        # right_matrix = csr_matrix(right_matrix)
-        # print(right_matrix)
-        # check_matrix(right_matrix,identity(right_matrix.shape[0]))
-        # print("The right overlap of the state:")
-        # print(right)
+            for i in range(site - 1):
+                ten = self.overlap_sites(array_1=array_1[i], array_2=array_2[i])
+                env = ncon([env, ten], [[-1, -2, 1, 2], [1, 2, -3, -4]])
+            left = env
+            env = ncon([a, a, a, a], [[-1], [-2], [-3], [-4]])
+            right = env
+            for i in range(self.L - 1, site - 1, -1):
+                ten = self.overlap_sites(array_1=array_1[i], array_2=array_2[i])
+                env = ncon([ten, env], [[-1, -2, 1, 2], [1, 2, -3, -4]])
+            right = env
 
-        ten_site = self.overlap_sites(array_1=array[site - 1])
-        # print(f"The tensor in the site {site}:")
-        # print(ten_site)
-        N = ncon([left,ten_site,right],[[-1,-2,1,2],[1,2,3,4],[3,4,-3,-4]])
-        N = N[0,0,0,0].real
+            ten_site = self.overlap_sites(array_1=array_1[site - 1], array_2=array_2[site - 1])
+            # print(f"The tensor in the site {site}:")
+            # print(ten_site)
+            N = ncon(
+                [left, ten_site, right], [[-1, -2, 1, 2], [1, 2, 3, 4], [3, 4, -3, -4]]
+            )
+        else:
+            array = self.sites
+            if ancilla:
+                array = self.ancilla_sites
+
+            for i in range(site - 1):
+                ten = self.overlap_sites(array_1=array[i])
+                env = ncon([env, ten], [[-1, -2, 1, 2], [1, 2, -3, -4]])
+            left = env
+            env = ncon([a, a, a, a], [[-1], [-2], [-3], [-4]])
+            right = env
+            for i in range(self.L - 1, site - 1, -1):
+                ten = self.overlap_sites(array_1=array[i])
+                env = ncon([ten, env], [[-1, -2, 1, 2], [1, 2, -3, -4]])
+            right = env
+
+            ten_site = self.overlap_sites(array_1=array[site - 1])
+            # print(f"The tensor in the site {site}:")
+            # print(ten_site)
+            N = ncon(
+                [left, ten_site, right], [[-1, -2, 1, 2], [1, 2, 3, 4], [3, 4, -3, -4]]
+            )
+        N = N[0, 0, 0, 0].real
         print(f"-=-=-= Norm: {N}\n")
         return N
 
@@ -342,18 +355,18 @@ class MPS:
         """
         mpo
 
-        This function selects which MPO to use according to the 
+        This function selects which MPO to use according to the
         studied model. Here you can add other MPOs that you have
         independently defined in the class.
 
         """
-        if self.model == 'Ising':
+        if self.model == "Ising":
             self.mpo_Ising()
 
-        elif self.model == 'Z2_one_ladder':
+        elif self.model == "Z2_one_ladder":
             self.mpo_Z2_one_ladder()
 
-        elif self.model == 'Z2_two_ladder':
+        elif self.model == "Z2_two_ladder":
             self.mpo_Z2_two_ladder()
 
         return self
@@ -367,45 +380,47 @@ class MPS:
 
         """
         I = np.eye(2)
-        O = np.zeros((2,2))
-        X = np.array([[0,1],[1,0]])
-        Z = np.array([[1,0],[0,-1]])
+        O = np.zeros((2, 2))
+        X = np.array([[0, 1], [1, 0]])
+        Z = np.array([[1, 0], [0, -1]])
         w_tot = []
         for _ in range(self.L):
-            w = np.array([[I,-self.J*Z,-self.h*X-self.eps*X],[O,O,Z],[O,O,I]])
+            w = np.array(
+                [[I, -self.J * Z, -self.h * X - self.eps * X], [O, O, Z], [O, O, I]]
+            )
             w_tot.append(w)
         self.w = w_tot
         return self
-    
+
     def flipping_mps(self):
         """
         flipping_mps
 
-        This function flips the mps middle site with the operator X, 
+        This function flips the mps middle site with the operator X,
         assuming to be in the computational (Z) basis.
-        
+
         """
-        X = np.array([[0,1],[1,0]])
+        X = np.array([[0, 1], [1, 0]])
         if len(self.sites) % 2 == 0:
-            new_site = ncon([self.sites[self.L // 2 - 1],X],[[-1,1,-3],[1,-2]])
+            new_site = ncon([self.sites[self.L // 2 - 1], X], [[-1, 1, -3], [1, -2]])
             self.sites[self.L // 2 - 1] = new_site
 
-        new_site = ncon([self.sites[self.L // 2],X],[[-1,1,-3],[1,-2]])
+        new_site = ncon([self.sites[self.L // 2], X], [[-1, 1, -3], [1, -2]])
         self.sites[self.L // 2] = new_site
 
         return self
-    
+
     def flipping_all(self):
         """
         flipping_all
 
-        This function flips all the sites of the mps with the operator X, 
+        This function flips all the sites of the mps with the operator X,
         assuming to be in the computational (Z) basis.
-        
+
         """
-        X = np.array([[0,1],[1,0]])
+        X = np.array([[0, 1], [1, 0]])
         for i in range(self.L):
-            new_site = ncon([self.sites[i],X],[[-1,1,-3],[1,-2]])
+            new_site = ncon([self.sites[i], X], [[-1, 1, -3], [1, -2]])
             self.sites[i] = new_site
 
         return self
@@ -415,31 +430,38 @@ class MPS:
         mpo_Z2_one_ladder
 
         This function defines the MPO for the Z2 lattice gauge theory
-        model sitting on one single ladder. It takes a different MPO for 
+        model sitting on one single ladder. It takes a different MPO for
         the first site and it is the same for the other sites.
 
         """
         I = np.eye(2)
-        O = np.zeros((2,2))
-        X = np.array([[0,1],[1,0]])
-        Z = np.array([[1,0],[0,-1]])
+        O = np.zeros((2, 2))
+        X = np.array([[0, 1], [1, 0]])
+        Z = np.array([[1, 0], [0, -1]])
         w_tot = []
         for i in range(self.L):
             if i == 0:
                 theta = 1
             else:
                 theta = 0
-            w = np.array([[I,-self.J*Z,-2*self.h*theta*X,-self.h*X],[O,O,O,Z],[O,O,X,X @ (np.linalg.matrix_power(X,(1-theta)))],[O,O,O,I]])
+            w = np.array(
+                [
+                    [I, -self.J * Z, -2 * self.h * theta * X, -self.h * X],
+                    [O, O, O, Z],
+                    [O, O, X, X @ (np.linalg.matrix_power(X, (1 - theta)))],
+                    [O, O, O, I],
+                ]
+            )
             w_tot.append(w)
         self.w = w_tot
         return self
-    
+
     def mpo_Z2_two_ladder(self):
         """
         mpo_Z2_two_ladder
 
         This function defines the MPO for the Z2 lattice gauge theory
-        model sitting on two ladders. It takes a different MPO for the 
+        model sitting on two ladders. It takes a different MPO for the
         first site and it is the same for the other sites.
 
         charges: list - list of charges for the Z2 on external vertices.
@@ -448,21 +470,21 @@ class MPS:
 
         """
         charges = self.charges
-        assert (np.prod(charges) == 1), "The charges do not multiply to one"
+        assert np.prod(charges) == 1, "The charges do not multiply to one"
 
-        O_small = np.zeros((2,2))
+        O_small = np.zeros((2, 2))
         I_small = np.eye(2)
-        X = np.array([[0,1],[1,0]])
-        Z = np.array([[1,0],[0,-1]])
-        O_ext = np.kron(O_small,O_small)
-        I_ext = np.kron(I_small,I_small)
+        X = np.array([[0, 1], [1, 0]])
+        Z = np.array([[1, 0], [0, -1]])
+        O_ext = np.kron(O_small, O_small)
+        I_ext = np.kron(I_small, I_small)
         O = O_ext
         I = I_ext
-        X_1 = np.kron(I_small,X)
-        X_2 = np.kron(X,I_small)
-        X_12 = np.kron(X,X)
-        Z_1 = np.kron(Z,I_small)
-        Z_2 = np.kron(I_small,Z)
+        X_1 = np.kron(I_small, X)
+        X_2 = np.kron(X, I_small)
+        X_12 = np.kron(X, X)
+        Z_1 = np.kron(Z, I_small)
+        Z_2 = np.kron(I_small, Z)
         w_tot = []
         beta = 0
         for i in range(self.L):
@@ -470,20 +492,58 @@ class MPS:
                 alpha = 1
             else:
                 alpha = 0
-            if i == (self.L-1):
+            if i == (self.L - 1):
                 beta = 1
-            w = np.array([[I,-1/self.h*Z_1,-1/self.h*Z_2,-self.h*charges[0]*alpha*X_1,-self.h*charges[2]*alpha*X_2,-self.h*charges[1]*alpha*X_12,-self.h*X_1-self.h*X_2-beta*1/self.h*(Z_1+Z_2)],
-                          [O,O,O,O,O,O,Z_1],
-                          [O,O,O,O,O,O,Z_2],
-                          [O,O,O,X_1,O,O,X_1  @ (np.linalg.matrix_power(X_1,(1-alpha))) + beta*(1+charges[3])*X_1],
-                          [O,O,O,O,X_2,O,X_2  @ (np.linalg.matrix_power(X_2,(1-alpha))) + beta*(1+charges[5])*X_2],
-                          [O,O,O,O,O,X_12,X_12  @ (np.linalg.matrix_power(X_12,(1-alpha))) + beta*X_12],
-                          [O,O,O,O,O,O,I],
-                          ])
+            w = np.array(
+                [
+                    [
+                        I,
+                        -1 / self.h * Z_1,
+                        -1 / self.h * Z_2,
+                        -self.h * charges[0] * alpha * X_1,
+                        -self.h * charges[2] * alpha * X_2,
+                        -self.h * charges[1] * alpha * X_12,
+                        -self.h * X_1 - self.h * X_2 - beta * 1 / self.h * (Z_1 + Z_2),
+                    ],
+                    [O, O, O, O, O, O, Z_1],
+                    [O, O, O, O, O, O, Z_2],
+                    [
+                        O,
+                        O,
+                        O,
+                        X_1,
+                        O,
+                        O,
+                        X_1 @ (np.linalg.matrix_power(X_1, (1 - alpha)))
+                        + beta * (1 + charges[3]) * X_1,
+                    ],
+                    [
+                        O,
+                        O,
+                        O,
+                        O,
+                        X_2,
+                        O,
+                        X_2 @ (np.linalg.matrix_power(X_2, (1 - alpha)))
+                        + beta * (1 + charges[5]) * X_2,
+                    ],
+                    [
+                        O,
+                        O,
+                        O,
+                        O,
+                        O,
+                        X_12,
+                        X_12 @ (np.linalg.matrix_power(X_12, (1 - alpha)))
+                        + beta * X_12,
+                    ],
+                    [O, O, O, O, O, O, I],
+                ]
+            )
             w_tot.append(w)
         self.w = w_tot
         return self
-    
+
     def mpo_Ising_time_ev(self, delta, h_ev, J_ev):
         """
         mpo_Ising_time_ev
@@ -497,30 +557,49 @@ class MPS:
 
         """
         I = np.eye(2)
-        O = np.zeros((2,2))
-        X = np.array([[0,1],[1,0]])
-        Z = np.array([[1,0],[0,-1]])
+        O = np.zeros((2, 2))
+        X = np.array([[0, 1], [1, 0]])
+        Z = np.array([[1, 0], [0, -1]])
         w_tot = []
-        w_loc = np.array(expm(1j*h_ev*delta/2*X)) 
-        w_even = np.array([[np.sqrt(np.cos(J_ev*delta))*I, 1j*np.sqrt(np.sin(J_ev*delta))*Z]])
-        w_even_3 = np.array([np.sqrt(np.cos(J_ev*delta))*I, 1j*np.sqrt(np.sin(J_ev*delta))*Z])
-        w_in = ncon([w_even, w_loc, w_loc],[[-1,-2,1,2],[-3,1],[2,-4]])
-        w_odd = np.array([[np.sqrt(np.cos(J_ev*delta))*I, np.sqrt(np.sin(J_ev*delta))*Z]])
-        w_odd_3 = np.array([np.sqrt(np.cos(J_ev*delta))*I, np.sqrt(np.sin(J_ev*delta))*Z])
-        w_fin = ncon([w_odd.T, w_loc, w_loc],[[1,2,-1,-2],[-3,1],[2,-4]])
+        w_loc = np.array(expm(1j * h_ev * delta / 2 * X))
+        w_even = np.array(
+            [
+                [
+                    np.sqrt(np.cos(J_ev * delta)) * I,
+                    1j * np.sqrt(np.sin(J_ev * delta)) * Z,
+                ]
+            ]
+        )
+        w_even_3 = np.array(
+            [np.sqrt(np.cos(J_ev * delta)) * I, 1j * np.sqrt(np.sin(J_ev * delta)) * Z]
+        )
+        w_in = ncon([w_even, w_loc, w_loc], [[-1, -2, 1, 2], [-3, 1], [2, -4]])
+        w_odd = np.array(
+            [[np.sqrt(np.cos(J_ev * delta)) * I, np.sqrt(np.sin(J_ev * delta)) * Z]]
+        )
+        w_odd_3 = np.array(
+            [np.sqrt(np.cos(J_ev * delta)) * I, np.sqrt(np.sin(J_ev * delta)) * Z]
+        )
+        w_fin = ncon([w_odd.T, w_loc, w_loc], [[1, 2, -1, -2], [-3, 1], [2, -4]])
         # w_fin = np.swapaxes(w_fin, axis1=0,axis2=1)
         w_tot.append(w_in)
         for site in range(2, self.L):
-            if site%2 == 0:
-                w = ncon([w_loc,w_even_3,w_loc,w_odd_3.T],[[1,-4],[-2,2,1],[3,2],[3,-3,-1]])
+            if site % 2 == 0:
+                w = ncon(
+                    [w_loc, w_even_3, w_loc, w_odd_3.T],
+                    [[1, -4], [-2, 2, 1], [3, 2], [3, -3, -1]],
+                )
             else:
-                w = ncon([w_odd_3.T,w_loc,w_even_3,w_loc],[[-4,1,-1],[2,1],[-2,3,2],[-3,3]])
+                w = ncon(
+                    [w_odd_3.T, w_loc, w_even_3, w_loc],
+                    [[-4, 1, -1], [2, 1], [-2, 3, 2], [-3, 3]],
+                )
             w_tot.append(w)
-        
+
         w_tot.append(w_fin)
         self.w = w_tot
         return self
-    
+
     def mpo_Ising_O_dag_O(self):
         """
         mpo_Ising_O_dag_O
@@ -537,13 +616,20 @@ class MPS:
         #     w = ncon([w_dag,w], [[1,-5,-3,-1],[-2,-4,1,-6]]).reshape((w.shape[0]*w_dag.shape[3],w.shape[1]*w_dag.shape[2],w.shape[2],w.shape[3]))
         #     w_tot.append(w)
 
-        for w, w_dag in zip(ws,ws_dag):
-            w = ncon([w, w_dag], [[-1,-3,-5,1],[-2,-4,1,-6]]).reshape((w.shape[0]*w_dag.shape[0],w.shape[1]*w_dag.shape[1],w.shape[2],w.shape[3]))
+        for w, w_dag in zip(ws, ws_dag):
+            w = ncon([w, w_dag], [[-1, -3, -5, 1], [-2, -4, 1, -6]]).reshape(
+                (
+                    w.shape[0] * w_dag.shape[0],
+                    w.shape[1] * w_dag.shape[1],
+                    w.shape[2],
+                    w.shape[3],
+                )
+            )
             w_tot.append(w)
 
         self.w = w_tot
         return self
-    
+
     def mpo_dagger(self):
         w_tot = []
         for w in self.w:
@@ -551,24 +637,24 @@ class MPS:
             w_tot.append(w_dag)
         self.w_dag = w_tot
         return self
-    
+
     def order_param(self):
         """
         order_param
 
-        This function selects which order parameter to use according to the 
+        This function selects which order parameter to use according to the
         studied model. Here you can add other order parameters that you have
         independently defined in the class.
 
         """
-        if self.model == 'Ising':
+        if self.model == "Ising":
             self.order_param_Ising()
 
-        elif self.model == 'Z2':
+        elif self.model == "Z2":
             self.order_param_Z2()
 
         return self
-    
+
     def order_param_Ising(self, op):
         """
         order_param_Ising
@@ -576,19 +662,19 @@ class MPS:
         This function defines the MPO order parameter for the 1D transverse field Ising model.
         It takes the same MPO for all sites.
 
-        op: np.ndarray - operator that constitute with the order parameter of the theory. 
+        op: np.ndarray - operator that constitute with the order parameter of the theory.
             It depends on the choice of the basis for Ising Hamiltonian
 
         """
         I = np.eye(2)
-        O = np.zeros((2,2))
+        O = np.zeros((2, 2))
         w_tot = []
         for _ in range(self.L):
-            w_mag = np.array([[I , O , op],[O , O , O], [O , O , I]])
+            w_mag = np.array([[I, O, op], [O, O, O], [O, O, I]])
             w_tot.append(w_mag)
         self.w = w_tot
         return self
-    
+
     def order_param_Z2(self):
         """
         order_param_Z2
@@ -598,11 +684,11 @@ class MPS:
 
         """
         I = np.eye(2)
-        O = np.zeros((2,2))
-        X = np.array([[0,1],[1,0]])
+        O = np.zeros((2, 2))
+        X = np.array([[0, 1], [1, 0]])
         w_tot = []
         for i in range(self.L):
-            if i < (self.L//2):
+            if i < (self.L // 2):
                 beta = 1
                 if i == 0:
                     alpha = 1
@@ -613,53 +699,71 @@ class MPS:
                 beta = 0
                 alpha = beta
                 gamma = 1
-            w = np.array([[I,O,alpha*X,O],[O,O,O,O],[O,O,beta*X, gamma * X @ (np.linalg.matrix_power(X,(1-alpha)))],[O,O,O,I]])
+            w = np.array(
+                [
+                    [I, O, alpha * X, O],
+                    [O, O, O, O],
+                    [
+                        O,
+                        O,
+                        beta * X,
+                        gamma * X @ (np.linalg.matrix_power(X, (1 - alpha))),
+                    ],
+                    [O, O, O, I],
+                ]
+            )
             w_tot.append(w)
         self.w = w_tot
         return self
-    
+
     def sigma_x_Z2_one_ladder(self, site):
         I = np.eye(2)
-        O = np.zeros((2,2))
-        X = np.array([[0,1],[1,0]])
+        O = np.zeros((2, 2))
+        X = np.array([[0, 1], [1, 0]])
         w_tot = []
         for i in range(self.L):
-            if i == site-1:
+            if i == site - 1:
                 alpha = 1
             else:
                 alpha = 0
-            w_mag = np.array([[I, O, O, alpha*X],[O , O, O , O],[O , O , O , O], [O , O , O , I]])
+            w_mag = np.array(
+                [[I, O, O, alpha * X], [O, O, O, O], [O, O, O, O], [O, O, O, I]]
+            )
             w_tot.append(w_mag)
         self.w = w_tot
         return self
-    
+
     def sigma_x_Z2_two_ladder(self, site, ladder):
         I = np.eye(2)
-        O = np.zeros((2,2))
-        X = np.array([[0,1],[1,0]])
+        O = np.zeros((2, 2))
+        X = np.array([[0, 1], [1, 0]])
         if ladder == 1:
-            X = np.kron(X,I)
+            X = np.kron(X, I)
         elif ladder == 2:
-            X = np.kron(I,X)
-        I = np.kron(I,I)
-        O = np.kron(O,O)
+            X = np.kron(I, X)
+        I = np.kron(I, I)
+        O = np.kron(O, O)
         w_tot = []
         for i in range(self.L):
-            if i == site-1:
+            if i == site - 1:
                 alpha = 1
             else:
                 alpha = 0
-            w_mag = np.array([[I, O , O , O , O , O , alpha*X],
-                              [O, O , O , O , O , O , O],
-                              [O, O , O , O , O , O , O],
-                              [O, O , O , O , O , O , O],
-                              [O, O , O , O , O , O , O],
-                              [O, O , O , O , O , O , O],
-                              [O, O , O , O , O , O , I]])
+            w_mag = np.array(
+                [
+                    [I, O, O, O, O, O, alpha * X],
+                    [O, O, O, O, O, O, O],
+                    [O, O, O, O, O, O, O],
+                    [O, O, O, O, O, O, O],
+                    [O, O, O, O, O, O, O],
+                    [O, O, O, O, O, O, O],
+                    [O, O, O, O, O, O, I],
+                ]
+            )
             w_tot.append(w_mag)
         self.w = w_tot
         return self
-    
+
     def single_operator_Ising(self, site, op):
         """
         single_operator_Ising
@@ -668,18 +772,18 @@ class MPS:
         on a certain arbitrary site.
 
         site: int - local site where the operator acts
-        op: np.ndarray - operator acting on the local site 
-        
+        op: np.ndarray - operator acting on the local site
+
         """
         I = np.eye(2)
-        O = np.zeros((2,2))
+        O = np.zeros((2, 2))
         w_tot = []
         for i in range(self.L):
-            if i == site-1:
+            if i == site - 1:
                 alpha = 1
             else:
                 alpha = 0
-            w_mag = np.array([[I , O , alpha*op],[O , O , O],[O , O , I]])
+            w_mag = np.array([[I, O, alpha * op], [O, O, O], [O, O, I]])
             w_tot.append(w_mag)
         self.w = w_tot
         return self
@@ -687,14 +791,23 @@ class MPS:
     def mps_local_exp_val(self, op):
         chain = []
         self.clear_envs()
-        for i in range(1,self.L+1):
+        for i in range(1, self.L + 1):
             self.single_operator_Ising(site=i, op=op)
             self.envs(site=i)
             chain.append(self.braket(site=i))
         self.clear_envs()
         return chain
 
-    def envs(self, site=1, sm=False, fm=False, opt=False, ancilla=False, mixed=False, rev=False):
+    def envs(
+        self,
+        site=1,
+        sm=False,
+        fm=False,
+        opt=False,
+        ancilla=False,
+        mixed=False,
+        rev=False,
+    ):
         """
         envs
 
@@ -715,14 +828,14 @@ class MPS:
         l[0] = 1
         r = np.zeros(aux)
         r[-1] = 1
-        E_r = ncon([r.T,v_r.T,r.T], [[-1],[-2],[-3]])
-        E_l = ncon([l,v_l,l], [[-1],[-2],[-3]])
+        E_r = ncon([r.T, v_r.T, r.T], [[-1], [-2], [-3]])
+        E_l = ncon([l, v_l, l], [[-1], [-2], [-3]])
 
         if opt:
-            special = np.array([[1],[0]])
-            E_r = ncon([special,E_r,special],[[-1,1],[1,-2,2],[-3,2]])
-            special = np.array([[1,0]])
-            E_l = ncon([special,E_l,special],[[1,-1],[1,-2,2],[2,-3]])
+            special = np.array([[1], [0]])
+            E_r = ncon([special, E_r, special], [[-1, 1], [1, -2, 2], [-3, 2]])
+            special = np.array([[1, 0]])
+            E_l = ncon([special, E_l, special], [[1, -1], [1, -2, 2], [2, -3]])
 
         if sm:
             a = np.array([1])
@@ -745,7 +858,16 @@ class MPS:
             else:
                 self.env_left.append(E_l_sm)
             E_r_sm = ncon(
-                [a, v_r.T, v_r.T, a, array[-1], self.w[-1], self.w[-1], array[-1].conjugate()],
+                [
+                    a,
+                    v_r.T,
+                    v_r.T,
+                    a,
+                    array[-1],
+                    self.w[-1],
+                    self.w[-1],
+                    array[-1].conjugate(),
+                ],
                 [
                     [1],
                     [3],
@@ -763,7 +885,13 @@ class MPS:
                 self.env_right.append(E_r_sm)
             for i in range(self.L - 1, site, -1):
                 E_r_sm = ncon(
-                    [E_r_sm, array[i - 1], self.w[i - 1], self.w[i - 1], array[i - 1].conjugate()],
+                    [
+                        E_r_sm,
+                        array[i - 1],
+                        self.w[i - 1],
+                        self.w[i - 1],
+                        array[i - 1].conjugate(),
+                    ],
                     [
                         [1, 3, 5, 7],
                         [-1, 2, 1],
@@ -776,12 +904,25 @@ class MPS:
                     self.env_right_sm.append(E_r_sm)
                 else:
                     self.env_right.append(E_r_sm)
-                
+
         elif fm:
             a = np.array([1])
             array = self.sites
             E_l_sm = ncon(
-                [a, v_l, v_l, v_l, v_l, a, array[0], self.w[0], self.w[0], self.w[0], self.w[0], array[0].conjugate()],
+                [
+                    a,
+                    v_l,
+                    v_l,
+                    v_l,
+                    v_l,
+                    a,
+                    array[0],
+                    self.w[0],
+                    self.w[0],
+                    self.w[0],
+                    self.w[0],
+                    array[0].conjugate(),
+                ],
                 [
                     [1],
                     [3],
@@ -799,7 +940,20 @@ class MPS:
             )
             self.env_left.append(E_l_sm)
             E_r_sm = ncon(
-                [a, v_r.T, v_r.T, v_r.T, v_r.T, a, array[-1], self.w[-1], self.w[-1], self.w[-1], self.w[-1], array[-1].conjugate()],
+                [
+                    a,
+                    v_r.T,
+                    v_r.T,
+                    v_r.T,
+                    v_r.T,
+                    a,
+                    array[-1],
+                    self.w[-1],
+                    self.w[-1],
+                    self.w[-1],
+                    self.w[-1],
+                    array[-1].conjugate(),
+                ],
                 [
                     [1],
                     [3],
@@ -818,16 +972,24 @@ class MPS:
             self.env_right.append(E_r_sm)
             for i in range(self.L - 1, site, -1):
                 E_r_sm = ncon(
-                    [E_r_sm, array[i - 1], self.w[i - 1], self.w[i - 1], self.w[i - 1], self.w[i - 1], array[i - 1].conjugate()],
                     [
-                    [1,3,5,7,9,11],
-                    [-1, 2, 1],
-                    [-2, 3, 2, 4],
-                    [-3, 5, 4, 6],
-                    [-4, 7, 6, 8],
-                    [-5, 9, 8, 10],
-                    [-6, 10, 11],
-                ],
+                        E_r_sm,
+                        array[i - 1],
+                        self.w[i - 1],
+                        self.w[i - 1],
+                        self.w[i - 1],
+                        self.w[i - 1],
+                        array[i - 1].conjugate(),
+                    ],
+                    [
+                        [1, 3, 5, 7, 9, 11],
+                        [-1, 2, 1],
+                        [-2, 3, 2, 4],
+                        [-3, 5, 4, 6],
+                        [-4, 7, 6, 8],
+                        [-5, 9, 8, 10],
+                        [-6, 10, 11],
+                    ],
                 )
                 self.env_right.append(E_r_sm)
 
@@ -851,24 +1013,24 @@ class MPS:
                 E_l = ncon(
                     [E_l, ancilla_array[i - 1], w[i - 1], array[i - 1].conjugate()],
                     [
-                        [1,3,5],
-                        [1,2,-1],
-                        [3,-2,2,4],
-                        [5,4,-3],
+                        [1, 3, 5],
+                        [1, 2, -1],
+                        [3, -2, 2, 4],
+                        [5, 4, -3],
                     ],
-                    )
+                )
                 env_left.append(E_l)
 
             for j in range(self.L, site, -1):
                 E_r = ncon(
                     [E_r, ancilla_array[j - 1], w[j - 1], array[j - 1].conjugate()],
                     [
-                        [1,3,5],
-                        [-1,2,1],
-                        [-2,3,2,4],
-                        [-3,4,5],
+                        [1, 3, 5],
+                        [-1, 2, 1],
+                        [-2, 3, 2, 4],
+                        [-3, 4, 5],
                     ],
-                    )
+                )
                 env_right.append(E_r)
             if rev:
                 self.env_right_sm = env_right
@@ -886,24 +1048,24 @@ class MPS:
                 E_l = ncon(
                     [E_l, array[i - 1], self.w[i - 1], array[i - 1].conjugate()],
                     [
-                        [1,3,5],
-                        [1,2,-1],
-                        [3,-2,2,4],
-                        [5,4,-3],
+                        [1, 3, 5],
+                        [1, 2, -1],
+                        [3, -2, 2, 4],
+                        [5, 4, -3],
                     ],
-                    )
+                )
                 self.env_left.append(E_l)
 
             for i in range(self.L, site, -1):
                 E_r = ncon(
                     [E_r, array[i - 1], self.w[i - 1], array[i - 1].conjugate()],
                     [
-                        [1,3,5],
-                        [-1,2,1],
-                        [-2,3,2,4],
-                        [-3,4,5],
+                        [1, 3, 5],
+                        [-1, 2, 1],
+                        [-2, 3, 2, 4],
+                        [-3, 4, 5],
                     ],
-                    )
+                )
                 self.env_right.append(E_r)
         return self
 
@@ -919,14 +1081,17 @@ class MPS:
         """
         H_eff_time = time.perf_counter()
         H = ncon(
-            [self.env_left[-1],self.w[site - 1],self.env_right[-1]],
+            [self.env_left[-1], self.w[site - 1], self.env_right[-1]],
             [
-                [-1,1,-4],
-                [1,2,-2,-5],
-                [-3,2,-6],
-            ]
+                [-1, 1, -4],
+                [1, 2, -2, -5],
+                [-3, 2, -6],
+            ],
         )
-        np.savetxt(f"results/times_data/H_eff_contraction_site_{site}_h_{self.h:.2f}", [time.perf_counter()-H_eff_time])
+        np.savetxt(
+            f"results/times_data/H_eff_contraction_site_{site}_h_{self.h:.2f}",
+            [time.perf_counter() - H_eff_time],
+        )
         # print(f"Time of H_eff contraction: {time.perf_counter()-H_eff_time}")
 
         reshape_time = time.perf_counter()
@@ -934,40 +1099,48 @@ class MPS:
             self.env_left[-1].shape[0] * self.d * self.env_right[-1].shape[0],
             self.env_left[-1].shape[2] * self.d * self.env_right[-1].shape[2],
         )
-        np.savetxt(f"results/times_data/H_eff_reshape_site_{site}_h_{self.h:.2f}", [time.perf_counter()-reshape_time])
+        np.savetxt(
+            f"results/times_data/H_eff_reshape_site_{site}_h_{self.h:.2f}",
+            [time.perf_counter() - reshape_time],
+        )
         # print(f"Time of H_eff reshaping: {time.perf_counter()-reshape_time}")
 
         return H
 
-    def _N_eff(self, site):   
+    def _N_eff(self, site):
         array = self.sites
         a = np.array([1])
-        env = ncon([a,a,a,a],[[-1],[-2],[-3],[-4]])
+        env = ncon([a, a, a, a], [[-1], [-2], [-3], [-4]])
 
-        for i in range(site-1):
+        for i in range(site - 1):
             ten = self.overlap_sites(array_1=array[i])
-            env = ncon([env,ten],[[-1,-2,1,2],[1,2,-3,-4]])
+            env = ncon([env, ten], [[-1, -2, 1, 2], [1, 2, -3, -4]])
         left = env
-        left = ncon([a,a,left],[[1],[2],[1,2,-1,-2]])
+        left = ncon([a, a, left], [[1], [2], [1, 2, -1, -2]])
         # print(csr_matrix(truncation(left, threshold=1e-15)))
         # plt.title("left")
         # plt.imshow(left.real, vmin=0, vmax=1)
         # plt.show()
-        env = ncon([a,a,a,a],[[-1],[-2],[-3],[-4]])
-        for i in range(self.L-1, site-1, -1):
+        env = ncon([a, a, a, a], [[-1], [-2], [-3], [-4]])
+        for i in range(self.L - 1, site - 1, -1):
             ten = self.overlap_sites(array_1=array[i])
-            env = ncon([ten,env],[[-1,-2,1,2],[1,2,-3,-4]])
+            env = ncon([ten, env], [[-1, -2, 1, 2], [1, 2, -3, -4]])
         right = env
-        right = ncon([right,a,a],[[-1,-2,1,2],[1],[2]])
+        right = ncon([right, a, a], [[-1, -2, 1, 2], [1], [2]])
         # print(csr_matrix(truncation(right, threshold=1e-15)))
         # plt.title("right")
         # plt.imshow(right.real, vmin=0, vmax=1)
         # plt.show()
         kron = np.eye(2)
         # N = ncon([left,kron,right],[[-1,-4],[-2,-5],[-3,-6]]).reshape((self.env_left[-1].shape[2]*self.d*self.env_right[-1].shape[2],self.env_left[-1].shape[2]*self.d*self.env_right[-1].shape[2]))
-        N = ncon([left,kron,right],[[-1,-4],[-2,-5],[-3,-6]]).reshape((left.shape[0]*self.d*right.shape[0],left.shape[1]*self.d*right.shape[1]))
+        N = ncon([left, kron, right], [[-1, -4], [-2, -5], [-3, -6]]).reshape(
+            (
+                left.shape[0] * self.d * right.shape[0],
+                left.shape[1] * self.d * right.shape[1],
+            )
+        )
         return N, left.shape, right.shape
-    
+
     def eigensolver(self, H_eff, site, v0=None):
         """
         eigensolver
@@ -985,7 +1158,10 @@ class MPS:
         """
         time_eig = time.perf_counter()
         e, v = eigsh(H_eff, k=1, which="SA", v0=v0)
-        np.savetxt(f"results/times_data/eigsh_eigensolver_site_{site}_h_{self.h:.2f}", [time.perf_counter()-time_eig])
+        np.savetxt(
+            f"results/times_data/eigsh_eigensolver_site_{site}_h_{self.h:.2f}",
+            [time.perf_counter() - time_eig],
+        )
         # print(f"Time of eigsh during eigensolver for site {site}: {time.perf_counter()-time_eig}")
         e_min = e[0]
         eigvec = np.array(v)
@@ -996,7 +1172,7 @@ class MPS:
 
         return e_min
 
-    def update_state(self, sweep, site, trunc, e_tol=10 ** (-15), precision=2):   
+    def update_state(self, sweep, site, trunc, e_tol=10 ** (-15), precision=2):
         """
         update_state
 
@@ -1020,7 +1196,10 @@ class MPS:
             # np.savetxt(f"site_to_update/state_to_update_{self.model}_L_{self.L}_chi_{self.chi}_site_{site}_right_sweep_n_{n}", m)
             time_svd = time.perf_counter()
             u, s, v = np.linalg.svd(m, full_matrices=False)
-            np.savetxt(f"results/times_data/update_site_{site}_h_{self.h:.2f}", [time.perf_counter()-time_svd])
+            np.savetxt(
+                f"results/times_data/update_site_{site}_h_{self.h:.2f}",
+                [time.perf_counter() - time_svd],
+            )
             # print(f"Time of svd during update state during sweeping {sweep} for site {site}: {time.perf_counter()-time_svd}")
             if trunc:
                 condition = s >= e_tol
@@ -1030,28 +1209,28 @@ class MPS:
                 u = u.reshape(bond_l, self.d, u.shape[1])
                 u = u[:, :, : len(s)]
                 v = v[: len(s), :]
-                if site == self.L//2:
+                if site == self.L // 2:
                     # print(f'Schmidt values:\n{s}')
                     np.savetxt(
-                            f"results/bonds_data/schmidt_values_middle_chain_{self.model}_L_{self.L}_chi_{self.chi}_h_{self.h:.{precision}f}",
-                            s,
-                        )
+                        f"results/bonds_data/schmidt_values_middle_chain_{self.model}_L_{self.L}_chi_{self.chi}_h_{self.h:.{precision}f}",
+                        s,
+                    )
             else:
                 u = u.reshape(
                     self.env_left[-1].shape[2], self.d, self.env_right[-1].shape[2]
                 )
-            if site == self.L//2:
+            if site == self.L // 2:
                 # print(f'Schmidt values:\n{s}')
                 np.savetxt(
-                        f"results/bonds_data/schmidt_values_middle_chain_{self.model}_L_{self.L}_chi_{self.chi}_h_{self.h:.{precision}f}",
-                        s,
-                    )
+                    f"results/bonds_data/schmidt_values_middle_chain_{self.model}_L_{self.L}_chi_{self.chi}_h_{self.h:.{precision}f}",
+                    s,
+                )
             next_site = ncon(
-                [np.diag(s), v, self.sites[site]], 
+                [np.diag(s), v, self.sites[site]],
                 [
-                    [-1,1],
-                    [1,2],
-                    [2,-2,-3],
+                    [-1, 1],
+                    [1, 2],
+                    [2, -2, -3],
                 ],
             )
             self.sites[site - 1] = u
@@ -1064,7 +1243,10 @@ class MPS:
             )
             time_svd = time.perf_counter()
             u, s, v = np.linalg.svd(m, full_matrices=False)
-            np.savetxt(f"results/times_data/update_site_{site}_h_{self.h:.2f}", [time.perf_counter()-time_svd])
+            np.savetxt(
+                f"results/times_data/update_site_{site}_h_{self.h:.2f}",
+                [time.perf_counter() - time_svd],
+            )
             # print(f"Time of svd during update state during sweeping {sweep} for site {site}: {time.perf_counter()-time_svd}")
             if trunc:
                 condition = s >= e_tol
@@ -1085,19 +1267,19 @@ class MPS:
                     self.env_left[-1].shape[2], self.d, self.env_right[-1].shape[2]
                 )
 
-            if site == self.L//2:
+            if site == self.L // 2:
                 # print(f'Schmidt values:\n{s}')
                 np.savetxt(
-                        f"results/bonds_data/schmidt_values_middle_chain_{self.model}_L_{self.L}_chi_{self.chi}_h_{self.h:.{precision}f}",
-                        s,
-                    )
+                    f"results/bonds_data/schmidt_values_middle_chain_{self.model}_L_{self.L}_chi_{self.chi}_h_{self.h:.{precision}f}",
+                    s,
+                )
 
             next_site = ncon(
-                [self.sites[site - 2], u, np.diag(s)], 
+                [self.sites[site - 2], u, np.diag(s)],
                 [
-                    [-1,-2,1],
-                    [1,2],
-                    [2,-3],
+                    [-1, -2, 1],
+                    [1, 2],
+                    [2, -3],
                 ],
             )
             self.sites[site - 1] = v
@@ -1130,12 +1312,12 @@ class MPS:
                     ancilla_array = self.ancilla_sites[site - 1]
                 E_l = self.env_left[-1]
             E_l = ncon(
-                [E_l,ancilla_array,self.w[site - 1],array.conjugate()],
+                [E_l, ancilla_array, self.w[site - 1], array.conjugate()],
                 [
-                    [1,3,5],
-                    [1,2,-1],
-                    [3,-2,2,4],
-                    [5,4,-3],
+                    [1, 3, 5],
+                    [1, 2, -1],
+                    [3, -2, 2, 4],
+                    [5, 4, -3],
                 ],
             )
             if rev:
@@ -1160,12 +1342,12 @@ class MPS:
                     self.w = self.w_dag
                 E_r = self.env_right[-1]
             E_r = ncon(
-                [E_r,ancilla_array,self.w[site - 1],array.conjugate()],
+                [E_r, ancilla_array, self.w[site - 1], array.conjugate()],
                 [
-                    [1,3,5],
-                    [-1,2,1],
-                    [-2,3,2,4],
-                    [-3,4,5],
+                    [1, 3, 5],
+                    [-1, 2, 1],
+                    [-2, 3, 2, 4],
+                    [-3, 4, 5],
                 ],
             )
             if rev:
@@ -1177,7 +1359,9 @@ class MPS:
 
         return self
 
-    def sweeping(self, trunc, e_tol=10 ** (-15), n_sweeps=2, precision=2, var=False):  # iterations, sweep,
+    def sweeping(
+        self, trunc, e_tol=10 ** (-15), n_sweeps=2, precision=2, var=False
+    ):  # iterations, sweep,
         energies = []
         variances = []
         sweeps = ["right", "left"]
@@ -1187,7 +1371,9 @@ class MPS:
         # tensor_shapes(self.w)
         env_time = time.perf_counter()
         self.envs()
-        np.savetxt(f"results/times_data/env_h_{self.h:.2f}", [time.perf_counter()-env_time])
+        np.savetxt(
+            f"results/times_data/env_h_{self.h:.2f}", [time.perf_counter() - env_time]
+        )
         # print(f"Time of env contraction: {time.perf_counter()-env_time}")
         iter = 1
         for n in range(n_sweeps):
@@ -1213,36 +1399,64 @@ class MPS:
                 # print(f"Total time of state updating: {time.perf_counter()-total_state_time}")
                 update_env_time = time.perf_counter()
                 self.update_envs(sweeps[0], sites[i])
-                np.savetxt(f"results/times_data/update_env_h_{self.h:.2f}", [time.perf_counter()-update_env_time])
+                np.savetxt(
+                    f"results/times_data/update_env_h_{self.h:.2f}",
+                    [time.perf_counter() - update_env_time],
+                )
                 # print(f"Time of env updating: {time.perf_counter()-update_env_time}")
                 iter += 1
                 # print('\n=========================================')
                 # print(f"Time of site {sites[i]} optimization: {time.perf_counter()-time_site}")
                 # print('=========================================\n')
 
-
-            middle_chain = np.loadtxt(f"results/bonds_data/schmidt_values_middle_chain_{self.model}_L_{self.L}_chi_{self.chi}_h_{self.h:.{precision}f}")
+            middle_chain = np.loadtxt(
+                f"results/bonds_data/schmidt_values_middle_chain_{self.model}_L_{self.L}_chi_{self.chi}_h_{self.h:.{precision}f}"
+            )
             s_min = np.min(middle_chain)
 
             if s_min < e_tol:
-                print('\n=========================================')
-                print('=========================================')
-                print('Optimal Schmidt values achieved, breaking the DMRG optimization algorithm\n')
-                
-                np.savetxt(f"results/energy_data/energies_sweeping_{self.model}_two_charges_L_{self.L}_chi_{self.chi}_h_{self.h:.{precision}f}", energies)
+                print("\n=========================================")
+                print("=========================================")
+                print(
+                    "Optimal Schmidt values achieved, breaking the DMRG optimization algorithm\n"
+                )
+
+                np.savetxt(
+                    f"results/energy_data/energies_sweeping_{self.model}_two_charges_L_{self.L}_chi_{self.chi}_h_{self.h:.{precision}f}",
+                    energies,
+                )
                 if var:
-                    np.savetxt(f"results/energy_data/variances_sweeping_{self.model}_L_{self.L}_chi_{self.chi}_h_{self.h:.{precision}f}", variances)
+                    np.savetxt(
+                        f"results/energy_data/variances_sweeping_{self.model}_L_{self.L}_chi_{self.chi}_h_{self.h:.{precision}f}",
+                        variances,
+                    )
 
             # print("reversing the sweep")
             sweeps.reverse()
             sites.reverse()
 
-        np.savetxt(f"results/energy_data/energies_sweeping_{self.model}_two_charges_L_{self.L}_chi_{self.chi}_h_{self.h:.{precision}f}", energies)
+        np.savetxt(
+            f"results/energy_data/energies_sweeping_{self.model}_two_charges_L_{self.L}_chi_{self.chi}_h_{self.h:.{precision}f}",
+            energies,
+        )
         if var:
-            np.savetxt(f"results/energy_data/variances_sweeping_{self.model}_L_{self.L}_chi_{self.chi}_h_{self.h:.{precision}f}", variances)
+            np.savetxt(
+                f"results/energy_data/variances_sweeping_{self.model}_L_{self.L}_chi_{self.chi}_h_{self.h:.{precision}f}",
+                variances,
+            )
         return energies
 
-    def TEBD_ising(self, trunc, trotter_steps, delta, h_ev, J_ev, e_tol=10 ** (-15), n_sweeps=2, precision=2):
+    def TEBD_ising(
+        self,
+        trunc,
+        trotter_steps,
+        delta,
+        h_ev,
+        J_ev,
+        e_tol=10 ** (-15),
+        n_sweeps=2,
+        precision=2,
+    ):
         errors = []
         self.clear_envs()
         self._random_state(seed=3, chi=self.chi, ancilla=True)
@@ -1251,12 +1465,16 @@ class MPS:
             print("\n======================")
             print(f"Trotter step: {i}")
             print("======================\n")
-            self, err = self.time_ev_sweeping(trunc, delta, h_ev, J_ev, e_tol=10 ** (-15), n_sweeps=2, precision=2)
+            self, err = self.time_ev_sweeping(
+                trunc, delta, h_ev, J_ev, e_tol=10 ** (-15), n_sweeps=2, precision=2
+            )
             errors.append(err)
             print(f"Error at trotter step {i}: {err:.5f}")
         return self
 
-    def time_ev_sweeping(self, trunc, delta, h_ev, J_ev, e_tol=10 ** (-15), n_sweeps=2, precision=2):
+    def time_ev_sweeping(
+        self, trunc, delta, h_ev, J_ev, e_tol=10 ** (-15), n_sweeps=2, precision=2
+    ):
         sweeps = ["right", "left"]
         sites = np.arange(1, self.L + 1).tolist()
         errors = []
@@ -1270,8 +1488,8 @@ class MPS:
 
         # computation of mixed environments
         self.mpo_Ising_time_ev(delta, h_ev, J_ev)
-        self.envs(site= 1, mixed=True)
-        self.envs(site= 1, mixed=True, rev=True)
+        self.envs(site=1, mixed=True)
+        self.envs(site=1, mixed=True, rev=True)
         iter = 1
         for n in range(n_sweeps):
             print(f"Sweep n: {n}\n")
@@ -1290,8 +1508,10 @@ class MPS:
 
         self.ancilla_sites = self.sites
         return self, errors[-1]
- 
-    def direct_mpo_evolution(self, trotter_steps, delta, h_ev, J_ev, fidelity=False, trunc=True):
+
+    def direct_mpo_evolution(
+        self, trotter_steps, delta, h_ev, J_ev, fidelity=False, trunc=True
+    ):
         """
         direct_mpo_evolution
 
@@ -1302,14 +1522,14 @@ class MPS:
         delta: float - time interval which defines the evolution per step
         h_ev: float - value of the external field in the evolving hamiltonian
         J_ev: float - value of the Ising interaction in the evolving hamiltonian
-        fidelity: bool - we can compute the fidelity with the initial state 
+        fidelity: bool - we can compute the fidelity with the initial state
                 if the chain is small enough. By default False
-                
+
         """
         overlap = []
         mag_mps_tot = []
         mag_mps_loc = []
-        Z = np.array([[1,0],[0,-1]])
+        Z = np.array([[1, 0], [0, -1]])
 
         # total
         self.order_param_Ising(op=Z)
@@ -1318,7 +1538,7 @@ class MPS:
         # local
         mag_loc = []
         for i in range(self.L):
-            self.single_operator_Ising(site=i+1, op=Z)
+            self.single_operator_Ising(site=i + 1, op=Z)
             mag_loc.append(self.mpo_first_moment().real)
         mag_mps_loc.append(mag_loc)
 
@@ -1344,19 +1564,34 @@ class MPS:
             # local
             mag_loc = []
             for i in range(self.L):
-                self.single_operator_Ising(site=i+1, op=Z)
+                self.single_operator_Ising(site=i + 1, op=Z)
                 mag_loc.append(self.mpo_first_moment().real)
             mag_mps_loc.append(mag_loc)
 
             if fidelity:
-                psi_exact = exact_evolution(L=self.L, psi_init=psi_exact_0, trotter_step=(T+1), delta=delta, h_t=h_ev)
+                psi_exact = exact_evolution(
+                    L=self.L,
+                    psi_init=psi_exact_0,
+                    trotter_step=(T + 1),
+                    delta=delta,
+                    h_t=h_ev,
+                )
                 psi_new_mpo = mps_to_vector(self.sites)
                 overlap.append(np.abs((psi_new_mpo.T.conjugate() @ psi_exact).real))
         return mag_mps_tot, mag_mps_loc, overlap
 
-    def variational_mps_evolution(self, trotter_steps: int, delta: float, h_ev: float, n_sweeps: int = 2, fidelity: bool = False):
+    def variational_mps_evolution(
+        self,
+        trotter_steps: int,
+        delta: float,
+        h_ev: float,
+        n_sweeps: int = 2,
+        fidelity: bool = False,
+        err: bool = True,
+        conv_tol: float = 1e-7,
+    ):
         """
-        direct_mpo_evolution
+        variational_mps_evolution
 
         This function computes the magnetization and (on demand) the fidelity
         of the trotter evolved MPS by the MPO direct application.
@@ -1365,57 +1600,74 @@ class MPS:
         delta: float - time interval which defines the evolution per step
         h_ev: float - value of the external field in the evolving hamiltonian
         J_ev: float - value of the Ising interaction in the evolving hamiltonian
-        fidelity: bool - we can compute the fidelity with the initial state 
+        fidelity: bool - we can compute the fidelity with the initial state
                 if the chain is small enough. By default False
-                
+        err: bool - computes the distance error between the guess state and an 
+                uncompressed state. If True it is used as a convergence criterion.
+                By default True
+
         """
         overlap = []
         mag_mps_tot = []
         mag_mps_loc = []
-        Z = np.array([[1,0],[0,-1]])
+        Z = np.array([[1, 0], [0, -1]])
 
         # total
         self.order_param_Ising(op=Z)
         test = np.real(self.mpo_first_moment())
         tolerance = 1e-6  # Adjust this to your desired level of precision
         # Check if the absolute difference between the two numbers is within the tolerance
-        if abs(test.__float__() + (self.L-2)) < tolerance:
+        if abs(test.__float__() + (self.L - 2)) < tolerance:
             self.flipping_all()
+            warnings.warn(
+                "The ground state found in DMRG could be in a superposition of states"
+            )
+            print("We flip all the chain to be in the positive magnetization state")
         mag_mps_tot.append(np.real(self.mpo_first_moment()))
 
         # local
         mag_loc = []
         for i in range(self.L):
-            self.single_operator_Ising(site=i+1, op=Z)
+            self.single_operator_Ising(site=i + 1, op=Z)
             mag_loc.append(self.mpo_first_moment().real)
         mag_mps_loc.append(mag_loc)
-            
 
         # fidelity
         if fidelity:
-            psi_exact_0 = exact_initial_state(L=self.L, h_t=self.h, h_l=self.eps).reshape(2**self.L,1)
+            psi_exact_0 = exact_initial_state(
+                L=self.L, h_t=self.h
+            ).reshape(2**self.L, 1)
             psi_new_mpo = mps_to_vector(self.sites)
             overlap.append(np.abs((psi_new_mpo.T.conjugate() @ psi_exact_0).real))
-        
-        # initialize ancilla
-        self.canonical_form()
+
+        # initialize ancilla with a state in Right Canonical Form
+        self.canonical_form(trunc_chi=True, trunc_tol=False)
         self._compute_norm(site=1)
-        self.ancilla_sites = self.sites
+        self.ancilla_sites = self.sites.copy()
 
         errors = []
         for trott in range(trotter_steps):
             print(f"------ Trotter steps: {trott} -------")
             self.mpo_Ising_time_ev(delta=delta, h_ev=h_ev, J_ev=1)
             self.mpo_to_mps(ancilla=True)
-            self.canonical_form(ancilla=True, trunc=True)
-            error = self.compression(delta=delta, trotter_step=trott, trunc_tol=False, trunc_chi=True, n_sweeps=n_sweeps, err=True)
+            self.canonical_form(ancilla=True, trunc_chi=True, trunc_tol=False)
+            print("Braket <phi|psi>:")
+            self._compute_norm(site=1, mixed=True)
+            error = self.compression(
+                delta=delta,
+                trotter_step=trott,
+                trunc_tol=False,
+                trunc_chi=True,
+                n_sweeps=n_sweeps,
+                err=err,
+                conv_tol=conv_tol,
+            )
+            self.canonical_form(trunc_chi=True, trunc_tol=False)
             errors.append(error)
-            print(self.chi)
-            tensor_shapes(self.sites)
             # local
             mag = []
             for i in range(self.L):
-                self.single_operator_Ising(site=i+1, op=Z)
+                self.single_operator_Ising(site=i + 1, op=Z)
                 mag.append(self.mpo_first_moment().real)
             mag_mps_loc.append(mag)
 
@@ -1424,14 +1676,20 @@ class MPS:
             mag_mps_tot.append(np.real(self.mpo_first_moment()))
 
             if fidelity:
-                psi_exact = U_evolution(L=self.L, psi_init=psi_exact_0, trotter_step=(trott+1), delta=delta, h_t=h_ev)
+                psi_exact = U_evolution(
+                    L=self.L,
+                    psi_init=psi_exact_0,
+                    trotter_step=(trott + 1),
+                    delta=delta,
+                    h_t=h_ev,
+                )
                 psi_new_mpo = mps_to_vector(self.sites)
                 overlap.append(np.abs((psi_new_mpo.T.conjugate() @ psi_exact).real))
         return mag_mps_tot, mag_mps_loc, overlap, errors
 
     def environments_ev(self, site):
         a = np.array([1])
-        E_l = ncon([a,a],[[-1],[-2]])
+        E_l = ncon([a, a], [[-1], [-2]])
         E_r = E_l
         env_right = []
         env_left = []
@@ -1445,28 +1703,28 @@ class MPS:
             E_l = ncon(
                 [E_l, ancilla_array[i - 1], array[i - 1].conjugate()],
                 [
-                    [1,3],
-                    [1,2,-1],
-                    [3,2,-2],
+                    [1, 3],
+                    [1, 2, -1],
+                    [3, 2, -2],
                 ],
-                )
+            )
             env_left.append(E_l)
 
         for j in range(self.L, site, -1):
             E_r = ncon(
                 [E_r, ancilla_array[j - 1], array[j - 1].conjugate()],
                 [
-                    [1,3],
-                    [-1,2,1],
-                    [-3,2,3],
+                    [1, 3],
+                    [-1, 2, 1],
+                    [-3, 2, 3],
                 ],
-                )
+            )
             env_right.append(E_r)
 
         self.env_right = env_right
         self.env_left = env_left
         return self
-    
+
     def compute_M_no_mpo(self, site):
         """
         _compute_M
@@ -1478,22 +1736,35 @@ class MPS:
         site: int - site where to execute the tensor contraction
 
         """
-        M = ncon([self.env_left[-1],self.ancilla_sites[site-1],self.env_right[-1]],[[1,-1],[1,-2,2],[2,-3]])
+        M = ncon(
+            [self.env_left[-1], self.ancilla_sites[site - 1], self.env_right[-1]],
+            [[1, -1], [1, -2, 2], [2, -3]],
+        )
         return M
 
-    def error(self, site, M, N_eff):
-        AM = ncon([M,self.sites[site-1].conjugate()],[[1,2,3],[1,2,3]])
-        A = self.sites[site-1].flatten()
-        AN_effA = ncon([A,N_eff,A.conjugate()],[[1],[1,2],[2]])
-        error = AN_effA - 2*AM.real
+    def error(self, site, M, N_anc):
+        A_dag_M = ncon([M, M.conjugate()], [[1, 2, 3], [1, 2, 3]])
+        print("Norm of variational state (before state/env update):")
+        A_dag_N_eff_A = self._compute_norm(site=site)
+        error = A_dag_N_eff_A - 2 * A_dag_M.real + N_anc
         return error
 
-    def update_state_ev(self, sweep, site, delta, trotter_step, trunc_tol, trunc_chi, e_tol=10 ** (-15), precision=2):   
+    def update_state_ev(
+        self,
+        sweep,
+        site,
+        delta,
+        trotter_step,
+        trunc_tol,
+        trunc_chi,
+        e_tol=10 ** (-15),
+        precision=2,
+    ):
         """
         update_state
 
         This function updates the state accoring to the sweeping direction and
-        the truncation procedure, if applied. The state undergoes in any 
+        the truncation procedure, if applied. The state undergoes in any
         case a svd procedure to obtain the schmidt values and unitary matrices.
 
         sweep: string - direction of the sweeping. Could be "left" or "right"
@@ -1512,8 +1783,7 @@ class MPS:
                 self.sites[site - 1].shape[0] * self.d, self.sites[site - 1].shape[2]
             )
             u, s, v = np.linalg.svd(m, full_matrices=False)
-            
-            
+
             if trunc_tol:
                 condition = s >= e_tol
                 s_trunc = np.extract(condition, s)
@@ -1522,38 +1792,38 @@ class MPS:
                 u = u.reshape(bond_l, self.d, u.shape[1])
                 u = u[:, :, : len(s)]
                 v = v[: len(s), :]
-                if site == self.L//2:
+                if site == self.L // 2:
                     # print(f'Schmidt values:\n{s}')
                     np.savetxt(
-                            f"results/bonds_data/schmidt_values_middle_chain_{self.model}_L_{self.L}_chi_{self.chi}_trotter_step_{trotter_step}_delta_{delta}",
-                            s,
-                        )
+                        f"results/bonds_data/schmidt_values_middle_chain_{self.model}_L_{self.L}_chi_{self.chi}_trotter_step_{trotter_step}_delta_{delta}",
+                        s,
+                    )
             elif trunc_chi:
-                s_trunc = s[:self.chi]
+                s_trunc = s[: self.chi]
                 s = s / np.linalg.norm(s_trunc)
                 # print(f"Schmidt Values:\n{s}")
                 bond_l = u.shape[0] // self.d
                 u = u.reshape(bond_l, self.d, u.shape[1])
                 u = u[:, :, : len(s)]
                 v = v[: len(s), :]
-                if site == self.L//2:
+                if site == self.L // 2:
                     # print(f'Schmidt values:\n{s}')
                     np.savetxt(
-                            f"results/bonds_data/schmidt_values_middle_chain_{self.model}_L_{self.L}_chi_{self.chi}_trotter_step_{trotter_step}_delta_{delta}",
-                            s,
-                        )
+                        f"results/bonds_data/schmidt_values_middle_chain_{self.model}_L_{self.L}_chi_{self.chi}_trotter_step_{trotter_step}_delta_{delta}",
+                        s,
+                    )
             else:
                 u = u.reshape(
                     self.sites[site - 1].shape[0], self.d, self.sites[site - 1].shape[2]
                 )
-            
+
             # print(f"Schmidt sum: {sum(s**2)}")
             next_site = ncon(
                 [np.diag(s), v, self.sites[site]],
                 [
-                    [-1,1],
-                    [1,2],
-                    [2,-2,-3],
+                    [-1, 1],
+                    [1, 2],
+                    [2, -2, -3],
                 ],
             )
             self.sites[site - 1] = u
@@ -1565,7 +1835,7 @@ class MPS:
                 self.sites[site - 1].shape[0], self.d * self.sites[site - 1].shape[2]
             )
             u, s, v = np.linalg.svd(m, full_matrices=False)
-            
+
             if trunc_tol:
                 condition = s >= e_tol
                 s_trunc = np.extract(condition, s)
@@ -1574,37 +1844,37 @@ class MPS:
                 v = v.reshape(v.shape[0], self.d, bond_r)
                 v = v[: len(s), :, :]
                 u = u[:, : len(s)]
-                if site == self.L//2:
+                if site == self.L // 2:
                     # print(f'Schmidt values:\n{s}')
                     np.savetxt(
-                            f"results/bonds_data/schmidt_values_middle_chain_{self.model}_L_{self.L}_chi_{self.chi}_trotter_step_{trotter_step}_delta_{delta}",
-                            s,
-                        )
+                        f"results/bonds_data/schmidt_values_middle_chain_{self.model}_L_{self.L}_chi_{self.chi}_trotter_step_{trotter_step}_delta_{delta}",
+                        s,
+                    )
             elif trunc_chi:
-                s_trunc = s[:self.chi]
+                s_trunc = s[: self.chi]
                 s = s / np.linalg.norm(s_trunc)
                 # print(f"Schmidt Values:\n{s}")
                 bond_r = v.shape[1] // self.d
                 v = v.reshape(v.shape[0], self.d, bond_r)
                 v = v[: len(s), :, :]
                 u = u[:, : len(s)]
-                if site == self.L//2:
+                if site == self.L // 2:
                     # print(f'Schmidt values:\n{s}')
                     np.savetxt(
-                            f"results/bonds_data/schmidt_values_middle_chain_{self.model}_L_{self.L}_chi_{self.chi}_trotter_step_{trotter_step}_delta_{delta}",
-                            s,
-                        )
+                        f"results/bonds_data/schmidt_values_middle_chain_{self.model}_L_{self.L}_chi_{self.chi}_trotter_step_{trotter_step}_delta_{delta}",
+                        s,
+                    )
             else:
                 v = v.reshape(
                     self.sites[site - 1].shape[0], self.d, self.sites[site - 1].shape[2]
                 )
             # print(f"Schmidt sum: {sum(s**2)}")
             next_site = ncon(
-                [self.sites[site - 2], u, np.diag(s)], 
+                [self.sites[site - 2], u, np.diag(s)],
                 [
-                    [-1,-2,1],
-                    [1,2],
-                    [2,-3],
+                    [-1, -2, 1],
+                    [1, 2],
+                    [2, -3],
                 ],
             )
             self.sites[site - 1] = v
@@ -1629,11 +1899,11 @@ class MPS:
             ancilla_array = self.ancilla_sites[site - 1]
             E_l = self.env_left[-1]
             E_l = ncon(
-                [E_l,ancilla_array,array.conjugate()],
+                [E_l, ancilla_array, array.conjugate()],
                 [
-                    [1,3],
-                    [1,2,-1],
-                    [3,2,-3],
+                    [1, 3],
+                    [1, 2, -1],
+                    [3, 2, -3],
                 ],
             )
             self.env_left.append(E_l)
@@ -1644,11 +1914,11 @@ class MPS:
             ancilla_array = self.ancilla_sites[site - 1]
             E_r = self.env_right[-1]
             E_r = ncon(
-                [E_r,ancilla_array,array.conjugate()],
+                [E_r, ancilla_array, array.conjugate()],
                 [
-                    [1,3],
-                    [-1,2,1],
-                    [-3,2,3],
+                    [1, 3],
+                    [-1, 2, 1],
+                    [-3, 2, 3],
                 ],
             )
             self.env_right.append(E_r)
@@ -1656,14 +1926,26 @@ class MPS:
 
         return self
 
-    def compression(self, delta, trotter_step: int, trunc_tol: float, trunc_chi: int, e_tol: float = 10 ** (-15), n_sweeps: int = 2, precision: int = 2, err: bool = False):
+    def compression(
+        self,
+        delta: float,
+        trotter_step: int,
+        trunc_tol: bool,
+        trunc_chi: bool,
+        e_tol: float = 10 ** (-15),
+        n_sweeps: int = 6,
+        precision: int = 2,
+        err: bool = False,
+        conv_tol: float = 1e-7,
+    ):
         """
         compression
 
-        This function compress the mps self.sites by a variational method that 
+        This function compress the mps self.sites by a variational method that
         tries to compress the uncompressed state in the ancilla_sites. We
         reduce the distance between these two states.
 
+        delta: float - the step in time of a trotter step
         trunc_tol: bool - if True will truncate the the Schmidt values according to
                         a tolerance value e_tol
         trunc_chi: bool - if True will truncate the the Schmidt values according to
@@ -1672,38 +1954,70 @@ class MPS:
         n_sweeps: int - number of sweepings
         precision: int - precision of the floats to save
         err: bool - decide if we want to monitor the error or not. Default is false
+        cov_tol: float - the convergence tolerance we use to stop the sweeping. By default 1e-7
         """
         sweeps = ["right", "left"]
         sites = np.arange(1, self.L + 1).tolist()
         errors = []
 
+        if err:
+            print("Norm of ancilla sites:")
+            N_anc = self._compute_norm(site=1, ancilla=True)
+        
         self.environments_ev(site=1)
         iter = 1
         for n in range(n_sweeps):
-            # print(f"Sweep n: {n}\n")
+            print(f"Sweep n: {n}\n")
             for i in range(self.L - 1):
-                # print(f"\n============= Site: {sites[i]} ===================\n")
-                if err:
-                    N_eff, l_shape, r_shape = self._N_eff(site=sites[i])
+                print(f"\n============= Site: {sites[i]} ===================\n")
                 
                 M = self.compute_M_no_mpo(sites[i])
-                
-                if err:
-                    errs = self.error(site=sites[i], N_eff=N_eff, M=M)
-                    print(f"Error at site {sites[i]} for trotter step {trotter_step}: {errs}")
-                    errors.append(errs)
+                self.sites[sites[i] - 1] = M
 
-                self.sites[sites[i]-1] = M
-                self.update_state_ev(sweeps[0], sites[i], delta, trotter_step, trunc_tol, trunc_chi, e_tol, precision)
+                if err:
+                    errs = self.error(site=sites[i], M=M, N_anc=N_anc)
+                    # print(
+                    #     f"Error at site {sites[i]} for trotter step {trotter_step}: {errs}"
+                    # )
+                    print("Braket ancilla/sites == A*M:")
+                    self._compute_norm(site=1, mixed=True)
+                    errors.append(errs)
+                    if errs < conv_tol:
+                        break
+
+                self.update_state_ev(
+                    sweeps[0],
+                    sites[i],
+                    delta,
+                    trotter_step,
+                    trunc_tol,
+                    trunc_chi,
+                    e_tol,
+                    precision,
+                )
                 self.update_envs_ev(sweeps[0], sites[i])
 
                 iter += 1
+                norm_sites = self._compute_norm(site=1)
 
             sweeps.reverse()
             sites.reverse()
+            if errs < conv_tol:
+                break
         
+        if errs < conv_tol:
+            print("##############################")
+            print(f"The two states converged to an order of {conv_tol} after:\n" +
+                    f"{n} sweeps at site {sites[i]}\n" +
+                    f"total iterations {iter}")
+            print("##############################")
+        else:
+            print("##############################")
+            print(f"The two states converged to an order of {errs}\n" +
+                f"instead of the convergence tolerance {conv_tol}") 
+            print("##############################")
         return errors
-    
+
     def clear_canonical(self):
         self.sites.clear()
         self.bonds.clear()
@@ -1730,14 +2044,14 @@ class MPS:
         if ancilla:
             sites = self.ancilla_sites
         first_moment = ncon(
-            [self.env_left[-1], sites[site - 1], self.w[site - 1], sites[site - 1].conjugate(), self.env_right[-1]],
             [
-                [1,4,7],
-                [1,3,2],
-                [4,5,3,6],
-                [7,6,8],
-                [2,5,8]
-            ]
+                self.env_left[-1],
+                sites[site - 1],
+                self.w[site - 1],
+                sites[site - 1].conjugate(),
+                self.env_right[-1],
+            ],
+            [[1, 4, 7], [1, 3, 2], [4, 5, 3, 6], [7, 6, 8], [2, 5, 8]],
         )
         self.clear_envs()
         return first_moment
@@ -1756,14 +2070,19 @@ class MPS:
         """
         if opt:
             self.envs(sm=True, opt=opt)
-            sm = ncon([self.env_left_sm[0], self.env_right_sm[-1]], [[1, 2, 3, 4], [1, 2, 3, 4]])
+            sm = ncon(
+                [self.env_left_sm[0], self.env_right_sm[-1]],
+                [[1, 2, 3, 4], [1, 2, 3, 4]],
+            )
             self.env_left_sm = []
             self.env_right_sm = []
         else:
             self.order_param()
             self.clear_envs()
             self.envs(sm=True)
-            sm = ncon([self.env_left[0], self.env_right[-1]], [[1, 2, 3, 4], [1, 2, 3, 4]])
+            sm = ncon(
+                [self.env_left[0], self.env_right[-1]], [[1, 2, 3, 4], [1, 2, 3, 4]]
+            )
 
         return sm
 
@@ -1771,31 +2090,45 @@ class MPS:
         self.order_param()
         self.clear_envs()
         self.envs(fm=True)
-        fm = ncon([self.env_left[0], self.env_right[-1]], [[1, 2, 3, 4, 5, 6], [1, 2, 3, 4, 5, 6]])
+        fm = ncon(
+            [self.env_left[0], self.env_right[-1]],
+            [[1, 2, 3, 4, 5, 6], [1, 2, 3, 4, 5, 6]],
+        )
         return fm
 
-    def mpo_to_mps(self, ancilla=False):
-
-        array = self.sites
-        for i in range(self.L):
-            if ancilla:
-                # print("here ancilla sites")
+    def mpo_to_mps(self, ancilla=True):
+        if ancilla:
+            array = self.ancilla_sites
+            for i in range(self.L):
                 self.ancilla_sites[i] = ncon(
                     [array[i], self.w[i]],
                     [
-                        [-1,2,-4],
-                        [-2,-5,2,-3],
+                        [-1, 2, -4],
+                        [-2, -5, 2, -3],
                     ],
-                    ).reshape((array[i].shape[0]*self.w[i].shape[0],self.d,array[i].shape[2]*self.w[i].shape[1]))
-            else:
-                # print("here sites")
+                ).reshape(
+                    (
+                        array[i].shape[0] * self.w[i].shape[0],
+                        self.d,
+                        array[i].shape[2] * self.w[i].shape[1],
+                    )
+                )
+        else:
+            array = self.sites
+            for i in range(self.L):
                 self.sites[i] = ncon(
                     [array[i], self.w[i]],
                     [
-                        [-1,2,-4],
-                        [-2,-5,2,-3],
+                        [-1, 2, -4],
+                        [-2, -5, 2, -3],
                     ],
-                    ).reshape((array[i].shape[0]*self.w[i].shape[0],self.d,array[i].shape[2]*self.w[i].shape[1]))
+                ).reshape(
+                    (
+                        array[i].shape[0] * self.w[i].shape[0],
+                        self.d,
+                        array[i].shape[2] * self.w[i].shape[1],
+                    )
+                )
         return self
 
     def save_sites(self, precision=2):
@@ -1805,18 +2138,21 @@ class MPS:
         This function saves the sites, e.g., the tensors composing our MPS.
         In order to do that we need to flatten the whole list of tensors and save
         their original shapes in order to reshape them in the loading step.
-        
+
         precision: int - indicates the precision of the variable h
         """
         # shapes of the tensors
         shapes = tensor_shapes(self.sites)
         np.savetxt(
-            f"results/sites_data/shapes_sites_{self.model}_L_{self.L}_chi_{self.chi}_h_{self.h:.{precision}f}", shapes, fmt='%1.i'#, delimiter=','
+            f"results/sites_data/shapes_sites_{self.model}_L_{self.L}_chi_{self.chi}_h_{self.h:.{precision}f}",
+            shapes,
+            fmt="%1.i",  # , delimiter=','
         )
         # flattening of the tensors
         tensor = [element for site in self.sites for element in site.flatten()]
         np.savetxt(
-            f"results/sites_data/tensor_sites_{self.model}_L_{self.L}_chi_{self.chi}_h_{self.h:.{precision}f}", tensor
+            f"results/sites_data/tensor_sites_{self.model}_L_{self.L}_chi_{self.chi}_h_{self.h:.{precision}f}",
+            tensor,
         )
 
     def load_sites(self, precision=2):
