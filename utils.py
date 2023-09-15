@@ -27,6 +27,15 @@ def tensor_shapes(lists):
 
     return shapes
 
+# ---------------------------------------------------------------------------------------
+# ---------------------------------------------------------------------------------------
+# ---------------------------------------------------------------------------------------
+"""
+Saving and loading tools
+"""
+# ---------------------------------------------------------------------------------------
+# ---------------------------------------------------------------------------------------
+# ---------------------------------------------------------------------------------------
 
 # ---------------------------------------------------------------------------------------
 # Get labels
@@ -51,101 +60,6 @@ def get_labels(shapes):
         label += np.prod(shape)
         labels.append(label)
     return labels
-
-
-# ---------------------------------------------------------------------------------------
-# Variance
-# ---------------------------------------------------------------------------------------
-def variance(first_m, sm):
-    """
-    variance
-
-    This function computes the variance of the distribution function
-    of a local order parameter, e.g. magnetization, energy.
-
-    first_m: float - it is the first momentum of the, e.g., magnetization
-    sm: float - it is the second momentum of the, e.g., magnetization
-
-    """
-    return np.abs(sm - first_m**2)
-
-
-# ---------------------------------------------------------------------------------------
-# Binder's Cumulant
-# ---------------------------------------------------------------------------------------
-def binders_cumul(fourth_m, sm):
-    """
-    binders_cumul
-
-    This function computes the binders cumulant of the distribution
-    function of a local order parameter, e.g. magnetization, energy.
-
-    fourth_m: float - it is the fourth momentum of the, e.g., magnetization
-    sm: float - it is the second momentum of the, e.g., the magnetization
-
-    """
-    return 1 - fourth_m / (3 * sm**2)
-
-
-# ---------------------------------------------------------------------------------------
-# k values
-# ---------------------------------------------------------------------------------------
-def k_values(L):
-    """
-    k_values
-
-    This function computes the k values present in the summation
-    of the ground state formula for the PBC of the 1D transverse field Ising model.
-
-    L: int - the number of spins present in the 1D chain
-
-    """
-    ks = []
-    add = 2 * np.pi / L
-    k = -(L - 1) * np.pi / L
-    ks.append(k)
-    for _ in range(L - 1):
-        ks.append(ks[-1] + add)
-
-    return ks
-
-
-# ---------------------------------------------------------------------------------------
-# Ground state
-# ---------------------------------------------------------------------------------------
-def ground_state(L):
-    """
-    ground_state
-
-    This function computes the analytical solution of the ground state
-    for the 1D transverse field Ising model with Periodic Boundary Conditions (PBC).
-
-    L: int - the number of spins present in the 1D chain
-
-    """
-    ks = k_values(L)
-    e_0 = []
-    for k in ks:
-        e_0.append(np.sqrt(2 + 2 * np.cos(k)))
-
-    return -sum(e_0)
-
-
-# ---------------------------------------------------------------------------------------
-# Von Neumann Entropy
-# ---------------------------------------------------------------------------------------
-def von_neumann_entropy(s):
-    """
-    von_neumann_entropy
-
-    This function computes the entanglement entropy
-    given the Schmidt values of a system.
-
-    s: np.ndarray - array of Schmidt values of a system
-
-    """
-    return -np.sum((s**2) * np.log2(s**2))
-
 
 # ---------------------------------------------------------------------------------------
 # Renaming
@@ -188,6 +102,147 @@ def renaming(folder, hs):
 
 
 # ---------------------------------------------------------------------------------------
+# Save list of lists
+# ---------------------------------------------------------------------------------------
+def save_list_of_lists(file_path, list):
+    """
+    save_list_of_lists
+
+    This function allows you to save the list of list at the file path specified
+
+    file_path: string - file path
+    list: list - list to save
+
+    """
+    with open(file_path, "w") as file:
+        for sublist in list:
+            line = " ".join(map(str, sublist))
+            file.write(line + "\n")
+
+# ---------------------------------------------------------------------------------------
+# Load list of lists
+# ---------------------------------------------------------------------------------------
+def load_list_of_lists(file_path):
+    """
+    load_list_of_lists
+
+    This function allows you to load the list of list from the file path specified
+
+    file_path: string - file path
+
+    """
+    loaded_data = []
+
+    # Open the file in read mode and read the data
+    with open(file_path, "r") as file:
+        for line in file:
+            # Split the line into elements (assuming space-separated values)
+            elements = line.strip().split()
+            
+            # Append the sublist to the loaded_data list
+            loaded_data.append(elements)
+    return loaded_data
+
+# ---------------------------------------------------------------------------------------
+# ---------------------------------------------------------------------------------------
+# ---------------------------------------------------------------------------------------
+"""
+Critical exponent tools
+"""
+# ---------------------------------------------------------------------------------------
+# ---------------------------------------------------------------------------------------
+# ---------------------------------------------------------------------------------------
+
+# ---------------------------------------------------------------------------------------
+# Variance
+# ---------------------------------------------------------------------------------------
+def variance(first_m, sm):
+    """
+    variance
+
+    This function computes the variance of the distribution function
+    of a local order parameter, e.g. magnetization, energy.
+
+    first_m: float - it is the first momentum of the, e.g., magnetization
+    sm: float - it is the second momentum of the, e.g., magnetization
+
+    """
+    return np.abs(sm - first_m**2)
+
+# ---------------------------------------------------------------------------------------
+# Binder's Cumulant
+# ---------------------------------------------------------------------------------------
+def binders_cumul(fourth_m, sm):
+    """
+    binders_cumul
+
+    This function computes the binders cumulant of the distribution
+    function of a local order parameter, e.g. magnetization, energy.
+
+    fourth_m: float - it is the fourth momentum of the, e.g., magnetization
+    sm: float - it is the second momentum of the, e.g., the magnetization
+
+    """
+    return 1 - fourth_m / (3 * sm**2)
+
+# ---------------------------------------------------------------------------------------
+# k values
+# ---------------------------------------------------------------------------------------
+def k_values(L):
+    """
+    k_values
+
+    This function computes the k values present in the summation
+    of the ground state formula for the PBC of the 1D transverse field Ising model.
+
+    L: int - the number of spins present in the 1D chain
+
+    """
+    ks = []
+    add = 2 * np.pi / L
+    k = -(L - 1) * np.pi / L
+    ks.append(k)
+    for _ in range(L - 1):
+        ks.append(ks[-1] + add)
+
+    return ks
+
+# ---------------------------------------------------------------------------------------
+# Ground state
+# ---------------------------------------------------------------------------------------
+def ground_state(L):
+    """
+    ground_state
+
+    This function computes the analytical solution of the ground state
+    for the 1D transverse field Ising model with Periodic Boundary Conditions (PBC).
+
+    L: int - the number of spins present in the 1D chain
+
+    """
+    ks = k_values(L)
+    e_0 = []
+    for k in ks:
+        e_0.append(np.sqrt(2 + 2 * np.cos(k)))
+
+    return -sum(e_0)
+
+# ---------------------------------------------------------------------------------------
+# Von Neumann Entropy
+# ---------------------------------------------------------------------------------------
+def von_neumann_entropy(s):
+    """
+    von_neumann_entropy
+
+    This function computes the entanglement entropy
+    given the Schmidt values of a system.
+
+    s: np.ndarray - array of Schmidt values of a system
+
+    """
+    return -np.sum((s**2) * np.log2(s**2))
+
+# ---------------------------------------------------------------------------------------
 # Fitting
 # ---------------------------------------------------------------------------------------
 def fitting(xs, results, guess):
@@ -215,7 +270,6 @@ def fitting(xs, results, guess):
     # fit your data with a given guess
     param_opt, covar_opt = curve_fit(fit, xs, results, guess)
     return param_opt, covar_opt
-
 
 def mps_to_vector(mps):
     D = mps[0].shape[0]
@@ -772,3 +826,4 @@ def create_sequential_colors(num_colors, colormap_name):
     colormap_values = np.linspace(0, 1, num_colors)
     colors = [colormap(value) for value in colormap_values]
     return colors
+

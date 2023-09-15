@@ -151,21 +151,25 @@ class MPS:
                 new_site.reshape(new_site.shape[0] * self.d, new_site.shape[2]),
                 full_matrices=False,
             )
+
             bond_l = u.shape[0] // self.d
             u = u.reshape(bond_l, self.d, u.shape[1])
-            condition = s >= e_tol
-            s_trunc = np.extract(condition, s)
-            s_trunc = s_trunc / np.linalg.norm(s_trunc)
-            s_trunc = s / np.linalg.norm(s)
-            u = u[:, :, : len(s_trunc)]
+            if trunc_chi:
+                if u.shape[0] > self.chi:
+                    u = u[:, :, : self.chi]
+                    s = s[: self.chi]
+                    v = v[: self.chi, :]
+                    s = s / np.linalg.norm(s)
+            if trunc_tol:
+                condition = s >= e_tol
+                s_trunc = np.extract(condition, s)
+                s = s_trunc / np.linalg.norm(s_trunc)
+                u = u[:, :, : len(s)]
+                v = v[: len(s), :]
+            
+            
             sites[i] = u
-            bonds.append(s_trunc)
-            v = v[: len(s_trunc), :]
-
-            if u.shape[1] > self.chi:
-                u = u[:, :, : self.chi]
-                s = s[: self.chi]
-                v = v[: self.chi, :]
+            bonds.append(s)
             psi = ncon(
                 [np.diag(s), v],
                 [
@@ -173,9 +177,6 @@ class MPS:
                     [1, -2],
                 ],
             )
-        # bond_r = v.shape[1] // self.d
-        # sites[-1] = psi.reshape(v.shape[0], self.d, bond_r)
-        # bonds.append(s_init)
 
         return self
 
@@ -212,6 +213,7 @@ class MPS:
                 new_site.reshape(new_site.shape[0], self.d * new_site.shape[2]),
                 full_matrices=False,
             )
+
             bond_r = v.shape[1] // self.d
             v = v.reshape((v.shape[0], self.d, bond_r))
             if trunc_chi:
@@ -1172,7 +1174,7 @@ class MPS:
 
         return e_min
 
-    def update_state(self, sweep, site, trunc, e_tol=10 ** (-15), precision=2):
+    def update_state(self, sweep, site, trunc_tol=True, trunc_chi=False, e_tol=10 ** (-15), precision=2):
         """
         update_state
 
@@ -1201,9 +1203,22 @@ class MPS:
                 [time.perf_counter() - time_svd],
             )
             # print(f"Time of svd during update state during sweeping {sweep} for site {site}: {time.perf_counter()-time_svd}")
-            if trunc:
+            if trunc_tol:
                 condition = s >= e_tol
                 s_trunc = np.extract(condition, s)
+                s = s_trunc / np.linalg.norm(s_trunc)
+                bond_l = u.shape[0] // self.d
+                u = u.reshape(bond_l, self.d, u.shape[1])
+                u = u[:, :, : len(s)]
+                v = v[: len(s), :]
+                if site == self.L // 2:
+                    # print(f'Schmidt values:\n{s}')
+                    np.savetxt(
+                        f"results/bonds_data/schmidt_values_middle_chain_{self.model}_L_{self.L}_chi_{self.chi}_h_{self.h:.{precision}f}",
+                        s,
+                    )
+            elif trunc_chi:
+                s_trunc = s[: self.chi]
                 s = s_trunc / np.linalg.norm(s_trunc)
                 bond_l = u.shape[0] // self.d
                 u = u.reshape(bond_l, self.d, u.shape[1])
@@ -1248,9 +1263,22 @@ class MPS:
                 [time.perf_counter() - time_svd],
             )
             # print(f"Time of svd during update state during sweeping {sweep} for site {site}: {time.perf_counter()-time_svd}")
-            if trunc:
+            if trunc_tol:
                 condition = s >= e_tol
                 s_trunc = np.extract(condition, s)
+                s = s_trunc / np.linalg.norm(s_trunc)
+                bond_r = v.shape[1] // self.d
+                v = v.reshape(v.shape[0], self.d, bond_r)
+                v = v[: len(s), :, :]
+                u = u[:, : len(s)]
+                if site == self.L // 2:
+                    # print(f"Schmidt values:\n{s}")
+                    np.savetxt(
+                        f"results/bonds_data/schmidt_values_middle_chain_{self.model}_L_{self.L}_chi_{self.chi}_h_{self.h:.{precision}f}",
+                        s,
+                    )
+            elif trunc_chi:
+                s = s[: self.chi]
                 s = s_trunc / np.linalg.norm(s_trunc)
                 bond_r = v.shape[1] // self.d
                 v = v.reshape(v.shape[0], self.d, bond_r)
@@ -1360,7 +1388,7 @@ class MPS:
         return self
 
     def sweeping(
-        self, trunc, e_tol=10 ** (-15), n_sweeps=2, precision=2, var=False
+        self, trunc_tol, trunc_chi, e_tol=10 ** (-15), n_sweeps=2, precision=2, var=False
     ):  # iterations, sweep,
         energies = []
         variances = []
@@ -1395,7 +1423,7 @@ class MPS:
                 #     v = variance(first_m=energy, sm=sm)
                 #     variances.append(v)
                 total_state_time = time.perf_counter()
-                self.update_state(sweeps[0], sites[i], trunc, e_tol, precision)
+                self.update_state(sweeps[0], sites[i], trunc_tol, trunc_chi, e_tol, precision)
                 # print(f"Total time of state updating: {time.perf_counter()-total_state_time}")
                 update_env_time = time.perf_counter()
                 self.update_envs(sweeps[0], sites[i])
@@ -1612,6 +1640,9 @@ class MPS:
         mag_mps_loc = []
         Z = np.array([[1, 0], [0, -1]])
 
+        # enlarging our local tensor to the max bond dimension
+        self.enlarge_chi()
+
         # total
         self.order_param_Ising(op=Z)
         test = np.real(self.mpo_first_moment())
@@ -1645,12 +1676,13 @@ class MPS:
         self._compute_norm(site=1)
         self.ancilla_sites = self.sites.copy()
 
-        errors = []
+        errors = [[0,0]]
         for trott in range(trotter_steps):
             print(f"------ Trotter steps: {trott} -------")
             self.mpo_Ising_time_ev(delta=delta, h_ev=h_ev, J_ev=1)
             self.mpo_to_mps(ancilla=True)
-            self.canonical_form(ancilla=True, trunc_chi=True, trunc_tol=False)
+            self.canonical_form(svd_direction="right", ancilla=True, trunc_chi=False, trunc_tol=True)
+            self.canonical_form(svd_direction="left", ancilla=True, trunc_chi=False, trunc_tol=True)
             print("Braket <phi|psi>:")
             self._compute_norm(site=1, mixed=True)
             error = self.compression(
@@ -1801,7 +1833,6 @@ class MPS:
             elif trunc_chi:
                 s_trunc = s[: self.chi]
                 s = s / np.linalg.norm(s_trunc)
-                # print(f"Schmidt Values:\n{s}")
                 bond_l = u.shape[0] // self.d
                 u = u.reshape(bond_l, self.d, u.shape[1])
                 u = u[:, :, : len(s)]
@@ -2018,6 +2049,27 @@ class MPS:
             print("##############################")
         return errors
 
+    def enlarge_chi(self):
+        extended_array = []
+        chi = int(np.log2(self.chi))
+        for i in range(chi):
+            extended_array.append(np.zeros((self.d**i, self.d, self.d ** (i + 1))))
+        for _ in range(self.L - (2 * chi)):
+            extended_array.append(np.zeros((self.d**chi, self.d, self.d**chi)))
+        for i in range(chi):
+            extended_array.append(
+                np.zeros((self.d ** (chi - i), self.d, self.d ** (chi - i - 1)))
+            )
+        print("shapes enlarged tensors:")
+        tensor_shapes(extended_array)
+        print("shapes original tensors:")
+        shapes = tensor_shapes(self.sites)
+        for i, shape in enumerate(shapes):
+            extended_array[i][:shape[0],:shape[1],:shape[2]] = self.sites[i]
+
+        self.sites = extended_array.copy()
+        return self
+    
     def clear_canonical(self):
         self.sites.clear()
         self.bonds.clear()
