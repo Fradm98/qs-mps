@@ -2200,6 +2200,7 @@ class MPS:
             shapes,
             fmt="%1.i",  # , delimiter=','
         )
+
         # flattening of the tensors
         tensor = [element for site in self.sites for element in site.flatten()]
         np.savetxt(

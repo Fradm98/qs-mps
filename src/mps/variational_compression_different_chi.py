@@ -1,6 +1,6 @@
 #%%
 # import packages
-from mps_class_v9 import MPS
+from mps_class import MPS
 from utils import *
 import matplotlib.pyplot as plt
 from ncon import ncon
