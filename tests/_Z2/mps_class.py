@@ -57,7 +57,7 @@ class MPS:
             sites = self.ancilla_sites
 
         if type_shape == "trapezoidal":
-            chi = int(np.log2(chi))
+            chi = int(np.emath.logn(self.d, chi))
             assert (
                 self.L >= 2 * chi
             ), "The spin chain is too small for the selected bond dimension chi"
@@ -500,12 +500,12 @@ class MPS:
                 [
                     [
                         I,
-                        - self.h * Z_1,
-                        - self.h * Z_2,
-                        - 1 / self.h * charges[0] * alpha * X_1,
-                        - 1 / self.h * charges[2] * alpha * X_2,
-                        - 1 / self.h * charges[1] * alpha * X_12,
-                        - 1 / self.h * X_1 - 1 / self.h * X_2 - beta * self.h * (Z_1 + Z_2),
+                        - 1 / self.h * Z_1,
+                        - 1 / self.h * Z_2,
+                        - self.h * charges[0] * alpha * X_1,
+                        - self.h * charges[2] * alpha * X_2,
+                        - self.h * charges[1] * alpha * X_12,
+                        - self.h * X_1 - self.h * X_2 - beta * 1 / self.h * (Z_1 + Z_2),
                     ],
                     [O, O, O, O, O, O, Z_1],
                     [O, O, O, O, O, O, Z_2],
@@ -594,6 +594,122 @@ class MPS:
             else:
                 w = ncon(
                     [w_odd_3.T, w_loc, w_even_3, w_loc],
+                    [[-4, 1, -1], [2, 1], [-2, 3, 2], [-3, 3]],
+                )
+            w_tot.append(w)
+
+        w_tot.append(w_fin)
+        self.w = w_tot
+        return self
+    
+    def mpo_Z2_two_ladder_time_ev(self, delta, h_ev, J_ev):
+        """
+        mpo_Z2_two_ladder_time_ev
+
+        This function defines the MPO for the real time evolution of a 1D transverse field Ising model.
+        We use this to perform a second order TEBD.
+
+        delta: float - Trotter step for the time evolution
+        h_ev: float - parameter of the local field for the quench
+        J_ev: float - parameter of the interaction field for the quench
+
+        """
+        I = np.eye(2)
+        O = np.zeros((2, 2))
+        X = np.array([[0, 1], [1, 0]])
+        Z = np.array([[1, 0], [0, -1]])
+        charges = self.charges
+        assert np.prod(charges) == 1, "The charges do not multiply to one"
+
+        O_small = np.zeros((2, 2))
+        I_small = np.eye(2)
+        X = np.array([[0, 1], [1, 0]])
+        Z = np.array([[1, 0], [0, -1]])
+        O_ext = np.kron(O_small, O_small)
+        I_ext = np.kron(I_small, I_small)
+        O = O_ext
+        I = I_ext
+        X_1 = np.kron(I_small, X)
+        X_2 = np.kron(X, I_small)
+        X_12 = np.kron(X, X)
+        Z_1 = np.kron(Z, I_small)
+        Z_2 = np.kron(I_small, Z)
+        w_tot = []
+        beta = 0
+        w_loc_1 = np.array(expm(1j * h_ev * delta / 2 * X_1))
+        w_loc_2 = np.array(expm(1j * h_ev * delta / 2 * X_2))
+        w_loc_3 = np.array(expm(1j * h_ev * charges[0] * delta / 2 * X_1))
+        w_loc_4 = np.array(expm(1j * h_ev * charges[2] * delta / 2 * X_2))
+        w_loc_5 = np.array(expm(1j * h_ev * charges[1] * delta / 2 * X_12))
+        w_even_Z = np.array(
+            [
+                [
+                    np.sqrt(np.cos(J_ev * delta)) * I,
+                    1j * np.sqrt(np.sin(J_ev * delta)) * Z,
+                ]
+            ]
+        )
+        w_even_3_Z = np.array(
+            [np.sqrt(np.cos(J_ev * delta)) * I, 1j * np.sqrt(np.sin(J_ev * delta)) * Z]
+        )
+
+        w_str_1 = []
+        i = 2
+        for n in range(2,self.L+1):
+            w_string = []
+            if n == self.L:
+                beta = 1
+            
+            if n == 2:
+                w_init = np.array(
+                        [(np.cos(h_ev * (1 + charges[3])**beta * charges[0] * delta / 2)**(1/n)) * I, 1j * (np.sin(h_ev * (1 + charges[3])**beta * charges[0] * delta / 2)**(1/n)) * X_1]
+                    )
+            w_string.append(w_init)
+            for i in range(2,n):
+                w_mid = np.array(
+                    [[(np.cos(h_ev * (1 + charges[3])**beta * charges[0] * delta / 2)**(1/n)) * I, 0 ],
+                     [ 0 , 1j * (np.sin(h_ev * (1 + charges[3])**beta * charges[0] * delta / 2)**(1/n)) * X_1]]
+                )
+                w_string.append(w_mid)
+                
+            i += 1
+            if i == n:
+                w_fin = np.array(
+                    [(np.cos(h_ev * (1 + charges[3])**beta * charges[0] * delta / 2)**(1/n)) * I, (np.sin(h_ev * (1 + charges[3])**beta * charges[0] * delta / 2)**(1/n)) * X_1]
+                )
+                w_string.append(w_fin)
+            w_str_1.append(w_string)
+        
+        N = len(w_str_1[-1])  # Determine the length of the final list
+
+        w_string_1 = [[] for _ in range(N)]  # Create an empty list with N sublists
+
+        for sublist in w_str_1:
+            for i, element in enumerate(sublist):
+                w_string_1[i].append(element)
+
+        for site in range(self.L):
+            w = ncon(w_string_1[site], )
+
+        w_in = ncon([w_even_Z, w_loc, w_loc], [[-1, -2, 1, 2], [-3, 1], [2, -4]])
+        w_odd = np.array(
+            [[np.sqrt(np.cos(J_ev * delta)) * I, np.sqrt(np.sin(J_ev * delta)) * Z]]
+        )
+        w_odd_3 = np.array(
+            [np.sqrt(np.cos(J_ev * delta)) * I, np.sqrt(np.sin(J_ev * delta)) * Z]
+        )
+        w_fin = ncon([w_odd.T, w_loc, w_loc], [[1, 2, -1, -2], [-3, 1], [2, -4]])
+        # w_fin = np.swapaxes(w_fin, axis1=0,axis2=1)
+        w_tot.append(w_in)
+        for site in range(2, self.L):
+            if site % 2 == 0:
+                w = ncon(
+                    [w_loc, w_even_3_Z, w_loc, w_odd_3.T],
+                    [[1, -4], [-2, 2, 1], [3, 2], [3, -3, -1]],
+                )
+            else:
+                w = ncon(
+                    [w_odd_3.T, w_loc, w_even_3_Z, w_loc],
                     [[-4, 1, -1], [2, 1], [-2, 3, 2], [-3, 3]],
                 )
             w_tot.append(w)
