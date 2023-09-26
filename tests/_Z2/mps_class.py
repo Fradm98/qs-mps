@@ -638,37 +638,36 @@ class MPS:
         beta = 0
         w_loc_1 = np.array(expm(1j * h_ev * delta / 2 * X_1))
         w_loc_2 = np.array(expm(1j * h_ev * delta / 2 * X_2))
-        w_loc_3 = np.array(expm(1j * h_ev * charges[0] * delta / 2 * X_1))
-        w_loc_4 = np.array(expm(1j * h_ev * charges[2] * delta / 2 * X_2))
-        w_loc_5 = np.array(expm(1j * h_ev * charges[1] * delta / 2 * X_12))
-        w_even_Z = np.array(
-            [
-                [
-                    np.sqrt(np.cos(J_ev * delta)) * I,
-                    1j * np.sqrt(np.sin(J_ev * delta)) * Z,
-                ]
-            ]
-        )
-        w_even_3_Z = np.array(
-            [np.sqrt(np.cos(J_ev * delta)) * I, 1j * np.sqrt(np.sin(J_ev * delta)) * Z]
-        )
+        w_loc_3 = np.array(expm(1j * h_ev * charges[0] * delta * X_1))
+        w_loc_4 = np.array(expm(1j * h_ev * charges[2] * delta * X_2))
+        w_loc_5 = np.array(expm(1j * h_ev * charges[1] * delta * X_12))
+        # w_even_Z = np.array(
+        #     [
+        #         [
+        #             np.sqrt(np.cos(J_ev * delta)) * I,
+        #             1j * np.sqrt(np.sin(J_ev * delta)) * Z,
+        #         ]
+        #     ]
+        # )
+        # w_even_3_Z = np.array(
+        #     [np.sqrt(np.cos(J_ev * delta)) * I, 1j * np.sqrt(np.sin(J_ev * delta)) * Z]
+        # )
 
         w_str_1 = []
-        i = 2
+        i = 1
         for n in range(2,self.L+1):
             w_string = []
             if n == self.L:
                 beta = 1
             
-            if n == 2:
-                w_init = np.array(
-                        [(np.cos(h_ev * (1 + charges[3])**beta * charges[0] * delta / 2)**(1/n)) * I, 1j * (np.sin(h_ev * (1 + charges[3])**beta * charges[0] * delta / 2)**(1/n)) * X_1]
-                    )
+            w_init = np.array(
+                    [(np.cos(h_ev * (1 + charges[3])**beta * charges[0] * delta / 2))**(1/n) * I, 1j * (np.sin(h_ev * (1 + charges[3])**beta * charges[0] * delta / 2))**(1/n) * X_1]
+                )
             w_string.append(w_init)
             for i in range(2,n):
                 w_mid = np.array(
-                    [[(np.cos(h_ev * (1 + charges[3])**beta * charges[0] * delta / 2)**(1/n)) * I, 0 ],
-                     [ 0 , 1j * (np.sin(h_ev * (1 + charges[3])**beta * charges[0] * delta / 2)**(1/n)) * X_1]]
+                    [[(np.cos(h_ev * (1 + charges[3])**beta * charges[0] * delta / 2))**(1/n) * I, O ],
+                     [ O , 1j * (np.sin(h_ev * (1 + charges[3])**beta * charges[0] * delta / 2)**(1/n)) * X_1]]
                 )
                 w_string.append(w_mid)
                 
@@ -688,34 +687,35 @@ class MPS:
             for i, element in enumerate(sublist):
                 w_string_1[i].append(element)
 
-        for site in range(self.L):
-            w = ncon(w_string_1[site], )
+        w = 0
+        # for site in range(self.L):
+        #     w = ncon(w_string_1[site], [])
 
-        w_in = ncon([w_even_Z, w_loc, w_loc], [[-1, -2, 1, 2], [-3, 1], [2, -4]])
-        w_odd = np.array(
-            [[np.sqrt(np.cos(J_ev * delta)) * I, np.sqrt(np.sin(J_ev * delta)) * Z]]
-        )
-        w_odd_3 = np.array(
-            [np.sqrt(np.cos(J_ev * delta)) * I, np.sqrt(np.sin(J_ev * delta)) * Z]
-        )
-        w_fin = ncon([w_odd.T, w_loc, w_loc], [[1, 2, -1, -2], [-3, 1], [2, -4]])
-        # w_fin = np.swapaxes(w_fin, axis1=0,axis2=1)
-        w_tot.append(w_in)
-        for site in range(2, self.L):
-            if site % 2 == 0:
-                w = ncon(
-                    [w_loc, w_even_3_Z, w_loc, w_odd_3.T],
-                    [[1, -4], [-2, 2, 1], [3, 2], [3, -3, -1]],
-                )
-            else:
-                w = ncon(
-                    [w_odd_3.T, w_loc, w_even_3_Z, w_loc],
-                    [[-4, 1, -1], [2, 1], [-2, 3, 2], [-3, 3]],
-                )
-            w_tot.append(w)
+        # w_in = ncon([w_even_Z, w_loc, w_loc], [[-1, -2, 1, 2], [-3, 1], [2, -4]])
+        # w_odd = np.array(
+        #     [[np.sqrt(np.cos(J_ev * delta)) * I, np.sqrt(np.sin(J_ev * delta)) * Z]]
+        # )
+        # w_odd_3 = np.array(
+        #     [np.sqrt(np.cos(J_ev * delta)) * I, np.sqrt(np.sin(J_ev * delta)) * Z]
+        # )
+        # w_fin = ncon([w_odd.T, w_loc, w_loc], [[1, 2, -1, -2], [-3, 1], [2, -4]])
+        # # w_fin = np.swapaxes(w_fin, axis1=0,axis2=1)
+        # w_tot.append(w_in)
+        # for site in range(2, self.L):
+        #     if site % 2 == 0:
+        #         w = ncon(
+        #             [w_loc, w_even_3_Z, w_loc, w_odd_3.T],
+        #             [[1, -4], [-2, 2, 1], [3, 2], [3, -3, -1]],
+        #         )
+        #     else:
+        #         w = ncon(
+        #             [w_odd_3.T, w_loc, w_even_3_Z, w_loc],
+        #             [[-4, 1, -1], [2, 1], [-2, 3, 2], [-3, 3]],
+        #         )
+        #     w_tot.append(w)
 
-        w_tot.append(w_fin)
-        self.w = w_tot
+        # w_tot.append(w_fin)
+        # self.w = w_tot
         return self
 
     def mpo_Ising_O_dag_O(self):
@@ -2359,3 +2359,8 @@ class MPS:
         self.sites = [site.reshape(shapes[i]) for i, site in enumerate(flat_tn)]
 
         return self
+
+
+if __name__ == "__main__":
+    chain = MPS(L=4, d=4, charges=[1,1,1,1,1,1])
+    chain.mpo_Z2_two_ladder_time_ev(delta=0.1, h_ev=0.1, J_ev=1)

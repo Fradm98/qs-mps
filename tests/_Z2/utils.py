@@ -28,6 +28,30 @@ def tensor_shapes(lists):
     return shapes
 
 # ---------------------------------------------------------------------------------------
+# Contraction indices
+# ---------------------------------------------------------------------------------------
+def contraction_indices(N, edge=False):
+    idxs = []
+    if edge:
+        idx = [-(N-1), 1, -(N-1)-2]
+    else:
+        idx = [-(N-1), 1, -(N-1)-(N-2)-2]
+    idxs += idx
+
+    if edge:
+        idx = [[-(N-1)+i, i+1, i] for i in range(1, (N-1)-2+1)]
+    else:
+        idx = [[-(N-1)+i,-(N-1)-(N-2)-1+i, i+1, i] for i in range(1, (N-1)-2+1)]
+    idxs += idx
+
+    i = len(idx) + 1 
+    if edge:
+        idx = [-(N-1)+i, -(N-1)-1, i]
+    else:
+        idx = [-(N-1)+i, -(N-1)-(N-2)-1+i, -(N-1)-(N-2)-1, i]
+    idxs += idx
+    return idxs
+# ---------------------------------------------------------------------------------------
 # ---------------------------------------------------------------------------------------
 # ---------------------------------------------------------------------------------------
 """
@@ -271,7 +295,19 @@ def fitting(xs, results, guess):
     param_opt, covar_opt = curve_fit(fit, xs, results, guess)
     return param_opt, covar_opt
 
+# ---------------------------------------------------------------------------------------
+# MPS to Vector
+# ---------------------------------------------------------------------------------------
 def mps_to_vector(mps):
+    """
+    mps_to_vector
+
+    This function takes an mps and contracts the tensors to attain the original 
+    full statevector representation.
+
+    mps: list - list of tensors composing the mps
+
+    """
     D = mps[0].shape[0]
     a = np.zeros(D)
     a[0] = 1
@@ -291,8 +327,19 @@ def mps_to_vector(mps):
     final_vec = final_vec.reshape(2 ** len(mps))
     return final_vec
 
-
+# ---------------------------------------------------------------------------------------
+# MPO to Matrix
+# ---------------------------------------------------------------------------------------
 def mpo_to_matrix(mpo):
+    """
+    mpo_to_matrix
+
+    This function takes an mpo and contracts the tensors to attain the original 
+    full matrix operator representation.
+
+    mpo: list - list of tensors composing the mpo
+    
+    """
     v_l = np.zeros(mpo[0].shape[0])
     v_l[0] = 1
     L = len(mpo)
