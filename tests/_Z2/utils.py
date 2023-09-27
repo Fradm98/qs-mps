@@ -28,29 +28,52 @@ def tensor_shapes(lists):
     return shapes
 
 # ---------------------------------------------------------------------------------------
-# Contraction indices
+# Contraction indices edge
 # ---------------------------------------------------------------------------------------
-def contraction_indices(N, edge=False):
-    idxs = []
-    if edge:
-        idx = [-(N-1), 1, -(N-1)-2]
-    else:
-        idx = [-(N-1), 1, -(N-1)-(N-2)-2]
-    idxs += idx
+def contraction_indices_edge(N):
+    """
+    contraction_indices_edge
 
-    if edge:
-        idx = [[-(N-1)+i, i+1, i] for i in range(1, (N-1)-2+1)]
-    else:
-        idx = [[-(N-1)+i,-(N-1)-(N-2)-1+i, i+1, i] for i in range(1, (N-1)-2+1)]
+    This function generates the contration indices for the edge mpo of string terms.
+
+    N: int - N is the length of the string list of tensors for the first site
+    """
+    idxs = []
+    idx = [-(N-1), 1, -(N-1)-2]
+    idxs.append(idx)
+
+    idx = [[-(N-1)+i, i+1, i] for i in range(1, (N-1)-2+1)]
     idxs += idx
 
     i = len(idx) + 1 
-    if edge:
-        idx = [-(N-1)+i, -(N-1)-1, i]
-    else:
-        idx = [-(N-1)+i, -(N-1)-(N-2)-1+i, -(N-1)-(N-2)-1, i]
-    idxs += idx
+    idx = [-(N-1)+i, -(N-1)-1, i]
+    idxs.append(idx)
     return idxs
+
+# ---------------------------------------------------------------------------------------
+# Contraction indices bulk
+# ---------------------------------------------------------------------------------------
+def contraction_indices_bulk(N, edge=False):
+    """
+    contraction_indices_bulk
+
+    This function generates the contration indices for the bulk mpo of string terms.
+
+    N: int - N is the length of the string list of tensors for a specific site of the mps
+    """
+    idxs = []
+    idx = [-(N-1), 1, -(N-1)-(N-2)-2]
+    idxs.append(idx)
+
+    idx = [[-(N-1)+i,-(N-1)-(N-2)-1+i, i+1, i] for i in range(1, (N-1)-2+1)]
+    idxs += idx
+
+    i = len(idx) + 1 
+    idx = [-(N-1)+i, -(N-1)-(N-2)-1+i, -(N-1)-(N-2)-1, i]
+    idxs.append(idx)
+    return idxs
+
+
 # ---------------------------------------------------------------------------------------
 # ---------------------------------------------------------------------------------------
 # ---------------------------------------------------------------------------------------

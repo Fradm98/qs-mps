@@ -614,8 +614,6 @@ class MPS:
         J_ev: float - parameter of the interaction field for the quench
 
         """
-        I = np.eye(2)
-        O = np.zeros((2, 2))
         X = np.array([[0, 1], [1, 0]])
         Z = np.array([[1, 0], [0, -1]])
         charges = self.charges
@@ -635,61 +633,53 @@ class MPS:
         Z_1 = np.kron(Z, I_small)
         Z_2 = np.kron(I_small, Z)
         w_tot = []
-        beta = 0
+
         w_loc_1 = np.array(expm(1j * h_ev * delta / 2 * X_1))
         w_loc_2 = np.array(expm(1j * h_ev * delta / 2 * X_2))
-        w_loc_3 = np.array(expm(1j * h_ev * charges[0] * delta * X_1))
-        w_loc_4 = np.array(expm(1j * h_ev * charges[2] * delta * X_2))
-        w_loc_5 = np.array(expm(1j * h_ev * charges[1] * delta * X_12))
-        # w_even_Z = np.array(
-        #     [
-        #         [
-        #             np.sqrt(np.cos(J_ev * delta)) * I,
-        #             1j * np.sqrt(np.sin(J_ev * delta)) * Z,
-        #         ]
-        #     ]
-        # )
+        w_loc_X1 = np.array(expm(1j * h_ev * charges[0] * delta * X_1))
+        w_loc_X2 = np.array(expm(1j * h_ev * charges[2] * delta * X_2))
+        w_loc_X12 = np.array(expm(1j * h_ev * charges[1] * delta * X_12))
+
+        mpo_X1 = self.non_local_string_contraction(op=X_1, delta=delta, h_ev=h_ev)
+        mpo_X2 = self.non_local_string_contraction(op=X_2, delta=delta, h_ev=h_ev)
+        mpo_X12 = self.non_local_string_contraction(op=X_12, delta=delta, h_ev=h_ev)
+
+        # they have the same shape
+        shape = tuple([1]) + mpo_X1[0].shape
+        mpo_X1[0] = ncon([mpo_X1[0],w_loc_X1],[[-1,-2,1],[1,-3]]).reshape(shape)
+        mpo_X2[0] = ncon([mpo_X2[0],w_loc_X2],[[-1,-2,1],[1,-3]]).reshape(shape)
+        mpo_X12[0] = ncon([mpo_X12[0],w_loc_X12],[[-1,-2,1],[1,-3]]).reshape(shape)
+
+        mpo_strings = []
+        for site in range(self.L):
+            mpo_string = ncon([mpo_X1[site],mpo_X2[site],mpo_X12[site]],[[-1,-4,-7,1],[-2,-5,1,2],[-3,-6,2,-8]]).reshape((mpo_X1[site].shape[0]**3,mpo_X1[site].shape[1]**3,self.d,self.d))
+            mpo_strings.append(mpo_string)
+        
+        mpo_Z1 = self.even_odd_contraction(op=Z_1, delta=delta, J_ev=J_ev)
+        mpo_Z2 = self.even_odd_contraction(op=Z_2, delta=delta, J_ev=J_ev)
+
+        for i in range(self.L):
+            shape = (mpo_Z1[i].shape[0]**4 * mpo_strings[i].shape[0], mpo_Z1[i].shape[1]**4 * mpo_strings[i].shape[1], self.d, self.d)
+            w = ncon([w_loc_1, w_loc_2, mpo_Z1[i], mpo_Z2[i], mpo_strings[i], mpo_Z2[i], mpo_Z1[i], w_loc_2, w_loc_1],
+                    [
+                        [-12,1],
+                        [1,2],
+                        [-5,-10,3,2],
+                        [-4,-9,4,3],
+                        [-3,-8,5,4],
+                        [-2,-7,6,5],
+                        [-1,-6,7,6],
+                        [8,7],
+                        [-11,8]
+                    ]).reshape(shape)
+            w_tot.append(w)
+
+        self.w = w_tot
+        return self
+        # w_tot.append(w_fin)
         # w_even_3_Z = np.array(
         #     [np.sqrt(np.cos(J_ev * delta)) * I, 1j * np.sqrt(np.sin(J_ev * delta)) * Z]
         # )
-
-        w_str_1 = []
-        i = 1
-        for n in range(2,self.L+1):
-            w_string = []
-            if n == self.L:
-                beta = 1
-            
-            w_init = np.array(
-                    [(np.cos(h_ev * (1 + charges[3])**beta * charges[0] * delta / 2))**(1/n) * I, 1j * (np.sin(h_ev * (1 + charges[3])**beta * charges[0] * delta / 2))**(1/n) * X_1]
-                )
-            w_string.append(w_init)
-            for i in range(2,n):
-                w_mid = np.array(
-                    [[(np.cos(h_ev * (1 + charges[3])**beta * charges[0] * delta / 2))**(1/n) * I, O ],
-                     [ O , 1j * (np.sin(h_ev * (1 + charges[3])**beta * charges[0] * delta / 2)**(1/n)) * X_1]]
-                )
-                w_string.append(w_mid)
-                
-            i += 1
-            if i == n:
-                w_fin = np.array(
-                    [(np.cos(h_ev * (1 + charges[3])**beta * charges[0] * delta / 2)**(1/n)) * I, (np.sin(h_ev * (1 + charges[3])**beta * charges[0] * delta / 2)**(1/n)) * X_1]
-                )
-                w_string.append(w_fin)
-            w_str_1.append(w_string)
-        
-        N = len(w_str_1[-1])  # Determine the length of the final list
-
-        w_string_1 = [[] for _ in range(N)]  # Create an empty list with N sublists
-
-        for sublist in w_str_1:
-            for i, element in enumerate(sublist):
-                w_string_1[i].append(element)
-
-        w = 0
-        # for site in range(self.L):
-        #     w = ncon(w_string_1[site], [])
 
         # w_in = ncon([w_even_Z, w_loc, w_loc], [[-1, -2, 1, 2], [-3, 1], [2, -4]])
         # w_odd = np.array(
@@ -717,6 +707,112 @@ class MPS:
         # w_tot.append(w_fin)
         # self.w = w_tot
         return self
+    
+    def non_local_string_contraction(self, op, delta, h_ev):
+        
+        O_small = np.zeros((2, 2))
+        I_small = np.eye(2)
+        O_ext = np.kron(O_small, O_small)
+        I_ext = np.kron(I_small, I_small)
+        O = O_ext
+        I = I_ext
+        
+        w_str_1 = []
+        w_tot_string = []
+
+        i = 1
+        beta = 0
+        # find all the (self.L - 1) string terms
+        for n in range(2,self.L+1):
+            w_string = []
+            # the last term takes into account the charges at the end of the lattice to include the Gauss Law
+            if n == self.L:
+                beta = 1
+            
+            # starting mpo which is a vector-like tensor
+            w_init = np.array(
+                    [(np.cos(h_ev * (1 + self.charges[3])**beta * self.charges[0] * delta / 2))**(1/n) * I, 1j * (np.sin(h_ev * (1 + self.charges[3])**beta * self.charges[0] * delta / 2))**(1/n) * op]
+                )
+            w_string.append(w_init)
+            # middle mpos which are matrix-like tensors
+            for i in range(2,n):
+                w_mid = np.array(
+                    [[(np.cos(h_ev * (1 + self.charges[3])**beta * self.charges[0] * delta / 2))**(1/n) * I, O ],
+                     [ O , 1j * (np.sin(h_ev * (1 + self.charges[3])**beta * self.charges[0] * delta / 2)**(1/n)) * op]]
+                )
+                w_string.append(w_mid)
+                
+            i += 1
+            # final mpo which is a vector-like tensor
+            if i == n:
+                w_fin = np.array(
+                    [(np.cos(h_ev * (1 + self.charges[3])**beta * self.charges[0] * delta / 2)**(1/n)) * I, (np.sin(h_ev * (1 + self.charges[3])**beta * self.charges[0] * delta / 2)**(1/n)) * op]
+                )
+                w_string.append(w_fin)
+            w_str_1.append(w_string)
+        
+        # we change the order we saved tensors so that we can contract them locally on one site
+        N = len(w_str_1[-1])  # Determine the length of the final list
+
+        w_string_1 = [[] for _ in range(N)]  # Create an empty list with N sublists
+
+        for sublist in w_str_1:
+            for i, element in enumerate(sublist):
+                w_string_1[i].append(element)
+
+        # once we have this new list of tensors, each list within it is contracted on one specific site
+        N = len(w_string_1[0]) + 1 
+        idx_edge = contraction_indices_edge(N=N)
+        w = ncon(w_string_1[0], idx_edge).reshape((2**(N-1), 4, 4))
+        w_tot_string.append(w)
+        
+        for i in range(1,len(w_string_1)-1):
+            N = len(w_string_1[i]) + 1 
+            idx_bulk = contraction_indices_bulk(N=N)
+            w = ncon(w_string_1[i], idx_bulk).reshape((2**(N-1), 2**(N-2), 4, 4))
+            w_tot_string.append(w)
+
+        w_fin = w_string_1[-1][0]
+        shape = tuple([1]) + w_fin.shape
+        w_fin = w_fin.reshape(shape)
+        w_fin = np.swapaxes(w_fin, axis1=0, axis2=1)
+        w_tot_string.append(w_fin)
+        return w_tot_string
+    
+    def even_odd_contraction(self, op, delta, J_ev):
+        I_small = np.eye(2)
+        I_ext = np.kron(I_small, I_small)
+        I = I_ext
+
+        w_loc = np.array(expm(1j * J_ev * delta / 2 * op))
+        
+        w_even = np.array(
+            [[np.sqrt(np.cos(J_ev * delta / 2)) * I,1j * np.sqrt(np.sin(J_ev * delta / 2)) * op]]
+        )
+        w_odd = np.array(
+            [[np.sqrt(np.cos(J_ev * delta / 2)) * I, np.sqrt(np.sin(J_ev * delta / 2)) * op]]
+        )
+        w_odd = np.swapaxes(w_odd, axis1=0, axis2=1)
+        
+        w_zz = []
+        w_zz.append(w_even)
+        for site in range(2, self.L):
+            if site % 2 == 0:
+                w = ncon(
+                    [w_even, w_odd],
+                    [[-1,-3, -5, 1], [-2, -4, 1, -6]],
+                ).reshape((w_odd.shape[0],w_even.shape[1],self.d,self.d))
+            else:
+                w = ncon(
+                    [w_odd, w_even],
+                    [[-1,-3, -5, 1], [-2, -4, 1, -6]],
+                ).reshape((w_odd.shape[0],w_even.shape[1],self.d,self.d))
+            w_zz.append(w)
+        
+        w_fin = ncon([w_odd,w_loc],[[-1,-2,1,-4],[-3,1]])
+        w_zz.append(w_fin)
+        return w_zz
+
 
     def mpo_Ising_O_dag_O(self):
         """
