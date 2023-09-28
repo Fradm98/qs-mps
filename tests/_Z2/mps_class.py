@@ -676,37 +676,6 @@ class MPS:
 
         self.w = w_tot
         return self
-        # w_tot.append(w_fin)
-        # w_even_3_Z = np.array(
-        #     [np.sqrt(np.cos(J_ev * delta)) * I, 1j * np.sqrt(np.sin(J_ev * delta)) * Z]
-        # )
-
-        # w_in = ncon([w_even_Z, w_loc, w_loc], [[-1, -2, 1, 2], [-3, 1], [2, -4]])
-        # w_odd = np.array(
-        #     [[np.sqrt(np.cos(J_ev * delta)) * I, np.sqrt(np.sin(J_ev * delta)) * Z]]
-        # )
-        # w_odd_3 = np.array(
-        #     [np.sqrt(np.cos(J_ev * delta)) * I, np.sqrt(np.sin(J_ev * delta)) * Z]
-        # )
-        # w_fin = ncon([w_odd.T, w_loc, w_loc], [[1, 2, -1, -2], [-3, 1], [2, -4]])
-        # # w_fin = np.swapaxes(w_fin, axis1=0,axis2=1)
-        # w_tot.append(w_in)
-        # for site in range(2, self.L):
-        #     if site % 2 == 0:
-        #         w = ncon(
-        #             [w_loc, w_even_3_Z, w_loc, w_odd_3.T],
-        #             [[1, -4], [-2, 2, 1], [3, 2], [3, -3, -1]],
-        #         )
-        #     else:
-        #         w = ncon(
-        #             [w_odd_3.T, w_loc, w_even_3_Z, w_loc],
-        #             [[-4, 1, -1], [2, 1], [-2, 3, 2], [-3, 3]],
-        #         )
-        #     w_tot.append(w)
-
-        # w_tot.append(w_fin)
-        # self.w = w_tot
-        return self
     
     def non_local_string_contraction(self, op, delta, h_ev):
         
@@ -1829,6 +1798,28 @@ class MPS:
         fidelity: bool = False,
         err: bool = True,
         conv_tol: float = 1e-7,
+        model: str = "Ising",
+    ):
+        if model == "Ising":
+            mag_mps_tot, mag_mps_loc, overlap, errors = self.variational_mps_evolution_ising(trotter_steps=trotter_steps,
+                                                delta=delta, h_ev=h_ev, n_sweeps=n_sweeps,
+                                                fidelity=fidelity, err=err, conv_tol=conv_tol)
+        elif model == "Z2_two_ladder":
+            mag_mps_tot, mag_mps_loc, overlap, errors = self.variational_mps_evolution_ising(trotter_steps=trotter_steps,
+                                                delta=delta, h_ev=h_ev, n_sweeps=n_sweeps,
+                                                fidelity=fidelity, err=err, conv_tol=conv_tol)
+        
+        return mag_mps_tot, mag_mps_loc, overlap, errors
+    
+    def variational_mps_evolution_ising(
+        self,
+        trotter_steps: int,
+        delta: float,
+        h_ev: float,
+        n_sweeps: int = 2,
+        fidelity: bool = False,
+        err: bool = True,
+        conv_tol: float = 1e-7,
     ):
         """
         variational_mps_evolution
@@ -2395,7 +2386,7 @@ class MPS:
                 )
         return self
 
-    def save_sites(self, precision=2):
+    def save_sites(self, path, precision=2):
         """
         save_sites
 
@@ -2408,7 +2399,7 @@ class MPS:
         # shapes of the tensors
         shapes = tensor_shapes(self.sites)
         np.savetxt(
-            f"results/sites_data/shapes_sites_{self.model}_L_{self.L}_chi_{self.chi}_h_{self.h:.{precision}f}",
+            f"{path}/shapes_sites_{self.model}_L_{self.L}_chi_{self.chi}_h_{self.h:.{precision}f}",
             shapes,
             fmt="%1.i",  # , delimiter=','
         )
@@ -2416,11 +2407,11 @@ class MPS:
         # flattening of the tensors
         tensor = [element for site in self.sites for element in site.flatten()]
         np.savetxt(
-            f"results/sites_data/tensor_sites_{self.model}_L_{self.L}_chi_{self.chi}_h_{self.h:.{precision}f}",
+            f"{path}/tensor_sites_{self.model}_L_{self.L}_chi_{self.chi}_h_{self.h:.{precision}f}",
             tensor,
         )
 
-    def load_sites(self, precision=2):
+    def load_sites(self, path, precision=2):
         """
         load_sites
 
@@ -2433,19 +2424,19 @@ class MPS:
         """
         # # loading of the shapes
         # shapes = np.loadtxt(
-        #     f"results/sites_data/shapes_sites_{self.model}_two_charges_L_{self.L}_chi_{self.chi}_h_{self.h:.{precision}f}"
+        #     f"{path}/shapes_sites_{self.model}_two_charges_L_{self.L}_chi_{self.chi}_h_{self.h:.{precision}f}"
         # ).astype(int)
         # # loading of the flat tensors
         # filedata = np.loadtxt(
-        #     f"results/sites_data/tensor_sites_{self.model}_two_charges_L_{self.L}_chi_{self.chi}_h_{self.h:.{precision}f}"
+        #     f"{path}/tensor_sites_{self.model}_two_charges_L_{self.L}_chi_{self.chi}_h_{self.h:.{precision}f}"
         # )
         # loading of the shapes
         shapes = np.loadtxt(
-            f"results/sites_data/shapes_sites_L_{self.L}_chi_{self.chi}_h_{self.h:.{precision}f}"
+            f"{path}/shapes_sites_{self.model}_L_{self.L}_chi_{self.chi}_h_{self.h:.{precision}f}"
         ).astype(int)
         # loading of the flat tensors
         filedata = np.loadtxt(
-            f"results/sites_data/tensor_sites_L_{self.L}_chi_{self.chi}_h_{self.h:.{precision}f}"
+            f"{path}/tensor_sites_{self.model}_L_{self.L}_chi_{self.chi}_h_{self.h:.{precision}f}"
         )
         # auxiliary function to get the indices where to split
         labels = get_labels(shapes)
@@ -2457,6 +2448,6 @@ class MPS:
         return self
 
 
-if __name__ == "__main__":
-    chain = MPS(L=4, d=4, charges=[1,1,1,1,1,1])
-    chain.mpo_Z2_two_ladder_time_ev(delta=0.1, h_ev=0.1, J_ev=1)
+# if __name__ == "__main__":
+#     chain = MPS(L=4, d=4, charges=[1,1,1,1,1,1])
+#     chain.mpo_Z2_two_ladder_time_ev(delta=0.1, h_ev=0.1, J_ev=1)

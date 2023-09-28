@@ -9,6 +9,7 @@ def ground_state_Z2_param(params):
     ladder._random_state(seed = 7, chi=args_mps['chi'])
     ladder.canonical_form()
     energy = ladder.sweeping(trunc_tol=args_mps['trunc_tol'],trunc_chi=args_mps['trunc_chi'])
+    ladder.save_sites("/Users/fradm98/Desktop/mps/tests/results/tensor_data")
     return energy
 
 def ground_state_Z2_multpr(args_mps, multpr_param, cpu_percentage=90):

@@ -9,13 +9,13 @@ import time
 
 # %%
 # finding the ground state of the vacuum sector
-Ls = [8, 16, 32]
+Ls = [8]
 d = 4
 chi = 64 # this is interpreted as d**(int(log2(chi))) --> e.g. chi=8 == 4**3=64
-array = np.linspace(0.4,1.5,20)
+array = np.linspace(90,100,2)
 hs = [h for h in array]
 model = "Z2_two_ladder"
-charges = [1,1,1,1,1,1]
+charges = [1,1,-1,-1,1,1]
 energies_h = []
 multpr = True
 param = hs
