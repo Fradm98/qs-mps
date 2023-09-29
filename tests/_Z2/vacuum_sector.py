@@ -9,15 +9,15 @@ import time
 
 # %%
 # finding the ground state of the vacuum sector
-Ls = [8]
+Ls = [4]
 d = 4
-chi = 64 # this is interpreted as d**(int(log2(chi))) --> e.g. chi=8 == 4**3=64
-array = np.linspace(90,100,2)
+chi = 16 # this is interpreted as d**(int(log2(chi))) --> e.g. chi=8 == 4**3=64
+array = np.linspace(100,1000,10)
 hs = [h for h in array]
 model = "Z2_two_ladder"
 charges = [1,1,-1,-1,1,1]
 energies_h = []
-multpr = True
+multpr = False
 param = hs
 if __name__ == '__main__':
     colors = create_sequential_colors(len(Ls), 'viridis')
@@ -33,7 +33,7 @@ if __name__ == '__main__':
                     alpha=0.8,
                     facecolors="none",
                     edgecolors=colors[i],
-                    label=f"L:{L}"
+                    label=f"L: {L}"
                     )
         print(f"Point of max energy: {array[np.argmax(energies_h)]}")
         i += 1

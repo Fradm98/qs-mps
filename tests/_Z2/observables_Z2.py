@@ -8,12 +8,12 @@ import scipy
 from scipy.sparse import csr_array
 import time
 # %%
-L = 8
+L = 4
 d = 4
-chi = 64 # this is interpreted as d**(int(log2(chi))) --> e.g. chi=8 == 4**3=64
+chi = 16 # this is interpreted as d**(int(log2(chi))) --> e.g. chi=8 == 4**3=64
 # array = np.linspace(1e-3,0.1,20)
 # array = np.linspace(0.4,2,20)
-array = np.linspace(30,100,7)
+array = np.linspace(100,1000,10)
 
 hs = [h for h in array]
 model = "Z2_two_ladder"

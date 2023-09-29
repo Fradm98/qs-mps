@@ -500,12 +500,12 @@ class MPS:
                 [
                     [
                         I,
-                        - 1 / self.h * Z_1,
-                        - 1 / self.h * Z_2,
+                        - (1 / self.h) * Z_1,
+                        - (1 / self.h) * Z_2,
                         - self.h * charges[0] * alpha * X_1,
                         - self.h * charges[2] * alpha * X_2,
                         - self.h * charges[1] * alpha * X_12,
-                        - self.h * X_1 - self.h * X_2 - beta * 1 / self.h * (Z_1 + Z_2),
+                        - self.h * X_1 - self.h * X_2 - beta * (1 / self.h) * (Z_1 + Z_2),
                     ],
                     [O, O, O, O, O, O, Z_1],
                     [O, O, O, O, O, O, Z_2],
@@ -946,6 +946,56 @@ class MPS:
             w_tot.append(w_mag)
         self.w = w_tot
         return self
+
+    def string_Z2(self, op, h_ev, delta):
+        
+        O_small = np.zeros((2, 2))
+        I_small = np.eye(2)
+        O_ext = np.kron(O_small, O_small)
+        I_ext = np.kron(I_small, I_small)
+        O = O_ext
+        I = I_ext
+        
+        w_str_1 = []
+
+        i = 1
+        beta = 0
+        # find all the (self.L - 1) string terms
+        for n in range(2,self.L+1):
+            w_string = []
+            # the last term takes into account the charges at the end of the lattice to include the Gauss Law
+            if n == self.L:
+                beta = 1
+            
+            # starting mpo which is a vector-like tensor
+            w_init = np.array(
+                    [(np.cos(h_ev * (1 + self.charges[3])**beta * self.charges[0] * delta / 2))**(1/n) * I, 1j * (np.sin(h_ev * (1 + self.charges[3])**beta * self.charges[0] * delta / 2))**(1/n) * op]
+                )
+            w_string.append(w_init)
+            # middle mpos which are matrix-like tensors
+            for i in range(2,n):
+                w_mid = np.array(
+                    [[(np.cos(h_ev * (1 + self.charges[3])**beta * self.charges[0] * delta / 2))**(1/n) * I, O ],
+                     [ O , 1j * (np.sin(h_ev * (1 + self.charges[3])**beta * self.charges[0] * delta / 2)**(1/n)) * op]]
+                )
+                w_string.append(w_mid)
+                
+            i += 1
+            # final mpo which is a vector-like tensor
+            if i == n:
+                w_fin = np.array(
+                    [(np.cos(h_ev * (1 + self.charges[3])**beta * self.charges[0] * delta / 2)**(1/n)) * I, (np.sin(h_ev * (1 + self.charges[3])**beta * self.charges[0] * delta / 2)**(1/n)) * op]
+                )
+                w_string.append(w_fin)
+            
+            if self.L - len(w_string) > 0:
+                w_I = []
+                for _ in range(self.L - len(w_string)):
+                    w_I.append(I)
+                w_string += w_I
+            w_str_1.append(w_string)
+
+        return w_str_1
 
     def single_operator_Ising(self, site, op):
         """
@@ -2448,6 +2498,15 @@ class MPS:
         return self
 
 
-# if __name__ == "__main__":
-#     chain = MPS(L=4, d=4, charges=[1,1,1,1,1,1])
-#     chain.mpo_Z2_two_ladder_time_ev(delta=0.1, h_ev=0.1, J_ev=1)
+if __name__ == "__main__":
+    chain = MPS(L=4, d=4, charges=[1,1,-1,-1,1,1])
+    O_small = np.zeros((2, 2))
+    I_small = np.eye(2)
+    X = np.array([[0, 1], [1, 0]])
+    Z = np.array([[1, 0], [0, -1]])
+    X_1 = np.kron(I_small, X)
+    X_2 = np.kron(X, I_small)
+    X_12 = np.kron(X, X)
+    Z_1 = np.kron(Z, I_small)
+    Z_2 = np.kron(I_small, Z)
+    chain.string_Z2(op=X_1, h_ev=0.1, delta=1)

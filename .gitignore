@@ -167,3 +167,6 @@ energy_data/*
 # figures and results
 results/*
 figures/*
+
+# results of tests
+tests/results/*

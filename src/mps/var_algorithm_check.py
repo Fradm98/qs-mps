@@ -1,7 +1,7 @@
 #%%
 # import packages
 from mps_class import MPS
-from utils import *
+from _mps_class.utils import *
 import matplotlib.pyplot as plt
 from ncon import ncon
 import scipy
