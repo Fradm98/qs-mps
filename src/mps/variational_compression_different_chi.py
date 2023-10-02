@@ -1,7 +1,7 @@
 #%%
 # import packages
 from mps_class import MPS
-from ._mps_class.utils import *
+from utils import *
 import matplotlib.pyplot as plt
 from ncon import ncon
 import scipy
@@ -10,14 +10,15 @@ import time
 
 # %%
 # variational compression changing bond dimension
-trotter_steps = 200
-t = 20
+trotter_steps = 100
+t = 10
 delta = t / trotter_steps
 h_t = 0
 h_ev = 0.3
-L = 9
+L = 15
 n_sweeps = 4
 
+# %%
 # ---------------------------------------------------------
 # exact
 psi_new, mag_exact_loc, mag_exact_tot = exact_evolution(
@@ -32,9 +33,11 @@ np.savetxt(
     f"results/mag_data/mag_exact_loc_L_{L}_delta_{delta}_trott_{trotter_steps}",
     mag_exact_loc,
 )
+
+# %%
 # ---------------------------------------------------------
 # variational truncation mps
-for i in range(1, L // 2 + 1):
+for i in range(1, L // 2 + 1): # L // 2 + 1
     chi = 2**i
     chain = MPS(L=L, d=2, model="Ising", chi=chi, h=h_t, eps=0, J=1)
     chain._random_state(seed=3, chi=chi)
@@ -42,21 +45,21 @@ for i in range(1, L // 2 + 1):
     chain.sweeping(trunc_chi=False, trunc_tol=True, n_sweeps=2)
     chain.flipping_mps()
     mag_mps_tot, mag_mps_loc, overlap, errors = chain.variational_mps_evolution(
-        trotter_steps=trotter_steps, delta=delta, h_ev=h_ev, fidelity=True,
+        trotter_steps=trotter_steps, delta=delta, h_ev=h_ev, fidelity=False,
         conv_tol=1e-15, n_sweeps=n_sweeps
     )
 
     np.savetxt(
-        f"results/mag_data/mag_mps_tot_L_{L}_delta_{delta}_chi_{chi}", mag_mps_tot
+        f"/Users/fradm98/Desktop/mps/results/mag_data/mag_mps_tot_L_{L}_delta_{delta}_chi_{chi}", mag_mps_tot
     )
     np.savetxt(
-        f"results/mag_data/mag_mps_loc_L_{L}_delta_{delta}_chi_{chi}", mag_mps_loc
+        f"/Users/fradm98/Desktop/mps/results/mag_data/mag_mps_loc_L_{L}_delta_{delta}_chi_{chi}", mag_mps_loc
     )
-    np.savetxt(
-        f"results/fidelity_data/fidelity_L_{L}_delta_{delta}_chi_{chi}", overlap
-    )
+    # np.savetxt(
+    #     f"/Users/fradm98/Desktop/mps/results/fidelity_data/fidelity_L_{L}_delta_{delta}_chi_{chi}", overlap
+    # )
     save_list_of_lists(
-        f"results/errors_data/errors_L_{L}_delta_{delta}_chi_{chi}", errors
+        f"/Users/fradm98/Desktop/mps/results/errors_data/errors_L_{L}_delta_{delta}_chi_{chi}", errors
     )
 
 # %%
@@ -72,7 +75,7 @@ colors = create_sequential_colors(
 for i in range(1, L // 2 + 1):
     chi = 2**i
     mag_mps_tot = np.loadtxt(
-        f"results/mag_data/mag_mps_tot_L_{L}_delta_{delta}_chi_{chi}"
+        f"/Users/fradm98/Desktop/mps/results/mag_data/mag_mps_tot_L_{L}_delta_{delta}_chi_{chi}"
     )
     plt.scatter(
         delta * np.arange(trotter_steps + 1),
@@ -85,16 +88,17 @@ for i in range(1, L // 2 + 1):
         label=f"mps: $\chi={chi}$",
     )
 
-plt.plot(
-    delta * np.arange(trotter_steps + 1),
-    mag_exact_tot,
-    color="indianred",
-    label=f"exact: $L={L}$",
-)
+# plt.plot(
+#     delta * np.arange(trotter_steps + 1),
+#     mag_exact_tot,
+#     color="indianred",
+#     label=f"exact: $L={L}$",
+# )
 plt.xlabel("time (t = $\delta$ T)")
 plt.legend()
 plt.show()
 
+# %%
 # ---------------------------------------------------------
 # Local data
 # ---------------------------------------------------------
@@ -116,10 +120,10 @@ plt.title(
 for i in range(1, L // 2 + 1):  # L//2+1
     chi = 2**i
     fidelity = np.loadtxt(
-        f"results/fidelity_data/fidelity_L_{L}_delta_{delta}_chi_{chi}"
+        f"/Users/fradm98/Desktop/mps/results/fidelity_data/fidelity_L_{L}_delta_{delta}_chi_{chi}"
     )
     errors = load_list_of_lists(
-        f"results/errors_data/errors_L_{L}_delta_{delta}_chi_{chi}"
+        f"/Users/fradm98/Desktop/mps/results/errors_data/errors_L_{L}_delta_{delta}_chi_{chi}"
     )
     plt.plot(delta * np.arange(trotter_steps + 1),[1-delta**2-float(error[-1]) for _ , error in zip(range(trotter_steps+1), errors)], 
              '--', 
@@ -142,16 +146,15 @@ plt.xlabel("time (t = $\delta$ T)")
 plt.legend()
 plt.show()
 
+# %%
 # ---------------------------------------------------------
 # errors
 # ---------------------------------------------------------
-
-
 plt.title(f"Truncation error $vs$ trotter steps")
 for i in range(1, L // 2 + 1):  # L//2+1
     chi = 2**i
     errors = load_list_of_lists(
-        f"results/errors_data/errors_L_{L}_delta_{delta}_chi_{chi}"
+        f"/Users/fradm98/Desktop/mps/results/errors_data/errors_L_{L}_delta_{delta}_chi_{chi}"
     )
     last_errors = [float(sublist[-1]) for sublist in errors]
     plt.scatter(np.arange(trotter_steps + 1),
@@ -179,7 +182,7 @@ for i in range(1, L // 2 + 1):
     entropy_chi = [0]
     for trott in range(trotter_steps):
         schmidt_vals = np.loadtxt(
-            f"results/bonds_data/schmidt_values_middle_chain_Ising_L_{L}_chi_{chi}_trotter_step_{trott}_delta_{delta}"
+            f"/Users/fradm98/Desktop/mps/results/bonds_data/schmidt_values_middle_chain_Ising_L_{L}_chi_{chi}_trotter_step_{trott}_delta_{delta}"
         )
         entropy = von_neumann_entropy(schmidt_vals)
         entropy_chi.append(entropy)
