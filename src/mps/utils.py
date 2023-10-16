@@ -144,6 +144,25 @@ def load_list_of_lists(file_path):
     return loaded_data
 
 # ---------------------------------------------------------------------------------------
+# Replace Zeros with Nan
+# ---------------------------------------------------------------------------------------
+def replace_zeros_with_nan(input_list):
+    # Convert the input list to a NumPy array
+    arr = np.array(input_list)
+
+    # Count the number of zeros
+    num_zeros = np.count_nonzero(arr == 0)
+    
+    # Replace zeros with np.nan
+    arr[arr == 0] = np.nan
+    
+    # Convert back to a Python list with np.nan values
+    result_list = arr.tolist()
+    
+    return result_list, num_zeros
+
+
+# ---------------------------------------------------------------------------------------
 # ---------------------------------------------------------------------------------------
 # ---------------------------------------------------------------------------------------
 """
