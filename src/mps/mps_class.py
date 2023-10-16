@@ -2061,8 +2061,6 @@ class MPS:
                     # print("Braket ancilla/sites == A*M:")
                     # self._compute_norm(site=1, mixed=True)
                     errors.append(errs)
-                    if errs < conv_tol:
-                        break
 
                 self.update_state_ev(
                     sweeps[0],
@@ -2082,8 +2080,10 @@ class MPS:
 
             sweeps.reverse()
             sites.reverse()
-            if errs < conv_tol:
-                break
+
+            if ((n % 2) - 1) == 0:
+                if errs < conv_tol:
+                    break
         
         if errs < conv_tol:
             print("##############################")
