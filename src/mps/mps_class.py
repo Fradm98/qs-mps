@@ -147,8 +147,14 @@ class MPS:
                     [1, -2, -3],
                 ],
             )
+            new_site = new_site.reshape(new_site.shape[0] * self.d, new_site.shape[2])
+
+            original_matrix = new_site
+            scaled_matrix = original_matrix / np.max(np.abs(original_matrix))
+            lambda_ = 1e-15
+            regularized_matrix = scaled_matrix + lambda_ * np.eye(scaled_matrix.shape[0],scaled_matrix.shape[1])
             u, s, v = np.linalg.svd(
-                new_site.reshape(new_site.shape[0] * self.d, new_site.shape[2]),
+                regularized_matrix,
                 full_matrices=False,
             )
 
@@ -209,8 +215,14 @@ class MPS:
                     [1, -3],
                 ],
             )
+            new_site = new_site.reshape(new_site.shape[0], self.d * new_site.shape[2])
+
+            original_matrix = new_site
+            scaled_matrix = original_matrix / np.max(np.abs(original_matrix))
+            lambda_ = 1e-15
+            regularized_matrix = scaled_matrix + lambda_ * np.eye(scaled_matrix.shape[0],scaled_matrix.shape[1])
             u, s, v = np.linalg.svd(
-                new_site.reshape(new_site.shape[0], self.d * new_site.shape[2]),
+                regularized_matrix,
                 full_matrices=False,
             )
 
@@ -304,53 +316,63 @@ class MPS:
 
         """
         a = np.array([1])
-        env = ncon([a, a, a, a], [[-1], [-2], [-3], [-4]])
-        left = env
         if mixed:
             array_1 = self.ancilla_sites
             array_2 = self.sites
 
-            for i in range(site - 1):
-                ten = self.overlap_sites(array_1=array_1[i], array_2=array_2[i])
-                env = ncon([env, ten], [[-1, -2, 1, 2], [1, 2, -3, -4]])
-            left = env
-            env = ncon([a, a, a, a], [[-1], [-2], [-3], [-4]])
-            right = env
-            for i in range(self.L - 1, site - 1, -1):
-                ten = self.overlap_sites(array_1=array_1[i], array_2=array_2[i])
-                env = ncon([ten, env], [[-1, -2, 1, 2], [1, 2, -3, -4]])
-            right = env
+            ten = ncon([a,a,array_1[0],array_2[0].conjugate()],[[1],[2],[1,3,-1],[2,3,-2]])
+            for i in range(1,self.L):
+                ten = ncon([ten,array_1[i],array_2[i].conjugate()],[[1,2],[1,3,-1],[2,3,-2]])
+            
+            N = ncon([ten,a,a],[[1,2],[1],[2]]).real
 
-            ten_site = self.overlap_sites(array_1=array_1[site - 1], array_2=array_2[site - 1])
-            # print(f"The tensor in the site {site}:")
-            # print(ten_site)
-            N = ncon(
-                [left, ten_site, right], [[-1, -2, 1, 2], [1, 2, 3, 4], [3, 4, -3, -4]]
-            )
+            # for i in range(site - 1):
+            #     ten = self.overlap_sites(array_1=array_1[i], array_2=array_2[i])
+            #     env = ncon([env, ten], [[-1, -2, 1, 2], [1, 2, -3, -4]])
+            # left = env
+            # env = ncon([a, a, a, a], [[-1], [-2], [-3], [-4]])
+            # right = env
+            # for i in range(self.L - 1, site - 1, -1):
+            #     ten = self.overlap_sites(array_1=array_1[i], array_2=array_2[i])
+            #     env = ncon([ten, env], [[-1, -2, 1, 2], [1, 2, -3, -4]])
+            # right = env
+
+            # ten_site = self.overlap_sites(array_1=array_1[site - 1], array_2=array_2[site - 1])
+            # # print(f"The tensor in the site {site}:")
+            # # print(ten_site)
+            # N = ncon(
+            #     [left, ten_site, right], [[-1, -2, 1, 2], [1, 2, 3, 4], [3, 4, -3, -4]]
+            # )
         else:
             array = self.sites
             if ancilla:
                 array = self.ancilla_sites
 
-            for i in range(site - 1):
-                ten = self.overlap_sites(array_1=array[i])
-                env = ncon([env, ten], [[-1, -2, 1, 2], [1, 2, -3, -4]])
-            left = env
-            env = ncon([a, a, a, a], [[-1], [-2], [-3], [-4]])
-            right = env
-            for i in range(self.L - 1, site - 1, -1):
-                ten = self.overlap_sites(array_1=array[i])
-                env = ncon([ten, env], [[-1, -2, 1, 2], [1, 2, -3, -4]])
-            right = env
+            ten = ncon([a,a,array[0],array[0].conjugate()],[[1],[2],[1,3,-1],[2,3,-2]])
+            for i in range(1,self.L):
+                ten = ncon([ten,array[i],array[i].conjugate()],[[1,2],[1,3,-1],[2,3,-2]])
+            
+            N = ncon([ten,a,a],[[1,2],[1],[2]]).real
 
-            ten_site = self.overlap_sites(array_1=array[site - 1])
-            # print(f"The tensor in the site {site}:")
-            # print(ten_site)
-            N = ncon(
-                [left, ten_site, right], [[-1, -2, 1, 2], [1, 2, 3, 4], [3, 4, -3, -4]]
-            )
-        N = N[0, 0, 0, 0].real
-        print(f"-=-=-= Norm: {N}\n")
+        #     for i in range(site - 1):
+        #         ten = self.overlap_sites(array_1=array[i])
+        #         env = ncon([env, ten], [[-1, -2, 1, 2], [1, 2, -3, -4]])
+        #     left = env
+        #     env = ncon([a, a, a, a], [[-1], [-2], [-3], [-4]])
+        #     right = env
+        #     for i in range(self.L - 1, site - 1, -1):
+        #         ten = self.overlap_sites(array_1=array[i])
+        #         env = ncon([ten, env], [[-1, -2, 1, 2], [1, 2, -3, -4]])
+        #     right = env
+
+        #     ten_site = self.overlap_sites(array_1=array[site - 1])
+        #     # print(f"The tensor in the site {site}:")
+        #     # print(ten_site)
+        #     N = ncon(
+        #         [left, ten_site, right], [[-1, -2, 1, 2], [1, 2, 3, 4], [3, 4, -3, -4]]
+        #     )
+        # N = N[0, 0, 0, 0].real
+        # print(f"-=-=-= Norm: {N}\n")
         return N
 
     def mpo(self):
@@ -1081,7 +1103,7 @@ class MPS:
         site: int - site to optimize
 
         """
-        H_eff_time = time.perf_counter()
+        # H_eff_time = time.perf_counter()
         H = ncon(
             [self.env_left[-1], self.w[site - 1], self.env_right[-1]],
             [
@@ -1090,21 +1112,21 @@ class MPS:
                 [-3, 2, -6],
             ],
         )
-        np.savetxt(
-            f"/Users/fradm98/Desktop/mps/results/times_data/H_eff_contraction_site_{site}_h_{self.h:.2f}",
-            [time.perf_counter() - H_eff_time],
-        )
+        # np.savetxt(
+        #     f"/Users/fradm/mps/results/times_data/H_eff_contraction_site_{site}_h_{self.h:.2f}",
+        #     [time.perf_counter() - H_eff_time],
+        # )
         # print(f"Time of H_eff contraction: {time.perf_counter()-H_eff_time}")
 
-        reshape_time = time.perf_counter()
+        # reshape_time = time.perf_counter()
         H = H.reshape(
             self.env_left[-1].shape[0] * self.d * self.env_right[-1].shape[0],
             self.env_left[-1].shape[2] * self.d * self.env_right[-1].shape[2],
         )
-        np.savetxt(
-            f"/Users/fradm98/Desktop/mps/results/times_data/H_eff_reshape_site_{site}_h_{self.h:.2f}",
-            [time.perf_counter() - reshape_time],
-        )
+        # np.savetxt(
+        #     f"/Users/fradm/mps/results/times_data/H_eff_reshape_site_{site}_h_{self.h:.2f}",
+        #     [time.perf_counter() - reshape_time],
+        # )
         # print(f"Time of H_eff reshaping: {time.perf_counter()-reshape_time}")
 
         return H
@@ -1158,12 +1180,12 @@ class MPS:
             site. Default Nones
 
         """
-        time_eig = time.perf_counter()
+        # time_eig = time.perf_counter()
         e, v = eigsh(H_eff, k=1, which="SA", v0=v0)
-        np.savetxt(
-            f"/Users/fradm98/Desktop/mps/results/times_data/eigsh_eigensolver_site_{site}_h_{self.h:.2f}",
-            [time.perf_counter() - time_eig],
-        )
+        # np.savetxt(
+        #     f"/Users/fradm/mps/results/times_data/eigsh_eigensolver_site_{site}_h_{self.h:.2f}",
+        #     [time.perf_counter() - time_eig],
+        # )
         # print(f"Time of eigsh during eigensolver for site {site}: {time.perf_counter()-time_eig}")
         e_min = e[0]
         eigvec = np.array(v)
@@ -1196,12 +1218,12 @@ class MPS:
                 self.env_left[-1].shape[2] * self.d, self.env_right[-1].shape[2]
             )
             # np.savetxt(f"site_to_update/state_to_update_{self.model}_L_{self.L}_chi_{self.chi}_site_{site}_right_sweep_n_{n}", m)
-            time_svd = time.perf_counter()
+            # time_svd = time.perf_counter()
             u, s, v = np.linalg.svd(m, full_matrices=False)
-            np.savetxt(
-                f"/Users/fradm98/Desktop/mps/results/times_data/update_site_{site}_h_{self.h:.2f}",
-                [time.perf_counter() - time_svd],
-            )
+            # np.savetxt(
+            #     f"/Users/fradm/mps/results/times_data/update_site_{site}_h_{self.h:.2f}",
+            #     [time.perf_counter() - time_svd],
+            # )
             # print(f"Time of svd during update state during sweeping {sweep} for site {site}: {time.perf_counter()-time_svd}")
             if trunc_tol:
                 condition = s >= e_tol
@@ -1214,7 +1236,7 @@ class MPS:
                 if site == self.L // 2:
                     # print(f'Schmidt values:\n{s}')
                     np.savetxt(
-                        f"/Users/fradm98/Desktop/mps/results/bonds_data/schmidt_values_middle_chain_{self.model}_L_{self.L}_chi_{self.chi}_h_{self.h:.{precision}f}",
+                        f"/Users/fradm/Google Drive/My Drive/projects/0_ISING/results/bonds_data/schmidt_values_middle_chain_{self.model}_L_{self.L}_chi_{self.chi}_h_{self.h:.{precision}f}",
                         s,
                     )
             elif trunc_chi:
@@ -1227,7 +1249,7 @@ class MPS:
                 if site == self.L // 2:
                     # print(f'Schmidt values:\n{s}')
                     np.savetxt(
-                        f"/Users/fradm98/Desktop/mps/results/bonds_data/schmidt_values_middle_chain_{self.model}_L_{self.L}_chi_{self.chi}_h_{self.h:.{precision}f}",
+                        f"/Users/fradm/Google Drive/My Drive/projects/0_ISING/results/bonds_data/schmidt_values_middle_chain_{self.model}_L_{self.L}_chi_{self.chi}_h_{self.h:.{precision}f}",
                         s,
                     )
             else:
@@ -1237,7 +1259,7 @@ class MPS:
             if site == self.L // 2:
                 # print(f'Schmidt values:\n{s}')
                 np.savetxt(
-                    f"/Users/fradm98/Desktop/mps/results/bonds_data/schmidt_values_middle_chain_{self.model}_L_{self.L}_chi_{self.chi}_h_{self.h:.{precision}f}",
+                    f"/Users/fradm/Google Drive/My Drive/projects/0_ISING/results/bonds_data/schmidt_values_middle_chain_{self.model}_L_{self.L}_chi_{self.chi}_h_{self.h:.{precision}f}",
                     s,
                 )
             next_site = ncon(
@@ -1256,12 +1278,12 @@ class MPS:
             m = self.sites[site - 1].reshape(
                 self.env_left[-1].shape[2], self.d * self.env_right[-1].shape[2]
             )
-            time_svd = time.perf_counter()
+            # time_svd = time.perf_counter()
             u, s, v = np.linalg.svd(m, full_matrices=False)
-            np.savetxt(
-                f"/Users/fradm98/Desktop/mps/results/times_data/update_site_{site}_h_{self.h:.2f}",
-                [time.perf_counter() - time_svd],
-            )
+            # np.savetxt(
+            #     f"/Users/fradm/mps/results/times_data/update_site_{site}_h_{self.h:.2f}",
+            #     [time.perf_counter() - time_svd],
+            # )
             # print(f"Time of svd during update state during sweeping {sweep} for site {site}: {time.perf_counter()-time_svd}")
             if trunc_tol:
                 condition = s >= e_tol
@@ -1274,7 +1296,7 @@ class MPS:
                 if site == self.L // 2:
                     # print(f"Schmidt values:\n{s}")
                     np.savetxt(
-                        f"/Users/fradm98/Desktop/mps/results/bonds_data/schmidt_values_middle_chain_{self.model}_L_{self.L}_chi_{self.chi}_h_{self.h:.{precision}f}",
+                        f"/Users/fradm/Google Drive/My Drive/projects/0_ISING/results/bonds_data/schmidt_values_middle_chain_{self.model}_L_{self.L}_chi_{self.chi}_h_{self.h:.{precision}f}",
                         s,
                     )
             elif trunc_chi:
@@ -1287,7 +1309,7 @@ class MPS:
                 if site == self.L // 2:
                     # print(f"Schmidt values:\n{s}")
                     np.savetxt(
-                        f"/Users/fradm98/Desktop/mps/results/bonds_data/schmidt_values_middle_chain_{self.model}_L_{self.L}_chi_{self.chi}_h_{self.h:.{precision}f}",
+                        f"/Users/fradm/Google Drive/My Drive/projects/0_ISING/results/bonds_data/schmidt_values_middle_chain_{self.model}_L_{self.L}_chi_{self.chi}_h_{self.h:.{precision}f}",
                         s,
                     )
             else:
@@ -1298,7 +1320,7 @@ class MPS:
             if site == self.L // 2:
                 # print(f'Schmidt values:\n{s}')
                 np.savetxt(
-                    f"/Users/fradm98/Desktop/mps/results/bonds_data/schmidt_values_middle_chain_{self.model}_L_{self.L}_chi_{self.chi}_h_{self.h:.{precision}f}",
+                    f"/Users/fradm/Google Drive/My Drive/projects/0_ISING/results/bonds_data/schmidt_values_middle_chain_{self.model}_L_{self.L}_chi_{self.chi}_h_{self.h:.{precision}f}",
                     s,
                 )
 
@@ -1397,17 +1419,17 @@ class MPS:
 
         self.mpo()
         # tensor_shapes(self.w)
-        env_time = time.perf_counter()
+        # env_time = time.perf_counter()
         self.envs()
-        np.savetxt(
-            f"/Users/fradm98/Desktop/mps/results/times_data/env_h_{self.h:.2f}", [time.perf_counter() - env_time]
-        )
+        # np.savetxt(
+        #     f"/Users/fradm/mps/results/times_data/env_h_{self.h:.2f}", [time.perf_counter() - env_time]
+        # )
         # print(f"Time of env contraction: {time.perf_counter()-env_time}")
         iter = 1
         for n in range(n_sweeps):
             print(f"Sweep n: {n}\n")
             for i in range(self.L - 1):
-                time_site = time.perf_counter()
+                # time_site = time.perf_counter()
                 H = self.H_eff(sites[i])
                 # np.savetxt(f"effective_ham/H_eff_{self.model}_L_{self.L}_h_{self.h:.2f}_chi_{self.chi}_site_{sites[i]}_sweep_n_{n}", H)
                 energy = self.eigensolver(
@@ -1422,15 +1444,15 @@ class MPS:
                 #     sm = self.mpo_second_moment(opt=True)
                 #     v = variance(first_m=energy, sm=sm)
                 #     variances.append(v)
-                total_state_time = time.perf_counter()
+                # total_state_time = time.perf_counter()
                 self.update_state(sweeps[0], sites[i], trunc_tol, trunc_chi, e_tol, precision)
                 # print(f"Total time of state updating: {time.perf_counter()-total_state_time}")
-                update_env_time = time.perf_counter()
+                # update_env_time = time.perf_counter()
                 self.update_envs(sweeps[0], sites[i])
-                np.savetxt(
-                    f"/Users/fradm98/Desktop/mps/results/times_data/update_env_h_{self.h:.2f}",
-                    [time.perf_counter() - update_env_time],
-                )
+                # np.savetxt(
+                #     f"/Users/fradm/mps/results/times_data/update_env_h_{self.h:.2f}",
+                #     [time.perf_counter() - update_env_time],
+                # )
                 # print(f"Time of env updating: {time.perf_counter()-update_env_time}")
                 iter += 1
                 # print('\n=========================================')
@@ -1438,7 +1460,7 @@ class MPS:
                 # print('=========================================\n')
 
             middle_chain = np.loadtxt(
-                f"/Users/fradm98/Desktop/mps/results/bonds_data/schmidt_values_middle_chain_{self.model}_L_{self.L}_chi_{self.chi}_h_{self.h:.{precision}f}"
+                f"/Users/fradm/Google Drive/My Drive/projects/0_ISING/results/bonds_data/schmidt_values_middle_chain_{self.model}_L_{self.L}_chi_{self.chi}_h_{self.h:.{precision}f}"
             )
             s_min = np.min(middle_chain)
 
@@ -1450,12 +1472,12 @@ class MPS:
                 )
 
                 np.savetxt(
-                    f"/Users/fradm98/Desktop/mps/results/energy_data/energies_sweeping_{self.model}_two_charges_L_{self.L}_chi_{self.chi}_h_{self.h:.{precision}f}",
+                    f"/Users/fradm/Google Drive/My Drive/projects/0_ISING/results/energy_data/energies_sweeping_{self.model}_L_{self.L}_chi_{self.chi}_h_{self.h:.{precision}f}",
                     energies,
                 )
                 if var:
                     np.savetxt(
-                        f"/Users/fradm98/Desktop/mps/results/energy_data/variances_sweeping_{self.model}_L_{self.L}_chi_{self.chi}_h_{self.h:.{precision}f}",
+                        f"/Users/fradm/Google Drive/My Drive/projects/0_ISING/results/energy_data/variances_sweeping_{self.model}_L_{self.L}_chi_{self.chi}_h_{self.h:.{precision}f}",
                         variances,
                     )
 
@@ -1464,12 +1486,12 @@ class MPS:
             sites.reverse()
 
         np.savetxt(
-            f"/Users/fradm98/Desktop/mps/results/energy_data/energies_sweeping_{self.model}_two_charges_L_{self.L}_chi_{self.chi}_h_{self.h:.{precision}f}",
+            f"/Users/fradm/Google Drive/My Drive/projects/0_ISING/results/energy_data/energies_sweeping_{self.model}_L_{self.L}_chi_{self.chi}_h_{self.h:.{precision}f}",
             energies,
         )
         if var:
             np.savetxt(
-                f"/Users/fradm98/Desktop/mps/results/energy_data/variances_sweeping_{self.model}_L_{self.L}_chi_{self.chi}_h_{self.h:.{precision}f}",
+                f"/Users/fradm/Google Drive/My Drive/projects/0_ISING/results/energy_data/variances_sweeping_{self.model}_L_{self.L}_chi_{self.chi}_h_{self.h:.{precision}f}",
                 variances,
             )
         return energies
@@ -1613,6 +1635,7 @@ class MPS:
         trotter_steps: int,
         delta: float,
         h_ev: float,
+        flip: bool,
         n_sweeps: int = 2,
         fidelity: bool = False,
         err: bool = True,
@@ -1638,30 +1661,44 @@ class MPS:
         overlap = []
         mag_mps_tot = []
         mag_mps_loc = []
+        mag_mps_loc_Z = []
+        mag_mps_loc_X = []
+        X = np.array([[0, 1], [1, 0]])
         Z = np.array([[1, 0], [0, -1]])
 
         # enlarging our local tensor to the max bond dimension
         self.enlarge_chi()
 
+        if flip:
+            if self.L%2 == 0:
+                self.sites[self.L // 2] = np.array([[[0],[1]]])
+                self.sites[self.L // 2 - 1] = np.array([[[0],[1]]])
+            else:
+                self.sites[self.L // 2] = np.array([[[0],[1]]])
         # total
         self.order_param_Ising(op=Z)
-        test = np.real(self.mpo_first_moment())
-        tolerance = 1e-6  # Adjust this to your desired level of precision
-        # Check if the absolute difference between the two numbers is within the tolerance
-        if abs(test.__float__() + (self.L - 2)) < tolerance:
-            self.flipping_all()
-            warnings.warn(
-                "The ground state found in DMRG could be in a superposition of states"
-            )
-            print("We flip all the chain to be in the positive magnetization state")
         mag_mps_tot.append(np.real(self.mpo_first_moment()))
-
+        # loc Z
+        self.single_operator_Ising(site=self.L // 2, op=Z)
+        mag_mps_loc_Z.append(np.real(self.mpo_first_moment()))
+        # loc X
+        self.single_operator_Ising(site=self.L // 2, op=X)
+        mag_mps_loc_X.append(np.real(self.mpo_first_moment()))
         # local
         mag_loc = []
         for i in range(self.L):
             self.single_operator_Ising(site=i + 1, op=Z)
-            mag_loc.append(self.mpo_first_moment().real)
+            mag_loc.append(np.real(self.mpo_first_moment()))
         mag_mps_loc.append(mag_loc)
+        # tolerance = 1e-6  # Adjust this to your desired level of precision
+        # # Check if the absolute difference between the two numbers is within the tolerance
+        # if abs(test.__float__() + (self.L - 2)) < tolerance:
+        #     self.flipping_all()
+        #     warnings.warn(
+        #         "The ground state found in DMRG could be in a superposition of states"
+        #     )
+        #     print("We flip all the chain to be in the positive magnetization state")
+        # mag_mps_tot.append(np.real(self.mpo_first_moment()))
 
         # fidelity
         if fidelity:
@@ -1683,29 +1720,38 @@ class MPS:
             self.mpo_to_mps(ancilla=True)
             self.canonical_form(svd_direction="right", ancilla=True, trunc_chi=False, trunc_tol=True)
             self.canonical_form(svd_direction="left", ancilla=True, trunc_chi=False, trunc_tol=True)
-            print("Braket <phi|psi>:")
-            self._compute_norm(site=1, mixed=True)
+            print(f"Bond dim ancilla: {self.ancilla_sites[self.L//2].shape[0]}")
+            print(f"Bond dim site: {self.sites[self.L//2].shape[0]}")
+            # print("Braket <phi|psi>:")
+            # self._compute_norm(site=1, mixed=True)
             error = self.compression(
                 delta=delta,
                 trotter_step=trott,
                 trunc_tol=False,
                 trunc_chi=True,
+                flip=flip,
                 n_sweeps=n_sweeps,
                 err=err,
                 conv_tol=conv_tol,
             )
             self.canonical_form(trunc_chi=True, trunc_tol=False)
             errors.append(error)
+
+            # total
+            self.order_param_Ising(op=Z)
+            mag_mps_tot.append(np.real(self.mpo_first_moment()))
+            # loc Z
+            self.single_operator_Ising(site=self.L // 2, op=Z)
+            mag_mps_loc_Z.append(np.real(self.mpo_first_moment()))
+            # loc X
+            self.single_operator_Ising(site=self.L // 2, op=X)
+            mag_mps_loc_X.append(np.real(self.mpo_first_moment()))
             # local
             mag = []
             for i in range(self.L):
                 self.single_operator_Ising(site=i + 1, op=Z)
                 mag.append(self.mpo_first_moment().real)
             mag_mps_loc.append(mag)
-
-            # total
-            self.order_param_Ising(op=Z)
-            mag_mps_tot.append(np.real(self.mpo_first_moment()))
 
             if fidelity:
                 psi_exact = U_evolution(
@@ -1717,7 +1763,7 @@ class MPS:
                 )
                 psi_new_mpo = mps_to_vector(self.sites)
                 overlap.append(np.abs((psi_new_mpo.T.conjugate() @ psi_exact).real))
-        return mag_mps_tot, mag_mps_loc, overlap, errors
+        return mag_mps_tot, mag_mps_loc_Z, mag_mps_loc_X, mag_mps_loc, overlap, errors
 
     def environments_ev(self, site):
         a = np.array([1])
@@ -1776,7 +1822,7 @@ class MPS:
 
     def error(self, site, M, N_anc):
         A_dag_M = ncon([M, M.conjugate()], [[1, 2, 3], [1, 2, 3]])
-        print("Norm of variational state (before state/env update):")
+        # print("Norm of variational state (before state/env update):")
         A_dag_N_eff_A = self._compute_norm(site=site)
         error = A_dag_N_eff_A - 2 * A_dag_M.real + N_anc
         return error
@@ -1789,6 +1835,7 @@ class MPS:
         trotter_step,
         trunc_tol,
         trunc_chi,
+        flip,
         e_tol=10 ** (-15),
         precision=2,
     ):
@@ -1827,7 +1874,7 @@ class MPS:
                 if site == self.L // 2:
                     # print(f'Schmidt values:\n{s}')
                     np.savetxt(
-                        f"/Users/fradm98/Desktop/mps/results/bonds_data/schmidt_values_middle_chain_{self.model}_L_{self.L}_chi_{self.chi}_trotter_step_{trotter_step}_delta_{delta}",
+                        f"/Users/fradm/Google Drive/My Drive/projects/0_ISING/results/bonds_data/schmidt_values_middle_chain_{self.model}_flip_{flip}_L_{self.L}_chi_{self.chi}_trotter_step_{trotter_step}_delta_{delta}",
                         s,
                     )
             elif trunc_chi:
@@ -1840,7 +1887,7 @@ class MPS:
                 if site == self.L // 2:
                     # print(f'Schmidt values:\n{s}')
                     np.savetxt(
-                        f"/Users/fradm98/Desktop/mps/results/bonds_data/schmidt_values_middle_chain_{self.model}_L_{self.L}_chi_{self.chi}_trotter_step_{trotter_step}_delta_{delta}",
+                        f"/Users/fradm/Google Drive/My Drive/projects/0_ISING/results/bonds_data/schmidt_values_middle_chain_{self.model}_flip_{flip}_L_{self.L}_chi_{self.chi}_trotter_step_{trotter_step}_delta_{delta}",
                         s,
                     )
             else:
@@ -1878,7 +1925,7 @@ class MPS:
                 if site == self.L // 2:
                     # print(f'Schmidt values:\n{s}')
                     np.savetxt(
-                        f"/Users/fradm98/Desktop/mps/results/bonds_data/schmidt_values_middle_chain_{self.model}_L_{self.L}_chi_{self.chi}_trotter_step_{trotter_step}_delta_{delta}",
+                        f"/Users/fradm/Google Drive/My Drive/projects/0_ISING/results/bonds_data/schmidt_values_middle_chain_{self.model}_flip_{flip}_L_{self.L}_chi_{self.chi}_trotter_step_{trotter_step}_delta_{delta}",
                         s,
                     )
             elif trunc_chi:
@@ -1892,7 +1939,7 @@ class MPS:
                 if site == self.L // 2:
                     # print(f'Schmidt values:\n{s}')
                     np.savetxt(
-                        f"/Users/fradm98/Desktop/mps/results/bonds_data/schmidt_values_middle_chain_{self.model}_L_{self.L}_chi_{self.chi}_trotter_step_{trotter_step}_delta_{delta}",
+                        f"/Users/fradm/Google Drive/My Drive/projects/0_ISING/results/bonds_data/schmidt_values_middle_chain_{self.model}_flip_{flip}_L_{self.L}_chi_{self.chi}_trotter_step_{trotter_step}_delta_{delta}",
                         s,
                     )
             else:
@@ -1963,6 +2010,7 @@ class MPS:
         trotter_step: int,
         trunc_tol: bool,
         trunc_chi: bool,
+        flip: bool,
         e_tol: float = 10 ** (-15),
         n_sweeps: int = 6,
         precision: int = 2,
@@ -2000,7 +2048,7 @@ class MPS:
         for n in range(n_sweeps):
             print(f"Sweep n: {n}\n")
             for i in range(self.L - 1):
-                print(f"\n============= Site: {sites[i]} ===================\n")
+                # print(f"\n============= Site: {sites[i]} ===================\n")
                 
                 M = self.compute_M_no_mpo(sites[i])
                 self.sites[sites[i] - 1] = M
@@ -2010,8 +2058,8 @@ class MPS:
                     # print(
                     #     f"Error at site {sites[i]} for trotter step {trotter_step}: {errs}"
                     # )
-                    print("Braket ancilla/sites == A*M:")
-                    self._compute_norm(site=1, mixed=True)
+                    # print("Braket ancilla/sites == A*M:")
+                    # self._compute_norm(site=1, mixed=True)
                     errors.append(errs)
                     if errs < conv_tol:
                         break
@@ -2023,13 +2071,14 @@ class MPS:
                     trotter_step,
                     trunc_tol,
                     trunc_chi,
+                    flip,
                     e_tol,
                     precision,
                 )
                 self.update_envs_ev(sweeps[0], sites[i])
 
                 iter += 1
-                norm_sites = self._compute_norm(site=1)
+                # norm_sites = self._compute_norm(site=1)
 
             sweeps.reverse()
             sites.reverse()

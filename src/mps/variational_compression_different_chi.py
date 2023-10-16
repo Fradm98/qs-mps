@@ -1,4 +1,3 @@
-#%%
 # import packages
 from mps_class import MPS
 from utils import *
@@ -7,198 +6,84 @@ from ncon import ncon
 import scipy
 from scipy.sparse import csr_array
 import time
+import argparse
 
-# %%
 # variational compression changing bond dimension
-trotter_steps = 100
-t = 10
-delta = t / trotter_steps
-h_t = 0
-h_ev = 0.3
-L = 15
-n_sweeps = 4
+# parameters
 
-# %%
-# ---------------------------------------------------------
-# exact
-psi_new, mag_exact_loc, mag_exact_tot = exact_evolution(
-    L=L, h_t=h_t, h_ev=h_ev, delta=delta, trotter_steps=trotter_steps
-)
+parser = argparse.ArgumentParser(prog="Time Evolution")
+parser.add_argument("L", help="Spin chain length", 
+                    type=int)
+parser.add_argument("trotter_steps", help="It will give you the accuracy of the trotter evolution for fixed t", 
+                    type=int)
+parser.add_argument("h_ev", help="It will give you the magnitude of the quench", 
+                    type=float)
+parser.add_argument("chis", help="Simulated bond dimensions", nargs="+",
+                    type=int)
+parser.add_argument("-f", "--flip", help="Flip the middle site or not", 
+                    action="store_true")
+parser.add_argument("-m", "--model", help="Model to simulate", 
+                    default="Ising", type=str)
+parser.add_argument("-t", "--time", help="Final time of the evolution", 
+                    default=10, type=float)
+parser.add_argument("-h_ti", "--h_transverse_init", help="Initial transverse field before the quench", 
+                    default=0, type=float)
+parser.add_argument("-s", "--number_sweeps", help="Number of sweeps during the compression algorithm for each trotter step", 
+                    default=8, type=int)
+parser.add_argument("-fid", "--fidelity", help="Fidelity with exact solution. Doable only for small Ising chains", 
+                    action="store_true")
+parser.add_argument("-cv", "--conv_tol", help="Convergence tolerance of the compression algorithm", 
+                    default=1e-15, type=float)                    
+args = parser.parse_args()
+delta = args.time / args.trotter_steps
 
-np.savetxt(
-    f"results/mag_data/mag_exact_tot_L_{L}_delta_{delta}_trott_{trotter_steps}",
-    mag_exact_tot,
-)
-np.savetxt(
-    f"results/mag_data/mag_exact_loc_L_{L}_delta_{delta}_trott_{trotter_steps}",
-    mag_exact_loc,
-)
 
-# %%
+# # ---------------------------------------------------------
+# # exact
+# psi_new, mag_exact_loc, mag_exact_tot = exact_evolution(
+#     L=L, h_t=h_t, h_ev=h_ev, delta=delta, trotter_steps=trotter_steps
+# )
+
+# np.savetxt(
+#     f"results/mag_data/mag_exact_tot_L_{L}_delta_{delta}_trott_{trotter_steps}",
+#     mag_exact_tot,
+# )
+# np.savetxt(
+#     f"results/mag_data/mag_exact_loc_L_{L}_delta_{delta}_trott_{trotter_steps}",
+#     mag_exact_loc,
+# )
+
 # ---------------------------------------------------------
 # variational truncation mps
-for i in range(1, L // 2 + 1): # L // 2 + 1
-    chi = 2**i
-    chain = MPS(L=L, d=2, model="Ising", chi=chi, h=h_t, eps=0, J=1)
+for chi in args.chis: # L // 2 + 1
+    chain = MPS(L=args.L, d=2, model=args.model, chi=chi, h=args.h_transverse_init, eps=0, J=1)
     chain._random_state(seed=3, chi=chi)
     chain.canonical_form(trunc_chi=False, trunc_tol=True)
-    chain.sweeping(trunc_chi=False, trunc_tol=True, n_sweeps=2)
-    chain.flipping_mps()
-    mag_mps_tot, mag_mps_loc, overlap, errors = chain.variational_mps_evolution(
-        trotter_steps=trotter_steps, delta=delta, h_ev=h_ev, fidelity=False,
-        conv_tol=1e-15, n_sweeps=n_sweeps
+    # chain.sweeping(trunc_chi=False, trunc_tol=True, n_sweeps=2)
+    init_state = np.zeros((1,2,1))
+    init_state[0,0,0] = 1
+    for i in range(chain.L):
+        chain.sites[i] = init_state
+    mag_mps_tot, mag_mps_loc_Z, mag_mps_loc_X, mag_mps_loc, overlap, errors = chain.variational_mps_evolution(
+        trotter_steps=args.trotter_steps, delta=delta, h_ev=args.h_ev, flip=args.flip, fidelity=False,
+        conv_tol=1e-15, n_sweeps=args.number_sweeps
     )
 
     np.savetxt(
-        f"/Users/fradm98/Desktop/mps/results/mag_data/mag_mps_tot_L_{L}_delta_{delta}_chi_{chi}", mag_mps_tot
+        f"/Users/fradm/Google Drive/My Drive/projects/0_ISING/results/mag_data/mag_mps_tot_{args.model}_L_{args.L}_flip_{args.flip}_delta_{delta}_chi_{chi}", mag_mps_tot
     )
     np.savetxt(
-        f"/Users/fradm98/Desktop/mps/results/mag_data/mag_mps_loc_L_{L}_delta_{delta}_chi_{chi}", mag_mps_loc
+        f"/Users/fradm/Google Drive/My Drive/projects/0_ISING/results/mag_data/mag_mps_loc_X_{args.model}_L_{args.L}_flip_{args.flip}_delta_{delta}_chi_{chi}", mag_mps_loc_X
+    )
+    np.savetxt(
+        f"/Users/fradm/Google Drive/My Drive/projects/0_ISING/results/mag_data/mag_mps_loc_Z_{args.model}_L_{args.L}_flip_{args.flip}_delta_{delta}_chi_{chi}", mag_mps_loc_Z
+    )
+    np.savetxt(
+        f"/Users/fradm/Google Drive/My Drive/projects/0_ISING/results/mag_data/mag_mps_loc_{args.model}_L_{args.L}_flip_{args.flip}_delta_{delta}_chi_{chi}", mag_mps_loc
     )
     # np.savetxt(
-    #     f"/Users/fradm98/Desktop/mps/results/fidelity_data/fidelity_L_{L}_delta_{delta}_chi_{chi}", overlap
+    #     f"/Users/fradm/Google Drive/My Drive/projects/0_ISING/results/fidelity_data/fidelity_{args.model}_L_{args.L}_flip_{args.flip}_delta_{delta}_chi_{chi}", overlap
     # )
     save_list_of_lists(
-        f"/Users/fradm98/Desktop/mps/results/errors_data/errors_L_{L}_delta_{delta}_chi_{chi}", errors
+        f"/Users/fradm/Google Drive/My Drive/projects/0_ISING/results/errors_data/errors_{args.model}_L_{args.L}_flip_{args.flip}_delta_{delta}_chi_{chi}", errors
     )
-
-# %%
-# visualization
-
-# ---------------------------------------------------------
-# total
-# ---------------------------------------------------------
-plt.title(f"Total Magnetization for $\delta = {delta}$ ;" + " $h_{ev} =$" + f"{h_ev}")
-colors = create_sequential_colors(
-    num_colors=len(range(2, L // 2 + 2)), colormap_name="viridis"
-)
-for i in range(1, L // 2 + 1):
-    chi = 2**i
-    mag_mps_tot = np.loadtxt(
-        f"/Users/fradm98/Desktop/mps/results/mag_data/mag_mps_tot_L_{L}_delta_{delta}_chi_{chi}"
-    )
-    plt.scatter(
-        delta * np.arange(trotter_steps + 1),
-        mag_mps_tot,
-        s=25,
-        marker="o",
-        alpha=0.8,
-        facecolors="none",
-        edgecolors=colors[i - 1],
-        label=f"mps: $\chi={chi}$",
-    )
-
-# plt.plot(
-#     delta * np.arange(trotter_steps + 1),
-#     mag_exact_tot,
-#     color="indianred",
-#     label=f"exact: $L={L}$",
-# )
-plt.xlabel("time (t = $\delta$ T)")
-plt.legend()
-plt.show()
-
-# %%
-# ---------------------------------------------------------
-# Local data
-# ---------------------------------------------------------
-data1 = mag_exact_loc
-data2 = mag_mps_loc
-title1 = "Exact quench (local mag)"
-title2 = f"MPS quench (local mag) $\chi={chi}$"
-plot_side_by_side(
-    data1=data1, data2=data2, cmap="seismic", title1=title1, title2=title2
-)
-
-# ---------------------------------------------------------
-# fidelity
-# ---------------------------------------------------------
-plt.title(
-    "Fidelity $\left<\psi_{MPS}(t)|\psi_{exact}(t)\\right>$: "
-    + f"$\delta = {delta}$; $h_{{t-ev}} = {h_ev}$"
-)
-for i in range(1, L // 2 + 1):  # L//2+1
-    chi = 2**i
-    fidelity = np.loadtxt(
-        f"/Users/fradm98/Desktop/mps/results/fidelity_data/fidelity_L_{L}_delta_{delta}_chi_{chi}"
-    )
-    errors = load_list_of_lists(
-        f"/Users/fradm98/Desktop/mps/results/errors_data/errors_L_{L}_delta_{delta}_chi_{chi}"
-    )
-    plt.plot(delta * np.arange(trotter_steps + 1),[1-delta**2-float(error[-1]) for _ , error in zip(range(trotter_steps+1), errors)], 
-             '--', 
-             color=colors[i - 1],
-             alpha=0.6, 
-             label=f"trotter + trunc error $\chi={chi}$")
-
-    plt.scatter(
-        delta * np.arange(trotter_steps + 1),
-        fidelity,
-        s=20,
-        marker="o",
-        alpha=0.7,
-        facecolors="none",
-        edgecolors=colors[i - 1],
-        label=f"fidelity $\chi={chi}$",
-    )
-
-plt.xlabel("time (t = $\delta$ T)")
-plt.legend()
-plt.show()
-
-# %%
-# ---------------------------------------------------------
-# errors
-# ---------------------------------------------------------
-plt.title(f"Truncation error $vs$ trotter steps")
-for i in range(1, L // 2 + 1):  # L//2+1
-    chi = 2**i
-    errors = load_list_of_lists(
-        f"/Users/fradm98/Desktop/mps/results/errors_data/errors_L_{L}_delta_{delta}_chi_{chi}"
-    )
-    last_errors = [float(sublist[-1]) for sublist in errors]
-    plt.scatter(np.arange(trotter_steps + 1),
-        last_errors,
-        s=20,
-        marker="o",
-        alpha=0.6,
-        facecolors=colors[i - 1],
-        edgecolors=colors[i - 1],
-        label=f"$\left|\left| |\phi\\rangle - |\psi\\rangle \\right|\\right|^2$ $\chi={chi}$")
-plt.ylabel("$\mathcal{A* N A}$ - 2$\Re(\mathcal{A*M})$ + $\langle \psi| \psi\\rangle$")
-plt.xlabel("Trotter Steps (T)")
-plt.yscale('log')
-plt.legend()
-plt.show()
-
-# ---------------------------------------------------------
-# entropy
-# ---------------------------------------------------------
-plt.title(
-    "Middle Chain Entanglement Entropy: " + f"$\delta = {delta}$; $h_{{t-ev}} = {h_ev}$"
-)
-for i in range(1, L // 2 + 1):
-    chi = 2**i
-    entropy_chi = [0]
-    for trott in range(trotter_steps):
-        schmidt_vals = np.loadtxt(
-            f"/Users/fradm98/Desktop/mps/results/bonds_data/schmidt_values_middle_chain_Ising_L_{L}_chi_{chi}_trotter_step_{trott}_delta_{delta}"
-        )
-        entropy = von_neumann_entropy(schmidt_vals)
-        entropy_chi.append(entropy)
-    plt.scatter(
-        delta * np.arange(trotter_steps + 1),
-        entropy_chi,
-        s=20,
-        marker="o",
-        alpha=0.6,
-        facecolors=colors[i - 1],
-        edgecolors=colors[i - 1],
-        label=f"mps: $\chi={chi}$",
-    )
-
-plt.ylabel("entanglement von neumann entropy $(S_{\chi})$")
-plt.xlabel("time (t = $\delta$ T)")
-plt.legend()
-plt.show()
-# %%
