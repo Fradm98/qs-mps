@@ -1026,8 +1026,6 @@ class MPS:
             if rev:
                 array = self.ancilla_sites
                 ancilla_array = self.sites
-                self.mpo_dagger()
-                w = self.w_dag
             else:
                 array = self.sites
                 ancilla_array = self.ancilla_sites
@@ -1666,23 +1664,24 @@ class MPS:
         X = np.array([[0, 1], [1, 0]])
         Z = np.array([[1, 0], [0, -1]])
 
-        # enlarging our local tensor to the max bond dimension
-        self.enlarge_chi()
-
         if flip:
             if self.L%2 == 0:
                 self.sites[self.L // 2] = np.array([[[0],[1]]])
                 self.sites[self.L // 2 - 1] = np.array([[[0],[1]]])
             else:
                 self.sites[self.L // 2] = np.array([[[0],[1]]])
+
+        # enlarging our local tensor to the max bond dimension
+        self.enlarge_chi()
+
         # total
         self.order_param_Ising(op=Z)
         mag_mps_tot.append(np.real(self.mpo_first_moment()))
         # loc Z
-        self.single_operator_Ising(site=self.L // 2, op=Z)
+        self.single_operator_Ising(site=self.L // 2 + 1, op=Z)
         mag_mps_loc_Z.append(np.real(self.mpo_first_moment()))
         # loc X
-        self.single_operator_Ising(site=self.L // 2, op=X)
+        self.single_operator_Ising(site=self.L // 2 + 1, op=X)
         mag_mps_loc_X.append(np.real(self.mpo_first_moment()))
         # local
         mag_loc = []
@@ -1741,10 +1740,10 @@ class MPS:
             self.order_param_Ising(op=Z)
             mag_mps_tot.append(np.real(self.mpo_first_moment()))
             # loc Z
-            self.single_operator_Ising(site=self.L // 2, op=Z)
+            self.single_operator_Ising(site=self.L // 2 + 1, op=Z)
             mag_mps_loc_Z.append(np.real(self.mpo_first_moment()))
             # loc X
-            self.single_operator_Ising(site=self.L // 2, op=X)
+            self.single_operator_Ising(site=self.L // 2 + 1, op=X)
             mag_mps_loc_X.append(np.real(self.mpo_first_moment()))
             # local
             mag = []
@@ -2292,3 +2291,7 @@ class MPS:
         self.sites = [site.reshape(shapes[i]) for i, site in enumerate(flat_tn)]
 
         return self
+
+# if __name__ == "__main__":
+#     chain = MPS(L=15, d=2, model="Ising", chi=2)
+#     chain.variational_mps_evolution(trotter_steps=500, delta=0.02, h_ev=0.3, flip=True)
