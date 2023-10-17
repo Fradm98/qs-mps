@@ -1677,13 +1677,10 @@ class MPS:
         # total
         self.order_param_Ising(op=Z)
         mag_mps_tot.append(np.real(self.mpo_first_moment()))
-        # loc Z
-        self.single_operator_Ising(site=self.L // 2 + 1, op=Z)
-        mag_mps_loc_Z.append(np.real(self.mpo_first_moment()))
         # loc X
         self.single_operator_Ising(site=self.L // 2 + 1, op=X)
         mag_mps_loc_X.append(np.real(self.mpo_first_moment()))
-        # local
+        # local glob Z
         mag_loc = []
         for i in range(self.L):
             self.single_operator_Ising(site=i + 1, op=Z)
@@ -1713,6 +1710,7 @@ class MPS:
         self.ancilla_sites = self.sites.copy()
 
         errors = [[0,0]]
+        schmidt_vals = []
         for trott in range(trotter_steps):
             print(f"------ Trotter steps: {trott} -------")
             self.mpo_Ising_time_ev(delta=delta, h_ev=h_ev, J_ev=1)
@@ -1723,7 +1721,7 @@ class MPS:
             print(f"Bond dim site: {self.sites[self.L//2].shape[0]}")
             # print("Braket <phi|psi>:")
             # self._compute_norm(site=1, mixed=True)
-            error = self.compression(
+            error, schmidt = self.compression(
                 delta=delta,
                 trotter_step=trott,
                 trunc_tol=False,
@@ -1735,17 +1733,15 @@ class MPS:
             )
             self.canonical_form(trunc_chi=True, trunc_tol=False)
             errors.append(error)
+            schmidt_vals.append(schmidt)
 
             # total
             self.order_param_Ising(op=Z)
             mag_mps_tot.append(np.real(self.mpo_first_moment()))
-            # loc Z
-            self.single_operator_Ising(site=self.L // 2 + 1, op=Z)
-            mag_mps_loc_Z.append(np.real(self.mpo_first_moment()))
             # loc X
             self.single_operator_Ising(site=self.L // 2 + 1, op=X)
             mag_mps_loc_X.append(np.real(self.mpo_first_moment()))
-            # local
+            # local glob Z
             mag = []
             for i in range(self.L):
                 self.single_operator_Ising(site=i + 1, op=Z)
@@ -1762,7 +1758,7 @@ class MPS:
                 )
                 psi_new_mpo = mps_to_vector(self.sites)
                 overlap.append(np.abs((psi_new_mpo.T.conjugate() @ psi_exact).real))
-        return mag_mps_tot, mag_mps_loc_Z, mag_mps_loc_X, mag_mps_loc, overlap, errors
+        return mag_mps_tot, mag_mps_loc_X, mag_mps_loc, overlap, errors, schmidt_vals
 
     def environments_ev(self, site):
         a = np.array([1])
@@ -1855,6 +1851,7 @@ class MPS:
         precision: int - indicates the precision to save parameters
 
         """
+        s_mid = 0
         if sweep == "right":
             # we want to write M (left,d,right) in LFC -> (left*d,right)
             m = self.sites[site - 1].reshape(
@@ -1872,10 +1869,11 @@ class MPS:
                 v = v[: len(s), :]
                 if site == self.L // 2:
                     # print(f'Schmidt values:\n{s}')
-                    np.savetxt(
-                        f"/Users/fradm/Google Drive/My Drive/projects/0_ISING/results/bonds_data/schmidt_values_middle_chain_{self.model}_flip_{flip}_L_{self.L}_chi_{self.chi}_trotter_step_{trotter_step}_delta_{delta}",
-                        s,
-                    )
+                    s_mid = s
+                    # np.savetxt(
+                    #     f"/Users/fradm/Google Drive/My Drive/projects/0_ISING/results/bonds_data/schmidt_values_middle_chain_{self.model}_flip_{flip}_L_{self.L}_chi_{self.chi}_trotter_step_{trotter_step}_delta_{delta}",
+                    #     s,
+                    # )
             elif trunc_chi:
                 s_trunc = s[: self.chi]
                 s = s / np.linalg.norm(s_trunc)
@@ -1884,11 +1882,12 @@ class MPS:
                 u = u[:, :, : len(s)]
                 v = v[: len(s), :]
                 if site == self.L // 2:
+                    s_mid = s
                     # print(f'Schmidt values:\n{s}')
-                    np.savetxt(
-                        f"/Users/fradm/Google Drive/My Drive/projects/0_ISING/results/bonds_data/schmidt_values_middle_chain_{self.model}_flip_{flip}_L_{self.L}_chi_{self.chi}_trotter_step_{trotter_step}_delta_{delta}",
-                        s,
-                    )
+                    # np.savetxt(
+                    #     f"/Users/fradm/Google Drive/My Drive/projects/0_ISING/results/bonds_data/schmidt_values_middle_chain_{self.model}_flip_{flip}_L_{self.L}_chi_{self.chi}_trotter_step_{trotter_step}_delta_{delta}",
+                    #     s,
+                    # )
             else:
                 u = u.reshape(
                     self.sites[site - 1].shape[0], self.d, self.sites[site - 1].shape[2]
@@ -1922,11 +1921,12 @@ class MPS:
                 v = v[: len(s), :, :]
                 u = u[:, : len(s)]
                 if site == self.L // 2:
+                    s_mid = s
                     # print(f'Schmidt values:\n{s}')
-                    np.savetxt(
-                        f"/Users/fradm/Google Drive/My Drive/projects/0_ISING/results/bonds_data/schmidt_values_middle_chain_{self.model}_flip_{flip}_L_{self.L}_chi_{self.chi}_trotter_step_{trotter_step}_delta_{delta}",
-                        s,
-                    )
+                    # np.savetxt(
+                    #     f"/Users/fradm/Google Drive/My Drive/projects/0_ISING/results/bonds_data/schmidt_values_middle_chain_{self.model}_flip_{flip}_L_{self.L}_chi_{self.chi}_trotter_step_{trotter_step}_delta_{delta}",
+                    #     s,
+                    # )
             elif trunc_chi:
                 s_trunc = s[: self.chi]
                 s = s / np.linalg.norm(s_trunc)
@@ -1936,11 +1936,12 @@ class MPS:
                 v = v[: len(s), :, :]
                 u = u[:, : len(s)]
                 if site == self.L // 2:
+                    s_mid = s
                     # print(f'Schmidt values:\n{s}')
-                    np.savetxt(
-                        f"/Users/fradm/Google Drive/My Drive/projects/0_ISING/results/bonds_data/schmidt_values_middle_chain_{self.model}_flip_{flip}_L_{self.L}_chi_{self.chi}_trotter_step_{trotter_step}_delta_{delta}",
-                        s,
-                    )
+                    # np.savetxt(
+                    #     f"/Users/fradm/Google Drive/My Drive/projects/0_ISING/results/bonds_data/schmidt_values_middle_chain_{self.model}_flip_{flip}_L_{self.L}_chi_{self.chi}_trotter_step_{trotter_step}_delta_{delta}",
+                    #     s,
+                    # )
             else:
                 v = v.reshape(
                     self.sites[site - 1].shape[0], self.d, self.sites[site - 1].shape[2]
@@ -1957,7 +1958,7 @@ class MPS:
             self.sites[site - 1] = v
             self.sites[site - 2] = next_site
 
-        return self
+        return s_mid
 
     def update_envs_ev(self, sweep, site):
         """
@@ -2061,7 +2062,7 @@ class MPS:
                     # self._compute_norm(site=1, mixed=True)
                     errors.append(errs)
 
-                self.update_state_ev(
+                s = self.update_state_ev(
                     sweeps[0],
                     sites[i],
                     delta,
@@ -2072,6 +2073,8 @@ class MPS:
                     e_tol,
                     precision,
                 )
+                if sites[i] == self.L // 2:
+                    s_mid = s
                 self.update_envs_ev(sweeps[0], sites[i])
 
                 iter += 1
@@ -2095,7 +2098,7 @@ class MPS:
             print(f"The two states converged to an order of {errs}\n" +
                 f"instead of the convergence tolerance {conv_tol}") 
             print("##############################")
-        return errors
+        return errors, s_mid
 
     def enlarge_chi(self):
         extended_array = []
