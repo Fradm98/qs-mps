@@ -170,3 +170,6 @@ figures/*
 
 # results of tests
 tests/results/*
+
+# visualization file
+src/mps/visualization_time_evolution.py

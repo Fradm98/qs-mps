@@ -144,6 +144,51 @@ def load_list_of_lists(file_path):
     return loaded_data
 
 # ---------------------------------------------------------------------------------------
+# Access txt
+# ---------------------------------------------------------------------------------------
+def access_txt(file_path: str, column_index: int):
+    """
+    access_txt
+
+    This function accesses to .txt files that have 
+    an equal number of space separated values for each row.
+    We can access to one specific column of the .txt file.
+
+    file_path: str - file path
+    column_index: int - index of the column we want to retrieve
+
+    """
+    # Initialize an empty grid to store the values
+    grid = []
+
+    # Open and read the file
+    with open(file_path, 'r') as file:
+        for line in file:
+            # Split each line into a list of values, assuming values are separated by spaces
+            values = line.strip().split()
+            row = [float(value) for value in values]
+            # Append the row to the grid
+            grid.append(row)
+    
+    # Assuming 'grid' contains your data as a list of lists
+    # Get the number of rows and columns in the grid
+    m = len(grid)  # Number of rows
+    n = len(grid[0])  # Number of columns (assuming all rows have the same number of columns)
+
+    # Initialize empty lists for each column
+    columns = [[] for _ in range(n)]
+
+    # Extract values column-wise
+    for row in grid:
+        for j in range(n):
+            columns[j].append(row[j])
+
+    # Now, 'columns' is a list of lists where columns[j] contains the values of the j-th column.
+    column = columns[column_index]
+    return column
+
+
+# ---------------------------------------------------------------------------------------
 # ---------------------------------------------------------------------------------------
 # ---------------------------------------------------------------------------------------
 """
