@@ -1,7 +1,7 @@
 import numpy as np
 from ncon import ncon
 from scipy.sparse.linalg import eigsh
-from scipy.sparse import csr_matrix, identity
+from scipy.sparse import csr_matrix, csr_array, identity
 from checks import *
 from scipy.linalg import expm, solve
 from utils import *
@@ -35,6 +35,9 @@ class MPS:
         self.env_left_sm = []
         self.env_right_sm = []
 
+    # -------------------------------------------------
+    # Manipulation of tensors, state preparation
+    # -------------------------------------------------
     def _random_state(self, seed, type_shape="trapezoidal", chi=None, ancilla=False):
         """
         _random_state
@@ -96,7 +99,12 @@ class MPS:
         return self
 
     def canonical_form(
-        self, svd_direction="left", e_tol=10 ** (-15), ancilla=False, trunc_chi=False, trunc_tol=True
+        self,
+        svd_direction="left",
+        e_tol=10 ** (-15),
+        ancilla=False,
+        trunc_chi=False,
+        trunc_tol=True,
     ):
         """
         canonical_form
@@ -152,7 +160,9 @@ class MPS:
             original_matrix = new_site
             scaled_matrix = original_matrix / np.max(np.abs(original_matrix))
             lambda_ = 1e-15
-            regularized_matrix = scaled_matrix + lambda_ * np.eye(scaled_matrix.shape[0],scaled_matrix.shape[1])
+            regularized_matrix = scaled_matrix + lambda_ * np.eye(
+                scaled_matrix.shape[0], scaled_matrix.shape[1]
+            )
             u, s, v = np.linalg.svd(
                 regularized_matrix,
                 full_matrices=False,
@@ -172,8 +182,7 @@ class MPS:
                 s = s_trunc / np.linalg.norm(s_trunc)
                 u = u[:, :, : len(s)]
                 v = v[: len(s), :]
-            
-            
+
             sites[i] = u
             bonds.append(s)
             psi = ncon(
@@ -220,7 +229,9 @@ class MPS:
             original_matrix = new_site
             scaled_matrix = original_matrix / np.max(np.abs(original_matrix))
             lambda_ = 1e-15
-            regularized_matrix = scaled_matrix + lambda_ * np.eye(scaled_matrix.shape[0],scaled_matrix.shape[1])
+            regularized_matrix = scaled_matrix + lambda_ * np.eye(
+                scaled_matrix.shape[0], scaled_matrix.shape[1]
+            )
             u, s, v = np.linalg.svd(
                 regularized_matrix,
                 full_matrices=False,
@@ -238,9 +249,9 @@ class MPS:
                 condition = s >= e_tol
                 s_trunc = np.extract(condition, s)
                 s = s_trunc / np.linalg.norm(s_trunc)
-                v = v[:len(s), :, :]
+                v = v[: len(s), :, :]
                 bonds.append(s)
-                u = u[:, :len(s)]
+                u = u[:, : len(s)]
 
             sites[i] = v
             bonds.append(s)
@@ -257,50 +268,6 @@ class MPS:
         # print(f"Time of svd during canonical form: {time.perf_counter()-time_cf}")
         # np.savetxt(f"results/times_data/svd_canonical_form_h_{self.h:.2f}", [time.perf_counter()-time_cf])
         return self
-
-    def braket(self, site, ancilla=False, mixed=False, rev=False):
-        ket = self.sites
-        bra = ket
-        env_right = self.env_right
-        env_left = self.env_left
-        w = self.w
-
-        if ancilla:
-            ket = self.ancilla_sites
-            bra = ket
-            w = self.w
-        elif mixed:
-            ket = self.ancilla_sites
-            bra = self.sites
-            w = self.w
-        elif rev:
-            ket = self.sites
-            bra = self.ancilla_sites
-            w = self.w
-            env_left = self.env_left_sm
-            env_right = self.env_right_sm
-
-        # print(f"env_left:{env_left[-1].shape}")
-        # print(f"ket:{ket[site - 1].shape}")
-        # print(f"w:{w[site - 1].shape}")
-        # print(f"bra:{bra[site - 1].shape}")
-        # print(f"env_right:{env_right[-1].shape}")
-        sandwich = ncon(
-            [
-                env_left[-1],
-                ket[site - 1],
-                w[site - 1],
-                bra[site - 1].conjugate(),
-                env_right[-1],
-            ],
-            [[1, 4, 7], [1, 3, 2], [4, 5, 3, 6], [7, 6, 8], [2, 5, 8]],
-        )
-        return sandwich
-
-    def overlap_sites(self, array_1, array_2=None):
-        if array_2 is None:
-            array_2 = array_1
-        return ncon([array_1, array_2.conjugate()], [[-1, 1, -3], [-2, 1, -4]])
 
     def _compute_norm(self, site, ancilla=False, mixed=False):
         """
@@ -320,101 +287,37 @@ class MPS:
             array_1 = self.ancilla_sites
             array_2 = self.sites
 
-            ten = ncon([a,a,array_1[0],array_2[0].conjugate()],[[1],[2],[1,3,-1],[2,3,-2]])
-            for i in range(1,self.L):
-                ten = ncon([ten,array_1[i],array_2[i].conjugate()],[[1,2],[1,3,-1],[2,3,-2]])
-            
-            N = ncon([ten,a,a],[[1,2],[1],[2]]).real
+            ten = ncon(
+                [a, a, array_1[0], array_2[0].conjugate()],
+                [[1], [2], [1, 3, -1], [2, 3, -2]],
+            )
+            for i in range(1, self.L):
+                ten = ncon(
+                    [ten, array_1[i], array_2[i].conjugate()],
+                    [[1, 2], [1, 3, -1], [2, 3, -2]],
+                )
 
-            # for i in range(site - 1):
-            #     ten = self.overlap_sites(array_1=array_1[i], array_2=array_2[i])
-            #     env = ncon([env, ten], [[-1, -2, 1, 2], [1, 2, -3, -4]])
-            # left = env
-            # env = ncon([a, a, a, a], [[-1], [-2], [-3], [-4]])
-            # right = env
-            # for i in range(self.L - 1, site - 1, -1):
-            #     ten = self.overlap_sites(array_1=array_1[i], array_2=array_2[i])
-            #     env = ncon([ten, env], [[-1, -2, 1, 2], [1, 2, -3, -4]])
-            # right = env
+            N = ncon([ten, a, a], [[1, 2], [1], [2]]).real
 
-            # ten_site = self.overlap_sites(array_1=array_1[site - 1], array_2=array_2[site - 1])
-            # # print(f"The tensor in the site {site}:")
-            # # print(ten_site)
-            # N = ncon(
-            #     [left, ten_site, right], [[-1, -2, 1, 2], [1, 2, 3, 4], [3, 4, -3, -4]]
-            # )
         else:
             array = self.sites
             if ancilla:
                 array = self.ancilla_sites
 
-            ten = ncon([a,a,array[0],array[0].conjugate()],[[1],[2],[1,3,-1],[2,3,-2]])
-            for i in range(1,self.L):
-                ten = ncon([ten,array[i],array[i].conjugate()],[[1,2],[1,3,-1],[2,3,-2]])
-            
-            N = ncon([ten,a,a],[[1,2],[1],[2]]).real
+            ten = ncon(
+                [a, a, array[0], array[0].conjugate()],
+                [[1], [2], [1, 3, -1], [2, 3, -2]],
+            )
+            for i in range(1, self.L):
+                ten = ncon(
+                    [ten, array[i], array[i].conjugate()],
+                    [[1, 2], [1, 3, -1], [2, 3, -2]],
+                )
 
-        #     for i in range(site - 1):
-        #         ten = self.overlap_sites(array_1=array[i])
-        #         env = ncon([env, ten], [[-1, -2, 1, 2], [1, 2, -3, -4]])
-        #     left = env
-        #     env = ncon([a, a, a, a], [[-1], [-2], [-3], [-4]])
-        #     right = env
-        #     for i in range(self.L - 1, site - 1, -1):
-        #         ten = self.overlap_sites(array_1=array[i])
-        #         env = ncon([ten, env], [[-1, -2, 1, 2], [1, 2, -3, -4]])
-        #     right = env
+            N = ncon([ten, a, a], [[1, 2], [1], [2]]).real
 
-        #     ten_site = self.overlap_sites(array_1=array[site - 1])
-        #     # print(f"The tensor in the site {site}:")
-        #     # print(ten_site)
-        #     N = ncon(
-        #         [left, ten_site, right], [[-1, -2, 1, 2], [1, 2, 3, 4], [3, 4, -3, -4]]
-        #     )
-        # N = N[0, 0, 0, 0].real
         # print(f"-=-=-= Norm: {N}\n")
         return N
-
-    def mpo(self):
-        """
-        mpo
-
-        This function selects which MPO to use according to the
-        studied model. Here you can add other MPOs that you have
-        independently defined in the class.
-
-        """
-        if self.model == "Ising":
-            self.mpo_Ising()
-
-        elif self.model == "Z2_one_ladder":
-            self.mpo_Z2_one_ladder()
-
-        elif self.model == "Z2_two_ladder":
-            self.mpo_Z2_two_ladder()
-
-        return self
-
-    def mpo_Ising(self):
-        """
-        mpo_Ising
-
-        This function defines the MPO for the 1D transverse field Ising model.
-        It takes the same MPO for all sites.
-
-        """
-        I = np.eye(2)
-        O = np.zeros((2, 2))
-        X = np.array([[0, 1], [1, 0]])
-        Z = np.array([[1, 0], [0, -1]])
-        w_tot = []
-        for _ in range(self.L):
-            w = np.array(
-                [[I, -self.J * Z, -self.h * X - self.eps * X], [O, O, Z], [O, O, I]]
-            )
-            w_tot.append(w)
-        self.w = w_tot
-        return self
 
     def flipping_mps(self):
         """
@@ -447,6 +350,74 @@ class MPS:
             new_site = ncon([self.sites[i], X], [[-1, 1, -3], [1, -2]])
             self.sites[i] = new_site
 
+        return self
+
+    def enlarge_chi(self):
+        extended_array = []
+        chi = int(np.log2(self.chi))
+        for i in range(chi):
+            extended_array.append(np.zeros((self.d**i, self.d, self.d ** (i + 1))))
+        for _ in range(self.L - (2 * chi)):
+            extended_array.append(np.zeros((self.d**chi, self.d, self.d**chi)))
+        for i in range(chi):
+            extended_array.append(
+                np.zeros((self.d ** (chi - i), self.d, self.d ** (chi - i - 1)))
+            )
+        print("shapes enlarged tensors:")
+        tensor_shapes(extended_array)
+        print("shapes original tensors:")
+        shapes = tensor_shapes(self.sites)
+        for i, shape in enumerate(shapes):
+            extended_array[i][: shape[0], : shape[1], : shape[2]] = self.sites[i]
+
+        self.sites = extended_array.copy()
+        return self
+
+    # -------------------------------------------------
+    # Matrix Product Operators, MPOs
+    # -------------------------------------------------
+    def mpo(self):
+        """
+        mpo
+
+        This function selects which MPO to use according to the
+        studied model. Here you can add other MPOs that you have
+        independently defined in the class.
+
+        """
+        if self.model == "Ising":
+            self.mpo_Ising()
+
+        elif self.model == "Z2_one_ladder":
+            self.mpo_Z2_one_ladder()
+
+        elif self.model == "Z2_two_ladder":
+            self.mpo_Z2_two_ladder()
+
+        return self
+
+    # -------------------------------------------------
+    # Hamiltonians, time evolution operators
+    # -------------------------------------------------
+    def mpo_Ising(self):
+        """
+        mpo_Ising
+
+        This function defines the MPO for the 1D transverse field Ising model.
+        It takes the same MPO for all sites.
+
+        """
+        I = np.eye(2)
+        O = np.zeros((2, 2))
+        X = np.array([[0, 1], [1, 0]])
+        Z = np.array([[1, 0], [0, -1]])
+        w_tot = []
+        for _ in range(self.L):
+            w = np.array(
+                [[I, -self.J * Z, -self.h * X - self.eps * X], [O, O, Z], [O, O, I]]
+            )
+            w_tot.append(w)
+        self.w = w_tot
         return self
 
     def mpo_Z2_one_ladder(self):
@@ -568,6 +539,32 @@ class MPS:
         self.w = w_tot
         return self
 
+    def mpo_Z2_general(self, l: int):
+        """
+        mpo_Z2_general
+
+        This function generates the mpo for the Z2 pure gauge theory for
+        general number of ladders and charges in all the sites. The mpo
+        was given by the dual mapping to the 2D Ising
+
+        l: int - number of ladders in the direct lattice
+
+        """
+        N = self.L + 1
+        O = np.zeros((self.d, self.d))
+        I = np.eye(self.d, self.d)
+        row = [O] * (l + 2)
+        w_edge = np.array(row * (l + 2))
+        w_edge[0, 0] = I
+        w_edge[-1, -1] = I
+        Z = []
+        coeff = []
+        for i in range(l):
+            w_edge[0, i + 1] = -coeff[i] * Z[i]
+        # w_edge = np.array([w_edge for j in range(2+l)])
+
+        pass
+
     def mpo_Ising_time_ev(self, delta, h_ev, J_ev):
         """
         mpo_Ising_time_ev
@@ -594,74 +591,60 @@ class MPS:
                 ]
             ]
         )
-        w_even_3 = np.array(
-            [np.sqrt(np.cos(J_ev * delta)) * I, 1j * np.sqrt(np.sin(J_ev * delta)) * Z]
-        )
+        # w_even_3 = np.array(
+        #     [np.sqrt(np.cos(J_ev * delta)) * I, 1j * np.sqrt(np.sin(J_ev * delta)) * Z]
+        # )
         w_in = ncon([w_even, w_loc, w_loc], [[-1, -2, 1, 2], [-3, 1], [2, -4]])
         w_odd = np.array(
             [[np.sqrt(np.cos(J_ev * delta)) * I, np.sqrt(np.sin(J_ev * delta)) * Z]]
         )
-        w_odd_3 = np.array(
-            [np.sqrt(np.cos(J_ev * delta)) * I, np.sqrt(np.sin(J_ev * delta)) * Z]
-        )
-        w_fin = ncon([w_odd.T, w_loc, w_loc], [[1, 2, -1, -2], [-3, 1], [2, -4]])
+        w_odd = np.swapaxes(w_odd, axis1=0, axis2=1)
+        # w_odd_3 = np.array(
+        #     [np.sqrt(np.cos(J_ev * delta)) * I, np.sqrt(np.sin(J_ev * delta)) * Z]
+        # )
+        # w_fin = ncon([w_odd.T, w_loc, w_loc], [[1, 2, -1, -2], [-3, 1], [2, -4]])
+        w_fin = ncon([w_odd, w_loc, w_loc], [[-1, -2, 1, 2], [-3, 1], [2, -4]])
         # w_fin = np.swapaxes(w_fin, axis1=0,axis2=1)
         w_tot.append(w_in)
         for site in range(2, self.L):
             if site % 2 == 0:
+                # w = ncon(
+                #     [w_loc, w_even_3, w_loc, w_odd_3.T],
+                #     [[1, -4], [-2, 2, 1], [3, 2], [3, -3, -1]],
+                # )
                 w = ncon(
-                    [w_loc, w_even_3, w_loc, w_odd_3.T],
-                    [[1, -4], [-2, 2, 1], [3, 2], [3, -3, -1]],
+                    [w_loc, w_even, w_loc, w_odd],
+                    [[1, -6], [-2, -4, 2, 1], [3, 2], [-1, -3, -5, 3]],
+                ).reshape(
+                    w_odd.shape[0] * w_even.shape[0],
+                    w_odd.shape[1] * w_even.shape[1],
+                    w_odd.shape[2],
+                    w_even.shape[3],
                 )
             else:
+                # w = ncon(
+                #     [w_odd_3.T, w_loc, w_even_3, w_loc],
+                #     [[-4, 1, -1], [2, 1], [-2, 3, 2], [-3, 3]],
+                # )
                 w = ncon(
-                    [w_odd_3.T, w_loc, w_even_3, w_loc],
-                    [[-4, 1, -1], [2, 1], [-2, 3, 2], [-3, 3]],
+                    [w_odd, w_loc, w_even, w_loc],
+                    [[-2, -4, 3, -6], [2, 3], [-1, -3, 1, 2], [-5, 1]],
+                ).reshape(
+                    w_odd.shape[0] * w_even.shape[0],
+                    w_odd.shape[1] * w_even.shape[1],
+                    w_even.shape[2],
+                    w_odd.shape[3],
                 )
+
             w_tot.append(w)
 
         w_tot.append(w_fin)
         self.w = w_tot
         return self
 
-    def mpo_Ising_O_dag_O(self):
-        """
-        mpo_Ising_O_dag_O
-
-        This function creates an mpo given by the product of a previous mpo O
-        with its dagger. If O is hermitian then it is equal to perform O^2.
-
-        """
-        ws = self.w
-        ws_dag = self.w_dag
-
-        w_tot = []
-        # for w, w_dag in zip(ws,ws_dag):
-        #     w = ncon([w_dag,w], [[1,-5,-3,-1],[-2,-4,1,-6]]).reshape((w.shape[0]*w_dag.shape[3],w.shape[1]*w_dag.shape[2],w.shape[2],w.shape[3]))
-        #     w_tot.append(w)
-
-        for w, w_dag in zip(ws, ws_dag):
-            w = ncon([w, w_dag], [[-1, -3, -5, 1], [-2, -4, 1, -6]]).reshape(
-                (
-                    w.shape[0] * w_dag.shape[0],
-                    w.shape[1] * w_dag.shape[1],
-                    w.shape[2],
-                    w.shape[3],
-                )
-            )
-            w_tot.append(w)
-
-        self.w = w_tot
-        return self
-
-    def mpo_dagger(self):
-        w_tot = []
-        for w in self.w:
-            w_dag = w.conjugate()
-            w_tot.append(w_dag)
-        self.w_dag = w_tot
-        return self
-
+    # -------------------------------------------------
+    # Observables, order parameters
+    # -------------------------------------------------
     def order_param(self):
         """
         order_param
@@ -822,6 +805,82 @@ class MPS:
         self.clear_envs()
         return chain
 
+    # -------------------------------------------------
+    # Manipulation of MPOs
+    # -------------------------------------------------
+    def mpo_dagger(self):
+        w_tot = []
+        for w in self.w:
+            w_dag = w.conjugate()
+            w_tot.append(w_dag)
+        self.w_dag = w_tot
+        return self
+
+    def mpo_O_dag_O(self):
+        """
+        mpo_Ising_O_dag_O
+
+        This function creates an mpo given by the product of a previous mpo O
+        with its dagger. If O is hermitian then it is equal to perform O^2.
+
+        """
+        ws = self.w
+        ws_dag = self.w_dag
+
+        w_tot = []
+
+        for w, w_dag in zip(ws, ws_dag):
+            w = ncon([w, w_dag], [[-1, -3, -5, 1], [-2, -4, 1, -6]]).reshape(
+                (
+                    w.shape[0] * w_dag.shape[0],
+                    w.shape[1] * w_dag.shape[1],
+                    w.shape[2],
+                    w.shape[3],
+                )
+            )
+            w_tot.append(w)
+
+        self.w = w_tot
+        return self
+
+    def mpo_to_mps(self, ancilla=True):
+        if ancilla:
+            array = self.ancilla_sites
+            for i in range(self.L):
+                self.ancilla_sites[i] = ncon(
+                    [array[i], self.w[i]],
+                    [
+                        [-1, 2, -4],
+                        [-2, -5, 2, -3],
+                    ],
+                ).reshape(
+                    (
+                        array[i].shape[0] * self.w[i].shape[0],
+                        self.d,
+                        array[i].shape[2] * self.w[i].shape[1],
+                    )
+                )
+        else:
+            array = self.sites
+            for i in range(self.L):
+                self.sites[i] = ncon(
+                    [array[i], self.w[i]],
+                    [
+                        [-1, 2, -4],
+                        [-2, -5, 2, -3],
+                    ],
+                ).reshape(
+                    (
+                        array[i].shape[0] * self.w[i].shape[0],
+                        self.d,
+                        array[i].shape[2] * self.w[i].shape[1],
+                    )
+                )
+        return self
+
+    # -------------------------------------------------
+    # Help functions relative to DMRG and TEBD
+    # -------------------------------------------------
     def envs(
         self,
         site=1,
@@ -1129,40 +1188,6 @@ class MPS:
 
         return H
 
-    def _N_eff(self, site):
-        array = self.sites
-        a = np.array([1])
-        env = ncon([a, a, a, a], [[-1], [-2], [-3], [-4]])
-
-        for i in range(site - 1):
-            ten = self.overlap_sites(array_1=array[i])
-            env = ncon([env, ten], [[-1, -2, 1, 2], [1, 2, -3, -4]])
-        left = env
-        left = ncon([a, a, left], [[1], [2], [1, 2, -1, -2]])
-        # print(csr_matrix(truncation(left, threshold=1e-15)))
-        # plt.title("left")
-        # plt.imshow(left.real, vmin=0, vmax=1)
-        # plt.show()
-        env = ncon([a, a, a, a], [[-1], [-2], [-3], [-4]])
-        for i in range(self.L - 1, site - 1, -1):
-            ten = self.overlap_sites(array_1=array[i])
-            env = ncon([ten, env], [[-1, -2, 1, 2], [1, 2, -3, -4]])
-        right = env
-        right = ncon([right, a, a], [[-1, -2, 1, 2], [1], [2]])
-        # print(csr_matrix(truncation(right, threshold=1e-15)))
-        # plt.title("right")
-        # plt.imshow(right.real, vmin=0, vmax=1)
-        # plt.show()
-        kron = np.eye(2)
-        # N = ncon([left,kron,right],[[-1,-4],[-2,-5],[-3,-6]]).reshape((self.env_left[-1].shape[2]*self.d*self.env_right[-1].shape[2],self.env_left[-1].shape[2]*self.d*self.env_right[-1].shape[2]))
-        N = ncon([left, kron, right], [[-1, -4], [-2, -5], [-3, -6]]).reshape(
-            (
-                left.shape[0] * self.d * right.shape[0],
-                left.shape[1] * self.d * right.shape[1],
-            )
-        )
-        return N, left.shape, right.shape
-
     def eigensolver(self, H_eff, site, v0=None):
         """
         eigensolver
@@ -1194,7 +1219,15 @@ class MPS:
 
         return e_min
 
-    def update_state(self, sweep, site, trunc_tol=True, trunc_chi=False, e_tol=10 ** (-15), precision=2):
+    def update_state(
+        self,
+        sweep,
+        site,
+        trunc_tol=True,
+        trunc_chi=False,
+        e_tol=10 ** (-15),
+        precision=2,
+    ):
         """
         update_state
 
@@ -1407,8 +1440,14 @@ class MPS:
 
         return self
 
-    def sweeping(
-        self, trunc_tol, trunc_chi, e_tol=10 ** (-15), n_sweeps=2, precision=2, var=False
+    def DMRG(
+        self,
+        trunc_tol,
+        trunc_chi,
+        e_tol=10 ** (-15),
+        n_sweeps=2,
+        precision=2,
+        var=False,
     ):  # iterations, sweep,
         energies = []
         variances = []
@@ -1443,7 +1482,9 @@ class MPS:
                 #     v = variance(first_m=energy, sm=sm)
                 #     variances.append(v)
                 # total_state_time = time.perf_counter()
-                self.update_state(sweeps[0], sites[i], trunc_tol, trunc_chi, e_tol, precision)
+                self.update_state(
+                    sweeps[0], sites[i], trunc_tol, trunc_chi, e_tol, precision
+                )
                 # print(f"Total time of state updating: {time.perf_counter()-total_state_time}")
                 # update_env_time = time.perf_counter()
                 self.update_envs(sweeps[0], sites[i])
@@ -1493,272 +1534,6 @@ class MPS:
                 variances,
             )
         return energies
-
-    def TEBD_ising(
-        self,
-        trunc,
-        trotter_steps,
-        delta,
-        h_ev,
-        J_ev,
-        e_tol=10 ** (-15),
-        n_sweeps=2,
-        precision=2,
-    ):
-        errors = []
-        self.clear_envs()
-        self._random_state(seed=3, chi=self.chi, ancilla=True)
-        self.canonical_form(ancilla=True)
-        for i in range(trotter_steps):
-            print("\n======================")
-            print(f"Trotter step: {i}")
-            print("======================\n")
-            self, err = self.time_ev_sweeping(
-                trunc, delta, h_ev, J_ev, e_tol=10 ** (-15), n_sweeps=2, precision=2
-            )
-            errors.append(err)
-            print(f"Error at trotter step {i}: {err:.5f}")
-        return self
-
-    def time_ev_sweeping(
-        self, trunc, delta, h_ev, J_ev, e_tol=10 ** (-15), n_sweeps=2, precision=2
-    ):
-        sweeps = ["right", "left"]
-        sites = np.arange(1, self.L + 1).tolist()
-        errors = []
-        # computation of constant error
-        self.mpo_Ising_time_ev(delta, h_ev, J_ev)
-        self.mpo_dagger()
-        self.mpo_Ising_O_dag_O()
-        self.envs(site=1, ancilla=True)
-        err_const = self.braket(site=1, ancilla=True)
-        self.clear_envs()
-
-        # computation of mixed environments
-        self.mpo_Ising_time_ev(delta, h_ev, J_ev)
-        self.envs(site=1, mixed=True)
-        self.envs(site=1, mixed=True, rev=True)
-        iter = 1
-        for n in range(n_sweeps):
-            print(f"Sweep n: {n}\n")
-            for i in range(self.L - 1):
-                self.contraction_with_ancilla(sites[i])
-                self.update_state(sweeps[0], sites[i], trunc, e_tol, precision)
-                err = self.error(site=sites[i], err_const=err_const)
-                print(f"error per site {sites[i]}: {err:.5f}")
-                errors.append(err)
-                self.update_envs(sweeps[0], sites[i], mixed=True)
-                self.update_envs(sweeps[0], sites[i], rev=True)
-                iter += 1
-
-            sweeps.reverse()
-            sites.reverse()
-
-        self.ancilla_sites = self.sites
-        return self, errors[-1]
-
-    def direct_mpo_evolution(
-        self, trotter_steps, delta, h_ev, J_ev, fidelity=False, trunc=True
-    ):
-        """
-        direct_mpo_evolution
-
-        This function computes the magnetization and (on demand) the fidelity
-        of the trotter evolved MPS by the MPO direct application.
-
-        trotter_steps: int - number of times we apply the mpo to the mps
-        delta: float - time interval which defines the evolution per step
-        h_ev: float - value of the external field in the evolving hamiltonian
-        J_ev: float - value of the Ising interaction in the evolving hamiltonian
-        fidelity: bool - we can compute the fidelity with the initial state
-                if the chain is small enough. By default False
-
-        """
-        overlap = []
-        mag_mps_tot = []
-        mag_mps_loc = []
-        Z = np.array([[1, 0], [0, -1]])
-
-        # total
-        self.order_param_Ising(op=Z)
-        mag_mps_tot.append(np.real(self.mpo_first_moment()))
-
-        # local
-        mag_loc = []
-        for i in range(self.L):
-            self.single_operator_Ising(site=i + 1, op=Z)
-            mag_loc.append(self.mpo_first_moment().real)
-        mag_mps_loc.append(mag_loc)
-
-        if fidelity:
-            psi_exact_0 = exact_initial_state(L=self.L, h_t=self.h)
-            psi_new_mpo = mps_to_vector(self.sites)
-            overlap.append(np.abs((psi_new_mpo.T.conjugate() @ psi_exact_0).real))
-        for T in range(trotter_steps):
-            print(f"------ Trotter steps: {T} -------")
-
-            self.mpo_Ising_time_ev(delta=delta, h_ev=h_ev, J_ev=1)
-            self.mpo_to_mps()
-            if trunc:
-                self.canonical_form(svd_direction="left")
-                self.canonical_form(svd_direction="right")
-            # tensor_shapes(self.sites)
-            # self.save_sites()
-
-            # total
-            self.order_param_Ising(op=Z)
-            mag_mps_tot.append(np.real(self.mpo_first_moment()))
-
-            # local
-            mag_loc = []
-            for i in range(self.L):
-                self.single_operator_Ising(site=i + 1, op=Z)
-                mag_loc.append(self.mpo_first_moment().real)
-            mag_mps_loc.append(mag_loc)
-
-            if fidelity:
-                psi_exact = exact_evolution(
-                    L=self.L,
-                    psi_init=psi_exact_0,
-                    trotter_step=(T + 1),
-                    delta=delta,
-                    h_t=h_ev,
-                )
-                psi_new_mpo = mps_to_vector(self.sites)
-                overlap.append(np.abs((psi_new_mpo.T.conjugate() @ psi_exact).real))
-        return mag_mps_tot, mag_mps_loc, overlap
-
-    def variational_mps_evolution(
-        self,
-        trotter_steps: int,
-        delta: float,
-        h_ev: float,
-        flip: bool,
-        n_sweeps: int = 2,
-        fidelity: bool = False,
-        err: bool = True,
-        conv_tol: float = 1e-7,
-    ):
-        """
-        variational_mps_evolution
-
-        This function computes the magnetization and (on demand) the fidelity
-        of the trotter evolved MPS by the MPO direct application.
-
-        trotter_steps: int - number of times we apply the mpo to the mps
-        delta: float - time interval which defines the evolution per step
-        h_ev: float - value of the external field in the evolving hamiltonian
-        J_ev: float - value of the Ising interaction in the evolving hamiltonian
-        fidelity: bool - we can compute the fidelity with the initial state
-                if the chain is small enough. By default False
-        err: bool - computes the distance error between the guess state and an 
-                uncompressed state. If True it is used as a convergence criterion.
-                By default True
-
-        """
-        overlap = []
-        mag_mps_tot = []
-        mag_mps_loc = []
-        mag_mps_loc_Z = []
-        mag_mps_loc_X = []
-        X = np.array([[0, 1], [1, 0]])
-        Z = np.array([[1, 0], [0, -1]])
-
-        if flip:
-            if self.L%2 == 0:
-                self.sites[self.L // 2] = np.array([[[0],[1]]])
-                self.sites[self.L // 2 - 1] = np.array([[[0],[1]]])
-            else:
-                self.sites[self.L // 2] = np.array([[[0],[1]]])
-
-        # enlarging our local tensor to the max bond dimension
-        self.enlarge_chi()
-
-        # total
-        self.order_param_Ising(op=Z)
-        mag_mps_tot.append(np.real(self.mpo_first_moment()))
-        # loc X
-        self.single_operator_Ising(site=self.L // 2 + 1, op=X)
-        mag_mps_loc_X.append(np.real(self.mpo_first_moment()))
-        # local glob Z
-        mag_loc = []
-        for i in range(self.L):
-            self.single_operator_Ising(site=i + 1, op=Z)
-            mag_loc.append(np.real(self.mpo_first_moment()))
-        mag_mps_loc.append(mag_loc)
-        # tolerance = 1e-6  # Adjust this to your desired level of precision
-        # # Check if the absolute difference between the two numbers is within the tolerance
-        # if abs(test.__float__() + (self.L - 2)) < tolerance:
-        #     self.flipping_all()
-        #     warnings.warn(
-        #         "The ground state found in DMRG could be in a superposition of states"
-        #     )
-        #     print("We flip all the chain to be in the positive magnetization state")
-        # mag_mps_tot.append(np.real(self.mpo_first_moment()))
-
-        # fidelity
-        if fidelity:
-            psi_exact_0 = exact_initial_state(
-                L=self.L, h_t=self.h
-            ).reshape(2**self.L, 1)
-            psi_new_mpo = mps_to_vector(self.sites)
-            overlap.append(np.abs((psi_new_mpo.T.conjugate() @ psi_exact_0).real))
-
-        # initialize ancilla with a state in Right Canonical Form
-        self.canonical_form(trunc_chi=True, trunc_tol=False)
-        self._compute_norm(site=1)
-        self.ancilla_sites = self.sites.copy()
-
-        errors = [[0,0]]
-        schmidt_vals = []
-        for trott in range(trotter_steps):
-            print(f"------ Trotter steps: {trott} -------")
-            self.mpo_Ising_time_ev(delta=delta, h_ev=h_ev, J_ev=1)
-            self.mpo_to_mps(ancilla=True)
-            self.canonical_form(svd_direction="right", ancilla=True, trunc_chi=False, trunc_tol=True)
-            self.canonical_form(svd_direction="left", ancilla=True, trunc_chi=False, trunc_tol=True)
-            print(f"Bond dim ancilla: {self.ancilla_sites[self.L//2].shape[0]}")
-            print(f"Bond dim site: {self.sites[self.L//2].shape[0]}")
-            # print("Braket <phi|psi>:")
-            # self._compute_norm(site=1, mixed=True)
-            error, schmidt = self.compression(
-                delta=delta,
-                trotter_step=trott,
-                trunc_tol=False,
-                trunc_chi=True,
-                flip=flip,
-                n_sweeps=n_sweeps,
-                err=err,
-                conv_tol=conv_tol,
-            )
-            self.canonical_form(trunc_chi=True, trunc_tol=False)
-            errors.append(error)
-            schmidt_vals.append(schmidt)
-
-            # total
-            self.order_param_Ising(op=Z)
-            mag_mps_tot.append(np.real(self.mpo_first_moment()))
-            # loc X
-            self.single_operator_Ising(site=self.L // 2 + 1, op=X)
-            mag_mps_loc_X.append(np.real(self.mpo_first_moment()))
-            # local glob Z
-            mag = []
-            for i in range(self.L):
-                self.single_operator_Ising(site=i + 1, op=Z)
-                mag.append(self.mpo_first_moment().real)
-            mag_mps_loc.append(mag)
-
-            if fidelity:
-                psi_exact = U_evolution(
-                    L=self.L,
-                    psi_init=psi_exact_0,
-                    trotter_step=(trott + 1),
-                    delta=delta,
-                    h_t=h_ev,
-                )
-                psi_new_mpo = mps_to_vector(self.sites)
-                overlap.append(np.abs((psi_new_mpo.T.conjugate() @ psi_exact).real))
-        return mag_mps_tot, mag_mps_loc_X, mag_mps_loc, overlap, errors, schmidt_vals
 
     def environments_ev(self, site):
         a = np.array([1])
@@ -2042,14 +1817,14 @@ class MPS:
         if err:
             print("Norm of ancilla sites:")
             N_anc = self._compute_norm(site=1, ancilla=True)
-        
+
         self.environments_ev(site=1)
         iter = 1
         for n in range(n_sweeps):
             print(f"Sweep n: {n}\n")
             for i in range(self.L - 1):
                 # print(f"\n============= Site: {sites[i]} ===================\n")
-                
+
                 M = self.compute_M_no_mpo(sites[i])
                 self.sites[sites[i] - 1] = M
 
@@ -2086,57 +1861,271 @@ class MPS:
             if ((n % 2) - 1) == 0:
                 if errs < conv_tol:
                     break
-        
+
         if errs < conv_tol:
             print("##############################")
-            print(f"The two states converged to an order of {conv_tol} after:\n" +
-                    f"{n} sweeps at site {sites[i]}\n" +
-                    f"total iterations {iter}")
+            print(
+                f"The two states converged to an order of {conv_tol} after:\n"
+                + f"{n} sweeps at site {sites[i]}\n"
+                + f"total iterations {iter}"
+            )
             print("##############################")
         else:
             print("##############################")
-            print(f"The two states converged to an order of {errs}\n" +
-                f"instead of the convergence tolerance {conv_tol}") 
+            print(
+                f"The two states converged to an order of {errs}\n"
+                + f"instead of the convergence tolerance {conv_tol}"
+            )
             print("##############################")
         return errors, s_mid
 
-    def enlarge_chi(self):
-        extended_array = []
-        chi = int(np.log2(self.chi))
-        for i in range(chi):
-            extended_array.append(np.zeros((self.d**i, self.d, self.d ** (i + 1))))
-        for _ in range(self.L - (2 * chi)):
-            extended_array.append(np.zeros((self.d**chi, self.d, self.d**chi)))
-        for i in range(chi):
-            extended_array.append(
-                np.zeros((self.d ** (chi - i), self.d, self.d ** (chi - i - 1)))
+    def TEBD_direct(self, trotter_steps, delta, h_ev, J_ev, fidelity=False, trunc=True):
+        """
+        direct_mpo_evolution
+
+        This function computes the magnetization and (on demand) the fidelity
+        of the trotter evolved MPS by the MPO direct application.
+
+        trotter_steps: int - number of times we apply the mpo to the mps
+        delta: float - time interval which defines the evolution per step
+        h_ev: float - value of the external field in the evolving hamiltonian
+        J_ev: float - value of the Ising interaction in the evolving hamiltonian
+        fidelity: bool - we can compute the fidelity with the initial state
+                if the chain is small enough. By default False
+
+        """
+        overlap = []
+        mag_mps_tot = []
+        mag_mps_loc = []
+        Z = np.array([[1, 0], [0, -1]])
+
+        # total
+        self.order_param_Ising(op=Z)
+        mag_mps_tot.append(np.real(self.mpo_first_moment()))
+
+        # local
+        mag_loc = []
+        for i in range(self.L):
+            self.single_operator_Ising(site=i + 1, op=Z)
+            mag_loc.append(self.mpo_first_moment().real)
+        mag_mps_loc.append(mag_loc)
+
+        if fidelity:
+            psi_exact_0 = exact_initial_state(L=self.L, h_t=self.h)
+            psi_new_mpo = mps_to_vector(self.sites)
+            overlap.append(np.abs((psi_new_mpo.T.conjugate() @ psi_exact_0).real))
+        for T in range(trotter_steps):
+            print(f"------ Trotter steps: {T} -------")
+
+            self.mpo_Ising_time_ev(delta=delta, h_ev=h_ev, J_ev=1)
+            self.mpo_to_mps()
+            if trunc:
+                self.canonical_form(svd_direction="left")
+                self.canonical_form(svd_direction="right")
+            # tensor_shapes(self.sites)
+            # self.save_sites()
+
+            # total
+            self.order_param_Ising(op=Z)
+            mag_mps_tot.append(np.real(self.mpo_first_moment()))
+
+            # local
+            mag_loc = []
+            for i in range(self.L):
+                self.single_operator_Ising(site=i + 1, op=Z)
+                mag_loc.append(self.mpo_first_moment().real)
+            mag_mps_loc.append(mag_loc)
+
+            if fidelity:
+                psi_exact = exact_evolution(
+                    L=self.L,
+                    psi_init=psi_exact_0,
+                    trotter_step=(T + 1),
+                    delta=delta,
+                    h_t=h_ev,
+                )
+                psi_new_mpo = mps_to_vector(self.sites)
+                overlap.append(np.abs((psi_new_mpo.T.conjugate() @ psi_exact).real))
+        return mag_mps_tot, mag_mps_loc, overlap
+
+    def TEBD_variational(
+        self,
+        trotter_steps: int,
+        delta: float,
+        h_ev: float,
+        flip: bool,
+        n_sweeps: int = 2,
+        fidelity: bool = False,
+        err: bool = True,
+        conv_tol: float = 1e-7,
+    ):
+        """
+        variational_mps_evolution
+
+        This function computes the magnetization and (on demand) the fidelity
+        of the trotter evolved MPS by the MPO direct application.
+
+        trotter_steps: int - number of times we apply the mpo to the mps
+        delta: float - time interval which defines the evolution per step
+        h_ev: float - value of the external field in the evolving hamiltonian
+        J_ev: float - value of the Ising interaction in the evolving hamiltonian
+        fidelity: bool - we can compute the fidelity with the initial state
+                if the chain is small enough. By default False
+        err: bool - computes the distance error between the guess state and an
+                uncompressed state. If True it is used as a convergence criterion.
+                By default True
+
+        """
+        overlap = []
+        mag_mps_tot = []
+        mag_mps_loc = []
+        mag_mps_loc_Z = []
+        mag_mps_loc_X = []
+        X = np.array([[0, 1], [1, 0]])
+        Z = np.array([[1, 0], [0, -1]])
+
+        if flip:
+            if self.L % 2 == 0:
+                self.sites[self.L // 2] = np.array([[[0], [1]]])
+                self.sites[self.L // 2 - 1] = np.array([[[0], [1]]])
+            else:
+                self.sites[self.L // 2] = np.array([[[0], [1]]])
+
+        # enlarging our local tensor to the max bond dimension
+        self.enlarge_chi()
+
+        # total
+        self.order_param_Ising(op=Z)
+        mag_mps_tot.append(np.real(self.mpo_first_moment()))
+        # loc X
+        self.single_operator_Ising(site=self.L // 2 + 1, op=X)
+        mag_mps_loc_X.append(np.real(self.mpo_first_moment()))
+        # local glob Z
+        mag_loc = []
+        for i in range(self.L):
+            self.single_operator_Ising(site=i + 1, op=Z)
+            mag_loc.append(np.real(self.mpo_first_moment()))
+        mag_mps_loc.append(mag_loc)
+        # tolerance = 1e-6  # Adjust this to your desired level of precision
+        # # Check if the absolute difference between the two numbers is within the tolerance
+        # if abs(test.__float__() + (self.L - 2)) < tolerance:
+        #     self.flipping_all()
+        #     warnings.warn(
+        #         "The ground state found in DMRG could be in a superposition of states"
+        #     )
+        #     print("We flip all the chain to be in the positive magnetization state")
+        # mag_mps_tot.append(np.real(self.mpo_first_moment()))
+
+        # fidelity
+        if fidelity:
+            psi_exact_0 = exact_initial_state(L=self.L, h_t=self.h).reshape(
+                2**self.L, 1
             )
-        print("shapes enlarged tensors:")
-        tensor_shapes(extended_array)
-        print("shapes original tensors:")
-        shapes = tensor_shapes(self.sites)
-        for i, shape in enumerate(shapes):
-            extended_array[i][:shape[0],:shape[1],:shape[2]] = self.sites[i]
+            psi_new_mpo = mps_to_vector(self.sites)
+            overlap.append(np.abs((psi_new_mpo.T.conjugate() @ psi_exact_0).real))
 
-        self.sites = extended_array.copy()
-        return self
-    
-    def clear_canonical(self):
-        self.sites.clear()
-        self.bonds.clear()
-        return self
+        # initialize ancilla with a state in Right Canonical Form
+        self.canonical_form(trunc_chi=True, trunc_tol=False)
+        self._compute_norm(site=1)
+        self.ancilla_sites = self.sites.copy()
 
-    def clear_envs(self):
-        self.env_left.clear()
-        self.env_right.clear()
-        return self
+        errors = [[0, 0]]
+        schmidt_vals = []
+        for trott in range(trotter_steps):
+            print(f"------ Trotter steps: {trott} -------")
+            self.mpo_Ising_time_ev(delta=delta, h_ev=h_ev, J_ev=1)
+            self.mpo_to_mps(ancilla=True)
+            # self.canonical_form(
+            #     svd_direction="right", ancilla=True, trunc_chi=False, trunc_tol=True
+            # )
+            # self.canonical_form(
+            #     svd_direction="left", ancilla=True, trunc_chi=False, trunc_tol=True
+            # )
+            print(f"Bond dim ancilla: {self.ancilla_sites[self.L//2].shape[0]}")
+            print(f"Bond dim site: {self.sites[self.L//2].shape[0]}")
+            # print("Braket <phi|psi>:")
+            # self._compute_norm(site=1, mixed=True)
+            error, schmidt = self.compression(
+                delta=delta,
+                trotter_step=trott,
+                trunc_tol=False,
+                trunc_chi=True,
+                flip=flip,
+                n_sweeps=n_sweeps,
+                err=err,
+                conv_tol=conv_tol,
+            )
+            self.ancilla_sites = self.sites.copy()
+            self.canonical_form(trunc_chi=True, trunc_tol=False)
+            errors.append(error)
+            schmidt_vals.append(schmidt)
 
-    def save_bond_dimension(self):
-        bond_dims = []
-        for i in range(len(self.sites)):
-            bond_dims.append(self.sites[i].shape[-1])
+            # total
+            self.order_param_Ising(op=Z)
+            mag_mps_tot.append(np.real(self.mpo_first_moment()))
+            # loc X
+            self.single_operator_Ising(site=self.L // 2 + 1, op=X)
+            mag_mps_loc_X.append(np.real(self.mpo_first_moment()))
+            # local glob Z
+            mag = []
+            for i in range(self.L):
+                self.single_operator_Ising(site=i + 1, op=Z)
+                mag.append(self.mpo_first_moment().real)
+            mag_mps_loc.append(mag)
 
-        return bond_dims
+            if fidelity:
+                psi_exact = U_evolution(
+                    L=self.L,
+                    psi_init=psi_exact_0,
+                    trotter_step=(trott + 1),
+                    delta=delta,
+                    h_t=h_ev,
+                )
+                psi_new_mpo = mps_to_vector(self.sites)
+                overlap.append(np.abs((psi_new_mpo.T.conjugate() @ psi_exact).real))
+        return mag_mps_tot, mag_mps_loc_X, mag_mps_loc, overlap, errors, schmidt_vals
+
+    # -------------------------------------------------
+    # Computing expectation values
+    # -------------------------------------------------
+    def braket(self, site, ancilla=False, mixed=False, rev=False):
+        ket = self.sites
+        bra = ket
+        env_right = self.env_right
+        env_left = self.env_left
+        w = self.w
+
+        if ancilla:
+            ket = self.ancilla_sites
+            bra = ket
+            w = self.w
+        elif mixed:
+            ket = self.ancilla_sites
+            bra = self.sites
+            w = self.w
+        elif rev:
+            ket = self.sites
+            bra = self.ancilla_sites
+            w = self.w
+            env_left = self.env_left_sm
+            env_right = self.env_right_sm
+
+        # print(f"env_left:{env_left[-1].shape}")
+        # print(f"ket:{ket[site - 1].shape}")
+        # print(f"w:{w[site - 1].shape}")
+        # print(f"bra:{bra[site - 1].shape}")
+        # print(f"env_right:{env_right[-1].shape}")
+        sandwich = ncon(
+            [
+                env_left[-1],
+                ket[site - 1],
+                w[site - 1],
+                bra[site - 1].conjugate(),
+                env_right[-1],
+            ],
+            [[1, 4, 7], [1, 3, 2], [4, 5, 3, 6], [7, 6, 8], [2, 5, 8]],
+        )
+        return sandwich
 
     def mpo_first_moment(self, site=1, ancilla=False):
         # self.order_param()
@@ -2199,40 +2188,25 @@ class MPS:
         )
         return fm
 
-    def mpo_to_mps(self, ancilla=True):
-        if ancilla:
-            array = self.ancilla_sites
-            for i in range(self.L):
-                self.ancilla_sites[i] = ncon(
-                    [array[i], self.w[i]],
-                    [
-                        [-1, 2, -4],
-                        [-2, -5, 2, -3],
-                    ],
-                ).reshape(
-                    (
-                        array[i].shape[0] * self.w[i].shape[0],
-                        self.d,
-                        array[i].shape[2] * self.w[i].shape[1],
-                    )
-                )
-        else:
-            array = self.sites
-            for i in range(self.L):
-                self.sites[i] = ncon(
-                    [array[i], self.w[i]],
-                    [
-                        [-1, 2, -4],
-                        [-2, -5, 2, -3],
-                    ],
-                ).reshape(
-                    (
-                        array[i].shape[0] * self.w[i].shape[0],
-                        self.d,
-                        array[i].shape[2] * self.w[i].shape[1],
-                    )
-                )
+    # -------------------------------------------------
+    # More help functions
+    # -------------------------------------------------
+    def clear_canonical(self):
+        self.sites.clear()
+        self.bonds.clear()
         return self
+
+    def clear_envs(self):
+        self.env_left.clear()
+        self.env_right.clear()
+        return self
+
+    def save_bond_dimension(self):
+        bond_dims = []
+        for i in range(len(self.sites)):
+            bond_dims.append(self.sites[i].shape[-1])
+
+        return bond_dims
 
     def save_sites(self, precision=2):
         """
@@ -2295,6 +2269,10 @@ class MPS:
 
         return self
 
-# if __name__ == "__main__":
-#     chain = MPS(L=15, d=2, model="Ising", chi=2)
-#     chain.variational_mps_evolution(trotter_steps=500, delta=0.02, h_ev=0.3, flip=True)
+
+if __name__ == "__main__":
+    l = 3
+    charges = [1, 1, 1, 1, 1, 1]
+    chain = MPS(L=15, d=2**l, model="Ising", chi=2, charges=charges, h=0.1, J=0)
+    chain.mpo_Z2_general(l=l)
+    # chain.mpo_Z2_two_ladder()

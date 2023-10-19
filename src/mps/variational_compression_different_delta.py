@@ -1,4 +1,3 @@
-#%%
 # import packages
 from mps_class import MPS
 from utils import *
@@ -7,179 +6,141 @@ from ncon import ncon
 import scipy
 from scipy.sparse import csr_array
 import time
+import argparse
 
-# %%
 # variational compression changing bond dimension
-chi = 16
-trotter_step_list = [5, 10, 40, 50]
-t = 5
-deltas = t / np.asarray(trotter_step_list)
-h_t = 0
-h_ev = 0.3
-L = 9
-n_sweeps = 2
+# parameters
 
-# exact
-psi_exact = exact_initial_state(L=L, h_t=h_t, h_l=1e-5).reshape(2**L, 1)
-Z = np.array([[1, 0], [0, -1]])
-# local
-mag_loc_op = [single_site_op(op=Z, site=i, L=L) for i in range(1, L + 1)]
-# total
-mag_tot_op = H_loc(L=L, op=Z)
-
-mag_exact_loc = []
-mag_exact_tot = []
-
-# local
-mag_exact = []
-for i in range(L):
-    mag_exact.append((psi_exact.T.conjugate() @ mag_loc_op[i] @ psi_exact).data[0].real)
-mag_exact_loc.append(mag_exact)
-
-# total
-mag = (psi_exact.T.conjugate() @ mag_tot_op @ psi_exact).data
-mag_exact_tot.append(mag.real)
-
-trotter_steps = 50
-delta = 0.1
-for trott in range(trotter_steps):
-    # exact
-    psi_new = U_evolution(
-        L=L, psi_init=psi_exact, trotter_step=trott + 1, delta=delta, h_t=h_ev
-    )
-
-    # local
-    mag_exact = []
-    for i in range(L):
-        mag_exact.append((psi_new.T.conjugate() @ mag_loc_op[i] @ psi_new).data[0].real)
-    mag_exact_loc.append(mag_exact)
-
-    # total
-    mag = (psi_new.T.conjugate() @ mag_tot_op @ psi_new).data
-    mag_exact_tot.append(mag.real)
-
-np.savetxt(
-    f"results/mag_data/mag_exact_tot_L_{L}_delta_{delta}_trott_{trotter_steps}",
-    mag_exact_tot,
+parser = argparse.ArgumentParser(prog="Time Evolution")
+parser.add_argument("L", help="Spin chain length", type=int)
+parser.add_argument("chi", help="Simulated bond dimension", type=int)
+parser.add_argument(
+    "h_ev", help="It will give you the magnitude of the quench", type=float
 )
-np.savetxt(
-    f"results/mag_data/mag_exact_loc_L_{L}_delta_{delta}_trott_{trotter_steps}",
-    mag_exact_loc,
+parser.add_argument(
+    "trotter_steps",
+    help="Different trotter steps, changes the precision of the evolution",
+    nargs="+",
+    type=int,
 )
-
-for delta, trotter_steps in zip(deltas, trotter_step_list):
-    chain = MPS(L=L, d=2, model="Ising", chi=chi, h=h_t, eps=1e-5, J=1)
-    chain._random_state(seed=3, chi=chi)
-    chain.canonical_form()
-    chain.sweeping(trunc=True, n_sweeps=2)
-    chain.flipping_mps()
-    mag_mps_tot, mag_mps_loc, overlap, errors = chain.variational_mps_evolution(
-        trotter_steps=trotter_steps, delta=delta, h_ev=h_ev, fidelity=True
-    )
-
-    np.savetxt(
-        f"results/mag_data/mag_mps_tot_L_{L}_delta_{delta}_chi_{chi}", mag_mps_tot
-    )
-    np.savetxt(
-        f"results/mag_data/mag_mps_loc_L_{L}_delta_{delta}_chi_{chi}", mag_mps_loc
-    )
-    np.savetxt(f"results/fidelity_data/fidelity_L_{L}_delta_{delta}_chi_{chi}", overlap)
-
-
-# %%
-# visualization
-
-# total
-plt.title(f"Total Magnetization for $\chi = {chi}$ ;" + " $h_{ev} =$" + f"{h_ev}")
-colors = create_sequential_colors(
-    num_colors=len(trotter_step_list), colormap_name="viridis"
+parser.add_argument(
+    "-f", "--flip", help="Flip the middle site or not", action="store_true"
 )
-i = 0
-for delta, trotter_steps in zip(deltas, trotter_step_list):
-    mag_mps_tot = np.loadtxt(
-        f"results/mag_data/mag_mps_tot_L_{L}_delta_{delta}_chi_{chi}"
+parser.add_argument(
+    "-m", "--model", help="Model to simulate", default="Ising", type=str
+)
+parser.add_argument(
+    "-t", "--time", help="Final time of the evolution", default=10, type=float
+)
+parser.add_argument(
+    "-h_ti",
+    "--h_transverse_init",
+    help="Initial transverse field before the quench",
+    default=0,
+    type=float,
+)
+parser.add_argument(
+    "-s",
+    "--number_sweeps",
+    help="Number of sweeps during the compression algorithm for each trotter step",
+    default=8,
+    type=int,
+)
+parser.add_argument(
+    "-fid",
+    "--fidelity",
+    help="Fidelity with exact solution. Doable only for small Ising chains",
+    action="store_true",
+)
+parser.add_argument(
+    "-cv",
+    "--conv_tol",
+    help="Convergence tolerance of the compression algorithm",
+    default=1e-15,
+    type=float,
+)
+args = parser.parse_args()
+
+
+# # ---------------------------------------------------------
+# # exact
+# psi_new, mag_exact_loc, mag_exact_tot = exact_evolution(
+#     L=L, h_t=h_t, h_ev=h_ev, delta=delta, trotter_steps=trotter_steps
+# )
+
+# np.savetxt(
+#     f"results/mag_data/mag_exact_tot_L_{L}_delta_{delta}_trott_{trotter_steps}",
+#     mag_exact_tot,
+# )
+# np.savetxt(
+#     f"results/mag_data/mag_exact_loc_L_{L}_delta_{delta}_trott_{trotter_steps}",
+#     mag_exact_loc,
+# )
+
+# ---------------------------------------------------------
+# variational truncation mps
+for trotter_step in args.trotter_steps:  # L // 2 + 1
+    delta = args.time / trotter_step
+    chain = MPS(
+        L=args.L,
+        d=2,
+        model=args.model,
+        chi=args.chi,
+        h=args.h_transverse_init,
+        eps=0,
+        J=1,
     )
-    plt.scatter(
-        delta * np.arange(trotter_steps + 1),
+    chain._random_state(seed=3, chi=args.chi)
+    chain.canonical_form(trunc_chi=False, trunc_tol=True)
+    # chain.sweeping(trunc_chi=False, trunc_tol=True, n_sweeps=2)
+    init_state = np.zeros((1, 2, 1))
+    init_state[0, 0, 0] = 1
+    for i in range(chain.L):
+        chain.sites[i] = init_state
+    (
         mag_mps_tot,
-        s=25,
-        marker="o",
-        alpha=0.8,
-        facecolors="none",
-        edgecolors=colors[i],
-        label=f"mps: $\delta={delta}$",
+        mag_mps_loc_X,
+        mag_mps_loc,
+        overlap,
+        errors,
+        schmidt_values,
+    ) = chain.variational_mps_evolution(
+        trotter_steps=trotter_step,
+        delta=delta,
+        h_ev=args.h_ev,
+        flip=args.flip,
+        fidelity=False,
+        conv_tol=1e-15,
+        n_sweeps=args.number_sweeps,
     )
-    i += 1
-plt.plot(
-    delta * np.arange(trotter_steps + 1),
-    mag_exact_tot,
-    color="indianred",
-    label=f"exact: $L={L}$",
-)
-plt.xlabel("time (t = $\delta$ T)")
-plt.legend()
-plt.show()
-
-# Local data
-data1 = mag_exact_loc
-data2 = mag_mps_loc
-title1 = "Exact quench (local mag)"
-title2 = f"MPS quench (local mag) $\chi={chi}$"
-plot_side_by_side(
-    data1=data1, data2=data2, cmap="seismic", title1=title1, title2=title2
-)
-
-# fidelity
-plt.title(
-    "Fidelity $\left<\psi_{MPS}(t)|\psi_{exact}(t)\\right>$: "
-    + f"$\delta = {delta}$; $h_{{t-ev}} = {h_ev}$"
-)
-i = 0
-for delta, trotter_steps in zip(deltas, trotter_step_list):
-    fidelity = np.loadtxt(
-        f"results/fidelity_data/fidelity_L_{L}_delta_{delta}_chi_{chi}"
+    np.savetxt(
+        f"/Users/fradm98/Google Drive/My Drive/projects/0_ISING/results/mag_data/mag_mps_tot_{args.model}_L_{args.L}_flip_{args.flip}_delta_{delta}_chi_{args.chi}",
+        mag_mps_tot,
     )
-    plt.scatter(
-        delta * np.arange(trotter_steps + 1),
-        fidelity,
-        s=20,
-        marker="o",
-        alpha=0.7,
-        facecolors="none",
-        edgecolors=colors[i],
-        label=f"mps: $\delta={delta}$",
+    np.savetxt(
+        f"/Users/fradm98/Google Drive/My Drive/projects/0_ISING/results/mag_data/mag_mps_loc_X_{args.model}_L_{args.L}_flip_{args.flip}_delta_{delta}_chi_{args.chi}",
+        mag_mps_loc_X,
     )
-    i += 1
-plt.xlabel("time (t = $\delta$ T)")
-plt.legend()
-plt.show()
-
-# entropy
-plt.title(
-    "Middle Chain Entanglement Entropy: " + f"$\chi = {chi}$; $h_{{t-ev}} = {h_ev}$"
-)
-i = 0
-for delta, trotter_steps in zip(deltas, trotter_step_list):
-    entropy_chi = [0]
-    for trott in range(trotter_steps):
-        schmidt_vals = np.loadtxt(
-            f"results/bonds_data/schmidt_values_middle_chain_Ising_L_{L}_chi_{chi}_trotter_step_{trott}_delta_{delta}"
-        )
-        entropy = von_neumann_entropy(schmidt_vals)
-        entropy_chi.append(entropy)
-    plt.scatter(
-        delta * np.arange(trotter_steps + 1),
-        entropy_chi,
-        s=20,
-        marker="o",
-        alpha=0.7,
-        facecolors="none",
-        edgecolors=colors[i],
-        label=f"mps: $\delta={delta}$",
+    np.savetxt(
+        f"/Users/fradm98/Google Drive/My Drive/projects/0_ISING/results/mag_data/mag_mps_loc_{args.model}_L_{args.L}_flip_{args.flip}_delta_{delta}_chi_{args.chi}",
+        mag_mps_loc,
     )
-    i += 1
-plt.ylabel("entanglement von neumann entropy $(S_{\chi})$")
-plt.xlabel("time (t = $\delta$ T)")
-plt.legend()
-plt.show()
-# %%
+    mag_mps_loc_Z = access_txt(
+        f"/Users/fradm98/Google Drive/My Drive/projects/0_ISING/results/mag_data/mag_mps_loc_{args.model}_L_{args.L}_flip_{args.flip}_delta_{delta}_chi_{args.chi}",
+        args.L // 2,
+    )
+    np.savetxt(
+        f"/Users/fradm98/Google Drive/My Drive/projects/0_ISING/results/mag_data/mag_mps_loc_Z_{args.model}_L_{args.L}_flip_{args.flip}_delta_{delta}_chi_{args.chi}",
+        mag_mps_loc_Z,
+    )
+    # np.savetxt(
+    #     f"/Users/fradm98/Google Drive/My Drive/projects/0_ISING/results/fidelity_data/fidelity_{args.model}_L_{args.L}_flip_{args.flip}_delta_{delta}_chi_{args.chi}", overlap
+    # )
+    save_list_of_lists(
+        f"/Users/fradm98/Google Drive/My Drive/projects/0_ISING/results/errors_data/errors_{args.model}_L_{args.L}_flip_{args.flip}_delta_{delta}_chi_{args.chi}",
+        errors,
+    )
+    np.savetxt(
+        f"/Users/fradm98/Google Drive/My Drive/projects/0_ISING/results/bonds_data/middle_chain_schmidt_values_{args.model}_L_{args.L}_flip_{args.flip}_delta_{delta}_chi_{args.chi}",
+        schmidt_values,
+    )

@@ -1,4 +1,4 @@
-#%%
+# %%
 # import packages
 from mps_class import MPS
 from mps.utils import *
@@ -40,40 +40,64 @@ chain.flipping_mps()
 # chain.sites = new_mps.copy()
 # I have in sites the initial ground state, now we initialize the ancilla_sites and evolve it
 mag_mps_tot, mag_mps_loc, overlap, errors = chain.variational_mps_evolution(
-    trotter_steps=trotter_steps, delta=delta, h_ev=h_ev, fidelity=True, conv_tol=1e-15, n_sweeps=n_sweeps
+    trotter_steps=trotter_steps,
+    delta=delta,
+    h_ev=h_ev,
+    fidelity=True,
+    conv_tol=1e-15,
+    n_sweeps=n_sweeps,
 )
 
 # %%
-plt.plot(mag_mps_tot, 'o')
+plt.plot(mag_mps_tot, "o")
 plt.plot(mag_tot)
 plt.show()
 plt.plot(overlap)
 plt.show()
-rand_trott = np.random.randint(0,trotter_steps)
+rand_trott = np.random.randint(0, trotter_steps)
 plt.title(f"Truncation error at a random trotter step: {rand_trott}")
-plt.plot(errors[rand_trott], label="distance error $\left|\left| |\phi\\rangle - |\psi\\rangle \\right|\\right|^2$")
+plt.plot(
+    errors[rand_trott],
+    label="distance error $\left|\left| |\phi\\rangle - |\psi\\rangle \\right|\\right|^2$",
+)
 if len(errors[rand_trott]) > L:
-    xs = np.linspace(0,len(errors[rand_trott]),len(errors[rand_trott])//L)
+    xs = np.linspace(0, len(errors[rand_trott]), len(errors[rand_trott]) // L)
 else:
-    xs = np.linspace(0,L,1) + L
-plt.vlines(xs, ymin=min(errors[rand_trott]), ymax=max(errors[rand_trott]), linestyle='--', colors='indianred', label="sweeps")
-plt.xlim(0,L+0.2)
+    xs = np.linspace(0, L, 1) + L
+plt.vlines(
+    xs,
+    ymin=min(errors[rand_trott]),
+    ymax=max(errors[rand_trott]),
+    linestyle="--",
+    colors="indianred",
+    label="sweeps",
+)
+plt.xlim(0, L + 0.2)
 plt.ylabel("$\mathcal{A* N A}$ - 2$\Re(\mathcal{A*M})$ + $\langle \psi| \psi\\rangle$")
 plt.xlabel("iterations")
-plt.yscale('log')
+plt.yscale("log")
 plt.legend()
 plt.show()
 plt.title(f"Truncation error $vs$ trotter steps")
 last_errors = [sublist[-1] for sublist in errors]
-plt.plot(last_errors, '*', label="distance error $\left|\left| |\phi\\rangle - |\psi\\rangle \\right|\\right|^2$")
+plt.plot(
+    last_errors,
+    "*",
+    label="distance error $\left|\left| |\phi\\rangle - |\psi\\rangle \\right|\\right|^2$",
+)
 plt.ylabel("$\mathcal{A* N A}$ - 2$\Re(\mathcal{A*M})$ + $\langle \psi| \psi\\rangle$")
 plt.xlabel("Trotter Steps (T)")
-plt.yscale('log')
+plt.yscale("log")
 plt.legend()
 plt.show()
 # we can check in the fidelity the sum of the trotter error and the truncation error
 plt.plot(overlap, label="fidelity")
-plt.plot([1-delta**2-error[-1] for _, error in zip(range(trotter_steps+1), errors)], '--', color='indianred', label="trotter + trunc error")
+plt.plot(
+    [1 - delta**2 - error[-1] for _, error in zip(range(trotter_steps + 1), errors)],
+    "--",
+    color="indianred",
+    label="trotter + trunc error",
+)
 plt.legend()
 plt.show()
 # %%
