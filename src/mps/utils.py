@@ -1,6 +1,6 @@
 import numpy as np
 from scipy.optimize import curve_fit
-from scipy.sparse.linalg import expm, eigsh, expm_multiply
+from scipy.sparse.linalg import expm, eigsh, expm_multiply, svds
 from scipy.sparse import csr_matrix, csc_matrix, csc_array, kron as spkron
 import os
 from ncon import ncon
@@ -299,6 +299,38 @@ def von_neumann_entropy(s):
 
     """
     return -np.sum((s**2) * np.log2(s**2))
+
+
+# ---------------------------------------------------------------------------------------
+# Middle Schmidt Values
+# ---------------------------------------------------------------------------------------
+def get_middle_chain_schmidt_values(vec):
+    """
+    get_middle_chain_schmidt_values
+
+    This function retrieve the schmidt values of a vector representing
+    a chain of spins. The decomposition is operated in the middle of the chain.
+
+    vec: csc_array - statevector of our system
+    
+    """
+    L = int(np.log2(vec.shape[0]))
+    sing_vals = []
+    sub = [2]*(L-2)
+    # sub[0] = 1
+    # sub[-1] = 1
+    for i in range(2,L-1):
+        new_shape = (2**(i),2**(L-i))
+        matrix = vec.reshape(new_shape)
+        s = svds(matrix, k=(min(matrix.shape[0],matrix.shape[1]) - sub[i-1]), return_singular_vectors=False, which="LM")
+        sing_vals.append(s)
+    # if (L % 2) == 0:
+    #     new_shape =(2**(L//2),2**(L//2))
+    # else:
+    #     new_shape =(2**(L//2 + 1),2**(L//2))
+    # matrix = vec.reshape(new_shape)
+    # s = svds(matrix, k=(min(matrix.shape[0],matrix.shape[1]) - 2), return_singular_vectors=False)
+    return sing_vals
 
 
 # ---------------------------------------------------------------------------------------
@@ -614,131 +646,6 @@ def H_ising_gen(
     return -J * H_int(L, op=op_l) - h_l * H_loc(L, op_l) - h_t * H_loc(L, op_t)
 
 
-def sparse_non_diag_paulis_indices(n, N):
-    """
-    Returns a tuple (row_indices, col_indices) containing the row and col indices of the non_zero elements
-    of the tensor product of a non diagonal pauli matrix (x, y) acting over a single qubit in a Hilbert
-    space of N qubits
-    
-    """
-    if 0 <= n < N:
-        block_length = 2**(N - n - 1)
-        nblocks = 2**n
-        ndiag_elements = block_length*nblocks
-        k = np.arange(ndiag_elements, dtype=int)
-        red_row_col_ind = (k % block_length) + 2*(k // block_length)*block_length
-        upper_diag_row_indices = red_row_col_ind
-        upper_diag_col_indices = block_length + red_row_col_ind
-        row_indices = np.concatenate((upper_diag_row_indices, upper_diag_col_indices))
-        col_indices = np.concatenate((upper_diag_col_indices, upper_diag_row_indices))
-        return row_indices, col_indices
-    else:
-        raise ValueError("Index n must fulfill 0 <= n < N")
-
-def sparse_pauli_x(n, L, row_indices_cache=None, col_indices_cache=None):
-    """
-    Returns a CSC sparse matrix representation of the pauli_x matrix acting over qubit n in a Hilbert space of L qubits
-    0 <= n < L
-    
-    """
-    if 0 <= n < L:
-        if (row_indices_cache is None) or (col_indices_cache is None):
-            row_indices_cache, col_indices_cache = sparse_non_diag_paulis_indices(n, L)
-        data = np.ones_like(row_indices_cache)
-        result = csc_array((data, (row_indices_cache, col_indices_cache)), shape=(2**L, 2**L), dtype=complex)
-        return result
-    else:
-        raise ValueError("Index n must fulfill 0 <= n < L")
-    
-def sparse_pauli_y(n, L, row_indices_cache=None, col_indices_cache=None):
-    """
-    Returns a CSC sparse matrix representation of the pauli_y matrix acting over qubit n in a Hilbert space of L qubits
-    0 <= n < L
-    
-    """
-    if 0 <= n < L :
-        if (row_indices_cache is None) or (col_indices_cache is None):
-            row_indices_cache, col_indices_cache = sparse_non_diag_paulis_indices(n, L)
-        data = -1j*np.ones_like(row_indices_cache)
-        data[len(data)//2::] = 1j
-        result = csc_array((data, (row_indices_cache, col_indices_cache)), shape=(2**L, 2**L), dtype=complex)
-        return result
-    else:
-        raise ValueError("Index n must fulfill 0 <= n < L")
-    
-def sparse_pauli_z(n, L):
-    """
-    Returns a CSC sparse matrix representation of the pauli_z matrix acting over qubit n in a Hilbert space of L qubits
-    0 <= n < L
-    
-    """
-    if 0 <= n < L:
-        block_length = 2**(L - n)
-        nblocks = 2**n
-        block = np.ones(block_length, dtype=int)
-        block[block_length//2::] = -1
-        diag = np.tile(block, nblocks)
-        row_col_indices = np.arange(2**L, dtype=int)
-        result = csc_array((diag, (row_col_indices, row_col_indices)), shape=(2**L, 2**L), dtype=complex)
-        return result
-    else:
-        raise ValueError("Index n must fulfill 0 <= n < L")
-    
-def sparse_ising_hamiltonian(J, h_t, h_l, L):
-    """
-    Returns a sparse representation of the Hamiltonian of the 1D Heisemberg model in a chain of length L
-    with periodic boundary conditions (hbar = 1)
-    J < 0: Antiferromagnetic case (Unique ground state of total angular momentum S=0)
-    J > 0: Ferromagnetic case (L+1-fold degeneracy of the ground state of angular momentum L/2) -> Dicke states for even L
-    """
-    hamiltonian_l = csc_array((2**L, 2**L), dtype=complex)
-    hamiltonian_t = csc_array((2**L, 2**L), dtype=complex)
-    hamiltonian_int = csc_array((2**L, 2**L), dtype=complex)
-   
-    # First sum over the terms containing sigma_x, sigma_y because the non-zero element indices are the same
-    # so that this improves performance
-    if h_t != 0:
-        for n in range(L):
-            n_row_indices, n_col_indices = sparse_non_diag_paulis_indices(n, L)
-            n_pauli_x = sparse_pauli_x(n, L, n_row_indices, n_col_indices)
-            hamiltonian_t += n_pauli_x
-    if h_l != 0:
-        for n in range(L):
-            n_pauli_z = sparse_pauli_z(n, L)
-            hamiltonian_l += n_pauli_z
-   
-    # Sum over sigma_z terms
-    
-    for n in range(L-1):
-        n_pauli_z = sparse_pauli_z(n, L)
-        np1_pauli_z = sparse_pauli_z(n+1, L)
-        hamiltonian_int += n_pauli_z @ np1_pauli_z
-
-    return - J*hamiltonian_int - h_t*hamiltonian_t - h_l*hamiltonian_l
-
-
-# ---------------------------------------------------------------------------------------
-# Exact Initial State
-# ---------------------------------------------------------------------------------------
-def sparse_ising_ground_state(L: int, h_t: float, h_l: float = 1e-7, J: float = 1, k: int = 1) -> csc_array:
-    """
-    exact_initial_state
-
-    This function is computing the initial state given by an Ising Hamiltonian.
-
-    L: int - chain size
-    h_t: float - initial transverse field parameter
-    h_l: float - initial longitudinal field parameter
-    k: int - number of eigenvalues we want to compute. By default 1
-
-    """
-    print("Finding the Hamiltonian...")
-    H = sparse_ising_hamiltonian(J=J, h_t=h_t, h_l=h_l, L=L)
-    print("Hamiltonian found")
-    e, v = eigsh(H, k=k, which="SA")
-    print(f"first {k} eigenvalue(s) SA (Smallest (algebraic) eigenvalues): {e}")
-    psi = v[:, 0]
-    return psi
 
 # ---------------------------------------------------------------------------------------
 # Flipping half
@@ -787,293 +694,6 @@ def truncation(array: Union[np.ndarray, csc_matrix, csr_matrix], threshold: floa
         return filtered_matrix
 
 
-# ---------------------------------------------------------------------------------------
-# Compute Ising Spectrum
-# ---------------------------------------------------------------------------------------
-def compute_ising_spectrum(L: int, h_l: float = 0, n_points: int = 100, k: int = 6):
-    """
-    compute_ising_spectrum
-
-    This function is computing the spectrum of an Ising Hamiltonian wrt the trnaverse field.
-
-    L: int - chain size
-    h_l: float - initial longitudinal field parameter.
-        Can be used to break the symmetry of the ground state for h_t = 0
-    n_points: int - number of point in the transverse field we want to evaluate the spectrum. By default a 100 points
-    k: int - number of eigenvalues we want to compute. By default 6
-
-    """
-    X = np.array([[0, 1], [1, 0]])
-    X = csr_matrix(X)
-    Z = np.array([[1, 0], [0, -1]])
-    Z = csr_matrix(Z)
-    h_ts = np.linspace(0, 2, n_points)
-    eigvals = []
-    for h_t in h_ts:
-        H = H_ising_gen(L=L, op_l=Z, op_t=X, J=1, h_l=h_l, h_t=h_t)
-        e, v = eigsh(H, k=k, which="SA")
-        print(f"first 6 igenvalues SA (Smallest (algebraic) eigenvalues): {e}")
-        eigvals.append(e)
-    return eigvals
-
-
-# ---------------------------------------------------------------------------------------
-# Exact Initial State
-# ---------------------------------------------------------------------------------------
-def exact_initial_state(L: int, h_t: float, h_l: float = 1e-7, k: int = 1) -> csc_array:
-    """
-    exact_initial_state
-
-    This function is computing the initial state given by an Ising Hamiltonian.
-
-    L: int - chain size
-    h_t: float - initial transverse field parameter
-    h_l: float - initial longitudinal field parameter
-    k: int - number of eigenvalues we want to compute. By default 1
-
-    """
-    X = np.array([[0, 1], [1, 0]])
-    X = csr_matrix(X)
-    Z = np.array([[1, 0], [0, -1]])
-    Z = csr_matrix(Z)
-    print("Finding the Hamiltonian...")
-    H = H_ising_gen(L=L, op_l=Z, op_t=X, J=1, h_l=h_l, h_t=h_t)
-    print("Hamiltonian found")
-    e, v = eigsh(H, k=k, which="SA")
-    print(f"first {k} eigenvalue(s) SA (Smallest (algebraic) eigenvalues): {e}")
-    psi = v[:, 0]
-    flip = single_site_op(op=X, site=L // 2 + 1, L=L)
-    psi = csc_array(flip @ psi)
-    return psi
-
-
-# ---------------------------------------------------------------------------------------
-# U Evolution
-# ---------------------------------------------------------------------------------------
-def U_evolution(
-    H_ev: csc_array,
-    psi_init: csc_array,
-    trotter_step: int,
-    delta: float,
-):
-    """
-    U_evolution
-
-    This function applies a time evolution operator to some initial state.
-    The evolution operator uses the Ising hamiltonian with some tunable parameters.
-
-    L: int - chain size
-    psi_init: csc_array - initial state to be evolved
-    trotter_step: int - indicates the specific trotter step we are evolving
-    delta: float - indicates the time step we are taking at each trotter step
-    h_t: float - initial transverse field parameter
-    h_l: float - initial longitudinal field parameter
-
-    """
-    time = delta * trotter_step
-    H_ev = -1j * time * H_ev.tocsc()
-    # U = expm(-1j*time*H_ev.tocsc())
-    # U_new = truncation(array=U, threshold=1e-15)
-    psi_ev = expm_multiply(H_ev, psi_init)
-    return psi_ev
-
-# ---------------------------------------------------------------------------------------
-# U Evolution sparse
-# ---------------------------------------------------------------------------------------
-def U_evolution_sparse(
-    psi_init: csc_array,
-    H_ev: csc_array,
-    trotter_step: int,
-    delta: float,
-):
-    """
-    U_evolution
-
-    This function applies a time evolution operator to some initial state.
-    The evolution operator uses the Ising hamiltonian with some tunable parameters.
-
-    L: int - chain size
-    psi_init: csc_array - initial state to be evolved
-    trotter_step: int - indicates the specific trotter step we are evolving
-    delta: float - indicates the time step we are taking at each trotter step
-    h_t: float - initial transverse field parameter
-    h_l: float - initial longitudinal field parameter
-
-    """
-    # time = delta * trotter_step
-    time = delta
-    H_ev = -1j * time * H_ev
-    psi_ev = expm_multiply(H_ev, psi_init)
-    return psi_ev
-
-
-def get_middle_chain_schmidt_values(vec):
-    L = int(np.log2(len(vec)))
-    matrix = vec.reshape((2**(L//2),2**(L//2)))
-    s, v, d = np.linalg.svd(matrix, full_matrices=False)
-    return s
-# ---------------------------------------------------------------------------------------
-# Exact Evolution
-# ---------------------------------------------------------------------------------------
-def exact_evolution(
-    L: int, h_t: float, h_ev: float, delta: float, trotter_steps: int, h_l: float = 1e-7, flip: bool = False
-):
-    """
-    exact_evolution
-
-    This function evolves an initial state for trotter steps times.
-    We extract at each time step the local and total magnetization.
-
-    L: int - chain size
-    trotter_step: int - indicates the specific trotter step we are evolving
-    delta: float - indicates the time step we are taking at each trotter step
-    h_t: float - initial transverse field parameter
-    h_l: float - initial longitudinal field parameter
-    h_ev: float - evolution transverse field parameter
-
-    """
-    # psi_exact = exact_initial_state(L=L, h_t=h_t, h_l=h_l).reshape(2**L, 1)
-    init_state = np.zeros((1, 2, 1))
-    init_state[0, 0, 0] = 1
-    mps = [init_state for _ in range(L)]
-    psi_exact = mps_to_vector(mps).reshape(2**L, 1)
-    X = np.array([[0, 1], [1, 0]])
-    X = csr_matrix(X)
-    Z = np.array([[1, 0], [0, -1]])
-    Z = csr_matrix(Z)
-    if flip:
-        # flip = single_site_op(op=Z, site=L//2 + 1, L=L)
-        flip = sparse_pauli_x(n=L//2, L=L)
-        psi_exact = csc_array(flip @ psi_exact)
-    # local
-    # mag_loc_op = [single_site_op(op=Z, site=i, L=L) for i in range(1, L + 1)]
-    mag_loc_op = [sparse_pauli_z(n=i, L=L) for i in range(L)]
-    # total
-    # mag_tot_op = H_loc(L=L, op=Z)
-    mag_tot_op = sparse_ising_hamiltonian(J=0, h_t=0, h_l=-1, L=L)
-
-    mag_exact_loc = []
-    mag_exact_tot = []
-
-    # local
-    mag_exact = []
-    for i in range(L):
-        mag_exact.append(
-            (psi_exact.T.conjugate() @ mag_loc_op[i] @ psi_exact).data[0].real
-        )
-    mag_exact_loc.append(mag_exact)
-
-    # total
-    mag = (psi_exact.T.conjugate() @ mag_tot_op @ psi_exact).data
-    mag_exact_tot.append(mag.real)
-
-    H_ev = H_ising_gen(L=L, op_l=Z, op_t=X, J=1, h_l=h_l, h_t=h_ev)
-    for trott in range(trotter_steps):
-        print(f"-------- Trotter step {trott} ---------")
-        # exact
-        psi_new = U_evolution(
-            H_ev=H_ev, psi_init=psi_exact, trotter_step=trott + 1, delta=delta
-        )
-
-        # local
-        mag_exact = []
-        for i in range(L):
-            mag_exact.append(
-                (psi_new.T.conjugate() @ mag_loc_op[i] @ psi_new).data[0].real
-            )
-        mag_exact_loc.append(mag_exact)
-
-        # total
-        mag = (psi_new.T.conjugate() @ mag_tot_op @ psi_new).data
-        mag_exact_tot.append(mag.real)
-    return psi_new, mag_exact_loc, mag_exact_tot
-
-# ---------------------------------------------------------------------------------------
-# Exact Evolution sparse
-# ---------------------------------------------------------------------------------------
-def exact_evolution_sparse(
-    L: int, h_t: float, h_ev: float, delta: float, trotter_steps: int, h_l: float = 1e-7, flip: bool = False
-):
-    """
-    exact_evolution
-
-    This function evolves an initial state for trotter steps times.
-    We extract at each time step the local and total magnetization.
-
-    L: int - chain size
-    trotter_step: int - indicates the specific trotter step we are evolving
-    delta: float - indicates the time step we are taking at each trotter step
-    h_t: float - initial transverse field parameter
-    h_l: float - initial longitudinal field parameter
-    h_ev: float - evolution transverse field parameter
-
-    """
-    # psi_exact = sparse_ising_ground_state(L=L, h_t=h_t, h_l=h_l, k=6).reshape(2**L, 1)
-    init_state = np.zeros((1, 2, 1))
-    init_state[0, 0, 0] = 1
-    mps = [init_state for _ in range(L)]
-    psi_exact = mps_to_vector(mps).reshape(2**L, 1)
-    if flip:
-        flip = sparse_pauli_x(n=L // 2, L=L)
-        psi_exact = csc_array(flip @ psi_exact)
-    # local Z
-    mag_loc_Z_op = [sparse_pauli_z(n=i, L=L) for i in range(L)]
-    # local X
-    mag_loc_X_op = sparse_pauli_x(n=L//2, L=L)
-    # total
-    mag_tot_op = sparse_ising_hamiltonian(L=L, h_t=0, h_l=-1, J=0)
-
-    mag_exact_loc_Z = []
-    mag_exact_loc_X = []
-    mag_exact_tot = []
-
-    # local Z
-    mag_exact = []
-    for i in range(L):
-        mag_exact.append(
-            (psi_exact.T.conjugate() @ mag_loc_Z_op[i] @ psi_exact).data[0].real
-        )
-    mag_exact_loc_Z.append(mag_exact)
-
-    # local X
-    # mag_exact_loc_X.append((psi_exact.T.conjugate() @ mag_loc_X_op @ psi_exact).data[0].real)
-    
-    # total
-    mag = (psi_exact.T.conjugate() @ mag_tot_op @ psi_exact).data
-    mag_exact_tot.append(mag.real)
-
-    H_ev = sparse_ising_hamiltonian(L=L, J=1, h_l=h_l, h_t=h_ev)
-    entropy = [0]
-    psi_new = psi_exact
-    for trott in range(trotter_steps):
-        print(f"-------- Trotter step {trott} ---------")
-        # exact
-        # psi_new = U_evolution_sparse(
-        #     psi_init=psi_exact, H_ev=H_ev, trotter_step=trott + 1, delta=delta
-        # )
-        psi_new = U_evolution_sparse(
-            psi_init=psi_new, H_ev=H_ev, trotter_step=trott + 1, delta=delta
-        )
-        # entropy
-        # s = get_middle_chain_schmidt_values(psi_new)
-        # ent = von_neumann_entropy(s)
-        # entropy.append(ent)
-
-        # local Z
-        mag_exact = []
-        for i in range(L):
-            mag_exact.append(
-                (psi_new.T.conjugate() @ mag_loc_Z_op[i] @ psi_new).data[0].real
-            )
-        mag_exact_loc_Z.append(mag_exact)
-
-        # local X
-        # mag_exact_loc_X.append((psi_new.T.conjugate() @ mag_loc_X_op @ psi_new).data[0].real)
-
-        # total
-        mag = (psi_new.T.conjugate() @ mag_tot_op @ psi_new).data
-        mag_exact_tot.append(mag.real)
-    return psi_new, mag_exact_loc_Z, mag_exact_loc_X, mag_exact_tot, entropy
 # ---------------------------------------------------------------------------------------
 # ---------------------------------------------------------------------------------------
 # ---------------------------------------------------------------------------------------
@@ -1144,6 +764,3 @@ def create_sequential_colors(num_colors, colormap_name):
     colormap_values = np.linspace(0, 1, num_colors)
     colors = [colormap(value) for value in colormap_values]
     return colors
-
-
-

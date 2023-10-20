@@ -70,10 +70,17 @@ entropy_maricarmen.pop(-1)
 # results with with the hamiltonian of Jesus
 trotter_steps_j = 100
 delta_j = t / trotter_steps_j
-file_path_tot = f"/Users/fradm98/Google Drive/My Drive/projects/0_ISING/results/mag_data/mag_exact_tot_{model}_L_{L}_flip_{flip}_delta_{delta_j}_Jesus"
-file_path_loc = f"/Users/fradm98/Google Drive/My Drive/projects/0_ISING/results/mag_data/mag_exact_loc_{model}_L_{L}_flip_{flip}_delta_{delta_j}_Jesus"
-mag_loc_Z_jesus = access_txt(file_path=file_path_loc, column_index=L//2)
+file_path_tot = f"/Users/fradm98/Google Drive/My Drive/projects/0_ISING/results/exact/mag_data/mag_exact_tot_{model}_L_{L}_flip_{flip}_h_ev_{h_ev}_trotter_steps_{trotter_steps_j}_t_{t}"
+file_path_loc = f"/Users/fradm98/Google Drive/My Drive/projects/0_ISING/results/exact/mag_data/mag_exact_loc_{model}_L_{L}_flip_{flip}_h_ev_{h_ev}_trotter_steps_{trotter_steps_j}_t_{t}"
+file_path_loc_Z = f"/Users/fradm98/Google Drive/My Drive/projects/0_ISING/results/exact/mag_data/mag_exact_loc_Z_{model}_L_{L}_flip_{flip}_h_ev_{h_ev}_trotter_steps_{trotter_steps_j}_t_{t}"
+file_path_loc_X = f"/Users/fradm98/Google Drive/My Drive/projects/0_ISING/results/exact/mag_data/mag_exact_loc_X_{model}_L_{L}_flip_{flip}_h_ev_{h_ev}_trotter_steps_{trotter_steps_j}_t_{t}"
+file_path_entr = f"/Users/fradm98/Google Drive/My Drive/projects/0_ISING/results/exact/entropy/exact_entropy_{model}_L_{L}_flip_{flip}_h_ev_{h_ev}_trotter_steps_{trotter_steps_j}_t_{t}"
+file_path_entr_tot = f"/Users/fradm98/Google Drive/My Drive/projects/0_ISING/results/exact/entropy/exact_entropy_tot_{model}_L_{L}_flip_{flip}_h_ev_{h_ev}_trotter_steps_{trotter_steps_j}_t_{t}"
+mag_loc_jesus = np.loadtxt(fname=file_path_loc)
+mag_loc_Z_jesus = access_txt(file_path=file_path_loc_Z, column_index=0)
 mag_tot_jesus = access_txt(file_path=file_path_tot, column_index=0)
+mag_loc_X_jesus = access_txt(file_path=file_path_loc_X, column_index=0)
+entropy_jesus = access_txt(file_path=file_path_entr, column_index=0)
 
 # %%
 # visualization
@@ -90,6 +97,7 @@ colors = create_sequential_colors(
 )
 
 mult_factor = [5, 10, 100]
+markers = ["+","x","1"]
 for i, trotter_step in enumerate(trotter_steps):
     delta = t / trotter_step
     mag_mps_tot = np.loadtxt(
@@ -99,25 +107,26 @@ for i, trotter_step in enumerate(trotter_steps):
         delta * np.arange(trotter_step + 1),
         mag_mps_tot,
         s=25,
-        marker="o",
+        marker=markers[i],
         alpha=0.8,
-        facecolors="none",
-        edgecolors=colors[i],
+        # facecolors="none",
+        color=colors[i],
         label=f"mps: $\delta={delta}$",
     )
 
+# plt.plot(
+#     mult_factor[i] * delta * np.arange(100 + 1),
+#     mag_tot_maricarmen,
+#     color="indianred",
+#     label=f"Exact L={L}",
+# )
 plt.plot(
     mult_factor[i] * delta * np.arange(100 + 1),
-    mag_tot_maricarmen,
+    mag_tot_jesus,
     color="indianred",
     label=f"Exact L={L}",
 )
-# plt.plot(
-#     delta * np.arange(trotter_step + 1),
-#     mag_exact_tot,
-#     color="indianred",
-#     label=f"exact: $L={L}$",
-# )
+
 plt.xlabel("time (t = $\delta$ T)")
 plt.ylabel("$\sum_{i=1}^L \sigma_i^z$")
 plt.legend()
@@ -144,25 +153,25 @@ for i, trotter_step in enumerate(trotter_steps):
         delta * np.arange(trotter_step + 1),
         mag_mps_tot,
         s=25,
-        marker="o",
+        marker=markers[i],
         alpha=0.8,
-        facecolors="none",
-        edgecolors=colors[i],
+        # facecolors="none",
+        color=colors[i],
         label=f"mps: $\delta={delta}$",
     )
 
+# plt.plot(
+#     mult_factor[i] * delta * np.arange(100 + 1),
+#     mag_loc_Z_maricarmen,
+#     color="indianred",
+#     label=f"Exact L={L}",
+# )
 plt.plot(
     mult_factor[i] * delta * np.arange(100 + 1),
-    mag_loc_Z_maricarmen,
+    mag_loc_Z_jesus,
     color="indianred",
     label=f"Exact L={L}",
 )
-# plt.plot(
-#     delta * np.arange(trotter_step + 1),
-#     mag_exact_tot,
-#     color="indianred",
-#     label=f"exact: $L={L}$",
-# )
 plt.xlabel("time (t = $\delta$ T)")
 plt.ylabel("$\sigma_{L/2}^z$")
 plt.legend()
@@ -189,25 +198,26 @@ for i, trotter_step in enumerate(trotter_steps):
         delta * np.arange(trotter_step + 1),
         mag_mps_tot,
         s=25,
-        marker="o",
+        marker=markers[i],
         alpha=0.8,
-        facecolors="none",
-        edgecolors=colors[i],
+        # facecolors="none",
+        color=colors[i],
         label=f"mps: $\delta={delta}$",
     )
 
+# plt.plot(
+#     mult_factor[i] * delta * np.arange(100 + 1),
+#     mag_loc_X_maricarmen,
+#     color="indianred",
+#     label=f"Exact L={L}",
+# )
 plt.plot(
     mult_factor[i] * delta * np.arange(100 + 1),
-    mag_loc_X_maricarmen,
+    mag_loc_X_jesus,
     color="indianred",
     label=f"Exact L={L}",
 )
-# plt.plot(
-#     delta * np.arange(trotter_step + 1),
-#     mag_exact_tot,
-#     color="indianred",
-#     label=f"exact: $L={L}$",
-# )
+
 plt.xlabel("time (t = $\delta$ T)")
 plt.ylabel("$\sigma_{L/2}^x$")
 plt.legend()
@@ -336,6 +346,9 @@ plt.show()
 # ---------------------------------------------------------
 # entropy
 # -------------------------------------------------------
+trotter_steps = [500, 1000, 10000]
+entr_factor = [20, 10, 1]
+mult_factor = [5, 10, 100]
 
 plt.title(
     "Middle Chain Entanglement Entropy: "
@@ -345,7 +358,7 @@ plt.title(
 colors = create_sequential_colors(
     num_colors=len(trotter_steps), colormap_name="viridis"
 )
-entr_factor = [20, 10, 1]
+
 for i, trotter_step in enumerate(trotter_steps):
     delta = t / trotter_step
     entropy_chi = [0]
@@ -367,12 +380,24 @@ for i, trotter_step in enumerate(trotter_steps):
         label=f"mps: $\delta={delta}$",
     )
 
-plt.plot(
-    mult_factor[i] * np.arange(100 + 1),
-    entropy_maricarmen,
-    color="indianred",
-    label="$S_{exact}$",
-)
+# plt.plot(
+#     mult_factor[i] * np.arange(100 + 1),
+#     entropy_maricarmen,
+#     color="indianred",
+#     label="$S_{exact}$",
+# )
+
+for i in range(L-3):
+    entropy_tot_jesus = access_txt(file_path=file_path_entr_tot, column_index=i)
+    plt.plot(
+        mult_factor[-1] * np.arange(100 + 1),
+        entropy_jesus,
+        color="indianred",
+        label=f"i = {i+2}",
+        alpha=0.5,
+        linewidth=0.1,
+    )
+
 ticks = np.arange(trotter_step + 1)
 labels = delta * np.arange(trotter_step + 1)
 steps = len(ticks) // 5
@@ -381,7 +406,7 @@ labels = labels[::steps]
 plt.xticks(ticks=ticks, labels=labels)
 plt.ylabel("entanglement von neumann entropy $(S_{\chi})$")
 plt.xlabel("time (t = $\delta$ T)")
-plt.legend(fontsize=10)
+plt.legend(fontsize=6)
 plt.savefig(
     f"/Users/fradm98/Google Drive/My Drive/projects/0_ISING/figures/entropy/entropy_{L}_flip_{flip}_chi_{chi}_h_ev_{h_ev}.png"
 )
@@ -415,6 +440,7 @@ for i, trotter_step in enumerate(trotter_steps):
         color=colors[i],
         label=f"$\delta={delta}$",
     )
+    
 ticks = mult_factor[i] * delta * np.arange(100 + 1)
 labels = delta * np.arange(trotter_step + 1)
 steps = len(ticks) // 5
@@ -482,7 +508,7 @@ for i, trotter_step in enumerate(trotter_steps):
         f"/Users/fradm98/Google Drive/My Drive/projects/0_ISING/results/mag_data/mag_mps_loc_X_{model}_L_{L}_flip_{flip}_delta_{delta}_chi_{chi}"
     )
     mag_mps_loc = mag_mps_loc[:: mult_factor[i]]
-    error_mag_tot = np.abs(np.asarray(mag_loc_X_maricarmen) - np.asarray(mag_mps_loc))
+    error_mag_tot = np.abs(np.asarray(mag_loc_X_jesus) - np.asarray(mag_mps_loc))
     plt.plot(
         mult_factor[i] * delta * np.arange(100 + 1),
         error_mag_tot,
@@ -522,7 +548,7 @@ for i, trotter_step in enumerate(trotter_steps):
         entropy = von_neumann_entropy(s)
         entropy_chi.append(entropy)
     entropy_chi_red = entropy_chi[:: mult_factor[i]]
-    error_mc = np.abs(np.asarray(entropy_maricarmen) - np.asarray(entropy_chi_red))
+    error_mc = np.abs(np.asarray(entropy_jesus) - np.asarray(entropy_chi_red))
     plt.plot(
         mult_factor[i] * delta * np.arange(100 + 1),
         error_mc,

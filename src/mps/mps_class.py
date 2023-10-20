@@ -5,6 +5,7 @@ from scipy.sparse import csr_matrix, csr_array, identity
 from checks import *
 from scipy.linalg import expm, solve
 from utils import *
+from exact_Ising_ground_state_and_time_evolution import exact_evolution_sparse, sparse_ising_ground_state, U_evolution_sparse
 import matplotlib.pyplot as plt
 import time
 import warnings
@@ -1911,7 +1912,7 @@ class MPS:
         mag_mps_loc.append(mag_loc)
 
         if fidelity:
-            psi_exact_0 = exact_initial_state(L=self.L, h_t=self.h)
+            psi_exact_0 = sparse_ising_ground_state(L=self.L, h_t=self.h)
             psi_new_mpo = mps_to_vector(self.sites)
             overlap.append(np.abs((psi_new_mpo.T.conjugate() @ psi_exact_0).real))
         for T in range(trotter_steps):
@@ -1937,7 +1938,7 @@ class MPS:
             mag_mps_loc.append(mag_loc)
 
             if fidelity:
-                psi_exact = exact_evolution(
+                psi_exact = exact_evolution_sparse(
                     L=self.L,
                     psi_init=psi_exact_0,
                     trotter_step=(T + 1),
@@ -2006,19 +2007,10 @@ class MPS:
             self.single_operator_Ising(site=i + 1, op=Z)
             mag_loc.append(np.real(self.mpo_first_moment()))
         mag_mps_loc.append(mag_loc)
-        # tolerance = 1e-6  # Adjust this to your desired level of precision
-        # # Check if the absolute difference between the two numbers is within the tolerance
-        # if abs(test.__float__() + (self.L - 2)) < tolerance:
-        #     self.flipping_all()
-        #     warnings.warn(
-        #         "The ground state found in DMRG could be in a superposition of states"
-        #     )
-        #     print("We flip all the chain to be in the positive magnetization state")
-        # mag_mps_tot.append(np.real(self.mpo_first_moment()))
 
         # fidelity
         if fidelity:
-            psi_exact_0 = exact_initial_state(L=self.L, h_t=self.h).reshape(
+            psi_exact_0 = sparse_ising_ground_state(L=self.L, h_t=self.h).reshape(
                 2**self.L, 1
             )
             psi_new_mpo = mps_to_vector(self.sites)
@@ -2074,7 +2066,7 @@ class MPS:
             mag_mps_loc.append(mag)
 
             if fidelity:
-                psi_exact = U_evolution(
+                psi_exact = U_evolution_sparse(
                     L=self.L,
                     psi_init=psi_exact_0,
                     trotter_step=(trott + 1),
@@ -2270,9 +2262,9 @@ class MPS:
         return self
 
 
-if __name__ == "__main__":
-    l = 3
-    charges = [1, 1, 1, 1, 1, 1]
-    chain = MPS(L=15, d=2**l, model="Ising", chi=2, charges=charges, h=0.1, J=0)
-    chain.mpo_Z2_general(l=l)
+# if __name__ == "__main__":
+#     l = 3
+#     charges = [1, 1, 1, 1, 1, 1]
+#     chain = MPS(L=15, d=2**l, model="Ising", chi=2, charges=charges, h=0.1, J=0)
+#     chain.mpo_Z2_general(l=l)
     # chain.mpo_Z2_two_ladder()
