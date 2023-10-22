@@ -163,7 +163,7 @@ def U_evolution_sparse(
 # Sparse exact Evolution
 # ---------------------------------------------------------------------------------------
 def exact_evolution_sparse(
-    L: int, h_t: float, h_ev: float, time: float, trotter_steps: int, h_l: float = 1e-7, flip: bool = False
+    L: int, h_t: float, h_ev: float, time: float, trotter_steps: int, h_l: float = 1e-7, flip: bool = False, mid: bool = True
 ):
     """
     exact_evolution
@@ -222,7 +222,10 @@ def exact_evolution_sparse(
     H_ev = sparse_ising_hamiltonian(L=L, J=1, h_l=h_l, h_t=h_ev)
     
     entropy_tot = []
-    entropy = [0]*(L-3)
+    if mid:
+        entropy = [0]
+    else:
+        entropy = [0]*(L-3)
     entropy_tot.append(entropy)
 
     psi_new = psi_exact
@@ -233,7 +236,7 @@ def exact_evolution_sparse(
             psi_init=psi_new, H_ev=H_ev, trotter=trotter_steps, time=time
         )
         # entropy
-        sing_vals = get_middle_chain_schmidt_values(psi_new)
+        sing_vals = get_middle_chain_schmidt_values(psi_new, mid)
         entropy = []
         for s in sing_vals:
             ent = von_neumann_entropy(s)

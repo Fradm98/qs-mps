@@ -35,26 +35,26 @@ args = parser.parse_args()
 psi_new, mag_exact_loc, mag_exact_loc_X, mag_exact_tot, entropy_tot = exact_evolution_sparse(L=args.L, h_t=args.h_transverse_init, h_ev=args.h_ev, time=args.time, trotter_steps=args.trotter_steps, flip=args.flip)
 
 np.savetxt(
-    f"/Users/fradm98/Google Drive/My Drive/projects/0_ISING/results/exact/mag_data/mag_exact_tot_{args.model}_L_{args.L}_flip_{args.flip}_h_ev_{args.h_ev}_trotter_steps_{args.trotter_steps}_t_{args.time}",
+    f"/data/fdimarca/projects/0_ISING/results/exact/mag_data/mag_exact_tot_{args.model}_L_{args.L}_flip_{args.flip}_h_ev_{args.h_ev}_trotter_steps_{args.trotter_steps}_t_{args.time}",
     mag_exact_tot,
     )
 np.savetxt(
-    f"/Users/fradm98/Google Drive/My Drive/projects/0_ISING/results/exact/mag_data/mag_exact_loc_X_{args.model}_L_{args.L}_flip_{args.flip}_h_ev_{args.h_ev}_trotter_steps_{args.trotter_steps}_t_{args.time}",
+    f"/data/fdimarca/projects/0_ISING/results/exact/mag_data/mag_exact_loc_X_{args.model}_L_{args.L}_flip_{args.flip}_h_ev_{args.h_ev}_trotter_steps_{args.trotter_steps}_t_{args.time}",
     mag_exact_loc_X,
 )
 np.savetxt(
-    f"/Users/fradm98/Google Drive/My Drive/projects/0_ISING/results/exact/mag_data/mag_exact_loc_{args.model}_L_{args.L}_flip_{args.flip}_h_ev_{args.h_ev}_trotter_steps_{args.trotter_steps}_t_{args.time}",
+    f"/data/fdimarca/projects/0_ISING/results/exact/mag_data/mag_exact_loc_{args.model}_L_{args.L}_flip_{args.flip}_h_ev_{args.h_ev}_trotter_steps_{args.trotter_steps}_t_{args.time}",
     mag_exact_loc,
 )
 mag_exact_loc_Z = access_txt(
-    f"/Users/fradm98/Google Drive/My Drive/projects/0_ISING/results/exact/mag_data/mag_exact_loc_{args.model}_L_{args.L}_flip_{args.flip}_h_ev_{args.h_ev}_trotter_steps_{args.trotter_steps}_t_{args.time}",
+    f"/data/fdimarca/projects/0_ISING/results/exact/mag_data/mag_exact_loc_{args.model}_L_{args.L}_flip_{args.flip}_h_ev_{args.h_ev}_trotter_steps_{args.trotter_steps}_t_{args.time}",
     args.L // 2,
 )
 np.savetxt(
-    f"/Users/fradm98/Google Drive/My Drive/projects/0_ISING/results/exact/mag_data/mag_exact_loc_Z_{args.model}_L_{args.L}_flip_{args.flip}_h_ev_{args.h_ev}_trotter_steps_{args.trotter_steps}_t_{args.time}",
+    f"/data/fdimarca/projects/0_ISING/results/exact/mag_data/mag_exact_loc_Z_{args.model}_L_{args.L}_flip_{args.flip}_h_ev_{args.h_ev}_trotter_steps_{args.trotter_steps}_t_{args.time}",
     mag_exact_loc_Z,
 )
 np.savetxt(
-    f"/Users/fradm98/Google Drive/My Drive/projects/0_ISING/results/exact/entropy/exact_entropy_tot_{args.model}_L_{args.L}_flip_{args.flip}_h_ev_{args.h_ev}_trotter_steps_{args.trotter_steps}_t_{args.time}",
+    f"/data/fdimarca/projects/0_ISING/results/exact/entropy/exact_entropy_tot_{args.model}_L_{args.L}_flip_{args.flip}_h_ev_{args.h_ev}_trotter_steps_{args.trotter_steps}_t_{args.time}",
     entropy_tot,
 )
