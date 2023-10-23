@@ -97,7 +97,7 @@ for chi in args.chis:  # L // 2 + 1
         overlap,
         errors,
         schmidt_values,
-    ) = chain.variational_mps_evolution(
+    ) = chain.TEBD_variational(
         trotter_steps=args.trotter_steps,
         delta=delta,
         h_ev=args.h_ev,

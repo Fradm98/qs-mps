@@ -393,10 +393,22 @@ class MPS:
             I = np.eye(array[i].shape[2])
             env_l = ncon([env_l, array[i], array[i].conjugate()],[[1,2],[1,3,-1],[2,3,-2]])
             env_trunc = truncation(env_l, threshold=1e-15)
+            env_trunc = csr_matrix(env_trunc)
+            I = csr_matrix(I)
             ratio = check_matrix(env_trunc, I)
             if ratio < 1e-12:
                 print(f"the tensor at site {i+1} is in the correct LFC")
 
+        env_r = env
+        for i in range(self.L-1, site, -1):
+            I = np.eye(array[i].shape[0])
+            env_r = ncon([array[i],array[i].conjugate(),env_r],[[-1,3,1],[-2,3,2],[1,2]])
+            env_trunc = truncation(env_r, threshold=1e-15)
+            env_trunc = csr_matrix(env_trunc)
+            I = csr_matrix(I)
+            ratio = check_matrix(env_trunc, I)
+            if ratio < 1e-12:
+                print(f"the tensor at site {i+1} is in the correct RFC")
         pass
 
     # -------------------------------------------------
@@ -1878,6 +1890,7 @@ class MPS:
                     s_mid = s
                 self.update_envs_ev(sweeps[0], sites[i])
 
+                # self.check_canonical(site=sites[i])
                 iter += 1
                 # norm_sites = self._compute_norm(site=1)
 
@@ -2051,12 +2064,12 @@ class MPS:
             print(f"------ Trotter steps: {trott} -------")
             self.mpo_Ising_time_ev(delta=delta, h_ev=h_ev, J_ev=1)
             self.mpo_to_mps(ancilla=True)
-            # self.canonical_form(
-            #     svd_direction="right", ancilla=True, trunc_chi=False, trunc_tol=True
-            # )
-            # self.canonical_form(
-            #     svd_direction="left", ancilla=True, trunc_chi=False, trunc_tol=True
-            # )
+            self.canonical_form(
+                svd_direction="right", ancilla=True, trunc_chi=False, trunc_tol=True
+            )
+            self.canonical_form(
+                svd_direction="left", ancilla=True, trunc_chi=False, trunc_tol=True
+            )
             print(f"Bond dim ancilla: {self.ancilla_sites[self.L//2].shape[0]}")
             print(f"Bond dim site: {self.sites[self.L//2].shape[0]}")
             # print("Braket <phi|psi>:")
@@ -2291,4 +2304,4 @@ class MPS:
 #     charges = [1, 1, 1, 1, 1, 1]
 #     chain = MPS(L=15, d=2**l, model="Ising", chi=2, charges=charges, h=0.1, J=0)
 #     chain.mpo_Z2_general(l=l)
-    # chain.mpo_Z2_two_ladder()
+#     chain.mpo_Z2_two_ladder()
