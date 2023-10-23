@@ -89,6 +89,7 @@ def check_matrix(A, B):
     if ratio > 1e-12:
         print("    ERROR: A and B are DIFFERENT MATRICES")
         raise ValueError(f"    NORM {norma}, RATIO {ratio}")
+    return ratio
 
 
 def check_hermitian(A):

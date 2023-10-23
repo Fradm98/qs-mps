@@ -61,22 +61,6 @@ parser.add_argument(
 )
 args = parser.parse_args()
 
-
-# # ---------------------------------------------------------
-# # exact
-# psi_new, mag_exact_loc, mag_exact_tot = exact_evolution(
-#     L=L, h_t=h_t, h_ev=h_ev, delta=delta, trotter_steps=trotter_steps
-# )
-
-# np.savetxt(
-#     f"results/mag_data/mag_exact_tot_L_{L}_delta_{delta}_trott_{trotter_steps}",
-#     mag_exact_tot,
-# )
-# np.savetxt(
-#     f"results/mag_data/mag_exact_loc_L_{L}_delta_{delta}_trott_{trotter_steps}",
-#     mag_exact_loc,
-# )
-
 # ---------------------------------------------------------
 # variational truncation mps
 for trotter_step in args.trotter_steps:  # L // 2 + 1

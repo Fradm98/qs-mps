@@ -304,7 +304,7 @@ def von_neumann_entropy(s):
 # ---------------------------------------------------------------------------------------
 # Middle Schmidt Values
 # ---------------------------------------------------------------------------------------
-def get_middle_chain_schmidt_values(vec, mid: bool = True):
+def get_middle_chain_schmidt_values(vec, where: int, bond: bool = True):
     """
     get_middle_chain_schmidt_values
 
@@ -312,25 +312,29 @@ def get_middle_chain_schmidt_values(vec, mid: bool = True):
     a chain of spins. The decomposition is operated in the middle of the chain.
 
     vec: csc_array - statevector of our system
-    mid: bool - compute the middle chain schmidt values or 
+    bond: bool - compute the middle chain schmidt values or 
         the ones from all the chain (excluding the edge sites). By defalut True
+    where: int - bond where we want to perform the Schmidt decomposition
+
     """
     L = int(np.log2(vec.shape[0]))
     sing_vals = []
-    if mid:
-        if (L % 2) == 0:
-            new_shape =(2**(L//2),2**(L//2))
-        else:
-            new_shape =(2**(L//2 + 1),2**(L//2))
+    if bond:
+        assert (2 <= where < L-1), f"The decomposition can be performed only at bonds between {2} and {L-2}"
+
+        new_shape = (2**(where),2**(L-where))
+
         matrix = vec.reshape(new_shape)
         s = svds(matrix, k=(min(matrix.shape[0],matrix.shape[1]) - 2), return_singular_vectors=False)
+        # u, s, v = np.linalg.svd(matrix.toarray(), full_matrices=False)
+        sing_vals.append(s)
     else:
         sub = [2]*(L-2)
         for i in range(2,L-1):
             new_shape = (2**(i),2**(L-i))
             matrix = vec.reshape(new_shape)
             s = svds(matrix, k=(min(matrix.shape[0],matrix.shape[1]) - sub[i-1]), return_singular_vectors=False, which="LM")
-    sing_vals.append(s)
+            sing_vals.append(s)
     
     return sing_vals
 

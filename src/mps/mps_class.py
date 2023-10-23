@@ -374,6 +374,31 @@ class MPS:
         self.sites = extended_array.copy()
         return self
 
+    def check_canonical(self, site: int):
+        """
+        check_canonical
+
+        This funciton checks if the tensor at a certain site is in the correct 
+        mixed canonical form, e.g., LCF on the left of the site and RCF on the right of the site.
+
+        site: int - where we want to observe the canonical form of our mps
+
+        """
+        array = self.sites
+        a = np.array([1])
+        
+        env = ncon([a,a],[[-1],[-2]])
+        env_l = env
+        for i in range(0,site-1):
+            I = np.eye(array[i].shape[2])
+            env_l = ncon([env_l, array[i], array[i].conjugate()],[[1,2],[1,3,-1],[2,3,-2]])
+            env_trunc = truncation(env_l, threshold=1e-15)
+            ratio = check_matrix(env_trunc, I)
+            if ratio < 1e-12:
+                print(f"the tensor at site {i+1} is in the correct LFC")
+
+        pass
+
     # -------------------------------------------------
     # Matrix Product Operators, MPOs
     # -------------------------------------------------
@@ -1980,7 +2005,6 @@ class MPS:
         overlap = []
         mag_mps_tot = []
         mag_mps_loc = []
-        mag_mps_loc_Z = []
         mag_mps_loc_X = []
         X = np.array([[0, 1], [1, 0]])
         Z = np.array([[1, 0], [0, -1]])
@@ -2047,7 +2071,7 @@ class MPS:
                 err=err,
                 conv_tol=conv_tol,
             )
-            self.ancilla_sites = self.sites.copy()
+            # self.ancilla_sites = self.sites.copy()
             self.canonical_form(trunc_chi=True, trunc_tol=False)
             errors.append(error)
             schmidt_vals.append(schmidt)

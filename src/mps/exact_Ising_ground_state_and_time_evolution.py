@@ -163,7 +163,7 @@ def U_evolution_sparse(
 # Sparse exact Evolution
 # ---------------------------------------------------------------------------------------
 def exact_evolution_sparse(
-    L: int, h_t: float, h_ev: float, time: float, trotter_steps: int, h_l: float = 1e-7, flip: bool = False, mid: bool = True
+    L: int, h_t: float, h_ev: float, time: float, trotter_steps: int, h_l: float = 1e-7, flip: bool = False, where = -1, bond: bool = True
 ):
     """
     exact_evolution
@@ -177,8 +177,15 @@ def exact_evolution_sparse(
     h_t: float - initial transverse field parameter
     h_l: float - initial longitudinal field parameter
     h_ev: float - evolution transverse field parameter
+    where: int - in which bond we perform the Schmidt decompositon
+    bond: bool - if we compute the entropy for all the bonds. By default False 
 
     """
+    if bond:
+        entropy = [0]
+    else:
+        entropy = [0]*(L-3)
+        
     # psi_exact = sparse_ising_ground_state(L=L, h_t=h_t, h_l=h_l, k=6).reshape(2**L, 1)
     # for now only all spin up
     # psi_exact = np.zeros((2**L, 1))
@@ -222,10 +229,6 @@ def exact_evolution_sparse(
     H_ev = sparse_ising_hamiltonian(L=L, J=1, h_l=h_l, h_t=h_ev)
     
     entropy_tot = []
-    if mid:
-        entropy = [0]
-    else:
-        entropy = [0]*(L-3)
     entropy_tot.append(entropy)
 
     psi_new = psi_exact
@@ -236,7 +239,7 @@ def exact_evolution_sparse(
             psi_init=psi_new, H_ev=H_ev, trotter=trotter_steps, time=time
         )
         # entropy
-        sing_vals = get_middle_chain_schmidt_values(psi_new, mid)
+        sing_vals = get_middle_chain_schmidt_values(psi_new, where=where, bond=bond)
         entropy = []
         for s in sing_vals:
             ent = von_neumann_entropy(s)
@@ -261,4 +264,4 @@ def exact_evolution_sparse(
         )
     return psi_new, mag_exact_loc_Z, mag_exact_loc_X, mag_exact_tot, entropy_tot
 
-# psi_new, mag_exact_loc, mag_exact_loc_X, mag_exact_tot, entropy_tot = exact_evolution_sparse(L=15, h_t=0, h_ev=0.3, time=10, trotter_steps=5, flip=True)
+# psi_new, mag_exact_loc, mag_exact_loc_X, mag_exact_tot, entropy_tot = exact_evolution_sparse(L=15, h_t=0, h_ev=0.3, time=10, trotter_steps=5, flip=True, bond=False)
