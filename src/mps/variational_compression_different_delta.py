@@ -98,33 +98,33 @@ for trotter_step in args.trotter_steps:  # L // 2 + 1
         n_sweeps=args.number_sweeps,
     )
     np.savetxt(
-        f"/Users/fradm98/Google Drive/My Drive/projects/0_ISING/results/mag_data/mag_mps_tot_{args.model}_L_{args.L}_flip_{args.flip}_delta_{delta}_chi_{args.chi}",
+        f"/data/fdimarca/projects/0_ISING/results/mag_data/mag_mps_tot_{args.model}_L_{args.L}_flip_{args.flip}_delta_{delta}_chi_{args.chi}",
         mag_mps_tot,
     )
     np.savetxt(
-        f"/Users/fradm98/Google Drive/My Drive/projects/0_ISING/results/mag_data/mag_mps_loc_X_{args.model}_L_{args.L}_flip_{args.flip}_delta_{delta}_chi_{args.chi}",
+        f"/data/fdimarca/projects/0_ISING/results/mag_data/mag_mps_loc_X_{args.model}_L_{args.L}_flip_{args.flip}_delta_{delta}_chi_{args.chi}",
         mag_mps_loc_X,
     )
     np.savetxt(
-        f"/Users/fradm98/Google Drive/My Drive/projects/0_ISING/results/mag_data/mag_mps_loc_{args.model}_L_{args.L}_flip_{args.flip}_delta_{delta}_chi_{args.chi}",
+        f"/data/fdimarca/projects/0_ISING/results/mag_data/mag_mps_loc_{args.model}_L_{args.L}_flip_{args.flip}_delta_{delta}_chi_{args.chi}",
         mag_mps_loc,
     )
     mag_mps_loc_Z = access_txt(
-        f"/Users/fradm98/Google Drive/My Drive/projects/0_ISING/results/mag_data/mag_mps_loc_{args.model}_L_{args.L}_flip_{args.flip}_delta_{delta}_chi_{args.chi}",
+        f"/data/fdimarca/projects/0_ISING/results/mag_data/mag_mps_loc_{args.model}_L_{args.L}_flip_{args.flip}_delta_{delta}_chi_{args.chi}",
         args.L // 2,
     )
     np.savetxt(
-        f"/Users/fradm98/Google Drive/My Drive/projects/0_ISING/results/mag_data/mag_mps_loc_Z_{args.model}_L_{args.L}_flip_{args.flip}_delta_{delta}_chi_{args.chi}",
+        f"/data/fdimarca/projects/0_ISING/results/mag_data/mag_mps_loc_Z_{args.model}_L_{args.L}_flip_{args.flip}_delta_{delta}_chi_{args.chi}",
         mag_mps_loc_Z,
     )
     # np.savetxt(
-    #     f"/Users/fradm98/Google Drive/My Drive/projects/0_ISING/results/fidelity_data/fidelity_{args.model}_L_{args.L}_flip_{args.flip}_delta_{delta}_chi_{args.chi}", overlap
+    #     f"/data/fdimarca/projects/0_ISING/results/fidelity_data/fidelity_{args.model}_L_{args.L}_flip_{args.flip}_delta_{delta}_chi_{args.chi}", overlap
     # )
     save_list_of_lists(
-        f"/Users/fradm98/Google Drive/My Drive/projects/0_ISING/results/errors_data/errors_{args.model}_L_{args.L}_flip_{args.flip}_delta_{delta}_chi_{args.chi}",
+        f"/data/fdimarca/projects/0_ISING/results/errors_data/errors_{args.model}_L_{args.L}_flip_{args.flip}_delta_{delta}_chi_{args.chi}",
         errors,
     )
     np.savetxt(
-        f"/Users/fradm98/Google Drive/My Drive/projects/0_ISING/results/bonds_data/middle_chain_schmidt_values_{args.model}_L_{args.L}_flip_{args.flip}_delta_{delta}_chi_{args.chi}",
+        f"/data/fdimarca/projects/0_ISING/results/bonds_data/middle_chain_schmidt_values_{args.model}_L_{args.L}_flip_{args.flip}_delta_{delta}_chi_{args.chi}",
         schmidt_values,
     )
