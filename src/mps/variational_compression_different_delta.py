@@ -47,20 +47,36 @@ parser.add_argument(
     type=int,
 )
 parser.add_argument(
+    "-cv",
+    "--conv_tol",
+    help="Convergence tolerance of the compression algorithm",
+    default=1e-10,
+    type=float,
+)
+parser.add_argument(
     "-fid",
     "--fidelity",
     help="Fidelity with exact solution. Doable only for small Ising chains",
     action="store_true",
 )
 parser.add_argument(
-    "-cv",
-    "--conv_tol",
-    help="Convergence tolerance of the compression algorithm",
-    default=1e-15,
-    type=float,
+    "-b",
+    "--bond",
+    help="Save the schmidt values for one bond. If False save for each bond. By default True",
+    action="store_true",
+)
+parser.add_argument(
+    "-w",
+    "--where",
+    help="Bond where we want to observe the Schmidt values, should be between 1 and (L-1)",
+    default=-1,
+    type=int,
 )
 args = parser.parse_args()
-
+delta = args.time / args.trotter_steps
+if args.where < 0:
+    args.where = args.L // 2
+    
 # ---------------------------------------------------------
 # variational truncation mps
 for trotter_step in args.trotter_steps:  # L // 2 + 1
@@ -88,15 +104,21 @@ for trotter_step in args.trotter_steps:  # L // 2 + 1
         overlap,
         errors,
         schmidt_values,
-    ) = chain.variational_mps_evolution(
-        trotter_steps=trotter_step,
+    ) = chain.TEBD_variational(
+        trotter_steps=args.trotter_steps,
         delta=delta,
         h_ev=args.h_ev,
         flip=args.flip,
-        fidelity=False,
-        conv_tol=1e-15,
         n_sweeps=args.number_sweeps,
+        conv_tol=args.conv_tol,
+        fidelity=args.fidelity,
+        bond=args.bond,
+        where=args.where,
     )
+
+    if args.bond == False:
+        args.where = "all"
+
     np.savetxt(
         f"/data/fdimarca/projects/0_ISING/results/mag_data/mag_mps_tot_{args.model}_L_{args.L}_flip_{args.flip}_delta_{delta}_chi_{args.chi}",
         mag_mps_tot,
@@ -125,6 +147,6 @@ for trotter_step in args.trotter_steps:  # L // 2 + 1
         errors,
     )
     np.savetxt(
-        f"/data/fdimarca/projects/0_ISING/results/bonds_data/middle_chain_schmidt_values_{args.model}_L_{args.L}_flip_{args.flip}_delta_{delta}_chi_{args.chi}",
+        f"/data/fdimarca/projects/0_ISING/results/bonds_data/{args.where}_bond_schmidt_values_{args.model}_L_{args.L}_flip_{args.flip}_delta_{delta}_chi_{args.chi}",
         schmidt_values,
     )

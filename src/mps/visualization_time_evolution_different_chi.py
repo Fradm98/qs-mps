@@ -25,7 +25,7 @@ t = 10
 delta = t / trotter_steps
 h_t = 0
 n_sweeps = 8
-
+where = 7
 # %%
 # exact results
 """ 
@@ -73,18 +73,24 @@ entropy_maricarmen = access_txt(
 # results with with the hamiltonian of Jesus
 trotter_steps_j = 100
 delta_j = t / trotter_steps_j
-file_path_tot = f"/Users/fradm98/Google Drive/My Drive/projects/0_ISING/results/mag_data/mag_exact_tot_{model}_L_{L}_flip_{flip}_delta_{delta_j}_Jesus"
-file_path_loc = f"/Users/fradm98/Google Drive/My Drive/projects/0_ISING/results/mag_data/mag_exact_loc_{model}_L_{L}_flip_{flip}_delta_{delta_j}_Jesus"
-mag_loc_Z_jesus = access_txt(file_path=file_path_loc, column_index=L//2)
+file_path_tot = f"/Users/fradm98/Google Drive/My Drive/projects/0_ISING/results/exact/mag_data/mag_exact_tot_{model}_L_{L}_flip_{flip}_h_ev_{h_ev}_trotter_steps_{trotter_steps_j}_t_{t}"
+file_path_loc = f"/Users/fradm98/Google Drive/My Drive/projects/0_ISING/results/exact/mag_data/mag_exact_loc_{model}_L_{L}_flip_{flip}_h_ev_{h_ev}_trotter_steps_{trotter_steps_j}_t_{t}"
+file_path_loc_Z = f"/Users/fradm98/Google Drive/My Drive/projects/0_ISING/results/exact/mag_data/mag_exact_loc_Z_{model}_L_{L}_flip_{flip}_h_ev_{h_ev}_trotter_steps_{trotter_steps_j}_t_{t}"
+file_path_loc_X = f"/Users/fradm98/Google Drive/My Drive/projects/0_ISING/results/exact/mag_data/mag_exact_loc_X_{model}_L_{L}_flip_{flip}_h_ev_{h_ev}_trotter_steps_{trotter_steps_j}_t_{t}"
+file_path_entr = f"/Users/fradm98/Google Drive/My Drive/projects/0_ISING/results/exact/entropy/exact_entropy_{where}_{model}_L_{L}_flip_{flip}_h_ev_{h_ev}_trotter_steps_{trotter_steps_j}_t_{t}"
+file_path_entr_tot = f"/Users/fradm98/Google Drive/My Drive/projects/0_ISING/results/exact/entropy/exact_entropy_tot_{model}_L_{L}_flip_{flip}_h_ev_{h_ev}_trotter_steps_{trotter_steps_j}_t_{t}"
+mag_loc_jesus = np.loadtxt(fname=file_path_loc)
+mag_loc_Z_jesus = access_txt(file_path=file_path_loc_Z, column_index=0)
 mag_tot_jesus = access_txt(file_path=file_path_tot, column_index=0)
-
+mag_loc_X_jesus = access_txt(file_path=file_path_loc_X, column_index=0)
+entropy_jesus = access_txt(file_path=file_path_entr, column_index=0)
 # %%
 # visualization
 
 # ---------------------------------------------------------
 # total
 # ---------------------------------------------------------
-chis = [2, 4, 16, 128]
+chis = [16]
 plt.title(
     f"Total Magnetization for $\delta = {delta}$ ;" + " $h_{ev} =$" + f"{h_ev}",
     fontsize=14,
