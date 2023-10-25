@@ -120,7 +120,7 @@ def save_list_of_lists(file_path, list):
     """
     with open(file_path, "w") as file:
         for sublist in list:
-            line = " ".join(item for item in sublist)
+            line = " ".join(str(item) for item in sublist)
             file.write(line + "\n")
 
 
@@ -147,18 +147,16 @@ def load_list_of_lists(file_path):
                 current_list = []
                 elements = line.strip('[]').split()
                 current_list.extend([float(element) for element in elements])
-            elif line.endswith(']'):
-                # Add the last element to the current list
-                elements = line.strip('[]').split()
-                current_list.append(float(elements[0]))
-                # Append the current list to the loaded_data and reset it
-                loaded_data.append(current_list)
             else:
-                # Middle elements of the list
+                # Middle or last elements of the list
                 elements = line.strip('[]').split()
                 current_list.extend([float(element) for element in elements])
+            if line.endswith(']'):
+                # Append the current list to the loaded_data and reset it
+                loaded_data.append(current_list)
 
     return loaded_data
+
 
 
 
@@ -337,7 +335,7 @@ def von_neumann_entropy(s):
 # ---------------------------------------------------------------------------------------
 # Middle Schmidt Values
 # ---------------------------------------------------------------------------------------
-def get_middle_chain_schmidt_values(vec):
+def get_middle_chain_schmidt_values(vec, where: int, bond: bool = True):
     """
     get_middle_chain_schmidt_values
 
@@ -345,24 +343,30 @@ def get_middle_chain_schmidt_values(vec):
     a chain of spins. The decomposition is operated in the middle of the chain.
 
     vec: csc_array - statevector of our system
-    
+    bond: bool - compute the middle chain schmidt values or 
+        the ones from all the chain (excluding the edge sites). By defalut True
+    where: int - bond where we want to perform the Schmidt decomposition
+
     """
     L = int(np.log2(vec.shape[0]))
     sing_vals = []
-    sub = [2]*(L-2)
-    # sub[0] = 1
-    # sub[-1] = 1
-    for i in range(2,L-1):
-        new_shape = (2**(i),2**(L-i))
+    if bond:
+        assert (2 <= where < L-1), f"The decomposition can be performed only at bonds between {2} and {L-2}"
+
+        new_shape = (2**(where),2**(L-where))
+
         matrix = vec.reshape(new_shape)
-        s = svds(matrix, k=(min(matrix.shape[0],matrix.shape[1]) - sub[i-1]), return_singular_vectors=False, which="LM")
+        s = svds(matrix, k=(min(matrix.shape[0],matrix.shape[1]) - 2), return_singular_vectors=False)
+        # u, s, v = np.linalg.svd(matrix.toarray(), full_matrices=False)
         sing_vals.append(s)
-    # if (L % 2) == 0:
-    #     new_shape =(2**(L//2),2**(L//2))
-    # else:
-    #     new_shape =(2**(L//2 + 1),2**(L//2))
-    # matrix = vec.reshape(new_shape)
-    # s = svds(matrix, k=(min(matrix.shape[0],matrix.shape[1]) - 2), return_singular_vectors=False)
+    else:
+        sub = [2]*(L-2)
+        for i in range(2,L-1):
+            new_shape = (2**(i),2**(L-i))
+            matrix = vec.reshape(new_shape)
+            s = svds(matrix, k=(min(matrix.shape[0],matrix.shape[1]) - sub[i-1]), return_singular_vectors=False, which="LM")
+            sing_vals.append(s)
+    
     return sing_vals
 
 

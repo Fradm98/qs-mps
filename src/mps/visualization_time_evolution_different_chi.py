@@ -285,7 +285,7 @@ plt.show()
 # -------------------------------------------------------
 
 plt.title(
-    "Middle Chain Entanglement Entropy: "
+    f" {where}-th Bond Entanglement Entropy: "
     + f"L={L}, $\delta = {delta}$; $h_{{t-ev}} = {h_ev}$",
     fontsize=14,
 )
@@ -295,11 +295,10 @@ colors = create_sequential_colors(num_colors=len(chis), colormap_name="viridis")
 for i, chi in enumerate(chis):  # L//2+1
     entropy_chi = [0]
     schmidt_vals = load_list_of_lists(
-        f"D:/code/projects/0_ISING/results/bonds_data/7_bond_schmidt_values_Ising_L_15_flip_True_delta_0.02_chi_16"
+        f"D:/code/projects/0_ISING/results/bonds_data/{where}_bond_schmidt_values_{model}_L_{L}_flip_{flip}_delta_{delta}_chi_{chi}"
     )
     for s in schmidt_vals:
-        print(s)
-        entropy = von_neumann_entropy(s)
+        entropy = von_neumann_entropy(np.asarray(s))
         entropy_chi.append(entropy)
 
     plt.scatter(
@@ -315,7 +314,7 @@ for i, chi in enumerate(chis):  # L//2+1
 
 plt.plot(
     np.arange(trotter_steps + 1),
-    entropy_maricarmen,
+    entropy_jesus,
     color="indianred",
     label="$S_{exact}$",
 )
@@ -347,7 +346,7 @@ for i, chi in enumerate(chis):
     )
     # mag_mps_tot = mag_mps_tot[::5]
     # error_mag_tot = np.abs(np.asarray(mag_tot_maricarmen) - np.asarray(mag_mps_tot))
-    error_mag_tot = np.abs(np.asarray(mag_tot_maricarmen) - np.asarray(mag_mps_tot))
+    error_mag_tot = np.abs(np.asarray(mag_tot_jesus) - np.asarray(mag_mps_tot))
     plt.plot(
         delta * np.arange(trotter_steps + 1),
         error_mag_tot,
@@ -381,8 +380,8 @@ for i, chi in enumerate(chis):
         f"D:/code/projects/0_ISING/results/mag_data/mag_mps_loc_Z_{model}_L_{L}_flip_{flip}_delta_{delta}_chi_{chi}"
     )
     # mag_mps_loc = mag_mps_loc[::5]
-    error_mag_tot = np.abs(np.asarray(mag_loc_Z_maricarmen) - np.asarray(mag_mps_loc))
-    # error_mag_tot = np.abs(np.asarray(mag_loc_Z_maricarmen) - np.asarray(mag_mps_loc))
+    error_mag_tot = np.abs(np.asarray(mag_loc_Z_jesus) - np.asarray(mag_mps_loc))
+    # error_mag_tot = np.abs(np.asarray(mag_loc_Z_jesus) - np.asarray(mag_mps_loc))
     plt.plot(
         delta * np.arange(trotter_steps + 1),
         error_mag_tot,
@@ -416,7 +415,7 @@ for i, chi in enumerate(chis):
         f"D:/code/projects/0_ISING/results/mag_data/mag_mps_loc_X_{model}_L_{L}_flip_{flip}_delta_{delta}_chi_{chi}"
     )
     # mag_mps_loc = mag_mps_loc[::5]
-    error_mag_tot = np.abs(np.asarray(mag_loc_X_maricarmen) - np.asarray(mag_mps_loc))
+    error_mag_tot = np.abs(np.asarray(mag_loc_X_jesus) - np.asarray(mag_mps_loc))
     plt.plot(
         delta * np.arange(trotter_steps + 1),
         error_mag_tot,
@@ -440,20 +439,20 @@ plt.show()
 # entropy
 # -----------------------
 plt.title(
-    "Error Middle Chain Entanglement Entropy: "
+    f"Error {where}-th Bond Entanglement Entropy: "
     + f"L={L}, $\delta = {delta}$; $h_{{t-ev}} = {h_ev}$",
     fontsize=14,
 )
 for i, chi in enumerate(chis):  # L//2+1
     entropy_chi = [0]
-    schmidt_vals = np.loadtxt(
-        f"D:/code/projects/0_ISING/results/bonds_data/middle_chain_schmidt_values_{model}_L_{L}_flip_{flip}_delta_{delta}_chi_{chi}"
+    schmidt_vals = load_list_of_lists(
+        f"D:/code/projects/0_ISING/results/bonds_data/{where}_bond_schmidt_values_{model}_L_{L}_flip_{flip}_delta_{delta}_chi_{chi}"
     )
     for s in schmidt_vals:
-        entropy = von_neumann_entropy(s)
+        entropy = von_neumann_entropy(np.asarray(s))
         entropy_chi.append(entropy)
     # entropy_chi_red = entropy_chi[::5]
-    error_mc = np.abs(np.asarray(entropy_maricarmen) - np.asarray(entropy_chi))
+    error_mc = np.abs(np.asarray(entropy_jesus) - np.asarray(entropy_chi))
     plt.plot(
         delta * np.arange(trotter_steps + 1), error_mc, color=colors[i], label=f" $\chi={chi}$"
     )

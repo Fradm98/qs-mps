@@ -100,11 +100,11 @@ class MPS:
 
     def canonical_form(
         self,
-        svd_direction="left",
-        e_tol=10 ** (-15),
-        ancilla=False,
-        trunc_chi=False,
-        trunc_tol=True,
+        svd_direction: str = "left",
+        schmidt_tol: float = 1e-15,
+        ancilla: bool = False,
+        trunc_chi: bool = False,
+        trunc_tol: bool = True,
     ):
         """
         canonical_form
@@ -115,18 +115,18 @@ class MPS:
         or to bring the tensors from the amb form to the canonical one.
 
         svd_direction: string - the direction of the sequencial svd. Could be "right" or "left"
-        e_tol: float - tolerance used to cut the schmidt values after svd
+        schmidt_tol: float - tolerance used to cut the schmidt values after svd
 
         """
         if svd_direction == "left":
-            self.left_svd(e_tol, ancilla, trunc_chi, trunc_tol)
+            self.left_svd(schmidt_tol, ancilla, trunc_chi, trunc_tol)
 
         elif svd_direction == "right":
-            self.right_svd(e_tol, ancilla, trunc_chi, trunc_tol)
+            self.right_svd(schmidt_tol, ancilla, trunc_chi, trunc_tol)
 
         return self
 
-    def right_svd(self, e_tol, ancilla, trunc_chi, trunc_tol):
+    def right_svd(self, schmidt_tol: float, ancilla: bool, trunc_chi: bool, trunc_tol: bool):
         """
         right_svd
 
@@ -134,7 +134,7 @@ class MPS:
         form using svd. We start from the first site and sweeping through
         site self.L we save the Gamma tensors on each site and the Schmidt values on the bonds
 
-        e_tol: float - tolerance used to cut the schmidt values after svd
+        schmidt_tol: float - tolerance used to cut the schmidt values after svd
 
         """
         s_init = np.array([1])
@@ -177,7 +177,7 @@ class MPS:
                     v = v[: self.chi, :]
                     s = s / np.linalg.norm(s)
             if trunc_tol:
-                condition = s >= e_tol
+                condition = s >= schmidt_tol
                 s_trunc = np.extract(condition, s)
                 s = s_trunc / np.linalg.norm(s_trunc)
                 u = u[:, :, : len(s)]
@@ -195,7 +195,7 @@ class MPS:
 
         return self
 
-    def left_svd(self, e_tol, ancilla, trunc_chi, trunc_tol):
+    def left_svd(self, schmidt_tol: float, ancilla: bool, trunc_chi: bool, trunc_tol: bool):
         """
         left_svd
 
@@ -203,7 +203,7 @@ class MPS:
         form using svd. We start from the last site self.L and sweeping through
         site 1 we save the Gamma tensors on each site and the Schmidt values on the bonds
 
-        e_tol: float - tolerance used to cut the schmidt values after svd
+        schmidt_tol: float - tolerance used to cut the schmidt values after svd
 
         """
         s_init = np.array([1])
@@ -246,7 +246,7 @@ class MPS:
                     u = u[:, : self.chi]
                     s = s / np.linalg.norm(s)
             if trunc_tol:
-                condition = s >= e_tol
+                condition = s >= schmidt_tol
                 s_trunc = np.extract(condition, s)
                 s = s_trunc / np.linalg.norm(s_trunc)
                 v = v[: len(s), :, :]
@@ -353,6 +353,13 @@ class MPS:
         return self
 
     def enlarge_chi(self):
+        """
+        enlarge_chi
+
+        This function takes the mps tensors and make them of trapezoidal shape
+        saturating at chi.
+
+        """
         extended_array = []
         chi = int(np.log2(self.chi))
         for i in range(chi):
@@ -372,6 +379,43 @@ class MPS:
 
         self.sites = extended_array.copy()
         return self
+
+    def check_canonical(self, site: int):
+        """
+        check_canonical
+
+        This funciton checks if the tensor at a certain site is in the correct 
+        mixed canonical form, e.g., LCF on the left of the site and RCF on the right of the site.
+
+        site: int - where we want to observe the canonical form of our mps
+
+        """
+        array = self.sites
+        a = np.array([1])
+        
+        env = ncon([a,a],[[-1],[-2]])
+        env_l = env
+        for i in range(0,site-1):
+            I = np.eye(array[i].shape[2])
+            env_l = ncon([env_l, array[i], array[i].conjugate()],[[1,2],[1,3,-1],[2,3,-2]])
+            env_trunc = truncation(env_l, threshold=1e-15)
+            env_trunc = csr_matrix(env_trunc)
+            I = csr_matrix(I)
+            ratio = check_matrix(env_trunc, I)
+            if ratio < 1e-12:
+                print(f"the tensor at site {i+1} is in the correct LFC")
+
+        env_r = env
+        for i in range(self.L-1, site, -1):
+            I = np.eye(array[i].shape[0])
+            env_r = ncon([array[i],array[i].conjugate(),env_r],[[-1,3,1],[-2,3,2],[1,2]])
+            env_trunc = truncation(env_r, threshold=1e-15)
+            env_trunc = csr_matrix(env_trunc)
+            I = csr_matrix(I)
+            ratio = check_matrix(env_trunc, I)
+            if ratio < 1e-12:
+                print(f"the tensor at site {i+1} is in the correct RFC")
+        pass
 
     # -------------------------------------------------
     # Matrix Product Operators, MPOs
@@ -883,13 +927,13 @@ class MPS:
     # -------------------------------------------------
     def envs(
         self,
-        site=1,
-        sm=False,
-        fm=False,
-        opt=False,
-        ancilla=False,
-        mixed=False,
-        rev=False,
+        site: int = 1,
+        sm: bool = False,
+        fm: bool = False,
+        opt: bool = False,
+        ancilla: bool = False,
+        mixed: bool = False,
+        rev: bool = False,
     ):
         """
         envs
@@ -901,6 +945,7 @@ class MPS:
         fm: bool - Compute the left and right environments for the fourth moment of self.w. Default False
 
         """
+        a = np.array([1])
         D = self.w[0].shape[0]
         v_l = np.zeros(D)
         v_l[0] = 1
@@ -921,7 +966,6 @@ class MPS:
             E_l = ncon([special, E_l, special], [[1, -1], [1, -2, 2], [2, -3]])
 
         if sm:
-            a = np.array([1])
             array = self.sites
             E_l_sm = ncon(
                 [a, v_l, v_l, a, array[0], self.w[0], self.w[0], array[0].conjugate()],
@@ -989,7 +1033,6 @@ class MPS:
                     self.env_right.append(E_r_sm)
 
         elif fm:
-            a = np.array([1])
             array = self.sites
             E_l_sm = ncon(
                 [
@@ -1088,30 +1131,18 @@ class MPS:
             else:
                 array = self.sites
                 ancilla_array = self.ancilla_sites
-                w = self.w
+            w = self.w
 
             for i in range(1, site):
-                E_l = ncon(
-                    [E_l, ancilla_array[i - 1], w[i - 1], array[i - 1].conjugate()],
-                    [
-                        [1, 3, 5],
-                        [1, 2, -1],
-                        [3, -2, 2, 4],
-                        [5, 4, -3],
-                    ],
-                )
+                E_l = ncon([E_l, ancilla_array[i - 1]],[[1,-3,-4],[1,-2,-1]])
+                E_l = ncon([E_l, w[i - 1]],[[-1,1,2,-4],[2,-2,1,-3]])
+                E_l = ncon([E_l, array[i - 1].conjugate()],[[-1,-2,1,2],[2,1,-3]])
                 env_left.append(E_l)
 
             for j in range(self.L, site, -1):
-                E_r = ncon(
-                    [E_r, ancilla_array[j - 1], w[j - 1], array[j - 1].conjugate()],
-                    [
-                        [1, 3, 5],
-                        [-1, 2, 1],
-                        [-2, 3, 2, 4],
-                        [-3, 4, 5],
-                    ],
-                )
+                E_r = ncon([E_r,ancilla_array[j - 1]],[[1,-3,-4],[-1,-2,1]])
+                E_r = ncon([E_r,w[j - 1]],[[-1,1,2,-4],[-2,2,1,-3]])
+                E_r = ncon([E_r,array[j - 1].conjugate()],[[-1,-2,1,2],[-3,1,2]])
                 env_right.append(E_r)
             if rev:
                 self.env_right_sm = env_right
@@ -1125,28 +1156,17 @@ class MPS:
             array = self.sites
             if ancilla:
                 array = self.ancilla_sites
+            w = self.w
             for i in range(1, site):
-                E_l = ncon(
-                    [E_l, array[i - 1], self.w[i - 1], array[i - 1].conjugate()],
-                    [
-                        [1, 3, 5],
-                        [1, 2, -1],
-                        [3, -2, 2, 4],
-                        [5, 4, -3],
-                    ],
-                )
+                E_l = ncon([E_l, array[i - 1]],[[1,-3,-4],[1,-2,-1]])
+                E_l = ncon([E_l, w[i - 1]],[[-1,1,2,-4],[2,-2,1,-3]])
+                E_l = ncon([E_l, array[i - 1].conjugate()],[[-1,-2,1,2],[2,1,-3]])
                 self.env_left.append(E_l)
 
             for i in range(self.L, site, -1):
-                E_r = ncon(
-                    [E_r, array[i - 1], self.w[i - 1], array[i - 1].conjugate()],
-                    [
-                        [1, 3, 5],
-                        [-1, 2, 1],
-                        [-2, 3, 2, 4],
-                        [-3, 4, 5],
-                    ],
-                )
+                E_r = ncon([E_r,array[i - 1]],[[1,-3,-4],[-1,-2,1]])
+                E_r = ncon([E_r,w[i - 1]],[[-1,1,2,-4],[-2,2,1,-3]])
+                E_r = ncon([E_r,array[i - 1].conjugate()],[[-1,-2,1,2],[-3,1,2]])
                 self.env_right.append(E_r)
         return self
 
@@ -1221,12 +1241,11 @@ class MPS:
 
     def update_state(
         self,
-        sweep,
-        site,
-        trunc_tol=True,
-        trunc_chi=False,
-        e_tol=10 ** (-15),
-        precision=2,
+        sweep: str,
+        site: int,
+        trunc_tol: bool = True,
+        trunc_chi: bool = False,
+        schmidt_tol: float = 1e-15,
     ):
         """
         update_state
@@ -1239,7 +1258,7 @@ class MPS:
         site: int - indicates which site the DMRG is optimizing
         trunc: bool - if True will truncate the the Schmidt values and save the
                 state accordingly.
-        e_tol: float - the tolerance accepted to truncate the Schmidt values
+        schmidt_tol: float - the tolerance accepted to truncate the Schmidt values
         precision: int - indicates the precision of the parameter h
 
         """
@@ -1248,28 +1267,15 @@ class MPS:
             m = self.sites[site - 1].reshape(
                 self.env_left[-1].shape[2] * self.d, self.env_right[-1].shape[2]
             )
-            # np.savetxt(f"site_to_update/state_to_update_{self.model}_L_{self.L}_chi_{self.chi}_site_{site}_right_sweep_n_{n}", m)
-            # time_svd = time.perf_counter()
             u, s, v = np.linalg.svd(m, full_matrices=False)
-            # np.savetxt(
-            #     f"/Users/fradm/mps/results/times_data/update_site_{site}_h_{self.h:.2f}",
-            #     [time.perf_counter() - time_svd],
-            # )
-            # print(f"Time of svd during update state during sweeping {sweep} for site {site}: {time.perf_counter()-time_svd}")
             if trunc_tol:
-                condition = s >= e_tol
+                condition = s >= schmidt_tol
                 s_trunc = np.extract(condition, s)
                 s = s_trunc / np.linalg.norm(s_trunc)
                 bond_l = u.shape[0] // self.d
                 u = u.reshape(bond_l, self.d, u.shape[1])
                 u = u[:, :, : len(s)]
                 v = v[: len(s), :]
-                if site == self.L // 2:
-                    # print(f'Schmidt values:\n{s}')
-                    np.savetxt(
-                        f"/Users/fradm/Google Drive/My Drive/projects/0_ISING/results/bonds_data/schmidt_values_middle_chain_{self.model}_L_{self.L}_chi_{self.chi}_h_{self.h:.{precision}f}",
-                        s,
-                    )
             elif trunc_chi:
                 s_trunc = s[: self.chi]
                 s = s_trunc / np.linalg.norm(s_trunc)
@@ -1277,21 +1283,9 @@ class MPS:
                 u = u.reshape(bond_l, self.d, u.shape[1])
                 u = u[:, :, : len(s)]
                 v = v[: len(s), :]
-                if site == self.L // 2:
-                    # print(f'Schmidt values:\n{s}')
-                    np.savetxt(
-                        f"/Users/fradm/Google Drive/My Drive/projects/0_ISING/results/bonds_data/schmidt_values_middle_chain_{self.model}_L_{self.L}_chi_{self.chi}_h_{self.h:.{precision}f}",
-                        s,
-                    )
             else:
                 u = u.reshape(
                     self.env_left[-1].shape[2], self.d, self.env_right[-1].shape[2]
-                )
-            if site == self.L // 2:
-                # print(f'Schmidt values:\n{s}')
-                np.savetxt(
-                    f"/Users/fradm/Google Drive/My Drive/projects/0_ISING/results/bonds_data/schmidt_values_middle_chain_{self.model}_L_{self.L}_chi_{self.chi}_h_{self.h:.{precision}f}",
-                    s,
                 )
             next_site = ncon(
                 [np.diag(s), v, self.sites[site]],
@@ -1309,52 +1303,26 @@ class MPS:
             m = self.sites[site - 1].reshape(
                 self.env_left[-1].shape[2], self.d * self.env_right[-1].shape[2]
             )
-            # time_svd = time.perf_counter()
             u, s, v = np.linalg.svd(m, full_matrices=False)
-            # np.savetxt(
-            #     f"/Users/fradm/mps/results/times_data/update_site_{site}_h_{self.h:.2f}",
-            #     [time.perf_counter() - time_svd],
-            # )
-            # print(f"Time of svd during update state during sweeping {sweep} for site {site}: {time.perf_counter()-time_svd}")
             if trunc_tol:
-                condition = s >= e_tol
+                condition = s >= schmidt_tol
                 s_trunc = np.extract(condition, s)
                 s = s_trunc / np.linalg.norm(s_trunc)
                 bond_r = v.shape[1] // self.d
                 v = v.reshape(v.shape[0], self.d, bond_r)
                 v = v[: len(s), :, :]
                 u = u[:, : len(s)]
-                if site == self.L // 2:
-                    # print(f"Schmidt values:\n{s}")
-                    np.savetxt(
-                        f"/Users/fradm/Google Drive/My Drive/projects/0_ISING/results/bonds_data/schmidt_values_middle_chain_{self.model}_L_{self.L}_chi_{self.chi}_h_{self.h:.{precision}f}",
-                        s,
-                    )
             elif trunc_chi:
-                s = s[: self.chi]
+                s_trunc = s[: self.chi]
                 s = s_trunc / np.linalg.norm(s_trunc)
                 bond_r = v.shape[1] // self.d
                 v = v.reshape(v.shape[0], self.d, bond_r)
                 v = v[: len(s), :, :]
                 u = u[:, : len(s)]
-                if site == self.L // 2:
-                    # print(f"Schmidt values:\n{s}")
-                    np.savetxt(
-                        f"/Users/fradm/Google Drive/My Drive/projects/0_ISING/results/bonds_data/schmidt_values_middle_chain_{self.model}_L_{self.L}_chi_{self.chi}_h_{self.h:.{precision}f}",
-                        s,
-                    )
             else:
                 v = v.reshape(
                     self.env_left[-1].shape[2], self.d, self.env_right[-1].shape[2]
                 )
-
-            if site == self.L // 2:
-                # print(f'Schmidt values:\n{s}')
-                np.savetxt(
-                    f"/Users/fradm/Google Drive/My Drive/projects/0_ISING/results/bonds_data/schmidt_values_middle_chain_{self.model}_L_{self.L}_chi_{self.chi}_h_{self.h:.{precision}f}",
-                    s,
-                )
-
             next_site = ncon(
                 [self.sites[site - 2], u, np.diag(s)],
                 [
@@ -1366,7 +1334,7 @@ class MPS:
             self.sites[site - 1] = v
             self.sites[site - 2] = next_site
 
-        return self
+        return s
 
     def update_envs(self, sweep, site, mixed=False, rev=False):
         """
@@ -1381,9 +1349,10 @@ class MPS:
 
         """
         if sweep == "right":
-            time_upd_env = time.perf_counter()
+            # time_upd_env = time.perf_counter()
             array = self.sites[site - 1]
             ancilla_array = array
+            w = self.w[site - 1]
             if rev:
                 E_l = self.env_left_sm[-1]
                 array = self.ancilla_sites[site - 1]
@@ -1392,15 +1361,9 @@ class MPS:
                 if mixed:
                     ancilla_array = self.ancilla_sites[site - 1]
                 E_l = self.env_left[-1]
-            E_l = ncon(
-                [E_l, ancilla_array, self.w[site - 1], array.conjugate()],
-                [
-                    [1, 3, 5],
-                    [1, 2, -1],
-                    [3, -2, 2, 4],
-                    [5, 4, -3],
-                ],
-            )
+            E_l = ncon([E_l, ancilla_array],[[1,-3,-4],[1,-2,-1]])
+            E_l = ncon([E_l, w],[[-1,1,2,-4],[2,-2,1,-3]])
+            E_l = ncon([E_l, array.conjugate()],[[-1,-2,1,2],[2,1,-3]])
             if rev:
                 self.env_left_sm.append(E_l)
                 self.env_right_sm.pop(-1)
@@ -1412,6 +1375,7 @@ class MPS:
         if sweep == "left":
             array = self.sites[site - 1]
             ancilla_array = array
+            w = self.w[site - 1]
             if rev:
                 E_r = self.env_right_sm[-1]
                 array = self.ancilla_sites[site - 1]
@@ -1419,18 +1383,10 @@ class MPS:
             else:
                 if mixed:
                     ancilla_array = self.ancilla_sites[site - 1]
-                    self.mpo_dagger()
-                    self.w = self.w_dag
                 E_r = self.env_right[-1]
-            E_r = ncon(
-                [E_r, ancilla_array, self.w[site - 1], array.conjugate()],
-                [
-                    [1, 3, 5],
-                    [-1, 2, 1],
-                    [-2, 3, 2, 4],
-                    [-3, 4, 5],
-                ],
-            )
+            E_r = ncon([E_r,ancilla_array],[[1,-3,-4],[-1,-2,1]])
+            E_r = ncon([E_r,w],[[-1,1,2,-4],[-2,2,1,-3]])
+            E_r = ncon([E_r,array.conjugate()],[[-1,-2,1,2],[-3,1,2]])
             if rev:
                 self.env_right_sm.append(E_r)
                 self.env_left_sm.pop(-1)
@@ -1442,12 +1398,12 @@ class MPS:
 
     def DMRG(
         self,
-        trunc_tol,
-        trunc_chi,
-        e_tol=10 ** (-15),
-        n_sweeps=2,
-        precision=2,
-        var=False,
+        trunc_tol: bool,
+        trunc_chi: bool,
+        schmidt_tol: float = 1e-15,
+        conv_tol: float = 1e-10,
+        n_sweeps: int = 2,
+        var: bool = False,
     ):  # iterations, sweep,
         energies = []
         variances = []
@@ -1455,75 +1411,51 @@ class MPS:
         sites = np.arange(1, self.L + 1).tolist()
 
         self.mpo()
-        # tensor_shapes(self.w)
-        # env_time = time.perf_counter()
         self.envs()
-        # np.savetxt(
-        #     f"/Users/fradm/mps/results/times_data/env_h_{self.h:.2f}", [time.perf_counter() - env_time]
-        # )
-        # print(f"Time of env contraction: {time.perf_counter()-env_time}")
+
         iter = 1
         for n in range(n_sweeps):
             print(f"Sweep n: {n}\n")
             for i in range(self.L - 1):
-                # time_site = time.perf_counter()
                 H = self.H_eff(sites[i])
-                # np.savetxt(f"effective_ham/H_eff_{self.model}_L_{self.L}_h_{self.h:.2f}_chi_{self.chi}_site_{sites[i]}_sweep_n_{n}", H)
                 energy = self.eigensolver(
                     H_eff=H, site=sites[i]
-                )  # , v0=self.sites[sites[i]].flatten()
+                ) 
                 energies.append(energy)
-                # N, l, r = self.N_eff(site=sites[i])
-                # print(f"The N_eff for site {sites[i]} is:")
-                # plt.imshow(N, cmap='viridis')
-                # plt.show()
-                # if var:
-                #     sm = self.mpo_second_moment(opt=True)
-                #     v = variance(first_m=energy, sm=sm)
-                #     variances.append(v)
-                # total_state_time = time.perf_counter()
-                self.update_state(
-                    sweeps[0], sites[i], trunc_tol, trunc_chi, e_tol, precision
+                schmidt_vals = self.update_state(
+                    sweeps[0], sites[i], trunc_tol, trunc_chi, schmidt_tol
                 )
-                # print(f"Total time of state updating: {time.perf_counter()-total_state_time}")
-                # update_env_time = time.perf_counter()
                 self.update_envs(sweeps[0], sites[i])
-                # np.savetxt(
-                #     f"/Users/fradm/mps/results/times_data/update_env_h_{self.h:.2f}",
-                #     [time.perf_counter() - update_env_time],
-                # )
-                # print(f"Time of env updating: {time.perf_counter()-update_env_time}")
                 iter += 1
-                # print('\n=========================================')
-                # print(f"Time of site {sites[i]} optimization: {time.perf_counter()-time_site}")
-                # print('=========================================\n')
-
-            middle_chain = np.loadtxt(
-                f"/Users/fradm/Google Drive/My Drive/projects/0_ISING/results/bonds_data/schmidt_values_middle_chain_{self.model}_L_{self.L}_chi_{self.chi}_h_{self.h:.{precision}f}"
-            )
-            s_min = np.min(middle_chain)
-
-            if s_min < e_tol:
-                print("\n=========================================")
-                print("=========================================")
-                print(
-                    "Optimal Schmidt values achieved, breaking the DMRG optimization algorithm\n"
-                )
-
-                np.savetxt(
-                    f"/Users/fradm/Google Drive/My Drive/projects/0_ISING/results/energy_data/energies_sweeping_{self.model}_L_{self.L}_chi_{self.chi}_h_{self.h:.{precision}f}",
-                    energies,
-                )
-                if var:
-                    np.savetxt(
-                        f"/Users/fradm/Google Drive/My Drive/projects/0_ISING/results/energy_data/variances_sweeping_{self.model}_L_{self.L}_chi_{self.chi}_h_{self.h:.{precision}f}",
-                        variances,
-                    )
 
             # print("reversing the sweep")
             sweeps.reverse()
             sites.reverse()
 
+            if ((n % 2) - 1) == 0:
+                energy_dist = np.abs(energies[-1] - energies[-2])
+                if energy_dist < conv_tol:
+                    break
+
+        if energy_dist < conv_tol:
+            print("##############################")
+            print(
+                f"The energy between the two last updated states converged\n"
+                + f"to an order of {conv_tol} after:\n"
+                + f"{n} sweeps at site {sites[i]}\n"
+                + f"total iterations {iter}"
+            )
+            print("##############################")
+        else:
+            print("##############################")
+            print(
+                f"The energy between the two last updated states converged\n"
+                + f"to an order of {energy_dist}\n"
+                + f"instead of the convergence tolerance {conv_tol}"
+            )
+            print("##############################")
+        return energies, schmidt_vals
+    
         np.savetxt(
             f"/Users/fradm/Google Drive/My Drive/projects/0_ISING/results/energy_data/energies_sweeping_{self.model}_L_{self.L}_chi_{self.chi}_h_{self.h:.{precision}f}",
             energies,
@@ -1573,7 +1505,7 @@ class MPS:
         self.env_left = env_left
         return self
 
-    def compute_M_no_mpo(self, site):
+    def compute_M(self, site, mpo=True):
         """
         _compute_M
 
@@ -1584,10 +1516,16 @@ class MPS:
         site: int - site where to execute the tensor contraction
 
         """
-        M = ncon(
-            [self.env_left[-1], self.ancilla_sites[site - 1], self.env_right[-1]],
-            [[1, -1], [1, -2, 2], [2, -3]],
-        )
+        if mpo:
+            M = ncon(
+                [self.env_left[-1], self.ancilla_sites[site - 1], self.w[site - 1], self.env_right[-1]],
+                [[1, 3, -1], [1, 5, 2], [3, 4, 5, -2], [2, 4, -3]],
+            )
+        else:
+            M = ncon(
+                [self.env_left[-1], self.ancilla_sites[site - 1], self.env_right[-1]],
+                [[1, -1], [1, -2, 2], [2, -3]],
+            )
         return M
 
     def error(self, site, M, N_anc):
@@ -1599,15 +1537,11 @@ class MPS:
 
     def update_state_ev(
         self,
-        sweep,
-        site,
-        delta,
-        trotter_step,
-        trunc_tol,
-        trunc_chi,
-        flip,
-        e_tol=10 ** (-15),
-        precision=2,
+        sweep: str,
+        site: int,
+        trunc_tol: bool,
+        trunc_chi: bool,
+        schmidt_tol: float = 1e-15,
     ):
         """
         update_state
@@ -1619,10 +1553,10 @@ class MPS:
         sweep: string - direction of the sweeping. Could be "left" or "right"
         site: int - indicates which site the TEBD is optimizing
         trunc_tol: bool - if True will truncate the the Schmidt values according to
-                        a tolerance value e_tol
+                        a tolerance value schmidt_tol
         trunc_chi: bool - if True will truncate the the Schmidt values according to
                         a maximum (fixed) bond dimension
-        e_tol: float - the tolerance accepted to truncate the Schmidt values
+        schmidt_tol: float - the tolerance accepted to truncate the Schmidt values
         precision: int - indicates the precision to save parameters
 
         """
@@ -1635,7 +1569,7 @@ class MPS:
             u, s, v = np.linalg.svd(m, full_matrices=False)
 
             if trunc_tol:
-                condition = s >= e_tol
+                condition = s >= schmidt_tol
                 s_trunc = np.extract(condition, s)
                 s = s_trunc / np.linalg.norm(s_trunc)
                 bond_l = u.shape[0] // self.d
@@ -1688,7 +1622,7 @@ class MPS:
             u, s, v = np.linalg.svd(m, full_matrices=False)
 
             if trunc_tol:
-                condition = s >= e_tol
+                condition = s >= schmidt_tol
                 s_trunc = np.extract(condition, s)
                 s = s_trunc / np.linalg.norm(s_trunc)
                 bond_r = v.shape[1] // self.d
@@ -1781,30 +1715,27 @@ class MPS:
 
     def compression(
         self,
-        delta: float,
-        trotter_step: int,
         trunc_tol: bool,
         trunc_chi: bool,
-        flip: bool,
-        e_tol: float = 10 ** (-15),
+        schmidt_tol: float = 1e-15,
         n_sweeps: int = 6,
-        precision: int = 2,
-        err: bool = False,
-        conv_tol: float = 1e-7,
+        conv_tol: float = 1e-10,
+        where: int = -1,
+        bond: bool = True,
     ):
         """
         compression
 
         This function compress the mps self.sites by a variational method that
         tries to compress the uncompressed state in the ancilla_sites. We
-        reduce the distance between these two states.
+        reduce the distance between these two last updated states.
 
         delta: float - the step in time of a trotter step
         trunc_tol: bool - if True will truncate the the Schmidt values according to
-                        a tolerance value e_tol
+                        a tolerance value schmidt_tol
         trunc_chi: bool - if True will truncate the the Schmidt values according to
                         a maximum (fixed) bond dimension
-        e_tol: float - the tolerance accepted to truncate the Schmidt values
+        schmidt_tol: float - the tolerance accepted to truncate the Schmidt values
         n_sweeps: int - number of sweepings
         precision: int - precision of the floats to save
         err: bool - decide if we want to monitor the error or not. Default is false
@@ -1814,44 +1745,50 @@ class MPS:
         sites = np.arange(1, self.L + 1).tolist()
         errors = []
 
-        if err:
-            print("Norm of ancilla sites:")
-            N_anc = self._compute_norm(site=1, ancilla=True)
+        N_anc = self._compute_norm(site=1, ancilla=True)
 
-        self.environments_ev(site=1)
+        # self.environments_ev(site=1)
+        self.envs(site=1, mixed=True)
         iter = 1
         for n in range(n_sweeps):
             print(f"Sweep n: {n}\n")
+            schmidt_vals = []
             for i in range(self.L - 1):
                 # print(f"\n============= Site: {sites[i]} ===================\n")
 
-                M = self.compute_M_no_mpo(sites[i])
+                M = self.compute_M(sites[i], mpo=True)
                 self.sites[sites[i] - 1] = M
 
-                if err:
-                    errs = self.error(site=sites[i], M=M, N_anc=N_anc)
-                    # print(
-                    #     f"Error at site {sites[i]} for trotter step {trotter_step}: {errs}"
-                    # )
-                    # print("Braket ancilla/sites == A*M:")
-                    # self._compute_norm(site=1, mixed=True)
-                    errors.append(errs)
+                errs = self.error(site=sites[i], M=M, N_anc=N_anc)
+                errors.append(errs)
 
-                s = self.update_state_ev(
-                    sweeps[0],
-                    sites[i],
-                    delta,
-                    trotter_step,
-                    trunc_tol,
-                    trunc_chi,
-                    flip,
-                    e_tol,
-                    precision,
+                # s = self.update_state_ev(
+                #     sweeps[0],
+                #     sites[i],
+                #     delta,
+                #     trotter_step,
+                #     trunc_tol,
+                #     trunc_chi,
+                #     flip,
+                #     schmidt_tol,
+                #     precision,
+                # )
+                s = self.update_state(
+                    sweep=sweeps[0],
+                    site=sites[i],
+                    trunc_tol=trunc_tol,
+                    trunc_chi=trunc_chi,
+                    schmidt_tol=schmidt_tol,
                 )
-                if sites[i] == self.L // 2:
-                    s_mid = s
-                self.update_envs_ev(sweeps[0], sites[i])
+                if bond:
+                    if sites[i] - 1 == where:
+                        schmidt_vals.append(s)
+                else:
+                    schmidt_vals.append(s)
+                # self.update_envs_ev(sweeps[0], sites[i])
+                self.update_envs(sweeps[0], sites[i], mixed=True)
 
+                # self.check_canonical(site=sites[i])
                 iter += 1
                 # norm_sites = self._compute_norm(site=1)
 
@@ -1859,13 +1796,15 @@ class MPS:
             sites.reverse()
 
             if ((n % 2) - 1) == 0:
-                if errs < conv_tol:
+                err_dist = np.abs(errors[-1] - errors[-2])
+                if err_dist < conv_tol:
                     break
 
-        if errs < conv_tol:
+        if err_dist < conv_tol:
             print("##############################")
             print(
-                f"The two states converged to an order of {conv_tol} after:\n"
+                f"The error between the two last updated states converged\n"
+                + f"to an order of {conv_tol} after:\n"
                 + f"{n} sweeps at site {sites[i]}\n"
                 + f"total iterations {iter}"
             )
@@ -1873,11 +1812,12 @@ class MPS:
         else:
             print("##############################")
             print(
-                f"The two states converged to an order of {errs}\n"
+                f"The error between the two last updated states converged\n"
+                + f"to an order of {err_dist}\n"
                 + f"instead of the convergence tolerance {conv_tol}"
             )
             print("##############################")
-        return errors, s_mid
+        return errors, schmidt_vals
 
     def TEBD_direct(self, trotter_steps, delta, h_ev, J_ev, fidelity=False, trunc=True):
         """
@@ -1955,9 +1895,10 @@ class MPS:
         h_ev: float,
         flip: bool,
         n_sweeps: int = 2,
-        fidelity: bool = False,
-        err: bool = True,
         conv_tol: float = 1e-7,
+        fidelity: bool = False,
+        bond: bool = True,
+        where: int = -1,
     ):
         """
         variational_mps_evolution
@@ -1979,8 +1920,8 @@ class MPS:
         overlap = []
         mag_mps_tot = []
         mag_mps_loc = []
-        mag_mps_loc_Z = []
         mag_mps_loc_X = []
+        schmidt_vals = []
         X = np.array([[0, 1], [1, 0]])
         Z = np.array([[1, 0], [0, -1]])
 
@@ -2021,11 +1962,11 @@ class MPS:
         self.ancilla_sites = self.sites.copy()
 
         errors = [[0, 0]]
-        schmidt_vals = []
+        
         for trott in range(trotter_steps):
             print(f"------ Trotter steps: {trott} -------")
             self.mpo_Ising_time_ev(delta=delta, h_ev=h_ev, J_ev=1)
-            self.mpo_to_mps(ancilla=True)
+            # self.mpo_to_mps(ancilla=True)
             # self.canonical_form(
             #     svd_direction="right", ancilla=True, trunc_chi=False, trunc_tol=True
             # )
@@ -2037,31 +1978,29 @@ class MPS:
             # print("Braket <phi|psi>:")
             # self._compute_norm(site=1, mixed=True)
             error, schmidt = self.compression(
-                delta=delta,
-                trotter_step=trott,
                 trunc_tol=False,
                 trunc_chi=True,
-                flip=flip,
                 n_sweeps=n_sweeps,
-                err=err,
                 conv_tol=conv_tol,
+                bond=bond,
+                where=where,
             )
             self.ancilla_sites = self.sites.copy()
-            self.canonical_form(trunc_chi=True, trunc_tol=False)
+            # self.canonical_form(trunc_chi=True, trunc_tol=False)
             errors.append(error)
             schmidt_vals.append(schmidt)
 
             # total
             self.order_param_Ising(op=Z)
-            mag_mps_tot.append(np.real(self.mpo_first_moment()))
+            mag_mps_tot.append(np.real(self.mpo_first_moment(mixed=True)))
             # loc X
             self.single_operator_Ising(site=self.L // 2 + 1, op=X)
-            mag_mps_loc_X.append(np.real(self.mpo_first_moment()))
+            mag_mps_loc_X.append(np.real(self.mpo_first_moment(mixed=True)))
             # local glob Z
             mag = []
             for i in range(self.L):
                 self.single_operator_Ising(site=i + 1, op=Z)
-                mag.append(self.mpo_first_moment().real)
+                mag.append(self.mpo_first_moment(mixed=True).real)
             mag_mps_loc.append(mag)
 
             if fidelity:
@@ -2118,18 +2057,23 @@ class MPS:
         )
         return sandwich
 
-    def mpo_first_moment(self, site=1, ancilla=False):
+    def mpo_first_moment(self, site=1, ancilla=False, mixed=False):
         # self.order_param()
         # self.sigma_x_Z2(site=site)
         self.clear_envs()
-        self.envs(site, ancilla=ancilla)
+        self.envs(site, ancilla=ancilla, mixed=mixed)
         sites = self.sites
+        ancilla_sites = sites
         if ancilla:
             sites = self.ancilla_sites
+            ancilla_sites = sites
+        elif mixed:
+            ancilla_sites = self.ancilla_sites
+            
         first_moment = ncon(
             [
                 self.env_left[-1],
-                sites[site - 1],
+                ancilla_sites[site - 1],
                 self.w[site - 1],
                 sites[site - 1].conjugate(),
                 self.env_right[-1],
@@ -2262,8 +2206,35 @@ class MPS:
 
 
 # if __name__ == "__main__":
-#     l = 3
-#     charges = [1, 1, 1, 1, 1, 1]
-#     chain = MPS(L=15, d=2**l, model="Ising", chi=2, charges=charges, h=0.1, J=0)
-#     chain.mpo_Z2_general(l=l)
-    # chain.mpo_Z2_two_ladder()
+#     L = 15
+#     model = "Ising"
+#     chi = 16
+#     h_transverse_init = 0
+#     trotter_steps = 2
+#     delta = 0.02
+#     h_ev = 0.3
+#     flip = True
+#     chain = MPS(
+#         L=L, d=2, model=model, chi=chi, h=h_transverse_init, eps=0, J=1
+#     )
+#     chain._random_state(seed=3, chi=chi)
+#     chain.canonical_form(trunc_chi=False, trunc_tol=True)
+#     # chain.sweeping(trunc_chi=False, trunc_tol=True, n_sweeps=2)
+#     init_state = np.zeros((1, 2, 1))
+#     init_state[0, 0, 0] = 1
+#     for i in range(chain.L):
+#         chain.sites[i] = init_state
+#     (
+#         mag_mps_tot,
+#         mag_mps_loc_X,
+#         mag_mps_loc,
+#         overlap,
+#         errors,
+#         schmidt_values,
+#     ) = chain.TEBD_variational(
+#         trotter_steps=trotter_steps,
+#         delta=delta,
+#         h_ev=h_ev,
+#         flip=flip,
+#         where=7
+#     )
