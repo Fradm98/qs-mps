@@ -418,6 +418,75 @@ class MPS:
         pass
 
     # -------------------------------------------------
+    # Density Matrix MPS and manipulation
+    # -------------------------------------------------
+    def density_matrix(self):
+        kets = self.sites
+        bras = [ket.conjugate() for ket in kets]
+        a = np.array([1])
+        env = ncon([a,a],[[-1],[-2]])
+        up = [int(-elem) for elem in np.linspace(1,0,0)]
+        down = [int(-elem) for elem in np.linspace(self.L+1,0,0)] 
+        mid_up = [1]
+        mid_down = [2]
+        label_env = up + down + mid_up + mid_down
+        # first site:
+        for i in range(len(kets)):
+            label_ket = [1,-1-i,-self.L*100]
+            label_bra = [2,-self.L-1-i,-self.L*100-1]
+            env = ncon([env,kets[i],bras[i]],[label_env,label_ket,label_bra])
+            up = [int(-elem) for elem in np.linspace(1,i+1,i+1)]
+            down = [int(-elem) for elem in np.linspace(self.L+1,self.L+1+i,i+1)] 
+            label_env = up + down + mid_up + mid_down
+        
+        mps_dm = ncon([env,a,a],[label_env,[1],[2]])
+        return mps_dm
+    
+    def reduced_density_matrix(self, sites):
+        """
+        reduced_density_matrix
+
+        This function allows us to get the reduced density matrix (rdm) of a mps.
+        We trace out all the sites not specified in the argument sites.
+        The algorithm only works for consecutive sites, e.g., [1,2,3],
+        [56,57], etc. To implement a rdm of sites [5,37] we need another middle 
+        environment that manages the contractions between the specified sites
+        """
+        kets = self.sites
+        bras = [ket.conjugate() for ket in kets]
+        a = np.array([1])
+        env = ncon([a,a],[[-1],[-2]])
+        up = [int(-elem) for elem in np.linspace(1,0,0)]
+        down = [int(-elem) for elem in np.linspace(self.L+1,0,0)] 
+        mid_up = [1]
+        mid_down = [2]
+        label_env = up + down + mid_up + mid_down
+        # left env:
+        env_l = env
+        for i in range(sites[0]-1):
+            label_ket = [1,3,-1]
+            label_bra = [2,3,-2]
+            env_l = ncon([env_l,kets[i],bras[i]],[label_env,label_ket,label_bra])
+        # right env:
+        env_r = env
+        for i in range(self.L-1,sites[-1],-1): 
+            label_ket = [-1,3,1]
+            label_bra = [-2,3,2]
+            env_r = ncon([env_r,kets[i],bras[i]],[label_env,label_ket,label_bra])  
+        # central env
+        for i in range(sites[0]-1,sites[-1]):
+            label_ket = [1,-1-i,-len(sites)*100]
+            label_bra = [2,-len(sites)-1-i,-len(sites)*100-1]
+            env_l = ncon([env_l,kets[i],bras[i]],[label_env,label_ket,label_bra])
+            up = [int(-elem) for elem in np.linspace(1,i+1,i+1)]
+            down = [int(-elem) for elem in np.linspace(len(sites)+1,len(sites)+1+i,i+1)] 
+            label_env = up + down + mid_up + mid_down
+
+        mps_dm = ncon([env_l,env_r],[[label_env],[1,2]])
+
+        return mps_dm
+    
+    # -------------------------------------------------
     # Matrix Product Operators, MPOs
     # -------------------------------------------------
     def mpo(self):
