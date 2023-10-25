@@ -897,3 +897,26 @@ def create_sequential_colors(num_colors, colormap_name):
     colors = [colormap(value) for value in colormap_values]
     return colors
 
+# ---------------------------------------------------------------------------------------
+# Create Ladders Lattice
+# ---------------------------------------------------------------------------------------
+def create_ladders_lattice(matrix):
+    """
+    create_sequential_colors
+
+    This function creates a sequence of colors extracted from a specified colormap.
+
+    num_colors: int - number of colors we want to extract
+    colormap_name: string - colormap name we want to use
+
+    """
+    rows = np.asarray(matrix).shape[0]
+    cols = np.asarray(matrix).shape[1]
+
+    # we have rows vertical links and rows+1 sites
+    # we have cols horizontal links and cols+1 sites
+    nan_array = np.full((rows+(rows+1), (cols+1)+(cols)), np.nan)
+
+    nan_array[1::2, ::2] = np.asarray(matrix)
+    return nan_array
+            

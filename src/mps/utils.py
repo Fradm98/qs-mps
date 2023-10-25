@@ -1,12 +1,13 @@
 import numpy as np
 from scipy.optimize import curve_fit
-from scipy.sparse.linalg import expm, eigsh, expm_multiply
+from scipy.sparse.linalg import expm, eigsh, expm_multiply, svds
 from scipy.sparse import csr_matrix, csc_matrix, csc_array, kron as spkron
 import os
 from ncon import ncon
 import matplotlib.pyplot as plt
 from matplotlib import gridspec
 from typing import Union
+
 
 # ---------------------------------------------------------------------------------------
 # Tensor shapes
@@ -27,6 +28,7 @@ def tensor_shapes(lists):
 
     return shapes
 
+
 # ---------------------------------------------------------------------------------------
 # ---------------------------------------------------------------------------------------
 # ---------------------------------------------------------------------------------------
@@ -36,6 +38,7 @@ Saving and loading tools
 # ---------------------------------------------------------------------------------------
 # ---------------------------------------------------------------------------------------
 # ---------------------------------------------------------------------------------------
+
 
 # ---------------------------------------------------------------------------------------
 # Get labels
@@ -60,6 +63,7 @@ def get_labels(shapes):
         label += np.prod(shape)
         labels.append(label)
     return labels
+
 
 # ---------------------------------------------------------------------------------------
 # Renaming
@@ -116,8 +120,9 @@ def save_list_of_lists(file_path, list):
     """
     with open(file_path, "w") as file:
         for sublist in list:
-            line = " ".join(map(str, sublist))
+            line = " ".join(item for item in sublist)
             file.write(line + "\n")
+
 
 # ---------------------------------------------------------------------------------------
 # Load list of lists
@@ -133,15 +138,77 @@ def load_list_of_lists(file_path):
     """
     loaded_data = []
 
-    # Open the file in read mode and read the data
+    with open(file_path, "r") as file:
+        current_list = []
+        for line in file:
+            line = line.strip()
+            if line.startswith('['):
+                # Start a new list
+                current_list = []
+                elements = line.strip('[]').split()
+                current_list.extend([float(element) for element in elements])
+            elif line.endswith(']'):
+                # Add the last element to the current list
+                elements = line.strip('[]').split()
+                current_list.append(float(elements[0]))
+                # Append the current list to the loaded_data and reset it
+                loaded_data.append(current_list)
+            else:
+                # Middle elements of the list
+                elements = line.strip('[]').split()
+                current_list.extend([float(element) for element in elements])
+
+    return loaded_data
+
+
+
+
+# ---------------------------------------------------------------------------------------
+# Access txt
+# ---------------------------------------------------------------------------------------
+def access_txt(file_path: str, column_index: int):
+    """
+    access_txt
+
+    This function accesses to .txt files that have
+    an equal number of space separated values for each row.
+    We can access to one specific column of the .txt file.
+
+    file_path: str - file path
+    column_index: int - index of the column we want to retrieve
+
+    """
+    # Initialize an empty grid to store the values
+    grid = []
+
+    # Open and read the file
     with open(file_path, "r") as file:
         for line in file:
-            # Split the line into elements (assuming space-separated values)
-            elements = line.strip().split()
-            
-            # Append the sublist to the loaded_data list
-            loaded_data.append(elements)
-    return loaded_data
+            # Split each line into a list of values, assuming values are separated by spaces
+            values = line.strip().split()
+            row = [float(value) for value in values]
+            # Append the row to the grid
+            grid.append(row)
+
+    # Assuming 'grid' contains your data as a list of lists
+    # Get the number of rows and columns in the grid
+    m = len(grid)  # Number of rows
+    n = len(
+        grid[0]
+    )  # Number of columns (assuming all rows have the same number of columns)
+
+    # Initialize empty lists for each column
+    columns = [[] for _ in range(n)]
+
+    # Extract values column-wise
+    for row in grid:
+        for j in range(n):
+            columns[j].append(row[j])
+
+    # Now, 'columns' is a list of lists where columns[j] contains the values of the j-th column.
+    column = columns[column_index]
+    return column
+
 
 # ---------------------------------------------------------------------------------------
 # Replace Zeros with Nan
@@ -172,6 +239,7 @@ Critical exponent tools
 # ---------------------------------------------------------------------------------------
 # ---------------------------------------------------------------------------------------
 
+
 # ---------------------------------------------------------------------------------------
 # Variance
 # ---------------------------------------------------------------------------------------
@@ -188,6 +256,7 @@ def variance(first_m, sm):
     """
     return np.abs(sm - first_m**2)
 
+
 # ---------------------------------------------------------------------------------------
 # Binder's Cumulant
 # ---------------------------------------------------------------------------------------
@@ -203,6 +272,7 @@ def binders_cumul(fourth_m, sm):
 
     """
     return 1 - fourth_m / (3 * sm**2)
+
 
 # ---------------------------------------------------------------------------------------
 # k values
@@ -226,6 +296,7 @@ def k_values(L):
 
     return ks
 
+
 # ---------------------------------------------------------------------------------------
 # Ground state
 # ---------------------------------------------------------------------------------------
@@ -246,6 +317,7 @@ def ground_state(L):
 
     return -sum(e_0)
 
+
 # ---------------------------------------------------------------------------------------
 # Von Neumann Entropy
 # ---------------------------------------------------------------------------------------
@@ -260,6 +332,39 @@ def von_neumann_entropy(s):
 
     """
     return -np.sum((s**2) * np.log2(s**2))
+
+
+# ---------------------------------------------------------------------------------------
+# Middle Schmidt Values
+# ---------------------------------------------------------------------------------------
+def get_middle_chain_schmidt_values(vec):
+    """
+    get_middle_chain_schmidt_values
+
+    This function retrieve the schmidt values of a vector representing
+    a chain of spins. The decomposition is operated in the middle of the chain.
+
+    vec: csc_array - statevector of our system
+    
+    """
+    L = int(np.log2(vec.shape[0]))
+    sing_vals = []
+    sub = [2]*(L-2)
+    # sub[0] = 1
+    # sub[-1] = 1
+    for i in range(2,L-1):
+        new_shape = (2**(i),2**(L-i))
+        matrix = vec.reshape(new_shape)
+        s = svds(matrix, k=(min(matrix.shape[0],matrix.shape[1]) - sub[i-1]), return_singular_vectors=False, which="LM")
+        sing_vals.append(s)
+    # if (L % 2) == 0:
+    #     new_shape =(2**(L//2),2**(L//2))
+    # else:
+    #     new_shape =(2**(L//2 + 1),2**(L//2))
+    # matrix = vec.reshape(new_shape)
+    # s = svds(matrix, k=(min(matrix.shape[0],matrix.shape[1]) - 2), return_singular_vectors=False)
+    return sing_vals
+
 
 # ---------------------------------------------------------------------------------------
 # Fitting
@@ -282,6 +387,7 @@ def fitting(xs, results, guess):
     assert len(xs) == len(
         results
     ), f"The x and y must have the same dimension, but x has dim({len(xs)}) and y has dim({len(results)})"
+
     # define the function to fit
     def fit(x, c, corr_length):
         return c / 6 * np.log(x - np.log(x / corr_length + np.exp(-x / corr_length)))
@@ -289,6 +395,7 @@ def fitting(xs, results, guess):
     # fit your data with a given guess
     param_opt, covar_opt = curve_fit(fit, xs, results, guess)
     return param_opt, covar_opt
+
 
 def mps_to_vector(mps):
     D = mps[0].shape[0]
@@ -345,6 +452,7 @@ Defining a series of functions to have single and double site operators
 # ---------------------------------------------------------------------------------------
 # ---------------------------------------------------------------------------------------
 # ---------------------------------------------------------------------------------------
+
 
 # ---------------------------------------------------------------------------------------
 # Before
@@ -510,6 +618,7 @@ and other special operators, e.g. flipping half of the spins' chain
 # ---------------------------------------------------------------------------------------
 # ---------------------------------------------------------------------------------------
 
+
 # ---------------------------------------------------------------------------------------
 # Interaction Hamiltonian
 # ---------------------------------------------------------------------------------------
@@ -570,6 +679,7 @@ def H_ising_gen(
     return -J * H_int(L, op=op_l) - h_l * H_loc(L, op_l) - h_t * H_loc(L, op_t)
 
 
+
 # ---------------------------------------------------------------------------------------
 # Flipping half
 # ---------------------------------------------------------------------------------------
@@ -618,165 +728,6 @@ def truncation(array: Union[np.ndarray, csc_matrix, csr_matrix], threshold: floa
 
 
 # ---------------------------------------------------------------------------------------
-# Compute Ising Spectrum
-# ---------------------------------------------------------------------------------------
-def compute_ising_spectrum(L: int, h_l: float = 0, n_points: int = 100, k: int = 6):
-    """
-    compute_ising_spectrum
-
-    This function is computing the spectrum of an Ising Hamiltonian wrt the trnaverse field.
-
-    L: int - chain size
-    h_l: float - initial longitudinal field parameter.
-        Can be used to break the symmetry of the ground state for h_t = 0
-    n_points: int - number of point in the transverse field we want to evaluate the spectrum. By default a 100 points
-    k: int - number of eigenvalues we want to compute. By default 6
-
-    """
-    X = np.array([[0, 1], [1, 0]])
-    X = csr_matrix(X)
-    Z = np.array([[1, 0], [0, -1]])
-    Z = csr_matrix(Z)
-    h_ts = np.linspace(0, 2, n_points)
-    eigvals = []
-    for h_t in h_ts:
-        H = H_ising_gen(L=L, op_l=Z, op_t=X, J=1, h_l=h_l, h_t=h_t)
-        e, v = eigsh(H, k=k, which="SA")
-        print(f"first 6 igenvalues SA (Smallest (algebraic) eigenvalues): {e}")
-        eigvals.append(e)
-    return eigvals
-
-
-# ---------------------------------------------------------------------------------------
-# Exact Initial State
-# ---------------------------------------------------------------------------------------
-def exact_initial_state(L: int, h_t: float, h_l: float = 1e-7, k: int = 1) -> csc_array:
-    """
-    exact_initial_state
-
-    This function is computing the initial state given by an Ising Hamiltonian.
-
-    L: int - chain size
-    h_t: float - initial transverse field parameter
-    h_l: float - initial longitudinal field parameter
-    k: int - number of eigenvalues we want to compute. By default 1
-
-    """
-    X = np.array([[0, 1], [1, 0]])
-    X = csr_matrix(X)
-    Z = np.array([[1, 0], [0, -1]])
-    Z = csr_matrix(Z)
-    H = H_ising_gen(L=L, op_l=Z, op_t=X, J=1, h_l=h_l, h_t=h_t)
-    e, v = eigsh(H, k=k, which="SA")
-    print(f"first {k} eigenvalue(s) SA (Smallest (algebraic) eigenvalues): {e}")
-    psi = v[:, 0]
-    flip = single_site_op(op=X, site=L // 2 + 1, L=L)
-    psi = csc_array(flip @ psi)
-    return psi
-
-
-# ---------------------------------------------------------------------------------------
-# U Evolution
-# ---------------------------------------------------------------------------------------
-def U_evolution(
-    L: int,
-    psi_init: csc_array,
-    trotter_step: int,
-    delta: float,
-    h_t: float,
-    h_l: float = 0,
-):
-    """
-    U_evolution
-
-    This function applies a time evolution operator to some initial state.
-    The evolution operator uses the Ising hamiltonian with some tunable parameters.
-
-    L: int - chain size
-    psi_init: csc_array - initial state to be evolved
-    trotter_step: int - indicates the specific trotter step we are evolving
-    delta: float - indicates the time step we are taking at each trotter step
-    h_t: float - initial transverse field parameter
-    h_l: float - initial longitudinal field parameter
-
-    """
-    X = np.array([[0, 1], [1, 0]])
-    X = csr_matrix(X)
-    Z = np.array([[1, 0], [0, -1]])
-    Z = csr_matrix(Z)
-    H_ev = H_ising_gen(L=L, op_l=Z, op_t=X, J=1, h_l=h_l, h_t=h_t)
-    time = delta * trotter_step
-    H_ev = -1j * time * H_ev.tocsc()
-    # U = expm(-1j*time*H_ev.tocsc())
-    # U_new = truncation(array=U, threshold=1e-15)
-    psi_ev = expm_multiply(H_ev, psi_init)
-    return psi_ev
-
-
-# ---------------------------------------------------------------------------------------
-# Exact Evolution
-# ---------------------------------------------------------------------------------------
-def exact_evolution(
-    L: int, h_t: float, h_ev: float, delta: float, trotter_steps: int, h_l: float = 1e-7
-):
-    """
-    exact_evolution
-
-    This function evolves an initial state for trotter steps times.
-    We extract at each time step the local and total magnetization.
-
-    L: int - chain size
-    trotter_step: int - indicates the specific trotter step we are evolving
-    delta: float - indicates the time step we are taking at each trotter step
-    h_t: float - initial transverse field parameter
-    h_l: float - initial longitudinal field parameter
-    h_ev: float - evolution transverse field parameter
-
-    """
-    psi_exact = exact_initial_state(L=L, h_t=h_t, h_l=h_l).reshape(2**L, 1)
-    Z = np.array([[1, 0], [0, -1]])
-    # local
-    mag_loc_op = [single_site_op(op=Z, site=i, L=L) for i in range(1, L + 1)]
-    # total
-    mag_tot_op = H_loc(L=L, op=Z)
-
-    mag_exact_loc = []
-    mag_exact_tot = []
-
-    # local
-    mag_exact = []
-    for i in range(L):
-        mag_exact.append(
-            (psi_exact.T.conjugate() @ mag_loc_op[i] @ psi_exact).data[0].real
-        )
-    mag_exact_loc.append(mag_exact)
-
-    # total
-    mag = (psi_exact.T.conjugate() @ mag_tot_op @ psi_exact).data
-    mag_exact_tot.append(mag.real)
-
-    for trott in range(trotter_steps):
-        print(f"-------- Trotter step {trott} ---------")
-        # exact
-        psi_new = U_evolution(
-            L=L, psi_init=psi_exact, trotter_step=trott + 1, delta=delta, h_t=h_ev
-        )
-
-        # local
-        mag_exact = []
-        for i in range(L):
-            mag_exact.append(
-                (psi_new.T.conjugate() @ mag_loc_op[i] @ psi_new).data[0].real
-            )
-        mag_exact_loc.append(mag_exact)
-
-        # total
-        mag = (psi_new.T.conjugate() @ mag_tot_op @ psi_new).data
-        mag_exact_tot.append(mag.real)
-    return psi_new, mag_exact_loc, mag_exact_tot
-
-
-# ---------------------------------------------------------------------------------------
 # ---------------------------------------------------------------------------------------
 # ---------------------------------------------------------------------------------------
 """
@@ -785,6 +736,7 @@ Visualization tools
 # ---------------------------------------------------------------------------------------
 # ---------------------------------------------------------------------------------------
 # ---------------------------------------------------------------------------------------
+
 
 # ---------------------------------------------------------------------------------------
 # Plot Side By Side
@@ -845,4 +797,3 @@ def create_sequential_colors(num_colors, colormap_name):
     colormap_values = np.linspace(0, 1, num_colors)
     colors = [colormap(value) for value in colormap_values]
     return colors
-
