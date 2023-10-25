@@ -34,6 +34,7 @@ parser.add_argument(
     "--where",
     help="Where to compute the Schmidt decomposition",
     default=-1,
+    type=int,
 )
 parser.add_argument(
     "-b",
@@ -44,8 +45,10 @@ parser.add_argument(
 
 args = parser.parse_args()
 
-if args.where < 0:
+if args.where == -1:
     args.where = (args.L // 2)
+elif args.where == -2:
+    args.bond = False
 
 psi_new, mag_exact_loc, mag_exact_loc_X, mag_exact_tot, entropy_tot = exact_evolution_sparse(L=args.L, h_t=args.h_transverse_init, h_ev=args.h_ev, time=args.time, trotter_steps=args.trotter_steps, flip=args.flip, where=args.where, bond=args.bond)
 

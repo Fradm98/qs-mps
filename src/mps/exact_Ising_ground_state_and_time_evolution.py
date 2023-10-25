@@ -163,7 +163,7 @@ def U_evolution_sparse(
 # Sparse exact Evolution
 # ---------------------------------------------------------------------------------------
 def exact_evolution_sparse(
-    L: int, h_t: float, h_ev: float, time: float, trotter_steps: int, h_l: float = 1e-7, flip: bool = False, where = -1, bond: bool = True
+    L: int, h_t: float, h_ev: float, time: float, trotter_steps: int, h_l: float = 1e-7, flip: bool = False, where: int = -1, bond: bool = True
 ):
     """
     exact_evolution
@@ -264,4 +264,4 @@ def exact_evolution_sparse(
         )
     return psi_new, mag_exact_loc_Z, mag_exact_loc_X, mag_exact_tot, entropy_tot
 
-# psi_new, mag_exact_loc, mag_exact_loc_X, mag_exact_tot, entropy_tot = exact_evolution_sparse(L=15, h_t=0, h_ev=0.3, time=10, trotter_steps=5, flip=True, bond=False)
+# psi_new, mag_exact_loc, mag_exact_loc_X, mag_exact_tot, entropy_tot = exact_evolution_sparse(L=15, h_t=0, h_ev=0.3, time=10, trotter_steps=5, flip=True, where=7)

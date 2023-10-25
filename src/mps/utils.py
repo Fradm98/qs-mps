@@ -140,13 +140,18 @@ def load_list_of_lists(file_path):
 
     # Open the file in read mode and read the data
     with open(file_path, "r") as file:
-        for line in file:
-            # Split the line into elements (assuming space-separated values)
-            elements = line.strip().split()
+        lines = file.readlines()
+        for line in lines:
+            # Remove square brackets and split the line into elements
+            elements = line.strip('[]\n').split()
+            # Convert elements to floats and remove square brackets from individual elements
+            elements = [float(element.strip('[]')) for element in elements]
 
             # Append the sublist to the loaded_data list
             loaded_data.append(elements)
+
     return loaded_data
+
 
 
 # ---------------------------------------------------------------------------------------
@@ -320,7 +325,7 @@ def get_middle_chain_schmidt_values(vec, where: int, bond: bool = True):
     L = int(np.log2(vec.shape[0]))
     sing_vals = []
     if bond:
-        assert (2 <= where < L-1), f"The decomposition can be performed only at bonds between {2} and {L-2}"
+        assert (1 < where < L-1), f"The decomposition can be performed only at bonds between {2} and {L-2}"
 
         new_shape = (2**(where),2**(L-where))
 
