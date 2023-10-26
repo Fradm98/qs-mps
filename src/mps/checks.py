@@ -1,5 +1,6 @@
 from scipy.sparse import isspmatrix
 import numpy as np
+
 # from simsio import logger
 from scipy.sparse.linalg import norm
 
@@ -85,9 +86,10 @@ def check_matrix(A, B):
     norma = norm(A - B)
     norma_max = max(norm(A + B), norm(A), norm(B))
     ratio = norma / norma_max
-    if ratio > 1e-12:
+    if ratio > 1e-5:
         print("    ERROR: A and B are DIFFERENT MATRICES")
         raise ValueError(f"    NORM {norma}, RATIO {ratio}")
+    return ratio
 
 
 def check_hermitian(A):

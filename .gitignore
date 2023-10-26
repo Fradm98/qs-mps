@@ -167,3 +167,12 @@ energy_data/*
 # figures and results
 results/*
 figures/*
+
+# results of tests
+tests/results/*
+
+# visualization file
+src/mps/visualization_time_evolution.py
+src/mps/Ising_gs_and_time_ev.py
+src/mps/variational_compression_different_chi.py
+src/mps/variational_compression_different_delta.py

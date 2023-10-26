@@ -1,3 +1,4 @@
+<<<<<<< HEAD
 #%%
 from mps_class_v9 import MPS
 import numpy as np
@@ -312,3 +313,5 @@ plt.imshow(mag_exact_tot, cmap="seismic", vmin=-1, vmax=1, aspect=1)
 plt.show()
 print(f"Fidelity: {fidelity}")
 # %%
+=======
+>>>>>>> branch_pc
