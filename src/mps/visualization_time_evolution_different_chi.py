@@ -289,7 +289,7 @@ plt.title(
     + f"L={L}, $\delta = {delta}$; $h_{{t-ev}} = {h_ev}$",
     fontsize=14,
 )
-chis = [16]
+chis = [2, 4, 16, 32, 64, 128]
 colors = create_sequential_colors(num_colors=len(chis), colormap_name="viridis")
 
 for i, chi in enumerate(chis):  # L//2+1
