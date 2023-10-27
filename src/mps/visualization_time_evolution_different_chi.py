@@ -16,10 +16,10 @@ plt.rcParams["figure.constrained_layout.use"] = True
 # variational compression changing bond dimension
 trotter_steps = 500
 h_ev = 0.3
-L = 15
+L = 30
 model = "Ising"
 flip = True
-where = 7
+where = L//2
 
 # fixed parameteres
 t = 10
@@ -44,7 +44,7 @@ entropy_jesus = access_txt(file_path=file_path_entropy, column_index=0)
 # ---------------------------------------------------------
 # total
 # ---------------------------------------------------------
-chis = [16]
+chis = [2,4,16,32,64,128]
 plt.title(
     f"Total Magnetization for $\delta = {delta}$ ;" + " $h_{ev} =$" + f"{h_ev}",
     fontsize=14,
@@ -53,7 +53,7 @@ colors = create_sequential_colors(num_colors=len(chis), colormap_name="viridis")
 
 for i, chi in enumerate(chis):
     mag_mps_tot = np.loadtxt(
-        f"D:/code/projects/0_ISING/results/mag_data/mag_mps_tot_{model}_L_{L}_flip_{flip}_delta_{delta}_chi_{chi}"
+        f"G:/My Drive/projects/0_ISING/results/mag_data/mag_mps_tot_{model}_L_{L}_flip_{flip}_delta_{delta}_chi_{chi}"
     )
     plt.scatter(
         delta * np.arange(trotter_steps + 1),
@@ -66,12 +66,12 @@ for i, chi in enumerate(chis):
         label=f"mps: $\chi={chi}$",
     )
 
-plt.plot(
-    delta * np.arange(trotter_steps + 1),
-    mag_tot_jesus,
-    color="indianred",
-    label=f"Exact L={L}",
-)
+# plt.plot(
+#     delta * np.arange(trotter_steps + 1),
+#     mag_tot_jesus,
+#     color="indianred",
+#     label=f"Exact L={L}",
+# )
 # plt.plot(
 #     delta * np.arange(trotter_steps + 1),
 #     mag_exact_tot,
@@ -81,7 +81,7 @@ plt.plot(
 plt.xlabel("time (t = $\delta$ T)")
 plt.ylabel("$\sum_{i=1}^L \sigma_i^z$")
 plt.legend()
-# plt.savefig(f"D:/code/projects/0_ISING/figures/magnetization/total_mag_L_{L}_flip_{flip}_delta_{delta}_h_ev_{h_ev}.png")
+# plt.savefig(f"G:/My Drive/projects/0_ISING/figures/magnetization/total_mag_L_{L}_flip_{flip}_delta_{delta}_h_ev_{h_ev}.png")
 plt.show()
 
 # ---------------------------------------------------------
@@ -95,7 +95,7 @@ plt.title(
 )
 for i, chi in enumerate(chis):
     mag_mps_tot = np.loadtxt(
-        f"D:/code/projects/0_ISING/results/mag_data/mag_mps_loc_Z_{model}_L_{L}_flip_{flip}_delta_{delta}_chi_{chi}"
+        f"G:/My Drive/projects/0_ISING/results/mag_data/mag_mps_loc_Z_{model}_L_{L}_flip_{flip}_delta_{delta}_chi_{chi}"
     )
     plt.scatter(
         delta * np.arange(trotter_steps + 1),
@@ -108,12 +108,12 @@ for i, chi in enumerate(chis):
         label=f"mps: $\chi={chi}$",
     )
 
-plt.plot(
-    delta * np.arange(trotter_steps + 1),
-    mag_loc_Z_jesus,
-    color="indianred",
-    label=f"Exact L={L}",
-)
+# plt.plot(
+#     delta * np.arange(trotter_steps + 1),
+#     mag_loc_Z_jesus,
+#     color="indianred",
+#     label=f"Exact L={L}",
+# )
 # plt.plot(
 #     delta * np.arange(trotter_steps + 1),
 #     mag_exact_tot,
@@ -123,7 +123,7 @@ plt.plot(
 plt.xlabel("time (t = $\delta$ T)")
 plt.ylabel("$\sigma_{L/2}^z$")
 plt.legend()
-# plt.savefig(f"D:/code/projects/0_ISING/figures/magnetization/local_mag_Z_L_{L}_flip_{flip}_delta_{delta}_h_ev_{h_ev}.png")
+# plt.savefig(f"G:/My Drive/projects/0_ISING/figures/magnetization/local_mag_Z_L_{L}_flip_{flip}_delta_{delta}_h_ev_{h_ev}.png")
 plt.show()
 
 # ---------------------------------------------------------
@@ -137,7 +137,7 @@ plt.title(
 )
 for i, chi in enumerate(chis):
     mag_mps_tot = np.loadtxt(
-        f"D:/code/projects/0_ISING/results/mag_data/mag_mps_loc_X_{model}_L_{L}_flip_{flip}_delta_{delta}_chi_{chi}"
+        f"G:/My Drive/projects/0_ISING/results/mag_data/mag_mps_loc_X_{model}_L_{L}_flip_{flip}_delta_{delta}_chi_{chi}"
     )
     plt.scatter(
         delta * np.arange(trotter_steps + 1),
@@ -150,12 +150,12 @@ for i, chi in enumerate(chis):
         label=f"mps: $\chi={chi}$",
     )
 
-plt.plot(
-    delta * np.arange(trotter_steps + 1),
-    mag_loc_X_jesus,
-    color="indianred",
-    label=f"Exact L={L}",
-)
+# plt.plot(
+#     delta * np.arange(trotter_steps + 1),
+#     mag_loc_X_jesus,
+#     color="indianred",
+#     label=f"Exact L={L}",
+# )
 # plt.plot(
 #     delta * np.arange(trotter_steps + 1),
 #     mag_exact_tot,
@@ -165,7 +165,7 @@ plt.plot(
 plt.xlabel("time (t = $\delta$ T)")
 plt.ylabel("$\sigma_{L/2}^x$")
 plt.legend()
-# plt.savefig(f"D:/code/projects/0_ISING/figures/magnetization/local_mag_X_{L}_flip_{flip}_delta_{delta}_h_ev_{h_ev}.png")
+# plt.savefig(f"G:/My Drive/projects/0_ISING/figures/magnetization/local_mag_X_{L}_flip_{flip}_delta_{delta}_h_ev_{h_ev}.png")
 plt.show()
 
 # %%
@@ -181,7 +181,7 @@ plt.show()
 # )
 for chi in chis:
     mag_mps_loc = np.loadtxt(
-        f"D:/code/projects/0_ISING/results/mag_data/mag_mps_loc_{model}_L_{L}_flip_{flip}_delta_{delta}_chi_{chi}"
+        f"G:/My Drive/projects/0_ISING/results/mag_data/mag_mps_loc_{model}_L_{L}_flip_{flip}_delta_{delta}_chi_{chi}"
     )
     data1 = mag_mps_loc
     title1 = f"MPS quench (local mag) $\chi={chi}$"
@@ -248,12 +248,12 @@ for chi in chis:
 # errors
 # ---------------------------------------------------------
 
-chis = [2, 4, 16, 128]
+chis = [2, 4, 16, 32, 64, 128]
 colors = create_sequential_colors(num_colors=len(chis), colormap_name="viridis")
 plt.title(f"Truncation error $vs$ trotter steps", fontsize=14)
 for i, chi in enumerate(chis):  # L//2+1
     errors = load_list_of_lists(
-        f"D:/code/projects/0_ISING/results/errors_data/errors_{model}_L_{L}_flip_{flip}_delta_{delta}_chi_{chi}"
+        f"G:/My Drive/projects/0_ISING/results/errors_data/errors_{model}_L_{L}_flip_{flip}_delta_{delta}_chi_{chi}"
     )
     last_errors = [float(sublist[-1]) for sublist in errors]
     # last_error, num_zeros = replace_zeros_with_nan(last_errors)
@@ -295,7 +295,7 @@ colors = create_sequential_colors(num_colors=len(chis), colormap_name="viridis")
 for i, chi in enumerate(chis):  # L//2+1
     entropy_chi = [0]
     schmidt_vals = load_list_of_lists(
-        f"D:/code/projects/0_ISING/results/bonds_data/{where}_bond_schmidt_values_{model}_L_{L}_flip_{flip}_delta_{delta}_chi_{chi}"
+        f"G:/My Drive/projects/0_ISING/results/bonds_data/{where}_bond_schmidt_values_{model}_L_{L}_flip_{flip}_delta_{delta}_chi_{chi}"
     )
     for s in schmidt_vals:
         entropy = von_neumann_entropy(np.asarray(s))
@@ -312,12 +312,12 @@ for i, chi in enumerate(chis):  # L//2+1
         label=f"mps: $\chi={chi}$",
     )
 
-plt.plot(
-    np.arange(trotter_steps + 1),
-    entropy_jesus,
-    color="indianred",
-    label="$S_{exact}$",
-)
+# plt.plot(
+#     np.arange(trotter_steps + 1),
+#     entropy_jesus,
+#     color="indianred",
+#     label="$S_{exact}$",
+# )
 ticks = np.arange(trotter_steps + 1)
 labels = delta * np.arange(trotter_steps + 1)
 steps = len(ticks) // 5
