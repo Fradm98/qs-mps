@@ -801,3 +801,75 @@ def create_sequential_colors(num_colors, colormap_name):
     colormap_values = np.linspace(0, 1, num_colors)
     colors = [colormap(value) for value in colormap_values]
     return colors
+
+
+def plot_results_evolution(
+        title: str, 
+        for_array: list, 
+        trotter_steps: int, 
+        delta: float,
+        fname: str, 
+        path: str,         
+        fname_ex: str,
+        path_ex: str,
+        fname_save: str, 
+        path_save: str, 
+        ylabel: str,
+        exact: bool = False,
+        save: bool = True,
+        marker: str = "+", 
+        m_size: int = 25, 
+        linewidth: float = 1,
+        alpha: float = 1,
+        n_points: float = 1, 
+        cmap: str = "viridis",
+        ):
+    """
+    plot_results_evolution
+
+    This funciton plots the results of a time evolution for a specific model.
+    
+    """
+    colors = create_sequential_colors(num_colors=len(for_array), colormap_name=cmap)
+
+    plt.title(
+        title,
+        fontsize=14,
+    )
+    step = int(1 // n_points)
+    x = (delta * np.arange(trotter_steps + 1))[::step]
+
+    for i, elem in enumerate(for_array):
+        res_mps = np.loadtxt(
+            f"{path}/{fname}_chi_{elem}"
+        )
+        y = res_mps[::step]
+        plt.scatter(
+            x,
+            y,
+            s=m_size,
+            marker=marker,
+            alpha=alpha,
+            linewidths=linewidth,
+            facecolors=colors[i],
+            label=f"mps: $\chi={elem}$",
+        )
+
+        if exact:
+            res_exact = np.loadtxt(
+            f"{path_ex}/{fname_ex}_chi_{elem}"
+        )
+            res_exact = res_exact[::step]
+            plt.plot(
+                x,
+                res_exact,
+                color="indianred",
+                label=f"exact",
+            )
+        plt.xlabel("time (t = $\delta$ T)")
+        plt.ylabel(ylabel)
+        plt.legend()
+         
+    if save:
+        plt.savefig(f"{path_save}/{fname_save}.png")
+    plt.show()
