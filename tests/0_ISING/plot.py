@@ -1,6 +1,6 @@
 import matplotlib.pyplot as plt
 import numpy as np
-from qs_mps.utils import plot_results_evolution
+from qs_mps.utils import plot_results_evolution, plot_colormaps_evolution
 import argparse
 
 # default parameters of the plot layout
@@ -21,7 +21,7 @@ parser.add_argument(
     "h_ev", help="It will give you the magnitude of the quench", type=float
 )
 parser.add_argument(
-    "what", help="Results we want to plot. Available are: 'mag_tot', 'mag_z', 'mag_x', 'error_compr', 'entropy', 'err_mag_tot', 'err_mag_z', 'err_mag_x', 'err_entropy'", type=str
+    "what", help="Results we want to plot. Available are: 'mag_tot', 'mag_z', 'mag_x', 'entropy', 'err_mag_tot', 'err_mag_z', 'err_mag_x', 'err_entropy', 'entropy_tot', 'mag_loc' ", type=str
 )
 parser.add_argument(
     "loc", help="From which computer you want to access the drive. Useful for the path spec. Available are: 'pc', 'mac', 'marcos'", type=str
@@ -80,6 +80,18 @@ parser.add_argument(
     default=1,
     type=float,
 )
+parser.add_argument(
+    "-c", "--cmap", help="colormap for the plots", default="viridis", type=str
+)
+parser.add_argument(
+    "-i", "--interpolation", help="interpolation for the colormap plots", default="antialiased", type=str
+)
+parser.add_argument(
+    "-d",
+    "--dim",
+    help="Dimension to plot, by defalut plots two dimensional plots. If True, 3D plots",
+    action="store_true",
+)
 
 args = parser.parse_args()
 delta = args.time / args.trotter_steps
@@ -88,6 +100,9 @@ if args.where == -1:
 elif args.where == -2:
     args.bond = False
     args.where = "all"
+
+plot_val = ['mag_tot', 'mag_z', 'mag_x', 'entropy', 'err_mag_tot', 'err_mag_z', 'err_mag_x', 'err_entropy']
+plot_cmap = ['mag_loc', 'entropy_tot']
 
 if args.loc == 'pc':
     path_computer = "G:/Google Drive/My Drive/projects/0_ISING/"
@@ -132,14 +147,66 @@ elif args.what == "entropy":
     path = path_computer + f"results/bonds_data"
     path_ex = path_computer + f"results/exact/entropy"
     path_save = path_computer + f"figures/entropy/"
+    ylabel = "entanglement von neumann entropy $(S_{\chi})$"
+
+elif args.what == "entropy_tot":
+    title = f"All Bonds Entanglement Entropy: $L = {args.L}$ ; $\delta = {delta}$ ;" + " $h_{ev}=$ " + f"${args.h_ev}$"
+    fname_what = f"{args.where}_bond_entropy"
+    path = path_computer + f"results/bonds_data"
+    path_save = path_computer + f"figures/entropy/"
+    xlabel = "bonds"
+    x_ticks = range(args.L-1)
+    labels = range(1,args.L-1+1)
+    steps = len(x_ticks) // 5
+    xticks = x_ticks[::steps]
+    steps = len(labels) // 5
+    xlabels = labels[::steps]
+    y_ticks = np.arange(args.trotter_steps + 1)
+    labels = delta * y_ticks
+    steps = len(y_ticks) // 5
+    yticks = y_ticks[::steps]
+    steps = len(labels) // 5
+    ylabels = labels[::steps]
+    X,Y = np.meshgrid(x_ticks, y_ticks)
+    view_init = False
+
+elif args.what == "mag_loc":
+    title = f"Local Magnetization Evolution: $L = {args.L}$ ; $\delta = {delta}$ ;" + " $h_{ev}=$ " + f"${args.h_ev}$"
+    fname_what = f"mag_mps_loc"
+    fname_ex_what = "mag_exact_loc"
+    path = path_computer + f"results/mag_data"
+    path_ex = path_computer + f"results/exact/mag_data"
+    path_save = path_computer + f"figures/magnetization/"
+    xlabel = "sites"
+    x_ticks = range(args.L)
+    labels = range(1,args.L+1)
+    steps = len(x_ticks) // 5
+    xticks = x_ticks[::steps]
+    steps = len(labels) // 5
+    xlabels = labels[::steps]
+    y_ticks = np.arange(args.trotter_steps + 1)
+    labels = delta * y_ticks
+    steps = len(y_ticks) // 5
+    yticks = y_ticks[::steps]
+    steps = len(labels) // 5
+    ylabels = labels[::steps]
+    X,Y = np.meshgrid(x_ticks, y_ticks)
+    view_init = True
+
 else:
-    raise SyntaxError("insert a valid result to plot: 'mag_tot', 'mag_z', 'mag_x', 'error_compr', 'entropy', 'err_mag_tot', 'err_mag_z', 'err_mag_x', 'err_entropy'")
+    raise SyntaxError("insert a valid result to plot: 'mag_tot', 'mag_z', 'mag_x', 'entropy', 'err_mag_tot', 'err_mag_z', 'err_mag_x', 'err_entropy'")
 
+if args.what in plot_val:
+    fname = f"{fname_what}_{args.model}_L_{args.L}_flip_{args.flip}_delta_{delta}"
+    fname_ex = f"{fname_ex_what}_{args.model}_L_{args.L}_flip_{args.flip}_delta_{delta}"
+    fname_save = f"{args.what}_{args.model}_L_{args.L}_flip_{args.flip}_delta_{delta}_h_ev_{args.h_ev}"
+    plot_results_evolution(title, for_array=args.chis, trotter_steps=args.trotter_steps, delta=delta, fname=fname, path=path, fname_ex=fname_ex, path_ex=path_ex, fname_save=fname_save, path_save=path_save, ylabel=ylabel, exact=args.exact, save=args.save, marker=args.marker, m_size=args.m_size, linewidth=args.linewidth, alpha=args.alpha, n_points=args.n_points, cmap=args.cmap)
 
-fname = f"{fname_what}_{args.model}_L_{args.L}_flip_{args.flip}_delta_{delta}"
-fname_ex = f"{fname_ex_what}_{args.model}_L_{args.L}_flip_{args.flip}_delta_{delta}"
-fname_save = f"{args.what}_{args.model}_L_{args.L}_flip_{args.flip}_delta_{delta}_h_ev_{args.h_ev}"
+elif args.what in plot_cmap:
+    for chi in args.chis:
+        title_fin = title + f" ; $\chi = {chi}$"
+        fname = f"{fname_what}_{args.model}_L_{args.L}_flip_{args.flip}_delta_{delta}_chi_{chi}"
+        fname_save = f"{args.what}_{args.model}_L_{args.L}_flip_{args.flip}_delta_{delta}_h_ev_{args.h_ev}_chi_{chi}"
+        plot_colormaps_evolution(title=title_fin, fname=fname, path=path, fname_save=fname_save, path_save=path_save, xlabel=xlabel, xticks=xticks, xlabels=xlabels, yticks=yticks, ylabels=ylabels, X=X, Y=Y, save=args.save, cmap=args.cmap, interpolation=args.interpolation, d=args.dim, view_init=view_init)
 
-
-plot_results_evolution(title, for_array=args.chis, trotter_steps=args.trotter_steps, delta=delta, fname=fname, path=path, fname_ex=fname_ex, path_ex=path_ex, fname_save=fname_save, path_save=path_save, ylabel=ylabel, exact=args.exact, save=args.save, marker=args.marker, m_size=args.m_size, linewidth=args.linewidth, alpha=args.alpha, n_points=args.n_points)
 

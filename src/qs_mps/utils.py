@@ -873,3 +873,54 @@ def plot_results_evolution(
     if save:
         plt.savefig(f"{path_save}/{fname_save}.png")
     plt.show()
+
+
+def plot_colormaps_evolution(
+        title: str, 
+        fname: str, 
+        path: str,         
+        fname_save: str, 
+        path_save: str, 
+        xlabel: str,
+        xticks: np.ndarray,
+        xlabels: np.ndarray,
+        yticks: np.ndarray,
+        ylabels: np.ndarray,
+        X,
+        Y,
+        save: bool = True,
+        cmap: str = "viridis",
+        interpolation: str = "antialiased",
+        d: bool = False,
+        view_init: bool = False,
+    ):
+
+    matrix = np.loadtxt(
+            f"{path}/{fname}"
+        )
+    if d:
+        fig = plt.figure()
+        ax = fig.add_subplot(111, projection="3d")
+        ax.set_title(title, fontsize=14)
+        ax.plot_surface(X, Y, matrix, cmap=cmap)
+        ax.set_xticks(ticks=xticks, labels=xlabels)
+        ax.set_xlabel(xlabel)
+        ax.set_yticks(ticks=yticks, labels=ylabels)
+        ax.set_ylabel("time (t = $\delta$ T)")
+        if view_init:
+            ax.view_init(20 , 80)
+        if save:
+            fig.savefig(f"{path_save}/{fname_save}_3D.png")
+        fig.show()
+    else:
+        plt.title(title, fontsize=14)
+        plt.imshow(matrix, cmap=cmap, aspect='auto', interpolation=interpolation)
+        plt.colorbar()
+        plt.xticks(ticks=xticks, labels=xlabels)
+        plt.xlabel(xlabel)
+        plt.yticks(ticks=yticks, labels=ylabels)
+        plt.ylabel("time (t = $\delta$ T)")
+
+    if save:
+        plt.savefig(f"{path_save}/{fname_save}.png")
+    plt.show()
