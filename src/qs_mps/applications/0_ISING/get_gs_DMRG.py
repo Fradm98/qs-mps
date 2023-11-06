@@ -2,7 +2,7 @@ import argparse
 import numpy as np
 from qs_mps.mps_class import MPS
 from qs_mps.utils import get_precision, save_list_of_lists, access_txt
-
+from qs_mps.gs_multiprocessing import ground_state_ising
 
 # DENSITY MATRIX RENORMALIZATION GROUP to find ground states changing the transverse field
 # parameters
@@ -60,6 +60,13 @@ parser.add_argument(
     default=-1,
     type=int,
 )
+parser.add_argument(
+    "-d",
+    "--dimension",
+    help="Physical dimension. By default 2",
+    default=2,
+    type=int,
+)
 
 args = parser.parse_args()
 
@@ -88,46 +95,42 @@ elif args.where == -2:
 # DMRG
 # ---------------------------------------------------------
 for chi in args.chis:  # L // 2 + 1
-    energy_chi = []
-    entropy_chi = []
-    for h in interval:
-        print(f"DMRG for chi: {chi}, h: {h:.{precision}f}")
-        chain = MPS(
-            L=args.L, d=2, model=args.model, chi=chi, h=h, eps=0, J=1
-        )
-        chain._random_state(seed=3, chi=chi)
-        chain.canonical_form(trunc_chi=False, trunc_tol=True)
-        (
-            energies,
-            entropies,
-        ) = chain.DMRG(
-            trunc_chi=True,
-            trunc_tol=False,
-            where=args.where,
-            bond=args.bond,
-        )
-        chain.save_sites(path=path, precision=precision)
-        energy_chi.append(energies)
-        entropy_chi.append(entropies)
+    args_mps = {
+                'L':args.L,
+                'd':args.dimension,
+                'model':args.model,
+                'chi':chi, 
+                'path':path_drive, 
+                'precision':precision, 
+                'trunc_chi':True, 
+                'trunc_tol':False, 
+                'where': args.where, 
+                'bond': args.bond,
+                'J': 1,
+                'eps': 0,
+                }
+    if __name__ == '__main__':
+        energy_chi, entropy_chi = ground_state_ising(args_mps=args_mps, multpr=True, param=interval)
+        
 
 
-    if args.bond == False:
-        args.where = "all"
-    
-    save_list_of_lists(
-        f"{path_drive}/results/energy_data/energies_{args.model}_L_{args.L}_h_{args.h_i}-{args.h_f}_delta_{args.npoints}_chi_{chi}",
-        energy_chi,
-    )
-    save_list_of_lists(
-        f"{path_drive}/results/entropy/{args.where}_bond_entropy_{args.model}_L_{args.L}_h_{args.h_i}-{args.h_f}_delta_{args.npoints}_chi_{chi}",
-        entropy_chi,
-    )
-    if args.where == 'all':
-        entropy_mid = access_txt(
+        if args.bond == False:
+            args.where = "all"
+        
+        save_list_of_lists(
+            f"{path_drive}/results/energy_data/energies_{args.model}_L_{args.L}_h_{args.h_i}-{args.h_f}_delta_{args.npoints}_chi_{chi}",
+            energy_chi,
+        )
+        save_list_of_lists(
             f"{path_drive}/results/entropy/{args.where}_bond_entropy_{args.model}_L_{args.L}_h_{args.h_i}-{args.h_f}_delta_{args.npoints}_chi_{chi}",
-            args.L // 2,
+            entropy_chi,
         )
-        np.savetxt(
-            f"{path_drive}/results/entropy/{args.L // 2}_bond_entropy_{args.model}_L_{args.L}_h_{args.h_i}-{args.h_f}_delta_{args.npoints}_chi_{chi}",
-            entropy_mid,
-        )
+        if args.where == 'all':
+            entropy_mid = access_txt(
+                f"{path_drive}/results/entropy/{args.where}_bond_entropy_{args.model}_L_{args.L}_h_{args.h_i}-{args.h_f}_delta_{args.npoints}_chi_{chi}",
+                args.L // 2,
+            )
+            np.savetxt(
+                f"{path_drive}/results/entropy/{args.L // 2}_bond_entropy_{args.model}_L_{args.L}_h_{args.h_i}-{args.h_f}_delta_{args.npoints}_chi_{chi}",
+                entropy_mid,
+            )

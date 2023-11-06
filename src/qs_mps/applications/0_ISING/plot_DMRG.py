@@ -10,15 +10,18 @@ plt.rcParams["figure.dpi"] = 300
 plt.rcParams["figure.constrained_layout.use"] = True
 
 
-parser = argparse.ArgumentParser(prog="Plot Time Evolution")
+parser = argparse.ArgumentParser(prog="Plot Ground States")
 parser.add_argument("L", help="Spin chain length", type=int)
 parser.add_argument(
-    "trotter_steps",
-    help="It will give you the accuracy of the trotter evolution for fixed t",
+    "npoints",
+    help="Number of points in an interval of transverse field values",
     type=int,
 )
 parser.add_argument(
-    "h_ev", help="It will give you the magnitude of the quench", type=float
+    "h_i", help="Starting value of h (external transverse field)", type=float
+)
+parser.add_argument(
+    "h_f", help="Final value of h (external transverse field)", type=float
 )
 parser.add_argument(
     "what", help="Results we want to plot. Available are: 'mag_tot', 'mag_z', 'mag_x', 'entropy', 'err_mag_tot', 'err_mag_z', 'err_mag_x', 'err_entropy', 'entropy_tot', 'mag_loc' ", type=str
@@ -28,19 +31,10 @@ parser.add_argument(
 )
 parser.add_argument("chis", help="Simulated bond dimensions", nargs="+", type=int)
 parser.add_argument(
-    "-f", "--flip", help="Flip the middle site or not", action="store_false"
-)
-parser.add_argument(
     "-m", "--model", help="Model to simulate", default="Ising", type=str
 )
 parser.add_argument(
     "-t", "--time", help="Final time of the evolution", default=10, type=float
-)
-parser.add_argument(
-    "-e",
-    "--exact",
-    help="Plot exact results for comparison. Doable only for small Ising chains",
-    action="store_true",
 )
 parser.add_argument(
     "-s",
@@ -89,17 +83,25 @@ parser.add_argument(
 parser.add_argument(
     "-d",
     "--dim",
-    help="Dimension to plot, by defalut plots two dimensional plots. If True, 3D plots",
+    help="Dimension to plot, by defalut plots two dimensional plots. If True 3D plots, by default False",
+    action="store_true",
+)
+parser.add_argument(
+    "-e",
+    "--exact",
+    help="Exact results to compare the mps ones. If True we compare - be default False",
     action="store_true",
 )
 
 args = parser.parse_args()
-delta = args.time / args.trotter_steps
 if args.where == -1:
     args.where = (args.L // 2)
 elif args.where == -2:
     args.bond = False
     args.where = "all"
+
+interval = np.linspace(args.h_i, args.h_f, args.npoints).tolist()
+
 
 plot_val = ['mag_tot', 'mag_z', 'mag_x', 'entropy', 'err_mag_tot', 'err_mag_z', 'err_mag_x', 'err_entropy']
 plot_cmap = ['mag_loc', 'entropy_tot']
@@ -114,7 +116,7 @@ else:
     raise SyntaxError("insert a valid location: 'pc', 'mac', 'marcos'")
 
 if args.what == "mag_tot":
-    title = f"Total Magnetization: $L = {args.L}$ ; $\delta = {delta}$ ;" + " $h_{ev}=$ " + f"${args.h_ev}$"
+    title = f"Total Magnetization: $L = {args.L}$ ;" + " $h_{ev}=$ " + f"${args.h_ev}$"
     fname_what = "mag_mps_tot"
     fname_ex_what = "mag_exact_tot"
     path = path_computer + f"results/mag_data"
@@ -123,7 +125,7 @@ if args.what == "mag_tot":
     ylabel = "$\sum_{i=1}^L \sigma_i^z$"
 
 elif args.what == "mag_z":
-    title = f"Magnetization Z in the middle site: $L = {args.L}$ ; $\delta = {delta}$ ;" + " $h_{ev}=$ "+ f"${args.h_ev}$"
+    title = f"Magnetization Z in the middle site: $L = {args.L}$ ;" + " $h_{ev}=$ "+ f"${args.h_ev}$"
     fname_what = "mag_mps_loc_Z"
     fname_ex_what = "mag_exact_loc_Z"
     path = path_computer + f"results/mag_data"
@@ -132,7 +134,7 @@ elif args.what == "mag_z":
     ylabel = "$\sigma_{L/2}^z$"
 
 elif args.what == "mag_x":
-    title = f"Magnetization X in the middle site: $L = {args.L}$ ; $\delta = {delta}$ ;" + " $h_{ev}=$ " + f"${args.h_ev}$"
+    title = f"Magnetization X in the middle site: $L = {args.L}$ ;" + " $h_{ev}=$ " + f"${args.h_ev}$"
     fname_what = "mag_mps_loc_X"
     fname_ex_what = "mag_exact_loc_X"
     path = path_computer + f"results/mag_data"
@@ -141,18 +143,18 @@ elif args.what == "mag_x":
     ylabel = "$\sigma_{L/2}^x$"
 
 elif args.what == "entropy":
-    title = f" ${args.where}-th$ Bond Entanglement Entropy: $L = {args.L}$ ; $\delta = {delta}$ ;" + " $h_{ev}=$ " + f"${args.h_ev}$"
+    title = f" ${args.where}-th$ Bond Entanglement Entropy: $L = {args.L}$ ;" + f" $h \in ({args.h_i},{args.h_f})$ "
     fname_what = f"{args.where}_bond_entropy"
     fname_ex_what = f"{args.where}_bond_exact_entropy"
-    path = path_computer + f"results/bonds_data"
+    path = path_computer + f"results/entropy"
     path_ex = path_computer + f"results/exact/entropy"
     path_save = path_computer + f"figures/entropy/"
     ylabel = "entanglement von neumann entropy $(S_{\chi})$"
 
 elif args.what == "entropy_tot":
-    title = f"All Bonds Entanglement Entropy: $L = {args.L}$ ; $\delta = {delta}$ ;" + " $h_{ev}=$ " + f"${args.h_ev}$"
+    title = f"All Bonds Entanglement Entropy: $L = {args.L}$ ; $gap = {args.npoints}$ ;" + " $h=$ " + f"${args.h_i} - {args.h_f}$"
     fname_what = f"{args.where}_bond_entropy"
-    path = path_computer + f"results/bonds_data"
+    path = path_computer + f"results/entropy"
     path_save = path_computer + f"figures/entropy/"
     xlabel = "bonds"
     x_ticks = range(args.L-1)
@@ -162,7 +164,7 @@ elif args.what == "entropy_tot":
     steps = len(labels) // 5
     xlabels = labels[::steps]
     y_ticks = np.arange(args.trotter_steps + 1)
-    labels = delta * y_ticks
+    # labels = delta * y_ticks
     steps = len(y_ticks) // 5
     yticks = y_ticks[::steps]
     steps = len(labels) // 5
@@ -171,7 +173,7 @@ elif args.what == "entropy_tot":
     view_init = False
 
 elif args.what == "mag_loc":
-    title = f"Local Magnetization Evolution: $L = {args.L}$ ; $\delta = {delta}$ ;" + " $h_{ev}=$ " + f"${args.h_ev}$"
+    title = f"Local Magnetization Evolution: $L = {args.L}$ ;" + " $h_{ev}=$ " + f"${args.h_ev}$"
     fname_what = f"mag_mps_loc"
     fname_ex_what = "mag_exact_loc"
     path = path_computer + f"results/mag_data"
@@ -185,7 +187,7 @@ elif args.what == "mag_loc":
     steps = len(labels) // 5
     xlabels = labels[::steps]
     y_ticks = np.arange(args.trotter_steps + 1)
-    labels = delta * y_ticks
+    # labels = delta * y_ticks
     steps = len(y_ticks) // 5
     yticks = y_ticks[::steps]
     steps = len(labels) // 5
@@ -197,14 +199,14 @@ else:
     raise SyntaxError("insert a valid result to plot: 'mag_tot', 'mag_z', 'mag_x', 'entropy', 'err_mag_tot', 'err_mag_z', 'err_mag_x', 'err_entropy'")
 
 if args.what in plot_val:
-    fname = f"{fname_what}_{args.model}_L_{args.L}_flip_{args.flip}_delta_{delta}"
-    fname_ex = f"{fname_ex_what}_{args.model}_L_{args.L}_flip_{args.flip}_delta_{delta}"
-    fname_save = f"{args.what}_{args.model}_L_{args.L}_flip_{args.flip}_delta_{delta}_h_ev_{args.h_ev}"
-    plot_results_evolution(title, for_array=args.chis, trotter_steps=args.trotter_steps, delta=delta, fname=fname, path=path, fname_ex=fname_ex, path_ex=path_ex, fname_save=fname_save, path_save=path_save, ylabel=ylabel, exact=args.exact, save=args.save, marker=args.marker, m_size=args.m_size, linewidth=args.linewidth, alpha=args.alpha, n_points=args.n_points, cmap=args.cmap)
+    fname = f"{fname_what}_{args.model}_L_{args.L}_h_{args.h_i}-{args.h_f}_delta_{args.npoints}"
+    fname_ex = f"{fname_ex_what}_{args.model}_L_{args.L}_h_{args.h_i}-{args.h_f}_delta_{args.npoints}"
+    fname_save = f"{args.what}_{args.model}_L_{args.L}_h_{args.h_i}-{args.h_f}_delta_{args.npoints}"
+    plot_results_evolution(title, for_array=args.chis, interval=interval, fname=fname, path=path, fname_save=fname_save, path_save=path_save, ylabel=ylabel, save=args.save, exact=args.exact, fname_ex=fname_ex, path_ex=path_ex, marker=args.marker, m_size=args.m_size, linewidth=args.linewidth, alpha=args.alpha, n_points=args.n_points, cmap=args.cmap)
 
-elif args.what in plot_cmap:
+if args.what in plot_cmap:
     for chi in args.chis:
         title_fin = title + f" ; $\chi = {chi}$"
-        fname = f"{fname_what}_{args.model}_L_{args.L}_flip_{args.flip}_delta_{delta}_chi_{chi}"
-        fname_save = f"{args.what}_{args.model}_L_{args.L}_flip_{args.flip}_delta_{delta}_h_ev_{args.h_ev}_chi_{chi}"
+        fname = f"{fname_what}_{args.model}_L_{args.L}_h_{args.h_i}-{args.h_f}_delta_{args.npoints}_chi_{chi}"
+        fname_save = f"{args.what}_{args.model}_L_{args.L}_h_{args.h_i}-{args.h_f}_delta_{args.npoints}_chi_{chi}"
         plot_colormaps_evolution(title=title_fin, fname=fname, path=path, fname_save=fname_save, path_save=path_save, xlabel=xlabel, xticks=xticks, xlabels=xlabels, yticks=yticks, ylabels=ylabels, X=X, Y=Y, save=args.save, cmap=args.cmap, interpolation=args.interpolation, d=args.dim, view_init=view_init)
