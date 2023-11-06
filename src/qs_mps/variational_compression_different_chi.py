@@ -1,6 +1,6 @@
 # import packages
-from mps_class import MPS
-from utils import *
+from .mps_class import MPS
+from .utils import *
 import matplotlib.pyplot as plt
 from ncon import ncon
 import scipy
@@ -71,12 +71,23 @@ parser.add_argument(
     default=-1,
     type=int,
 )
+parser.add_argument(
+    "-p",
+    "--path",
+    help="Path to the drive. Available values are 'pc', 'mac', 'marcos'",
+    default="mac",
+    type=str,
+)
 args = parser.parse_args()
 delta = args.time / args.trotter_steps
 if args.where == -1:
     args.where = (args.L // 2)
 elif args.where == -2:
     args.bond = False
+
+
+if args.path == 'marcos':
+    path = "/Users/fradm/Google Drive/My Drive"
 # ---------------------------------------------------------
 # variational truncation mps
 # ---------------------------------------------------------
@@ -114,36 +125,45 @@ for chi in args.chis:  # L // 2 + 1
         args.where = "all"
 
     np.savetxt(
-        f"G:/My Drive/projects/0_ISING/results/mag_data/mag_mps_tot_{args.model}_L_{args.L}_flip_{args.flip}_delta_{delta}_chi_{chi}_h_ev_{args.h_ev}",
+        f"{path}/projects/0_ISING/results/mag_data/mag_mps_tot_{args.model}_L_{args.L}_flip_{args.flip}_delta_{delta}_chi_{chi}_h_ev_{args.h_ev}",
         mag_mps_tot,
     )
     np.savetxt(
-        f"G:/My Drive/projects/0_ISING/results/mag_data/mag_mps_loc_X_{args.model}_L_{args.L}_flip_{args.flip}_delta_{delta}_chi_{chi}_h_ev_{args.h_ev}",
+        f"{path}/projects/0_ISING/results/mag_data/mag_mps_loc_X_{args.model}_L_{args.L}_flip_{args.flip}_delta_{delta}_chi_{chi}_h_ev_{args.h_ev}",
         mag_mps_loc_X,
     )
     np.savetxt(
-        f"G:/My Drive/projects/0_ISING/results/mag_data/mag_mps_loc_{args.model}_L_{args.L}_flip_{args.flip}_delta_{delta}_chi_{chi}_h_ev_{args.h_ev}",
+        f"{path}/projects/0_ISING/results/mag_data/mag_mps_loc_{args.model}_L_{args.L}_flip_{args.flip}_delta_{delta}_chi_{chi}_h_ev_{args.h_ev}",
         mag_mps_loc,
     )
     mag_mps_loc_Z = access_txt(
-        f"G:/My Drive/projects/0_ISING/results/mag_data/mag_mps_loc_{args.model}_L_{args.L}_flip_{args.flip}_delta_{delta}_chi_{chi}_h_ev_{args.h_ev}",
+        f"{path}/projects/0_ISING/results/mag_data/mag_mps_loc_{args.model}_L_{args.L}_flip_{args.flip}_delta_{delta}_chi_{chi}_h_ev_{args.h_ev}",
         args.L // 2,
     )
     np.savetxt(
-        f"G:/My Drive/projects/0_ISING/results/mag_data/mag_mps_loc_Z_{args.model}_L_{args.L}_flip_{args.flip}_delta_{delta}_chi_{chi}_h_ev_{args.h_ev}",
+        f"{path}/projects/0_ISING/results/mag_data/mag_mps_loc_Z_{args.model}_L_{args.L}_flip_{args.flip}_delta_{delta}_chi_{chi}_h_ev_{args.h_ev}",
         mag_mps_loc_Z,
     )
     # np.savetxt(
-    #     f"G:/My Drive/projects/0_ISING/results/fidelity_data/fidelity_{args.model}_L_{args.L}_flip_{args.flip}_delta_{delta}_chi_{chi}_h_ev_{args.h_ev}", overlap
+    #     f"{path}/projects/0_ISING/results/fidelity_data/fidelity_{args.model}_L_{args.L}_flip_{args.flip}_delta_{delta}_chi_{chi}_h_ev_{args.h_ev}", overlap
     # )
     save_list_of_lists(
-        f"G:/My Drive/projects/0_ISING/results/errors_data/errors_{args.model}_L_{args.L}_flip_{args.flip}_delta_{delta}_chi_{chi}_h_ev_{args.h_ev}",
+        f"{path}/projects/0_ISING/results/errors_data/errors_{args.model}_L_{args.L}_flip_{args.flip}_delta_{delta}_chi_{chi}_h_ev_{args.h_ev}",
         errors,
     )
     save_list_of_lists(
-        f"G:/My Drive/projects/0_ISING/results/entropy/{args.where}_bond_schmidt_values_{args.model}_L_{args.L}_flip_{args.flip}_delta_{delta}_chi_{chi}_h_ev_{args.h_ev}",
+        f"{path}/projects/0_ISING/results/entropy/{args.where}_entropy_{args.model}_L_{args.L}_flip_{args.flip}_delta_{delta}_chi_{chi}_h_ev_{args.h_ev}",
         schmidt_values,
     )
+    if args.where == 'all':
+        entropy_mid = access_txt(
+            f"{path}/projects/0_ISING/results/mag_data/{args.where}_entropy_{args.model}_L_{args.L}_flip_{args.flip}_delta_{delta}_chi_{chi}_h_ev_{args.h_ev}",
+            args.L // 2,
+        )
+        np.savetxt(
+            f"{path}/projects/0_ISING/results/mag_data/{args.L//2}_bond_entropy_{args.model}_L_{args.L}_flip_{args.flip}_delta_{delta}_chi_{chi}_h_ev_{args.h_ev}",
+            mag_mps_loc_Z,
+        )
 
 # different folder paths:
 """

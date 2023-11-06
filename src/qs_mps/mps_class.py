@@ -3,9 +3,9 @@ from ncon import ncon
 from scipy.sparse.linalg import eigsh
 from scipy.sparse import csr_matrix, csr_array, identity
 from scipy.linalg import expm, solve
-from utils import *
+from .utils import *
 from checks import check_matrix
-from exact_Ising_ground_state_and_time_evolution import exact_evolution_sparse, sparse_ising_ground_state, U_evolution_sparse
+from .exact_Ising_ground_state_and_time_evolution import exact_evolution_sparse, sparse_ising_ground_state, U_evolution_sparse
 import matplotlib.pyplot as plt
 import time
 import warnings
