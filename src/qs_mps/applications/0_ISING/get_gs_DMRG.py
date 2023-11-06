@@ -80,7 +80,6 @@ path = f"{path_drive}/results/tensors"
 num = (args.h_f-args.h_i)/args.npoints
 precision = get_precision(num)
 
-print(interval, precision)
 if args.where == -1:
     args.where = (args.L // 2)
 elif args.where == -2:
