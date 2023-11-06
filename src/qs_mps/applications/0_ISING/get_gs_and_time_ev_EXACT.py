@@ -1,7 +1,7 @@
 import numpy as np
 import argparse
-from exact_Ising_ground_state_and_time_evolution import exact_evolution_sparse
-from utils import access_txt
+from qs_mps.sparse_hamiltonians_and_operators import exact_evolution_sparse
+from qs_mps.utils import access_txt
 
 parser = argparse.ArgumentParser(prog="Exact Ground State and Time Evolution - Ising")
 parser.add_argument("L", help="Spin chain length", type=int)

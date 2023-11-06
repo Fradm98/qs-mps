@@ -1,6 +1,6 @@
 # import packages
-from mps_class import MPS
-from utils import *
+from qs_mps.mps_class import MPS
+from qs_mps.utils import *
 import matplotlib.pyplot as plt
 from ncon import ncon
 import scipy
@@ -13,15 +13,16 @@ import argparse
 
 parser = argparse.ArgumentParser(prog="Time Evolution")
 parser.add_argument("L", help="Spin chain length", type=int)
-parser.add_argument(
-    "trotter_steps",
-    help="It will give you the accuracy of the trotter evolution for fixed t",
-    type=int,
-)
+parser.add_argument("chi", help="Simulated bond dimension", type=int)
 parser.add_argument(
     "h_ev", help="It will give you the magnitude of the quench", type=float
 )
-parser.add_argument("chis", help="Simulated bond dimensions", nargs="+", type=int)
+parser.add_argument(
+    "trotter_steps",
+    help="Different trotter steps, changes the precision of the evolution",
+    nargs="+",
+    type=int,
+)
 parser.add_argument(
     "-f", "--flip", help="Flip the middle site or not", action="store_true"
 )
@@ -62,7 +63,7 @@ parser.add_argument(
     "-b",
     "--bond",
     help="Save the schmidt values for one bond. If False save for each bond. By default True",
-    action="store_false",
+    action="store_true",
 )
 parser.add_argument(
     "-w",
@@ -73,18 +74,23 @@ parser.add_argument(
 )
 args = parser.parse_args()
 delta = args.time / args.trotter_steps
-if args.where == -1:
-    args.where = (args.L // 2)
-elif args.where == -2:
-    args.bond = False
+if args.where < 0:
+    args.where = args.L // 2
+    
 # ---------------------------------------------------------
 # variational truncation mps
-# ---------------------------------------------------------
-for chi in args.chis:  # L // 2 + 1
+for trotter_step in args.trotter_steps:  # L // 2 + 1
+    delta = args.time / trotter_step
     chain = MPS(
-        L=args.L, d=2, model=args.model, chi=chi, h=args.h_transverse_init, eps=0, J=1
+        L=args.L,
+        d=2,
+        model=args.model,
+        chi=args.chi,
+        h=args.h_transverse_init,
+        eps=0,
+        J=1,
     )
-    chain._random_state(seed=3, chi=chi)
+    chain._random_state(seed=3, chi=args.chi)
     chain.canonical_form(trunc_chi=False, trunc_tol=True)
     # chain.sweeping(trunc_chi=False, trunc_tol=True, n_sweeps=2)
     init_state = np.zeros((1, 2, 1))
@@ -114,48 +120,33 @@ for chi in args.chis:  # L // 2 + 1
         args.where = "all"
 
     np.savetxt(
-        f"G:/My Drive/projects/0_ISING/results/mag_data/mag_mps_tot_{args.model}_L_{args.L}_flip_{args.flip}_delta_{delta}_chi_{chi}",
+        f"/data/fdimarca/projects/0_ISING/results/mag_data/mag_mps_tot_{args.model}_L_{args.L}_flip_{args.flip}_delta_{delta}_chi_{args.chi}",
         mag_mps_tot,
     )
     np.savetxt(
-        f"G:/My Drive/projects/0_ISING/results/mag_data/mag_mps_loc_X_{args.model}_L_{args.L}_flip_{args.flip}_delta_{delta}_chi_{chi}",
+        f"/data/fdimarca/projects/0_ISING/results/mag_data/mag_mps_loc_X_{args.model}_L_{args.L}_flip_{args.flip}_delta_{delta}_chi_{args.chi}",
         mag_mps_loc_X,
     )
     np.savetxt(
-        f"G:/My Drive/projects/0_ISING/results/mag_data/mag_mps_loc_{args.model}_L_{args.L}_flip_{args.flip}_delta_{delta}_chi_{chi}",
+        f"/data/fdimarca/projects/0_ISING/results/mag_data/mag_mps_loc_{args.model}_L_{args.L}_flip_{args.flip}_delta_{delta}_chi_{args.chi}",
         mag_mps_loc,
     )
     mag_mps_loc_Z = access_txt(
-        f"G:/My Drive/projects/0_ISING/results/mag_data/mag_mps_loc_{args.model}_L_{args.L}_flip_{args.flip}_delta_{delta}_chi_{chi}",
+        f"/data/fdimarca/projects/0_ISING/results/mag_data/mag_mps_loc_{args.model}_L_{args.L}_flip_{args.flip}_delta_{delta}_chi_{args.chi}",
         args.L // 2,
     )
     np.savetxt(
-        f"G:/My Drive/projects/0_ISING/results/mag_data/mag_mps_loc_Z_{args.model}_L_{args.L}_flip_{args.flip}_delta_{delta}_chi_{chi}",
+        f"/data/fdimarca/projects/0_ISING/results/mag_data/mag_mps_loc_Z_{args.model}_L_{args.L}_flip_{args.flip}_delta_{delta}_chi_{args.chi}",
         mag_mps_loc_Z,
     )
     # np.savetxt(
-    #     f"G:/My Drive/projects/0_ISING/results/fidelity_data/fidelity_{args.model}_L_{args.L}_flip_{args.flip}_delta_{delta}_chi_{chi}", overlap
+    #     f"/data/fdimarca/projects/0_ISING/results/fidelity_data/fidelity_{args.model}_L_{args.L}_flip_{args.flip}_delta_{delta}_chi_{args.chi}", overlap
     # )
     save_list_of_lists(
-        f"G:/My Drive/projects/0_ISING/results/errors_data/errors_{args.model}_L_{args.L}_flip_{args.flip}_delta_{delta}_chi_{chi}",
+        f"/data/fdimarca/projects/0_ISING/results/errors_data/errors_{args.model}_L_{args.L}_flip_{args.flip}_delta_{delta}_chi_{args.chi}",
         errors,
     )
-    save_list_of_lists(
-        f"G:/My Drive/projects/0_ISING/results/bonds_data/{args.where}_bond_schmidt_values_{args.model}_L_{args.L}_flip_{args.flip}_delta_{delta}_chi_{chi}",
+    np.savetxt(
+        f"/data/fdimarca/projects/0_ISING/results/bonds_data/{args.where}_bond_schmidt_values_{args.model}_L_{args.L}_flip_{args.flip}_delta_{delta}_chi_{args.chi}",
         schmidt_values,
     )
-
-# different folder paths:
-"""
-# external drive:
-D:/code/
-
-# Google drive on my PC:
-G:/My Drive/
-
-# Google drive on my Mac:
-/Users/fradm98/Google Drive/My Drive/
-
-# Google drive on MarcOS:
-/Users/fradm/Google Drive/My Drive/
-"""

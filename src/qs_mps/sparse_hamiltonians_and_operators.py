@@ -1,7 +1,7 @@
 import numpy as np
 from scipy import sparse
 from scipy.sparse.linalg import eigsh, expm_multiply
-from utils import get_middle_chain_schmidt_values, von_neumann_entropy, mps_to_vector
+from .utils import get_middle_chain_schmidt_values, von_neumann_entropy, mps_to_vector
 # -----------------------------------------------
 # Sparse Pauli matrices
 # -----------------------------------------------

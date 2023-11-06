@@ -39,6 +39,32 @@ Saving and loading tools
 # ---------------------------------------------------------------------------------------
 # ---------------------------------------------------------------------------------------
 
+# ---------------------------------------------------------------------------------------
+# Get precision
+# ---------------------------------------------------------------------------------------
+def get_precision(num: float):
+    """
+    get_precision
+
+    This function finds the precision needed to save a parameter
+    in a certain interval so that all the significant figures are saved.
+
+    num: float - it is the range of the interval over the number of points in the interval
+
+    """
+    # Convert the number to a string to work with its representation
+    num_str = str(num)
+    
+    # Split the number into its integer and fractional parts
+    integer_part, fractional_part = num_str.split('.')
+    
+    # Count leading zeros in the fractional part
+    leading_zeros = len(fractional_part) - len(fractional_part.lstrip('0'))
+    
+    # Calculate the absolute value of the exponent
+    exponent = leading_zeros + 1  # Subtract 1 to account for the first digit before the decimal point
+    
+    return abs(exponent)
 
 # ---------------------------------------------------------------------------------------
 # Get labels
@@ -156,9 +182,6 @@ def load_list_of_lists(file_path):
                 loaded_data.append(current_list)
 
     return loaded_data
-
-
-
 
 
 # ---------------------------------------------------------------------------------------
