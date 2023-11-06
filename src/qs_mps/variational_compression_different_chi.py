@@ -97,7 +97,7 @@ for chi in args.chis:  # L // 2 + 1
         mag_mps_loc,
         overlap,
         errors,
-        entropies,
+        schmidt_values,
     ) = chain.TEBD_variational(
         trotter_steps=args.trotter_steps,
         delta=delta,
@@ -142,7 +142,7 @@ for chi in args.chis:  # L // 2 + 1
     )
     save_list_of_lists(
         f"G:/My Drive/projects/0_ISING/results/entropy/{args.where}_bond_schmidt_values_{args.model}_L_{args.L}_flip_{args.flip}_delta_{delta}_chi_{chi}_h_ev_{args.h_ev}",
-        entropies,
+        schmidt_values,
     )
 
 # different folder paths:
