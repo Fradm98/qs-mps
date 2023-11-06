@@ -2227,7 +2227,7 @@ class MPS:
         # shapes of the tensors
         shapes = tensor_shapes(self.sites)
         np.savetxt(
-            f"{path}/shapes_sites_{self.model}_L_{self.L}_chi_{self.chi}_h_{self.h:.{precision}f}",
+            f"{path}/results/tensors/shapes_sites_{self.model}_L_{self.L}_chi_{self.chi}_h_{self.h:.{precision}f}",
             shapes,
             fmt="%1.i",  # , delimiter=','
         )
@@ -2235,7 +2235,7 @@ class MPS:
         # flattening of the tensors
         tensor = [element for site in self.sites for element in site.flatten()]
         np.savetxt(
-            f"{path}/tensor_sites_{self.model}_L_{self.L}_chi_{self.chi}_h_{self.h:.{precision}f}",
+            f"{path}/results/tensors/tensor_sites_{self.model}_L_{self.L}_chi_{self.chi}_h_{self.h:.{precision}f}",
             tensor,
         )
 
@@ -2252,11 +2252,11 @@ class MPS:
         """
         # loading of the shapes
         shapes = np.loadtxt(
-            f"{path}/shapes_sites_L_{self.L}_chi_{self.chi}_h_{self.h:.{precision}f}"
+            f"{path}/results/tensors/shapes_sites_L_{self.L}_chi_{self.chi}_h_{self.h:.{precision}f}"
         ).astype(int)
         # loading of the flat tensors
         filedata = np.loadtxt(
-            f"{path}/tensor_sites_L_{self.L}_chi_{self.chi}_h_{self.h:.{precision}f}"
+            f"{path}/results/tensors/tensor_sites_L_{self.L}_chi_{self.chi}_h_{self.h:.{precision}f}"
         )
         # auxiliary function to get the indices where to split
         labels = get_labels(shapes)
