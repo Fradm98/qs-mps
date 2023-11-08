@@ -23,7 +23,7 @@ parser.add_argument(
 )
 parser.add_argument("chis", help="Simulated bond dimensions", nargs="+", type=int)
 parser.add_argument(
-    "-f", "--flip", help="Flip the middle site or not", action="store_true"
+    "-f", "--flip", help="Flip the middle site or not. By defalut True", action="store_false"
 )
 parser.add_argument(
     "-m", "--model", help="Model to simulate", default="Ising", type=str
@@ -41,14 +41,14 @@ parser.add_argument(
 parser.add_argument(
     "-s",
     "--number_sweeps",
-    help="Number of sweeps during the compression algorithm for each trotter step",
+    help="Number of sweeps during the compression algorithm for each trotter step. By default 8",
     default=8,
     type=int,
 )
 parser.add_argument(
     "-cv",
     "--conv_tol",
-    help="Convergence tolerance of the compression algorithm",
+    help="Convergence tolerance of the compression algorithm. By default 1e-10",
     default=1e-10,
     type=float,
 )
@@ -157,11 +157,11 @@ for chi in args.chis:  # L // 2 + 1
     )
     if args.where == 'all':
         entropy_mid = access_txt(
-            f"{path}/projects/0_ISING/results/mag_data/{args.where}_entropy_{args.model}_L_{args.L}_flip_{args.flip}_delta_{delta}_chi_{chi}_h_ev_{args.h_ev}",
+            f"{path}/projects/0_ISING/results/entropy/{args.where}_entropy_{args.model}_L_{args.L}_flip_{args.flip}_delta_{delta}_chi_{chi}_h_ev_{args.h_ev}",
             args.L // 2,
         )
         np.savetxt(
-            f"{path}/projects/0_ISING/results/mag_data/{args.L//2}_bond_entropy_{args.model}_L_{args.L}_flip_{args.flip}_delta_{delta}_chi_{chi}_h_ev_{args.h_ev}",
+            f"{path}/projects/0_ISING/results/entropy/{args.L//2}_bond_entropy_{args.model}_L_{args.L}_flip_{args.flip}_delta_{delta}_chi_{chi}_h_ev_{args.h_ev}",
             mag_mps_loc_Z,
         )
 

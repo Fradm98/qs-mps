@@ -10,7 +10,6 @@ import matplotlib.pyplot as plt
 import time
 import warnings
 
-
 class MPS:
     def __init__(
         self, L, d, model=str, chi=None, w=None, h=None, eps=None, J=None, charges=None
@@ -475,13 +474,15 @@ class MPS:
             label_bra = [-2,3,2]
             env_r = ncon([env_r,kets[i],bras[i]],[label_env,label_ket,label_bra])  
         # central env
+        idx = 0
         for i in range(sites[0]-1,sites[-1]):
             label_ket = [1,-1-i,-len(sites)*100]
             label_bra = [2,-len(sites)-1-i,-len(sites)*100-1]
             env_l = ncon([env_l,kets[i],bras[i]],[label_env,label_ket,label_bra])
-            up = [int(-elem) for elem in np.linspace(1,i+1,i+1)]
-            down = [int(-elem) for elem in np.linspace(len(sites)+1,len(sites)+1+i,i+1)] 
+            up = [int(-elem) for elem in np.linspace(1,idx+1,idx+1)]
+            down = [int(-elem) for elem in np.linspace(len(sites)+1,len(sites)+1+idx,idx+1)] 
             label_env = up + down + mid_up + mid_down
+            idx += 1
 
         mps_dm = ncon([env_l,env_r],[[label_env],[1,2]])
 
