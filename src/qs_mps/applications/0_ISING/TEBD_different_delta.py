@@ -1,6 +1,6 @@
 # import packages
-from mps_class import MPS
-from utils import *
+from qs_mps.mps_class import MPS
+from qs_mps.utils import *
 import matplotlib.pyplot as plt
 from ncon import ncon
 import scipy

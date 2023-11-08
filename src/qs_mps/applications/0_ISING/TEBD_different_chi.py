@@ -1,6 +1,11 @@
 # import packages
+<<<<<<< HEAD:src/qs_mps/variational_compression_different_chi.py
 from .mps_class import MPS
 from .utils import *
+=======
+from qs_mps.mps_class import MPS
+from qs_mps.utils import *
+>>>>>>> 854250ccad7072c77822904f2bbf75b219e873f5:src/qs_mps/applications/0_ISING/TEBD_different_chi.py
 import matplotlib.pyplot as plt
 from ncon import ncon
 import scipy
@@ -8,7 +13,7 @@ from scipy.sparse import csr_array
 import time
 import argparse
 
-# variational compression changing bond dimension
+# TIME EVOLUTION BLOCK DECIMATION with variational compression changing bond dimension
 # parameters
 
 parser = argparse.ArgumentParser(prog="Time Evolution")
@@ -108,7 +113,7 @@ for chi in args.chis:  # L // 2 + 1
         mag_mps_loc,
         overlap,
         errors,
-        schmidt_values,
+        entropies,
     ) = chain.TEBD_variational(
         trotter_steps=args.trotter_steps,
         delta=delta,
@@ -152,8 +157,13 @@ for chi in args.chis:  # L // 2 + 1
         errors,
     )
     save_list_of_lists(
+<<<<<<< HEAD:src/qs_mps/variational_compression_different_chi.py
         f"{path}/projects/0_ISING/results/entropy/{args.where}_entropy_{args.model}_L_{args.L}_flip_{args.flip}_delta_{delta}_chi_{chi}_h_ev_{args.h_ev}",
         schmidt_values,
+=======
+        f"G:/My Drive/projects/0_ISING/results/entropy/{args.where}_bond_schmidt_values_{args.model}_L_{args.L}_flip_{args.flip}_delta_{delta}_chi_{chi}_h_ev_{args.h_ev}",
+        entropies,
+>>>>>>> 854250ccad7072c77822904f2bbf75b219e873f5:src/qs_mps/applications/0_ISING/TEBD_different_chi.py
     )
     if args.where == 'all':
         entropy_mid = access_txt(

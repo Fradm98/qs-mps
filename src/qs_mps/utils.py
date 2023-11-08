@@ -39,6 +39,32 @@ Saving and loading tools
 # ---------------------------------------------------------------------------------------
 # ---------------------------------------------------------------------------------------
 
+# ---------------------------------------------------------------------------------------
+# Get precision
+# ---------------------------------------------------------------------------------------
+def get_precision(num: float):
+    """
+    get_precision
+
+    This function finds the precision needed to save a parameter
+    in a certain interval so that all the significant figures are saved.
+
+    num: float - it is the range of the interval over the number of points in the interval
+
+    """
+    # Convert the number to a string to work with its representation
+    num_str = str(num)
+    
+    # Split the number into its integer and fractional parts
+    integer_part, fractional_part = num_str.split('.')
+    
+    # Count leading zeros in the fractional part
+    leading_zeros = len(fractional_part) - len(fractional_part.lstrip('0'))
+    
+    # Calculate the absolute value of the exponent
+    exponent = leading_zeros + 1  # Subtract 1 to account for the first digit before the decimal point
+    
+    return abs(exponent)
 
 # ---------------------------------------------------------------------------------------
 # Get labels
@@ -156,9 +182,6 @@ def load_list_of_lists(file_path):
                 loaded_data.append(current_list)
 
     return loaded_data
-
-
-
 
 
 # ---------------------------------------------------------------------------------------
@@ -806,8 +829,7 @@ def create_sequential_colors(num_colors, colormap_name):
 def plot_results_evolution(
         title: str, 
         for_array: list, 
-        trotter_steps: int, 
-        delta: float,
+        interval: list,
         fname: str, 
         path: str,         
         fname_ex: str,
@@ -837,7 +859,7 @@ def plot_results_evolution(
         fontsize=14,
     )
     step = int(1 // n_points)
-    x = (delta * np.arange(trotter_steps + 1))[::step]
+    x = interval[::step]
 
     for i, elem in enumerate(for_array):
         res_mps = np.loadtxt(
@@ -866,7 +888,7 @@ def plot_results_evolution(
                 color="indianred",
                 label=f"exact",
             )
-        plt.xlabel("time (t = $\delta$ T)")
+        plt.xlabel("external field (h)")
         plt.ylabel(ylabel)
         plt.legend()
          
@@ -903,10 +925,10 @@ def plot_colormaps_evolution(
         ax = fig.add_subplot(111, projection="3d")
         ax.set_title(title, fontsize=14)
         ax.plot_surface(X, Y, matrix, cmap=cmap)
-        ax.set_xticks(ticks=xticks, labels=xlabels)
+        # ax.set_xticks(ticks=xticks, labels=xlabels)
         ax.set_xlabel(xlabel)
-        ax.set_yticks(ticks=yticks, labels=ylabels)
-        ax.set_ylabel("time (t = $\delta$ T)")
+        # ax.set_yticks(ticks=yticks, labels=ylabels)
+        ax.set_ylabel("external field (h)")
         if view_init:
             ax.view_init(20 , 80)
         if save:
@@ -919,7 +941,7 @@ def plot_colormaps_evolution(
         plt.xticks(ticks=xticks, labels=xlabels)
         plt.xlabel(xlabel)
         plt.yticks(ticks=yticks, labels=ylabels)
-        plt.ylabel("time (t = $\delta$ T)")
+        plt.ylabel("external field (h)")
 
     if save:
         plt.savefig(f"{path_save}/{fname_save}.png")

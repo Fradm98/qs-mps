@@ -1,7 +1,7 @@
 # %%
 # import packages
-from mps_class import MPS
-from utils import *
+from qs_mps.mps_class import MPS
+from qs_mps.utils import *
 import matplotlib.pyplot as plt
 from ncon import ncon
 import scipy
@@ -15,7 +15,7 @@ plt.rcParams["figure.constrained_layout.use"] = True
 
 # variational compression changing bond dimension
 trotter_steps = 500
-h_ev = 0.3
+h_ev = 0.6
 L = 30
 model = "Ising"
 flip = True

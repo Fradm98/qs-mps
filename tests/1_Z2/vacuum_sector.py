@@ -1,8 +1,8 @@
 # %%
 # import packages
-from mps_class import MPS
+from qs_mps.mps_class import MPS
 import matplotlib.pyplot as plt
-from utils import create_sequential_colors, tensor_shapes
+from qs_mps.utils import create_sequential_colors, tensor_shapes
 import numpy as np
 from ground_state_multiprocessing import ground_state_Z2
 import time

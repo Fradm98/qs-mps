@@ -4,8 +4,13 @@ from scipy.sparse.linalg import eigsh
 from scipy.sparse import csr_matrix, csr_array, identity
 from scipy.linalg import expm, solve
 from .utils import *
+<<<<<<< HEAD
 from checks import check_matrix
 from .exact_Ising_ground_state_and_time_evolution import exact_evolution_sparse, sparse_ising_ground_state, U_evolution_sparse
+=======
+from .checks import check_matrix
+from .sparse_hamiltonians_and_operators import exact_evolution_sparse, sparse_ising_ground_state, U_evolution_sparse
+>>>>>>> 854250ccad7072c77822904f2bbf75b219e873f5
 import matplotlib.pyplot as plt
 import time
 import warnings
@@ -1472,9 +1477,11 @@ class MPS:
         trunc_chi: bool,
         schmidt_tol: float = 1e-15,
         conv_tol: float = 1e-10,
-        n_sweeps: int = 2,
+        n_sweeps: int = 6,
         var: bool = False,
-    ):  # iterations, sweep,
+        bond: bool = True,
+        where: int = -1,
+    ):  
         energies = []
         variances = []
         sweeps = ["right", "left"]
@@ -1486,15 +1493,23 @@ class MPS:
         iter = 1
         for n in range(n_sweeps):
             print(f"Sweep n: {n}\n")
+            entropy = []
             for i in range(self.L - 1):
                 H = self.H_eff(sites[i])
                 energy = self.eigensolver(
                     H_eff=H, site=sites[i]
                 ) 
                 energies.append(energy)
-                schmidt_vals = self.update_state(
+                s = self.update_state(
                     sweeps[0], sites[i], trunc_tol, trunc_chi, schmidt_tol
                 )
+                if bond:
+                    if sites[i] - 1 == where:
+                        entr = von_neumann_entropy(s)
+                        entropy.append(entr)
+                else:
+                    entr = von_neumann_entropy(s)
+                    entropy.append(entr)
                 self.update_envs(sweeps[0], sites[i])
                 iter += 1
 
@@ -1524,18 +1539,7 @@ class MPS:
                 + f"instead of the convergence tolerance {conv_tol}"
             )
             print("##############################")
-        return energies, schmidt_vals
-    
-        np.savetxt(
-            f"/Users/fradm/Google Drive/My Drive/projects/0_ISING/results/energy_data/energies_sweeping_{self.model}_L_{self.L}_chi_{self.chi}_h_{self.h:.{precision}f}",
-            energies,
-        )
-        if var:
-            np.savetxt(
-                f"/Users/fradm/Google Drive/My Drive/projects/0_ISING/results/energy_data/variances_sweeping_{self.model}_L_{self.L}_chi_{self.chi}_h_{self.h:.{precision}f}",
-                variances,
-            )
-        return energies
+        return energies, entropy
 
     def environments_ev(self, site):
         a = np.array([1])
@@ -1822,7 +1826,7 @@ class MPS:
         iter = 1
         for n in range(n_sweeps):
             print(f"Sweep n: {n}\n")
-            schmidt_vals = []
+            entropy = []
             for i in range(self.L - 1):
                 # print(f"\n============= Site: {sites[i]} ===================\n")
 
@@ -1852,9 +1856,11 @@ class MPS:
                 )
                 if bond:
                     if sites[i] - 1 == where:
-                        schmidt_vals.append(s)
+                        entr = von_neumann_entropy(s)
+                        entropy.append(entr)
                 else:
-                    schmidt_vals.append(s)
+                    entr = von_neumann_entropy(s)
+                    entropy.append(entr)
                 # self.update_envs_ev(sweeps[0], sites[i])
                 self.update_envs(sweeps[0], sites[i], mixed=True)
 
@@ -1887,7 +1893,7 @@ class MPS:
                 + f"instead of the convergence tolerance {conv_tol}"
             )
             print("##############################")
-        return errors, schmidt_vals
+        return errors, entropy
 
     def TEBD_direct(self, trotter_steps, delta, h_ev, J_ev, fidelity=False, trunc=True):
         """
@@ -2213,7 +2219,7 @@ class MPS:
 
         return bond_dims
 
-    def save_sites(self, precision=2):
+    def save_sites(self, path, precision=2):
         """
         save_sites
 
@@ -2226,7 +2232,7 @@ class MPS:
         # shapes of the tensors
         shapes = tensor_shapes(self.sites)
         np.savetxt(
-            f"results/sites_data/shapes_sites_{self.model}_L_{self.L}_chi_{self.chi}_h_{self.h:.{precision}f}",
+            f"{path}/results/tensors/shapes_sites_{self.model}_L_{self.L}_chi_{self.chi}_h_{self.h:.{precision}f}",
             shapes,
             fmt="%1.i",  # , delimiter=','
         )
@@ -2234,11 +2240,11 @@ class MPS:
         # flattening of the tensors
         tensor = [element for site in self.sites for element in site.flatten()]
         np.savetxt(
-            f"results/sites_data/tensor_sites_{self.model}_L_{self.L}_chi_{self.chi}_h_{self.h:.{precision}f}",
+            f"{path}/results/tensors/tensor_sites_{self.model}_L_{self.L}_chi_{self.chi}_h_{self.h:.{precision}f}",
             tensor,
         )
 
-    def load_sites(self, precision=2):
+    def load_sites(self, path, precision=2):
         """
         load_sites
 
@@ -2249,21 +2255,13 @@ class MPS:
         function get_labels().
 
         """
-        # # loading of the shapes
-        # shapes = np.loadtxt(
-        #     f"results/sites_data/shapes_sites_{self.model}_two_charges_L_{self.L}_chi_{self.chi}_h_{self.h:.{precision}f}"
-        # ).astype(int)
-        # # loading of the flat tensors
-        # filedata = np.loadtxt(
-        #     f"results/sites_data/tensor_sites_{self.model}_two_charges_L_{self.L}_chi_{self.chi}_h_{self.h:.{precision}f}"
-        # )
         # loading of the shapes
         shapes = np.loadtxt(
-            f"results/sites_data/shapes_sites_L_{self.L}_chi_{self.chi}_h_{self.h:.{precision}f}"
+            f"{path}/results/tensors/shapes_sites_L_{self.L}_chi_{self.chi}_h_{self.h:.{precision}f}"
         ).astype(int)
         # loading of the flat tensors
         filedata = np.loadtxt(
-            f"results/sites_data/tensor_sites_L_{self.L}_chi_{self.chi}_h_{self.h:.{precision}f}"
+            f"{path}/results/tensors/tensor_sites_L_{self.L}_chi_{self.chi}_h_{self.h:.{precision}f}"
         )
         # auxiliary function to get the indices where to split
         labels = get_labels(shapes)
