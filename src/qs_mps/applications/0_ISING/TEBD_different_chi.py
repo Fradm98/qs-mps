@@ -74,7 +74,7 @@ parser.add_argument(
 parser.add_argument(
     "-p",
     "--path",
-    help="Path to the drive. Available values are 'pc', 'mac', 'marcos'",
+    help="Path to the drive. Available values are 'pc', 'mac', 'marcos', 'other'",
     default="mac",
     type=str,
 )
@@ -86,8 +86,19 @@ elif args.where == -2:
     args.bond = False
 
 
+if args.path == 'pc':
+    path = "/Users/fradm/Google Drive/My Drive"
+elif args.path == 'mac':
+    path = "/Users/fradm/Google Drive/My Drive"
 if args.path == 'marcos':
     path = "/Users/fradm/Google Drive/My Drive"
+if args.path == 'other':
+    path = "replace_with_your_path"
+    raise SyntaxError("specify your path in the main script")
+else:
+    raise SyntaxError("choose among the available paths: 'pc, 'mac', 'marcos', 'other'")
+
+
 # ---------------------------------------------------------
 # variational truncation mps
 # ---------------------------------------------------------
