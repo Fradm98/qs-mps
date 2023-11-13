@@ -7,7 +7,7 @@ from qs_mps.gs_multiprocessing import ground_state_ising
 # DENSITY MATRIX RENORMALIZATION GROUP to find ground states changing the transverse field
 # parameters
 
-parser = argparse.ArgumentParser(prog="Ground State Search with DMRG")
+parser = argparse.ArgumentParser(prog="gs_search")
 parser.add_argument("L", help="Spin chain length", type=int)
 parser.add_argument(
     "npoints",
