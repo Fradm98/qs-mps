@@ -10,7 +10,6 @@ import matplotlib.pyplot as plt
 import time
 import warnings
 
-
 class MPS:
     def __init__(
         self, L, d, model=str, chi=None, w=None, h=None, eps=None, J=None, charges=None
@@ -475,13 +474,15 @@ class MPS:
             label_bra = [-2,3,2]
             env_r = ncon([env_r,kets[i],bras[i]],[label_env,label_ket,label_bra])  
         # central env
+        idx = 0
         for i in range(sites[0]-1,sites[-1]):
             label_ket = [1,-1-i,-len(sites)*100]
             label_bra = [2,-len(sites)-1-i,-len(sites)*100-1]
             env_l = ncon([env_l,kets[i],bras[i]],[label_env,label_ket,label_bra])
-            up = [int(-elem) for elem in np.linspace(1,i+1,i+1)]
-            down = [int(-elem) for elem in np.linspace(len(sites)+1,len(sites)+1+i,i+1)] 
+            up = [int(-elem) for elem in np.linspace(1,idx+1,idx+1)]
+            down = [int(-elem) for elem in np.linspace(len(sites)+1,len(sites)+1+idx,idx+1)] 
             label_env = up + down + mid_up + mid_down
+            idx += 1
 
         mps_dm = ncon([env_l,env_r],[[label_env],[1,2]])
 
@@ -1992,7 +1993,7 @@ class MPS:
         mag_mps_tot = []
         mag_mps_loc = []
         mag_mps_loc_X = []
-        schmidt_vals = []
+        entropies = []
         X = np.array([[0, 1], [1, 0]])
         Z = np.array([[1, 0], [0, -1]])
 
@@ -2048,7 +2049,7 @@ class MPS:
             print(f"Bond dim site: {self.sites[self.L//2].shape[0]}")
             # print("Braket <phi|psi>:")
             # self._compute_norm(site=1, mixed=True)
-            error, schmidt = self.compression(
+            error, entropy = self.compression(
                 trunc_tol=False,
                 trunc_chi=True,
                 n_sweeps=n_sweeps,
@@ -2059,7 +2060,7 @@ class MPS:
             self.ancilla_sites = self.sites.copy()
             # self.canonical_form(trunc_chi=True, trunc_tol=False)
             errors.append(error)
-            schmidt_vals.append(schmidt)
+            entropies.append(entropy)
 
             # total
             self.order_param_Ising(op=Z)
@@ -2084,7 +2085,7 @@ class MPS:
                 )
                 psi_new_mpo = mps_to_vector(self.sites)
                 overlap.append(np.abs((psi_new_mpo.T.conjugate() @ psi_exact).real))
-        return mag_mps_tot, mag_mps_loc_X, mag_mps_loc, overlap, errors, schmidt_vals
+        return mag_mps_tot, mag_mps_loc_X, mag_mps_loc, overlap, errors, entropies
 
     # -------------------------------------------------
     # Computing expectation values

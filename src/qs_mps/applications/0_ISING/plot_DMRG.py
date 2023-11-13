@@ -107,7 +107,7 @@ plot_val = ['mag_tot', 'mag_z', 'mag_x', 'entropy', 'err_mag_tot', 'err_mag_z', 
 plot_cmap = ['mag_loc', 'entropy_tot']
 
 if args.loc == 'pc':
-    path_computer = "G:/Google Drive/My Drive/projects/0_ISING/"
+    path_computer = "G:/My Drive/projects/0_ISING/"
 elif args.loc == 'mac':
     path_computer = "/Users/fradm98/Google Drive/My Drive/projects/0_ISING/"
 elif args.loc == 'marcos':
@@ -143,7 +143,7 @@ elif args.what == "mag_x":
     ylabel = "$\sigma_{L/2}^x$"
 
 elif args.what == "entropy":
-    title = f" ${args.where}-th$ Bond Entanglement Entropy: $L = {args.L}$ ;" + f" $h \in ({args.h_i},{args.h_f})$ "
+    title = f" ${args.where}-th$ Bond Entanglement Entropy: $L = {args.L}$ ;" + f" $h \in ({args.h_i},{args.h_f})$"
     fname_what = f"{args.where}_bond_entropy"
     fname_ex_what = f"{args.where}_bond_exact_entropy"
     path = path_computer + f"results/entropy"
@@ -152,7 +152,7 @@ elif args.what == "entropy":
     ylabel = "entanglement von neumann entropy $(S_{\chi})$"
 
 elif args.what == "entropy_tot":
-    title = f"All Bonds Entanglement Entropy: $L = {args.L}$ ; $gap = {args.npoints}$ ;" + " $h=$ " + f"${args.h_i} - {args.h_f}$"
+    title = f"All Bonds Entanglement Entropy: $L = {args.L}$ ; $gap = {args.npoints}$ ;" + f" $h \in ({args.h_i},{args.h_f})$"
     fname_what = f"{args.where}_bond_entropy"
     path = path_computer + f"results/entropy"
     path_save = path_computer + f"figures/entropy/"
