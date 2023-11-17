@@ -90,9 +90,9 @@ if args.path == 'pc':
     path = "/Users/fradm/Google Drive/My Drive"
 elif args.path == 'mac':
     path = "/Users/fradm/Google Drive/My Drive"
-if args.path == 'marcos':
+elif args.path == 'marcos':
     path = "/Users/fradm/Google Drive/My Drive"
-if args.path == 'other':
+elif args.path == 'other':
     path = "replace_with_your_path"
     raise SyntaxError("specify your path in the main script")
 else:
@@ -173,20 +173,5 @@ for chi in args.chis:  # L // 2 + 1
         )
         np.savetxt(
             f"{path}/projects/0_ISING/results/entropy/{args.L//2}_bond_entropy_{args.model}_L_{args.L}_flip_{args.flip}_delta_{delta}_chi_{chi}_h_ev_{args.h_ev}",
-            mag_mps_loc_Z,
+            entropy_mid,
         )
-
-# different folder paths:
-"""
-# external drive:
-D:/code/
-
-# Google drive on my PC:
-G:/My Drive/
-
-# Google drive on my Mac:
-/Users/fradm98/Google Drive/My Drive/
-
-# Google drive on MarcOS:
-/Users/fradm/Google Drive/My Drive/
-"""

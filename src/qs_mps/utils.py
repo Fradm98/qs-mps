@@ -829,8 +829,10 @@ def create_sequential_colors(num_colors, colormap_name):
 def plot_results_evolution(
         title: str, 
         for_array: list, 
-        interval: list,
+        trotter_steps: int,
+        delta: float,
         fname: str, 
+        second_part: str,
         path: str,         
         fname_ex: str,
         path_ex: str,
@@ -859,13 +861,18 @@ def plot_results_evolution(
         fontsize=14,
     )
     step = int(1 // n_points)
-    x = interval[::step]
+    x = np.arange(trotter_steps+1)[::step]
 
     for i, elem in enumerate(for_array):
         res_mps = np.loadtxt(
-            f"{path}/{fname}_chi_{elem}"
+            f"{path}/{fname}_chi_{elem}{second_part}"
         )
+        # res_mps = access_txt(
+        #     f"{path}/all_bond_entropy_Ising_L_51_flip_True_delta_0.01_chi_{elem}_h_ev_1.75", 25
+        # )
         y = res_mps[::step]
+        # first_elem = np.array(0)
+        # y = np.append(first_elem, y)[::step]
         plt.scatter(
             x,
             y,
@@ -888,12 +895,13 @@ def plot_results_evolution(
                 color="indianred",
                 label=f"exact",
             )
-        plt.xlabel("external field (h)")
+        plt.xlabel("time (t)")
+        plt.xticks(ticks=np.arange(trotter_steps+1)[::trotter_steps//5], labels=delta*np.arange(trotter_steps+1)[::trotter_steps//5])
         plt.ylabel(ylabel)
         plt.legend()
          
     if save:
-        plt.savefig(f"{path_save}/{fname_save}.png")
+        plt.savefig(f"{path_save}/{fname_save}_marker_{marker}.png")
     plt.show()
 
 
@@ -920,15 +928,20 @@ def plot_colormaps_evolution(
     matrix = np.loadtxt(
             f"{path}/{fname}"
         )
+    if "entropy" in fname:
+        new_row = np.zeros((1,50))
+        matrix = np.vstack([new_row, matrix])
+    print(matrix.shape)
+    print(X.shape, Y.shape)
     if d:
         fig = plt.figure()
         ax = fig.add_subplot(111, projection="3d")
         ax.set_title(title, fontsize=14)
         ax.plot_surface(X, Y, matrix, cmap=cmap)
-        # ax.set_xticks(ticks=xticks, labels=xlabels)
+        ax.set_xticks(ticks=xticks, labels=xlabels)
         ax.set_xlabel(xlabel)
-        # ax.set_yticks(ticks=yticks, labels=ylabels)
-        ax.set_ylabel("external field (h)")
+        ax.set_yticks(ticks=yticks, labels=ylabels)
+        ax.set_ylabel("time (t)")
         if view_init:
             ax.view_init(20 , 80)
         if save:
@@ -941,7 +954,7 @@ def plot_colormaps_evolution(
         plt.xticks(ticks=xticks, labels=xlabels)
         plt.xlabel(xlabel)
         plt.yticks(ticks=yticks, labels=ylabels)
-        plt.ylabel("external field (h)")
+        plt.ylabel("time (t)")
 
     if save:
         plt.savefig(f"{path_save}/{fname_save}.png")
