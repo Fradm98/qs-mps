@@ -2,14 +2,13 @@ import numpy as np
 from ncon import ncon
 from scipy.sparse.linalg import eigsh
 from scipy.sparse import csr_matrix, csr_array, identity
-from checks import *
 from scipy.linalg import expm, solve
-from utils import *
-from exact_Ising_ground_state_and_time_evolution import exact_evolution_sparse, sparse_ising_ground_state, U_evolution_sparse
+from .utils import *
+from .checks import check_matrix
+from .sparse_hamiltonians_and_operators import exact_evolution_sparse, sparse_ising_ground_state, U_evolution_sparse
 import matplotlib.pyplot as plt
 import time
 import warnings
-
 
 class MPS:
     def __init__(
@@ -418,6 +417,77 @@ class MPS:
                 print(f"the tensor at site {i+1} is in the correct RFC")
         pass
 
+    # -------------------------------------------------
+    # Density Matrix MPS and manipulation
+    # -------------------------------------------------
+    def density_matrix(self):
+        kets = self.sites
+        bras = [ket.conjugate() for ket in kets]
+        a = np.array([1])
+        env = ncon([a,a],[[-1],[-2]])
+        up = [int(-elem) for elem in np.linspace(1,0,0)]
+        down = [int(-elem) for elem in np.linspace(self.L+1,0,0)] 
+        mid_up = [1]
+        mid_down = [2]
+        label_env = up + down + mid_up + mid_down
+        # first site:
+        for i in range(len(kets)):
+            label_ket = [1,-1-i,-self.L*100]
+            label_bra = [2,-self.L-1-i,-self.L*100-1]
+            env = ncon([env,kets[i],bras[i]],[label_env,label_ket,label_bra])
+            up = [int(-elem) for elem in np.linspace(1,i+1,i+1)]
+            down = [int(-elem) for elem in np.linspace(self.L+1,self.L+1+i,i+1)] 
+            label_env = up + down + mid_up + mid_down
+        
+        mps_dm = ncon([env,a,a],[label_env,[1],[2]])
+        return mps_dm
+    
+    def reduced_density_matrix(self, sites):
+        """
+        reduced_density_matrix
+
+        This function allows us to get the reduced density matrix (rdm) of a mps.
+        We trace out all the sites not specified in the argument sites.
+        The algorithm only works for consecutive sites, e.g., [1,2,3],
+        [56,57], etc. To implement a rdm of sites [5,37] we need another middle 
+        environment that manages the contractions between the specified sites
+        """
+        kets = self.sites
+        bras = [ket.conjugate() for ket in kets]
+        a = np.array([1])
+        env = ncon([a,a],[[-1],[-2]])
+        up = [int(-elem) for elem in np.linspace(1,0,0)]
+        down = [int(-elem) for elem in np.linspace(self.L+1,0,0)] 
+        mid_up = [1]
+        mid_down = [2]
+        label_env = up + down + mid_up + mid_down
+        # left env:
+        env_l = env
+        for i in range(sites[0]-1):
+            label_ket = [1,3,-1]
+            label_bra = [2,3,-2]
+            env_l = ncon([env_l,kets[i],bras[i]],[label_env,label_ket,label_bra])
+        # right env:
+        env_r = env
+        for i in range(self.L-1,sites[-1],-1): 
+            label_ket = [-1,3,1]
+            label_bra = [-2,3,2]
+            env_r = ncon([env_r,kets[i],bras[i]],[label_env,label_ket,label_bra])  
+        # central env
+        idx = 0
+        for i in range(sites[0]-1,sites[-1]):
+            label_ket = [1,-1-i,-len(sites)*100]
+            label_bra = [2,-len(sites)-1-i,-len(sites)*100-1]
+            env_l = ncon([env_l,kets[i],bras[i]],[label_env,label_ket,label_bra])
+            up = [int(-elem) for elem in np.linspace(1,idx+1,idx+1)]
+            down = [int(-elem) for elem in np.linspace(len(sites)+1,len(sites)+1+idx,idx+1)] 
+            label_env = up + down + mid_up + mid_down
+            idx += 1
+
+        mps_dm = ncon([env_l,env_r],[[label_env],[1,2]])
+
+        return mps_dm
+    
     # -------------------------------------------------
     # Matrix Product Operators, MPOs
     # -------------------------------------------------
@@ -1403,9 +1473,11 @@ class MPS:
         trunc_chi: bool,
         schmidt_tol: float = 1e-15,
         conv_tol: float = 1e-10,
-        n_sweeps: int = 2,
+        n_sweeps: int = 6,
         var: bool = False,
-    ):  # iterations, sweep,
+        bond: bool = True,
+        where: int = -1,
+    ):  
         energies = []
         variances = []
         sweeps = ["right", "left"]
@@ -1417,15 +1489,23 @@ class MPS:
         iter = 1
         for n in range(n_sweeps):
             print(f"Sweep n: {n}\n")
+            entropy = []
             for i in range(self.L - 1):
                 H = self.H_eff(sites[i])
                 energy = self.eigensolver(
                     H_eff=H, site=sites[i]
                 ) 
                 energies.append(energy)
-                schmidt_vals = self.update_state(
+                s = self.update_state(
                     sweeps[0], sites[i], trunc_tol, trunc_chi, schmidt_tol
                 )
+                if bond:
+                    if sites[i] - 1 == where:
+                        entr = von_neumann_entropy(s)
+                        entropy.append(entr)
+                else:
+                    entr = von_neumann_entropy(s)
+                    entropy.append(entr)
                 self.update_envs(sweeps[0], sites[i])
                 iter += 1
 
@@ -1455,18 +1535,7 @@ class MPS:
                 + f"instead of the convergence tolerance {conv_tol}"
             )
             print("##############################")
-        return energies, schmidt_vals
-    
-        np.savetxt(
-            f"/Users/fradm/Google Drive/My Drive/projects/0_ISING/results/energy_data/energies_sweeping_{self.model}_L_{self.L}_chi_{self.chi}_h_{self.h:.{precision}f}",
-            energies,
-        )
-        if var:
-            np.savetxt(
-                f"/Users/fradm/Google Drive/My Drive/projects/0_ISING/results/energy_data/variances_sweeping_{self.model}_L_{self.L}_chi_{self.chi}_h_{self.h:.{precision}f}",
-                variances,
-            )
-        return energies
+        return energies, entropy
 
     def environments_ev(self, site):
         a = np.array([1])
@@ -1753,7 +1822,7 @@ class MPS:
         iter = 1
         for n in range(n_sweeps):
             print(f"Sweep n: {n}\n")
-            schmidt_vals = []
+            entropy = []
             for i in range(self.L - 1):
                 # print(f"\n============= Site: {sites[i]} ===================\n")
 
@@ -1782,10 +1851,12 @@ class MPS:
                     schmidt_tol=schmidt_tol,
                 )
                 if bond:
-                    if sites[i] == where:
-                        schmidt_vals.append(s)
+                    if sites[i] - 1 == where:
+                        entr = von_neumann_entropy(s)
+                        entropy.append(entr)
                 else:
-                    schmidt_vals.append(s)
+                    entr = von_neumann_entropy(s)
+                    entropy.append(entr)
                 # self.update_envs_ev(sweeps[0], sites[i])
                 self.update_envs(sweeps[0], sites[i], mixed=True)
 
@@ -1818,7 +1889,7 @@ class MPS:
                 + f"instead of the convergence tolerance {conv_tol}"
             )
             print("##############################")
-        return errors, schmidt_vals
+        return errors, entropy
 
     def TEBD_direct(self, trotter_steps, delta, h_ev, J_ev, fidelity=False, trunc=True):
         """
@@ -1922,6 +1993,7 @@ class MPS:
         mag_mps_tot = []
         mag_mps_loc = []
         mag_mps_loc_X = []
+        entropies = []
         X = np.array([[0, 1], [1, 0]])
         Z = np.array([[1, 0], [0, -1]])
 
@@ -1962,7 +2034,7 @@ class MPS:
         self.ancilla_sites = self.sites.copy()
 
         errors = [[0, 0]]
-        schmidt_vals = []
+        
         for trott in range(trotter_steps):
             print(f"------ Trotter steps: {trott} -------")
             self.mpo_Ising_time_ev(delta=delta, h_ev=h_ev, J_ev=1)
@@ -1977,7 +2049,7 @@ class MPS:
             print(f"Bond dim site: {self.sites[self.L//2].shape[0]}")
             # print("Braket <phi|psi>:")
             # self._compute_norm(site=1, mixed=True)
-            error, schmidt = self.compression(
+            error, entropy = self.compression(
                 trunc_tol=False,
                 trunc_chi=True,
                 n_sweeps=n_sweeps,
@@ -1988,7 +2060,7 @@ class MPS:
             self.ancilla_sites = self.sites.copy()
             # self.canonical_form(trunc_chi=True, trunc_tol=False)
             errors.append(error)
-            schmidt_vals.append(schmidt)
+            entropies.append(entropy)
 
             # total
             self.order_param_Ising(op=Z)
@@ -2013,7 +2085,7 @@ class MPS:
                 )
                 psi_new_mpo = mps_to_vector(self.sites)
                 overlap.append(np.abs((psi_new_mpo.T.conjugate() @ psi_exact).real))
-        return mag_mps_tot, mag_mps_loc_X, mag_mps_loc, overlap, errors, schmidt_vals
+        return mag_mps_tot, mag_mps_loc_X, mag_mps_loc, overlap, errors, entropies
 
     # -------------------------------------------------
     # Computing expectation values
@@ -2143,7 +2215,7 @@ class MPS:
 
         return bond_dims
 
-    def save_sites(self, precision=2):
+    def save_sites(self, path, precision=2):
         """
         save_sites
 
@@ -2156,7 +2228,7 @@ class MPS:
         # shapes of the tensors
         shapes = tensor_shapes(self.sites)
         np.savetxt(
-            f"results/sites_data/shapes_sites_{self.model}_L_{self.L}_chi_{self.chi}_h_{self.h:.{precision}f}",
+            f"{path}/results/tensors/shapes_sites_{self.model}_L_{self.L}_chi_{self.chi}_h_{self.h:.{precision}f}",
             shapes,
             fmt="%1.i",  # , delimiter=','
         )
@@ -2164,11 +2236,11 @@ class MPS:
         # flattening of the tensors
         tensor = [element for site in self.sites for element in site.flatten()]
         np.savetxt(
-            f"results/sites_data/tensor_sites_{self.model}_L_{self.L}_chi_{self.chi}_h_{self.h:.{precision}f}",
+            f"{path}/results/tensors/tensor_sites_{self.model}_L_{self.L}_chi_{self.chi}_h_{self.h:.{precision}f}",
             tensor,
         )
 
-    def load_sites(self, precision=2):
+    def load_sites(self, path, precision=2):
         """
         load_sites
 
@@ -2179,21 +2251,13 @@ class MPS:
         function get_labels().
 
         """
-        # # loading of the shapes
-        # shapes = np.loadtxt(
-        #     f"results/sites_data/shapes_sites_{self.model}_two_charges_L_{self.L}_chi_{self.chi}_h_{self.h:.{precision}f}"
-        # ).astype(int)
-        # # loading of the flat tensors
-        # filedata = np.loadtxt(
-        #     f"results/sites_data/tensor_sites_{self.model}_two_charges_L_{self.L}_chi_{self.chi}_h_{self.h:.{precision}f}"
-        # )
         # loading of the shapes
         shapes = np.loadtxt(
-            f"results/sites_data/shapes_sites_L_{self.L}_chi_{self.chi}_h_{self.h:.{precision}f}"
+            f"{path}/results/tensors/shapes_sites_L_{self.L}_chi_{self.chi}_h_{self.h:.{precision}f}"
         ).astype(int)
         # loading of the flat tensors
         filedata = np.loadtxt(
-            f"results/sites_data/tensor_sites_L_{self.L}_chi_{self.chi}_h_{self.h:.{precision}f}"
+            f"{path}/results/tensors/tensor_sites_L_{self.L}_chi_{self.chi}_h_{self.h:.{precision}f}"
         )
         # auxiliary function to get the indices where to split
         labels = get_labels(shapes)

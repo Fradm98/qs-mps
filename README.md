@@ -1,73 +1,19 @@
-# mps
-Code for MPS of Quantum Many-Body Systems
-# Setup
-1) Download from git the repository
+# qs-mps
 
-        git clone --recursive git@github.com:gcataldi96/ed-su2.git
+qs-mps is a Python package that enables researchers to simulate Quantum Systems with Matrix Product State tensors.
 
-2) Add the simsio library as a submodule (it should be already there)
+## Installation
 
-        git submodule add https://github.com/rgbmrc/simsio.git
-        git add .
-        git commit -m "Add simsio submodule to the TTN code"
+You can install qs-mps either by cloning the repository or using pip.
 
-3) Create the Environment with all the needed python packages
+```bash
+pip install qs-mps
+```
 
-        conda env create -f environment.yml
-        conda activate mps
+### Clone the Repository
 
-Enjoy 👏
+To clone the repository locally, use the following command:
 
-# Configure Simsio Simulations
-This is an example of a config file that should be created inside the folder *configs* (if this latter does not exist, create the directory):
+```bash
+git clone git@github.com:Fradm98/qs-mps.git
 
-    ===:
-    template: |
-        n$enum:
-        <<<: common
-        g: $g
-    common:
-        dim: 2
-        lvals: [2,2]
-        pure: false
-        has_obc: false
-        DeltaN: 2
-        m: 1.0
-    n0:
-        <<<: common
-        g: j0
-    n1:
-        <<<: common
-        g: j1
-
-where j0 and j1 are two values of g that one would like to simulate. 
-
-If you want to create a larger set of simulations automatically, run a script like the following:
-
-    from simsio import gen_configs
-    import numpy as np
-
-    params = {"g": np.logspace(-1, 1, 10)}
-    gen_configs("template", params, "config_NAME_FILE")
-
-Then, in "config_NAME_FILE.yaml" it will add simulations like
-
-        ni:
-        <<<: common
-        g: j
-
-where 
-
-$i$ is the $i^{th}$ simulation corresponding to the model with the g-parameter (which is not common to all the other simulations) equal to $j$
-# Run Simulations
-To run simulations, just type on the command shell the following command:
-
-    nohup bash -c "printf 'n%s\n' {0..N} | shuf | xargs -PA -i python SU2_model.py config_NAME_FILE.yaml {} B" &>/dev/null &
-
-where 
-
-1) N is the total number of simulations in the *config_file_name*,
-
-2) A is the number of processes in parallel 
-
-3) B is the number of single-node threads per simulation

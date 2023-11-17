@@ -1,6 +1,6 @@
 # import packages
-from mps_class import MPS
-from utils import *
+from qs_mps.mps_class import MPS
+from qs_mps.utils import *
 import matplotlib.pyplot as plt
 from ncon import ncon
 import scipy
@@ -63,20 +63,26 @@ parser.add_argument(
     "-b",
     "--bond",
     help="Save the schmidt values for one bond. If False save for each bond. By default True",
-    action="store_true",
+    action="store_false",
 )
 parser.add_argument(
     "-w",
     "--where",
-    help="Bond where we want to observe the Schmidt values, should be between 1 and (L-1)",
+    help="Bond where we want to observe the Schmidt values, "
+    +"should be between 1 and (L-1). Default -1 to get the L//2 middle bond and could assume value -2 for all bonds schmidt values",
     default=-1,
     type=int,
 )
 args = parser.parse_args()
 delta = args.time / args.trotter_steps
-if args.where < 0:
+if args.where == -1:
     args.where = args.L // 2
+<<<<<<< HEAD:src/mps/variational_compression_different_chi.py
+elif args.where == -2:
+    args.bond = False
+=======
     
+>>>>>>> origin/main:src/qs_mps/applications/0_ISING/TEBD_different_delta.py
 # ---------------------------------------------------------
 # variational truncation mps
 for trotter_step in args.trotter_steps:  # L // 2 + 1
@@ -120,6 +126,36 @@ for trotter_step in args.trotter_steps:  # L // 2 + 1
         args.where = "all"
 
     np.savetxt(
+<<<<<<< HEAD:src/mps/variational_compression_different_chi.py
+        f"/data/fdimarca/projects/0_ISING/results/mag_data/mag_mps_tot_{args.model}_L_{args.L}_flip_{args.flip}_delta_{delta}_chi_{chi}",
+        mag_mps_tot,
+    )
+    np.savetxt(
+        f"/data/fdimarca/projects/0_ISING/results/mag_data/mag_mps_loc_X_{args.model}_L_{args.L}_flip_{args.flip}_delta_{delta}_chi_{chi}",
+        mag_mps_loc_X,
+    )
+    np.savetxt(
+        f"/data/fdimarca/projects/0_ISING/results/mag_data/mag_mps_loc_{args.model}_L_{args.L}_flip_{args.flip}_delta_{delta}_chi_{chi}",
+        mag_mps_loc,
+    )
+    mag_mps_loc_Z = access_txt(
+        f"/data/fdimarca/projects/0_ISING/results/mag_data/mag_mps_loc_{args.model}_L_{args.L}_flip_{args.flip}_delta_{delta}_chi_{chi}",
+        args.L // 2,
+    )
+    np.savetxt(
+        f"/data/fdimarca/projects/0_ISING/results/mag_data/mag_mps_loc_Z_{args.model}_L_{args.L}_flip_{args.flip}_delta_{delta}_chi_{chi}",
+        mag_mps_loc_Z,
+    )
+    # np.savetxt(
+    #     f"/data/fdimarca/projects/0_ISING/results/fidelity_data/fidelity_{args.model}_L_{args.L}_flip_{args.flip}_delta_{delta}_chi_{chi}", overlap
+    # )
+    save_list_of_lists(
+        f"/data/fdimarca/projects/0_ISING/results/errors_data/errors_{args.model}_L_{args.L}_flip_{args.flip}_delta_{delta}_chi_{chi}",
+        errors,
+    )
+    save_list_of_lists(
+        f"/data/fdimarca/projects/0_ISING/results/bonds_data/{args.where}_bond_schmidt_values_{args.model}_L_{args.L}_flip_{args.flip}_delta_{delta}_chi_{chi}",
+=======
         f"/data/fdimarca/projects/0_ISING/results/mag_data/mag_mps_tot_{args.model}_L_{args.L}_flip_{args.flip}_delta_{delta}_chi_{args.chi}",
         mag_mps_tot,
     )
@@ -148,5 +184,6 @@ for trotter_step in args.trotter_steps:  # L // 2 + 1
     )
     np.savetxt(
         f"/data/fdimarca/projects/0_ISING/results/bonds_data/{args.where}_bond_schmidt_values_{args.model}_L_{args.L}_flip_{args.flip}_delta_{delta}_chi_{args.chi}",
+>>>>>>> origin/main:src/qs_mps/applications/0_ISING/TEBD_different_delta.py
         schmidt_values,
     )

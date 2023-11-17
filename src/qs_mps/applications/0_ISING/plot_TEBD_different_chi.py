@@ -1,7 +1,7 @@
 # %%
 # import packages
-from mps_class import MPS
-from utils import *
+from qs_mps.mps_class import MPS
+from qs_mps.utils import *
 import matplotlib.pyplot as plt
 from ncon import ncon
 import scipy
@@ -15,18 +15,19 @@ import time
 
 # variational compression changing bond dimension
 trotter_steps = 500
-h_ev = 0.3
-L = 15
+h_ev = 0.6
+L = 30
 model = "Ising"
 flip = True
+where = L//2
 
 # fixed parameteres
 t = 10
 delta = t / trotter_steps
 h_t = 0
 n_sweeps = 8
-where = 7
 # %%
+<<<<<<< HEAD:src/mps/visualization_time_evolution_different_chi.py
 # exact results
 """ 
 info:
@@ -81,16 +82,26 @@ file_path_entr = f"/data/fdimarca/projects/0_ISING/results/exact/entropy/exact_e
 file_path_entr_tot = f"/data/fdimarca/projects/0_ISING/results/exact/entropy/exact_entropy_tot_{model}_L_{L}_flip_{flip}_h_ev_{h_ev}_trotter_steps_{trotter_steps_j}_t_{t}"
 mag_loc_jesus = np.loadtxt(fname=file_path_loc)
 mag_loc_Z_jesus = access_txt(file_path=file_path_loc_Z, column_index=0)
+=======
+# exact results with with the hamiltonian of Jesus
+
+trotter_steps_j = 500
+file_path_tot = f"D:/code/projects/0_ISING/results/exact/mag_data/mag_exact_tot_{model}_L_{L}_flip_{flip}_h_ev_{h_ev}_trotter_steps_{trotter_steps}_t_{t}"
+file_path_loc = f"D:/code/projects/0_ISING/results/exact/mag_data/mag_exact_loc_{model}_L_{L}_flip_{flip}_h_ev_{h_ev}_trotter_steps_{trotter_steps}_t_{t}"
+file_path_loc_X = f"D:/code/projects/0_ISING/results/exact/mag_data/mag_exact_loc_X_{model}_L_{L}_flip_{flip}_h_ev_{h_ev}_trotter_steps_{trotter_steps}_t_{t}"
+file_path_entropy = f"D:/code/projects/0_ISING/results/exact/entropy/exact_entropy_{where}_{model}_L_{L}_flip_{flip}_h_ev_{h_ev}_trotter_steps_{trotter_steps}_t_{t}"
+>>>>>>> origin/main:src/qs_mps/applications/0_ISING/plot_TEBD_different_chi.py
 mag_tot_jesus = access_txt(file_path=file_path_tot, column_index=0)
+mag_loc_Z_jesus = access_txt(file_path=file_path_loc, column_index=L//2)
 mag_loc_X_jesus = access_txt(file_path=file_path_loc_X, column_index=0)
-entropy_jesus = access_txt(file_path=file_path_entr, column_index=0)
+entropy_jesus = access_txt(file_path=file_path_entropy, column_index=0)
 # %%
 # visualization
 
 # ---------------------------------------------------------
 # total
 # ---------------------------------------------------------
-chis = [16]
+chis = [2,4,16,32,64,128]
 plt.title(
     f"Total Magnetization for $\delta = {delta}$ ;" + " $h_{ev} =$" + f"{h_ev}",
     fontsize=14,
@@ -99,7 +110,11 @@ colors = create_sequential_colors(num_colors=len(chis), colormap_name="viridis")
 
 for i, chi in enumerate(chis):
     mag_mps_tot = np.loadtxt(
+<<<<<<< HEAD:src/mps/visualization_time_evolution_different_chi.py
         f"/data/fdimarca/projects/0_ISING/results/mag_data/mag_mps_tot_{model}_L_{L}_flip_{flip}_delta_{delta}_chi_{chi}"
+=======
+        f"G:/My Drive/projects/0_ISING/results/mag_data/mag_mps_tot_{model}_L_{L}_flip_{flip}_delta_{delta}_chi_{chi}"
+>>>>>>> origin/main:src/qs_mps/applications/0_ISING/plot_TEBD_different_chi.py
     )
     plt.scatter(
         delta * np.arange(trotter_steps + 1),
@@ -113,12 +128,21 @@ for i, chi in enumerate(chis):
         label=f"mps: $\chi={chi}$",
     )
 
+<<<<<<< HEAD:src/mps/visualization_time_evolution_different_chi.py
 plt.plot(
     delta * np.arange(trotter_steps + 1),
     mag_tot_jesus,
     color="indianred",
     label=f"Exact L={L}",
 )
+=======
+# plt.plot(
+#     delta * np.arange(trotter_steps + 1),
+#     mag_tot_jesus,
+#     color="indianred",
+#     label=f"Exact L={L}",
+# )
+>>>>>>> origin/main:src/qs_mps/applications/0_ISING/plot_TEBD_different_chi.py
 # plt.plot(
 #     delta * np.arange(trotter_steps + 1),
 #     mag_exact_tot,
@@ -128,7 +152,11 @@ plt.plot(
 plt.xlabel("time (t = $\delta$ T)")
 plt.ylabel("$\sum_{i=1}^L \sigma_i^z$")
 plt.legend()
+<<<<<<< HEAD:src/mps/visualization_time_evolution_different_chi.py
 # plt.savefig(f"/data/fdimarca/projects/0_ISING/figures/magnetization/total_mag_L_{L}_flip_{flip}_delta_{delta}_h_ev_{h_ev}.png")
+=======
+# plt.savefig(f"G:/My Drive/projects/0_ISING/figures/magnetization/total_mag_L_{L}_flip_{flip}_delta_{delta}_h_ev_{h_ev}.png")
+>>>>>>> origin/main:src/qs_mps/applications/0_ISING/plot_TEBD_different_chi.py
 plt.show()
 
 # %%
@@ -143,7 +171,11 @@ plt.title(
 )
 for i, chi in enumerate(chis):
     mag_mps_tot = np.loadtxt(
+<<<<<<< HEAD:src/mps/visualization_time_evolution_different_chi.py
         f"/data/fdimarca/projects/0_ISING/results/mag_data/mag_mps_loc_Z_{model}_L_{L}_flip_{flip}_delta_{delta}_chi_{chi}"
+=======
+        f"G:/My Drive/projects/0_ISING/results/mag_data/mag_mps_loc_Z_{model}_L_{L}_flip_{flip}_delta_{delta}_chi_{chi}"
+>>>>>>> origin/main:src/qs_mps/applications/0_ISING/plot_TEBD_different_chi.py
     )
     plt.scatter(
         delta * np.arange(trotter_steps + 1),
@@ -157,12 +189,21 @@ for i, chi in enumerate(chis):
         label=f"mps: $\chi={chi}$",
     )
 
+<<<<<<< HEAD:src/mps/visualization_time_evolution_different_chi.py
 plt.plot(
     delta * np.arange(trotter_steps + 1),
     mag_loc_Z_jesus,
     color="indianred",
     label=f"Exact L={L}",
 )
+=======
+# plt.plot(
+#     delta * np.arange(trotter_steps + 1),
+#     mag_loc_Z_jesus,
+#     color="indianred",
+#     label=f"Exact L={L}",
+# )
+>>>>>>> origin/main:src/qs_mps/applications/0_ISING/plot_TEBD_different_chi.py
 # plt.plot(
 #     delta * np.arange(trotter_steps + 1),
 #     mag_exact_tot,
@@ -172,7 +213,11 @@ plt.plot(
 plt.xlabel("time (t = $\delta$ T)")
 plt.ylabel("$\sigma_{L/2}^z$")
 plt.legend()
+<<<<<<< HEAD:src/mps/visualization_time_evolution_different_chi.py
 # plt.savefig(f"/data/fdimarca/projects/0_ISING/figures/magnetization/local_mag_Z_L_{L}_flip_{flip}_delta_{delta}_h_ev_{h_ev}.png")
+=======
+# plt.savefig(f"G:/My Drive/projects/0_ISING/figures/magnetization/local_mag_Z_L_{L}_flip_{flip}_delta_{delta}_h_ev_{h_ev}.png")
+>>>>>>> origin/main:src/qs_mps/applications/0_ISING/plot_TEBD_different_chi.py
 plt.show()
 
 # %%
@@ -187,7 +232,11 @@ plt.title(
 )
 for i, chi in enumerate(chis):
     mag_mps_tot = np.loadtxt(
+<<<<<<< HEAD:src/mps/visualization_time_evolution_different_chi.py
         f"/data/fdimarca/projects/0_ISING/results/mag_data/mag_mps_loc_X_{model}_L_{L}_flip_{flip}_delta_{delta}_chi_{chi}"
+=======
+        f"G:/My Drive/projects/0_ISING/results/mag_data/mag_mps_loc_X_{model}_L_{L}_flip_{flip}_delta_{delta}_chi_{chi}"
+>>>>>>> origin/main:src/qs_mps/applications/0_ISING/plot_TEBD_different_chi.py
     )
     plt.scatter(
         delta * np.arange(trotter_steps + 1),
@@ -201,12 +250,21 @@ for i, chi in enumerate(chis):
         label=f"mps: $\chi={chi}$",
     )
 
+<<<<<<< HEAD:src/mps/visualization_time_evolution_different_chi.py
 plt.plot(
     delta * np.arange(trotter_steps + 1),
     mag_loc_X_jesus,
     color="indianred",
     label=f"Exact L={L}",
 )
+=======
+# plt.plot(
+#     delta * np.arange(trotter_steps + 1),
+#     mag_loc_X_jesus,
+#     color="indianred",
+#     label=f"Exact L={L}",
+# )
+>>>>>>> origin/main:src/qs_mps/applications/0_ISING/plot_TEBD_different_chi.py
 # plt.plot(
 #     delta * np.arange(trotter_steps + 1),
 #     mag_exact_tot,
@@ -216,7 +274,11 @@ plt.plot(
 plt.xlabel("time (t = $\delta$ T)")
 plt.ylabel("$\sigma_{L/2}^x$")
 plt.legend()
+<<<<<<< HEAD:src/mps/visualization_time_evolution_different_chi.py
 # plt.savefig(f"/data/fdimarca/projects/0_ISING/figures/magnetization/local_mag_X_{L}_flip_{flip}_delta_{delta}_h_ev_{h_ev}.png")
+=======
+# plt.savefig(f"G:/My Drive/projects/0_ISING/figures/magnetization/local_mag_X_{L}_flip_{flip}_delta_{delta}_h_ev_{h_ev}.png")
+>>>>>>> origin/main:src/qs_mps/applications/0_ISING/plot_TEBD_different_chi.py
 plt.show()
 
 # %%
@@ -232,7 +294,11 @@ plt.show()
 # )
 for chi in chis:
     mag_mps_loc = np.loadtxt(
+<<<<<<< HEAD:src/mps/visualization_time_evolution_different_chi.py
         f"/data/fdimarca/projects/0_ISING/results/mag_data/mag_mps_loc_{model}_L_{L}_flip_{flip}_delta_{delta}_chi_{chi}"
+=======
+        f"G:/My Drive/projects/0_ISING/results/mag_data/mag_mps_loc_{model}_L_{L}_flip_{flip}_delta_{delta}_chi_{chi}"
+>>>>>>> origin/main:src/qs_mps/applications/0_ISING/plot_TEBD_different_chi.py
     )
     data1 = mag_mps_loc
     title1 = f"MPS quench (local mag) $\chi={chi}$"
@@ -299,12 +365,20 @@ for chi in chis:
 # errors
 # ---------------------------------------------------------
 
+<<<<<<< HEAD:src/mps/visualization_time_evolution_different_chi.py
 chis = [16]
+=======
+chis = [2, 4, 16, 32, 64, 128]
+>>>>>>> origin/main:src/qs_mps/applications/0_ISING/plot_TEBD_different_chi.py
 colors = create_sequential_colors(num_colors=len(chis), colormap_name="viridis")
 plt.title(f"Truncation error $vs$ trotter steps", fontsize=14)
 for i, chi in enumerate(chis):  # L//2+1
     errors = load_list_of_lists(
+<<<<<<< HEAD:src/mps/visualization_time_evolution_different_chi.py
         f"/data/fdimarca/projects/0_ISING/results/errors_data/errors_{model}_L_{L}_flip_{flip}_delta_{delta}_chi_{chi}"
+=======
+        f"G:/My Drive/projects/0_ISING/results/errors_data/errors_{model}_L_{L}_flip_{flip}_delta_{delta}_chi_{chi}"
+>>>>>>> origin/main:src/qs_mps/applications/0_ISING/plot_TEBD_different_chi.py
     )
     last_errors = [float(sublist[-1]) for sublist in errors]
     # last_error, num_zeros = replace_zeros_with_nan(last_errors)
@@ -327,7 +401,11 @@ plt.xlabel("Trotter Steps (T)")
 plt.yscale("log")
 # plt.ylim(1e-17,1e-14)
 plt.legend()
+<<<<<<< HEAD:src/mps/visualization_time_evolution_different_chi.py
 # plt.savefig(f"/data/fdimarca/projects/0_ISING/figures/errors_L_{L}_flip_{flip}_delta_{delta}_h_ev_{h_ev}.png")
+=======
+# plt.savefig(f"D:/code/projects/0_ISING/figures/errors_L_{L}_flip_{flip}_delta_{delta}_h_ev_{h_ev}.png")
+>>>>>>> origin/main:src/qs_mps/applications/0_ISING/plot_TEBD_different_chi.py
 plt.show()
 
 # %%
@@ -336,22 +414,33 @@ plt.show()
 # -------------------------------------------------------
 
 plt.title(
-    "Middle Chain Entanglement Entropy: "
+    f" {where}-th Bond Entanglement Entropy: "
     + f"L={L}, $\delta = {delta}$; $h_{{t-ev}} = {h_ev}$",
     fontsize=14,
 )
+<<<<<<< HEAD:src/mps/visualization_time_evolution_different_chi.py
 chis = [16]
+=======
+chis = [2, 4, 16, 32, 64, 128]
+>>>>>>> origin/main:src/qs_mps/applications/0_ISING/plot_TEBD_different_chi.py
 colors = create_sequential_colors(num_colors=len(chis), colormap_name="viridis")
 
 for i, chi in enumerate(chis):  # L//2+1
     entropy_chi = [0]
     schmidt_vals = load_list_of_lists(
+<<<<<<< HEAD:src/mps/visualization_time_evolution_different_chi.py
         f"/data/fdimarca/projects/0_ISING/results/bonds_data/{where}_bond_schmidt_values_{model}_L_{L}_flip_{flip}_delta_{delta}_chi_{chi}"
     )
     for s in schmidt_vals:
         s = [float(val) for val in s]
         print(s)
         entropy = von_neumann_entropy(s)
+=======
+        f"G:/My Drive/projects/0_ISING/results/bonds_data/{where}_bond_schmidt_values_{model}_L_{L}_flip_{flip}_delta_{delta}_chi_{chi}"
+    )
+    for s in schmidt_vals:
+        entropy = von_neumann_entropy(np.asarray(s))
+>>>>>>> origin/main:src/qs_mps/applications/0_ISING/plot_TEBD_different_chi.py
         entropy_chi.append(entropy)
 
     plt.scatter(
@@ -365,12 +454,21 @@ for i, chi in enumerate(chis):  # L//2+1
         label=f"mps: $\chi={chi}$",
     )
 
+<<<<<<< HEAD:src/mps/visualization_time_evolution_different_chi.py
 plt.plot(
     np.arange(trotter_steps + 1),
     entropy_jesus,
     color="indianred",
     label="$S_{exact}$",
 )
+=======
+# plt.plot(
+#     np.arange(trotter_steps + 1),
+#     entropy_jesus,
+#     color="indianred",
+#     label="$S_{exact}$",
+# )
+>>>>>>> origin/main:src/qs_mps/applications/0_ISING/plot_TEBD_different_chi.py
 ticks = np.arange(trotter_steps + 1)
 labels = delta * np.arange(trotter_steps + 1)
 steps = len(ticks) // 5
@@ -380,7 +478,11 @@ plt.xticks(ticks=ticks, labels=labels)
 plt.ylabel("entanglement von neumann entropy $(S_{\chi})$")
 plt.xlabel("time (t = $\delta$ T)")
 plt.legend(fontsize=10)
+<<<<<<< HEAD:src/mps/visualization_time_evolution_different_chi.py
 # plt.savefig(f"/data/fdimarca/projects/0_ISING/figures/entropy/entropy_{L}_flip_{flip}_delta_{delta}_h_ev_{h_ev}.png")
+=======
+# plt.savefig(f"D:/code/projects/0_ISING/figures/entropy/entropy_{L}_flip_{flip}_delta_{delta}_h_ev_{h_ev}.png")
+>>>>>>> origin/main:src/qs_mps/applications/0_ISING/plot_TEBD_different_chi.py
 plt.show()
 # %%
 ## errors with exact
@@ -395,11 +497,15 @@ plt.title(
 )
 for i, chi in enumerate(chis):
     mag_mps_tot = np.loadtxt(
+<<<<<<< HEAD:src/mps/visualization_time_evolution_different_chi.py
         f"/data/fdimarca/projects/0_ISING/results/mag_data/mag_mps_tot_{model}_L_{L}_flip_{flip}_delta_{delta}_chi_{chi}"
+=======
+        f"D:/code/projects/0_ISING/results/mag_data/mag_mps_tot_{model}_L_{L}_flip_{flip}_delta_{delta}_chi_{chi}"
+>>>>>>> origin/main:src/qs_mps/applications/0_ISING/plot_TEBD_different_chi.py
     )
     # mag_mps_tot = mag_mps_tot[::5]
     # error_mag_tot = np.abs(np.asarray(mag_tot_maricarmen) - np.asarray(mag_mps_tot))
-    error_mag_tot = np.abs(np.asarray(mag_tot_maricarmen) - np.asarray(mag_mps_tot))
+    error_mag_tot = np.abs(np.asarray(mag_tot_jesus) - np.asarray(mag_mps_tot))
     plt.plot(
         delta * np.arange(trotter_steps + 1),
         error_mag_tot,
@@ -417,7 +523,11 @@ plt.xlabel("time (t = $\delta$ T)")
 plt.ylabel("$\left|M^{exact} - M^{mps}\\right|$")
 plt.yscale("log")
 plt.legend()
+<<<<<<< HEAD:src/mps/visualization_time_evolution_different_chi.py
 # plt.savefig(f"/data/fdimarca/projects/0_ISING/figures/magnetization/error_total_mag_L_{L}_flip_{flip}_delta_{delta}_h_ev_{h_ev}.png")
+=======
+# plt.savefig(f"D:/code/projects/0_ISING/figures/magnetization/error_total_mag_L_{L}_flip_{flip}_delta_{delta}_h_ev_{h_ev}.png")
+>>>>>>> origin/main:src/qs_mps/applications/0_ISING/plot_TEBD_different_chi.py
 plt.show()
 # -----------------------
 # local Z magnetization
@@ -430,11 +540,15 @@ plt.title(
 )
 for i, chi in enumerate(chis):
     mag_mps_loc = np.loadtxt(
+<<<<<<< HEAD:src/mps/visualization_time_evolution_different_chi.py
         f"/data/fdimarca/projects/0_ISING/results/mag_data/mag_mps_loc_Z_{model}_L_{L}_flip_{flip}_delta_{delta}_chi_{chi}"
+=======
+        f"D:/code/projects/0_ISING/results/mag_data/mag_mps_loc_Z_{model}_L_{L}_flip_{flip}_delta_{delta}_chi_{chi}"
+>>>>>>> origin/main:src/qs_mps/applications/0_ISING/plot_TEBD_different_chi.py
     )
     # mag_mps_loc = mag_mps_loc[::5]
-    error_mag_tot = np.abs(np.asarray(mag_loc_Z_maricarmen) - np.asarray(mag_mps_loc))
-    # error_mag_tot = np.abs(np.asarray(mag_loc_Z_maricarmen) - np.asarray(mag_mps_loc))
+    error_mag_tot = np.abs(np.asarray(mag_loc_Z_jesus) - np.asarray(mag_mps_loc))
+    # error_mag_tot = np.abs(np.asarray(mag_loc_Z_jesus) - np.asarray(mag_mps_loc))
     plt.plot(
         delta * np.arange(trotter_steps + 1),
         error_mag_tot,
@@ -452,7 +566,11 @@ plt.xlabel("time (t = $\delta$ T)")
 plt.ylabel("$\left|{\sigma_{L/2}^z}^{ex} - {\sigma_{L/2}^z}^{mps}\\right|$")
 plt.yscale("log")
 plt.legend()
+<<<<<<< HEAD:src/mps/visualization_time_evolution_different_chi.py
 # plt.savefig(f"/data/fdimarca/projects/0_ISING/figures/magnetization/error_local_mag_Z_{L}_flip_{flip}_delta_{delta}_h_ev_{h_ev}.png")
+=======
+# plt.savefig(f"D:/code/projects/0_ISING/figures/magnetization/error_local_mag_Z_{L}_flip_{flip}_delta_{delta}_h_ev_{h_ev}.png")
+>>>>>>> origin/main:src/qs_mps/applications/0_ISING/plot_TEBD_different_chi.py
 plt.show()
 # -----------------------
 # local X magnetization
@@ -465,10 +583,14 @@ plt.title(
 )
 for i, chi in enumerate(chis):
     mag_mps_loc = np.loadtxt(
+<<<<<<< HEAD:src/mps/visualization_time_evolution_different_chi.py
         f"/data/fdimarca/projects/0_ISING/results/mag_data/mag_mps_loc_X_{model}_L_{L}_flip_{flip}_delta_{delta}_chi_{chi}"
+=======
+        f"D:/code/projects/0_ISING/results/mag_data/mag_mps_loc_X_{model}_L_{L}_flip_{flip}_delta_{delta}_chi_{chi}"
+>>>>>>> origin/main:src/qs_mps/applications/0_ISING/plot_TEBD_different_chi.py
     )
     # mag_mps_loc = mag_mps_loc[::5]
-    error_mag_tot = np.abs(np.asarray(mag_loc_X_maricarmen) - np.asarray(mag_mps_loc))
+    error_mag_tot = np.abs(np.asarray(mag_loc_X_jesus) - np.asarray(mag_mps_loc))
     plt.plot(
         delta * np.arange(trotter_steps + 1),
         error_mag_tot,
@@ -486,26 +608,35 @@ plt.xlabel("time (t = $\delta$ T)")
 plt.ylabel("$\left|{\sigma_{L/2}^x}^{ex} - {\sigma_{L/2}^x}^{mps}\\right|$")
 plt.yscale("log")
 plt.legend()
+<<<<<<< HEAD:src/mps/visualization_time_evolution_different_chi.py
 # plt.savefig(f"/data/fdimarca/projects/0_ISING/figures/magnetization/error_local_mag_X_{L}_flip_{flip}_delta_{delta}_h_ev_{h_ev}.png")
+=======
+# plt.savefig(f"D:/code/projects/0_ISING/figures/magnetization/error_local_mag_X_{L}_flip_{flip}_delta_{delta}_h_ev_{h_ev}.png")
+>>>>>>> origin/main:src/qs_mps/applications/0_ISING/plot_TEBD_different_chi.py
 plt.show()
 # -----------------------
 # entropy
 # -----------------------
 plt.title(
-    "Error Middle Chain Entanglement Entropy: "
+    f"Error {where}-th Bond Entanglement Entropy: "
     + f"L={L}, $\delta = {delta}$; $h_{{t-ev}} = {h_ev}$",
     fontsize=14,
 )
 for i, chi in enumerate(chis):  # L//2+1
     entropy_chi = [0]
+<<<<<<< HEAD:src/mps/visualization_time_evolution_different_chi.py
     schmidt_vals = np.loadtxt(
         f"/data/fdimarca/projects/0_ISING/results/bonds_data/middle_chain_schmidt_values_{model}_L_{L}_flip_{flip}_delta_{delta}_chi_{chi}"
+=======
+    schmidt_vals = load_list_of_lists(
+        f"D:/code/projects/0_ISING/results/bonds_data/{where}_bond_schmidt_values_{model}_L_{L}_flip_{flip}_delta_{delta}_chi_{chi}"
+>>>>>>> origin/main:src/qs_mps/applications/0_ISING/plot_TEBD_different_chi.py
     )
     for s in schmidt_vals:
-        entropy = von_neumann_entropy(s)
+        entropy = von_neumann_entropy(np.asarray(s))
         entropy_chi.append(entropy)
     # entropy_chi_red = entropy_chi[::5]
-    error_mc = np.abs(np.asarray(entropy_maricarmen) - np.asarray(entropy_chi))
+    error_mc = np.abs(np.asarray(entropy_jesus) - np.asarray(entropy_chi))
     plt.plot(
         delta * np.arange(trotter_steps + 1), error_mc, color=colors[i], label=f" $\chi={chi}$"
     )
@@ -520,6 +651,10 @@ plt.xlabel("time (t = $\delta$ T)")
 plt.ylabel("$|S_{exact} - S_{mps}|$")
 plt.yscale("log")
 plt.legend()
+<<<<<<< HEAD:src/mps/visualization_time_evolution_different_chi.py
 # plt.savefig(f"/data/fdimarca/projects/0_ISING/figures/entropy/error_entropy_{L}_flip_{flip}_delta_{delta}_h_ev_{h_ev}.png")
+=======
+# plt.savefig(f"D:/code/projects/0_ISING/figures/entropy/error_entropy_{L}_flip_{flip}_delta_{delta}_h_ev_{h_ev}.png")
+>>>>>>> origin/main:src/qs_mps/applications/0_ISING/plot_TEBD_different_chi.py
 plt.show()
 # %%

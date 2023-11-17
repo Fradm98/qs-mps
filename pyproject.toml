@@ -1,0 +1,44 @@
+[build-system]
+requires = ["setuptools >= 68.0.0"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "qs-mps"
+version = "2023.0.5"
+description = "Quantum Simulation with Matrix Product State, a Tensor network method for the study of Quantum Systems"
+readme = "README.md"
+requires-python = ">=3.6"
+license = {file = "LICENSE"}
+authors = [
+    {name="Francesco Di Marcantonio", email="francesco.di.marcantonio@cern.ch"},
+]
+maintainers = [
+    {name="Francesco Di Marcantonio", email="francesco.di.marcantonio@cern.ch"}
+]
+keywords = ["tensor network", "matrix product state", "quantum many-body system", "quantum phase transition"]
+classifiers = [
+    "License :: OSI Approved :: Apache Software License",
+    "Operating System :: Microsoft :: Windows",
+    "Topic :: Scientific/Engineering :: Physics",
+    "Programming Language :: Python :: 3.12"
+]
+
+dependencies = [
+  "numpy",
+  "scipy",
+  "ncon",
+  "matplotlib",
+  "black",
+  "jupyter",
+  "sympy",
+  "twine",
+]
+
+[project.urls]
+Repository = "https://github.com/Fradm98/mps.git"
+
+[project.optional-dependencies]
+tests = ["pytest", "coverage", "pytest-cov"]
+
+[tool.setuptools.packages.find]
+where = ["src"]
