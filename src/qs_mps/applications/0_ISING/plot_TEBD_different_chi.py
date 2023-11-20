@@ -29,11 +29,12 @@ n_sweeps = 8
 # %%
 # exact results with with the hamiltonian of Jesus
 
+path = "/Users/fradm98/Google Drive/My Drive/"
 trotter_steps_j = 500
-file_path_tot = f"D:/code/projects/0_ISING/results/exact/mag_data/mag_exact_tot_{model}_L_{L}_flip_{flip}_h_ev_{h_ev}_trotter_steps_{trotter_steps}_t_{t}"
-file_path_loc = f"D:/code/projects/0_ISING/results/exact/mag_data/mag_exact_loc_{model}_L_{L}_flip_{flip}_h_ev_{h_ev}_trotter_steps_{trotter_steps}_t_{t}"
-file_path_loc_X = f"D:/code/projects/0_ISING/results/exact/mag_data/mag_exact_loc_X_{model}_L_{L}_flip_{flip}_h_ev_{h_ev}_trotter_steps_{trotter_steps}_t_{t}"
-file_path_entropy = f"D:/code/projects/0_ISING/results/exact/entropy/exact_entropy_{where}_{model}_L_{L}_flip_{flip}_h_ev_{h_ev}_trotter_steps_{trotter_steps}_t_{t}"
+file_path_tot = f"{path}/projects/0_ISING/results/exact/mag_data/mag_exact_tot_{model}_L_{L}_flip_{flip}_h_ev_{h_ev}_trotter_steps_{trotter_steps}_t_{t}"
+file_path_loc = f"{path}/projects/0_ISING/results/exact/mag_data/mag_exact_loc_{model}_L_{L}_flip_{flip}_h_ev_{h_ev}_trotter_steps_{trotter_steps}_t_{t}"
+file_path_loc_X = f"{path}/projects/0_ISING/results/exact/mag_data/mag_exact_loc_X_{model}_L_{L}_flip_{flip}_h_ev_{h_ev}_trotter_steps_{trotter_steps}_t_{t}"
+file_path_entropy = f"{path}/projects/0_ISING/results/exact/entropy/exact_entropy_{where}_{model}_L_{L}_flip_{flip}_h_ev_{h_ev}_trotter_steps_{trotter_steps}_t_{t}"
 mag_tot_jesus = access_txt(file_path=file_path_tot, column_index=0)
 mag_loc_Z_jesus = access_txt(file_path=file_path_loc, column_index=L//2)
 mag_loc_X_jesus = access_txt(file_path=file_path_loc_X, column_index=0)

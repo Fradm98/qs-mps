@@ -1993,7 +1993,7 @@ class MPS:
         mag_mps_tot = []
         mag_mps_loc = []
         mag_mps_loc_X = []
-        schmidt_vals = []
+        entropies = []
         X = np.array([[0, 1], [1, 0]])
         Z = np.array([[1, 0], [0, -1]])
 
@@ -2049,7 +2049,7 @@ class MPS:
             print(f"Bond dim site: {self.sites[self.L//2].shape[0]}")
             # print("Braket <phi|psi>:")
             # self._compute_norm(site=1, mixed=True)
-            error, schmidt = self.compression(
+            error, entropy = self.compression(
                 trunc_tol=False,
                 trunc_chi=True,
                 n_sweeps=n_sweeps,
@@ -2060,7 +2060,7 @@ class MPS:
             self.ancilla_sites = self.sites.copy()
             # self.canonical_form(trunc_chi=True, trunc_tol=False)
             errors.append(error)
-            schmidt_vals.append(schmidt)
+            entropies.append(entropy)
 
             # total
             self.order_param_Ising(op=Z)
@@ -2085,7 +2085,7 @@ class MPS:
                 )
                 psi_new_mpo = mps_to_vector(self.sites)
                 overlap.append(np.abs((psi_new_mpo.T.conjugate() @ psi_exact).real))
-        return mag_mps_tot, mag_mps_loc_X, mag_mps_loc, overlap, errors, schmidt_vals
+        return mag_mps_tot, mag_mps_loc_X, mag_mps_loc, overlap, errors, entropies
 
     # -------------------------------------------------
     # Computing expectation values

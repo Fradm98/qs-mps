@@ -1,7 +1,7 @@
 # %%
 from scipy.sparse import csc_array, identity
 from ncon import ncon
-from qs_mps.exact_Ising_ground_state_and_time_evolution import sparse_pauli_z, sparse_pauli_x
+from qs_mps.sparse_hamiltonians_and_operators import sparse_pauli_z, sparse_pauli_x
 import numpy as np
 
 # %%
