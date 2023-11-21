@@ -894,7 +894,9 @@ def plot_results_DMRG(
 def plot_results_TEBD(
         title: str, 
         for_array: list, 
-        trotter_steps: list,
+        trotter_steps: int,
+        delta: float,
+        second_part: str,
         fname: str, 
         path: str,         
         fname_ex: str,
@@ -928,7 +930,7 @@ def plot_results_TEBD(
 
     for i, elem in enumerate(for_array):
         res_mps = np.loadtxt(
-            f"{path}/{fname}_chi_{elem}"
+            f"{path}/{fname}_chi_{elem}{second_part}"
         )
         y = res_mps[::step]
         plt.scatter(
@@ -953,8 +955,9 @@ def plot_results_TEBD(
                 color="indianred",
                 label=f"exact",
             )
-        plt.xlabel("external field (h)")
+        plt.xlabel("time (t)")
         plt.ylabel(ylabel)
+        plt.xticks(ticks=x[::int(len(x)/5)], labels=list(delta * np.asarray(x))[::int(len(x)/5)])
         plt.legend()
          
     if save:
@@ -986,7 +989,10 @@ def plot_colormaps_evolution(
         )
     print(matrix.shape)
     print(X.shape)
+    print(Y.shape)
     if d:
+        X = X[:-1,:]
+        Y = Y[:-1,:]
         fig = plt.figure()
         ax = fig.add_subplot(111, projection="3d")
         ax.set_title(title, fontsize=14)

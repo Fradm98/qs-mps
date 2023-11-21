@@ -140,43 +140,43 @@ for chi in args.chis:  # L // 2 + 1
         args.where = "all"
 
     np.savetxt(
-        f"{path}/projects/0_ISING/results/mag_data/mag_mps_tot_{args.model}_L_{args.L}_quench_{args.quench}_delta_{delta}_chi_{chi}_h_ev_{args.h_ev}",
+        f"{path}/projects/0_ISING/results/mag_data/mag_mps_tot_{args.model}_L_{args.L}_midflip_{args.flip}_quench_{args.quench}_delta_{delta}_chi_{chi}_h_ev_{args.h_ev}",
         mag_mps_tot,
     )
     np.savetxt(
-        f"{path}/projects/0_ISING/results/mag_data/mag_mps_loc_X_{args.model}_L_{args.L}_quench_{args.quench}_delta_{delta}_chi_{chi}_h_ev_{args.h_ev}",
+        f"{path}/projects/0_ISING/results/mag_data/mag_mps_loc_X_{args.model}_L_{args.L}_midflip_{args.flip}_quench_{args.quench}_delta_{delta}_chi_{chi}_h_ev_{args.h_ev}",
         mag_mps_loc_X,
     )
     np.savetxt(
-        f"{path}/projects/0_ISING/results/mag_data/mag_mps_loc_{args.model}_L_{args.L}_quench_{args.quench}_delta_{delta}_chi_{chi}_h_ev_{args.h_ev}",
+        f"{path}/projects/0_ISING/results/mag_data/mag_mps_loc_{args.model}_L_{args.L}_midflip_{args.flip}_quench_{args.quench}_delta_{delta}_chi_{chi}_h_ev_{args.h_ev}",
         mag_mps_loc,
     )
     mag_mps_loc_Z = access_txt(
-        f"{path}/projects/0_ISING/results/mag_data/mag_mps_loc_{args.model}_L_{args.L}_quench_{args.quench}_delta_{delta}_chi_{chi}_h_ev_{args.h_ev}",
+        f"{path}/projects/0_ISING/results/mag_data/mag_mps_loc_{args.model}_L_{args.L}_midflip_{args.flip}_quench_{args.quench}_delta_{delta}_chi_{chi}_h_ev_{args.h_ev}",
         args.L // 2,
     )
     np.savetxt(
-        f"{path}/projects/0_ISING/results/mag_data/mag_mps_loc_Z_{args.model}_L_{args.L}_quench_{args.quench}_delta_{delta}_chi_{chi}_h_ev_{args.h_ev}",
+        f"{path}/projects/0_ISING/results/mag_data/mag_mps_loc_Z_{args.model}_L_{args.L}_midflip_{args.flip}_quench_{args.quench}_delta_{delta}_chi_{chi}_h_ev_{args.h_ev}",
         mag_mps_loc_Z,
     )
     # np.savetxt(
-    #     f"{path}/projects/0_ISING/results/fidelity_data/fidelity_{args.model}_L_{args.L}_quench_{args.quench}_delta_{delta}_chi_{chi}_h_ev_{args.h_ev}", overlap
+    #     f"{path}/projects/0_ISING/results/fidelity_data/fidelity_{args.model}_L_{args.L}_midflip_{args.flip}_quench_{args.quench}_delta_{delta}_chi_{chi}_h_ev_{args.h_ev}", overlap
     # )
     save_list_of_lists(
-        f"{path}/projects/0_ISING/results/errors_data/errors_{args.model}_L_{args.L}_quench_{args.quench}_delta_{delta}_chi_{chi}_h_ev_{args.h_ev}",
+        f"{path}/projects/0_ISING/results/errors_data/errors_{args.model}_L_{args.L}_midflip_{args.flip}_quench_{args.quench}_delta_{delta}_chi_{chi}_h_ev_{args.h_ev}",
         errors,
     )
     save_list_of_lists(
-        f"{path}/projects/0_ISING/results/entropy/{args.where}_bond_entropy_{args.model}_L_{args.L}_quench_{args.quench}_delta_{delta}_chi_{chi}_h_ev_{args.h_ev}",
+        f"{path}/projects/0_ISING/results/entropy/{args.where}_bond_entropy_{args.model}_L_{args.L}_midflip_{args.flip}_quench_{args.quench}_delta_{delta}_chi_{chi}_h_ev_{args.h_ev}",
         entropies,
     )
     if args.where == 'all':
         entropy_mid = access_txt(
-            f"{path}/projects/0_ISING/results/entropy/{args.where}_bond_entropy_{args.model}_L_{args.L}_quench_{args.quench}_delta_{delta}_chi_{chi}_h_ev_{args.h_ev}",
+            f"{path}/projects/0_ISING/results/entropy/{args.where}_bond_entropy_{args.model}_L_{args.L}_midflip_{args.flip}_quench_{args.quench}_delta_{delta}_chi_{chi}_h_ev_{args.h_ev}",
             args.L // 2,
         )
         np.savetxt(
-            f"{path}/projects/0_ISING/results/entropy/{args.L//2}_bond_entropy_{args.model}_L_{args.L}_quench_{args.quench}_delta_{delta}_chi_{chi}_h_ev_{args.h_ev}",
+            f"{path}/projects/0_ISING/results/entropy/{args.L//2}_bond_entropy_{args.model}_L_{args.L}_midflip_{args.flip}_quench_{args.quench}_delta_{delta}_chi_{chi}_h_ev_{args.h_ev}",
             mag_mps_loc_Z,
         )
 
