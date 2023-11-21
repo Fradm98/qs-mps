@@ -165,7 +165,6 @@ def load_list_of_lists(file_path):
     loaded_data = []
 
     with open(file_path, "r") as file:
-<<<<<<< HEAD:src/mps/utils.py
         lines = file.readlines()
         for line in lines:
             # Remove square brackets and split the line into elements
@@ -176,24 +175,6 @@ def load_list_of_lists(file_path):
             # Append the sublist to the loaded_data list
             loaded_data.append(elements)
 
-=======
-        current_list = []
-        for line in file:
-            line = line.strip()
-            if line.startswith('['):
-                # Start a new list
-                current_list = []
-                elements = line.strip('[]').split()
-                current_list.extend([float(element) for element in elements])
-            else:
-                # Middle or last elements of the list
-                elements = line.strip('[]').split()
-                current_list.extend([float(element) for element in elements])
-            if line.endswith(']'):
-                # Append the current list to the loaded_data and reset it
-                loaded_data.append(current_list)
-
->>>>>>> origin/main:src/qs_mps/utils.py
     return loaded_data
 
 
@@ -840,7 +821,7 @@ def create_sequential_colors(num_colors, colormap_name):
     return colors
 
 
-def plot_results_evolution(
+def plot_results_DMRG(
         title: str, 
         for_array: list, 
         interval: list,
@@ -888,7 +869,7 @@ def plot_results_evolution(
             alpha=alpha,
             linewidths=linewidth,
             facecolors=colors[i],
-            label=f"mps: $\chi={elem}$",
+            label=f"mps: $\\chi={elem}$",
         )
 
         if exact:
@@ -910,6 +891,75 @@ def plot_results_evolution(
         plt.savefig(f"{path_save}/{fname_save}.png")
     plt.show()
 
+def plot_results_TEBD(
+        title: str, 
+        for_array: list, 
+        trotter_steps: list,
+        fname: str, 
+        path: str,         
+        fname_ex: str,
+        path_ex: str,
+        fname_save: str, 
+        path_save: str, 
+        ylabel: str,
+        exact: bool = False,
+        save: bool = True,
+        marker: str = "+", 
+        m_size: int = 25, 
+        linewidth: float = 1,
+        alpha: float = 1,
+        n_points: float = 1, 
+        cmap: str = "viridis",
+        ):
+    """
+    plot_results_evolution
+
+    This funciton plots the results of a time evolution for a specific model.
+    
+    """
+    colors = create_sequential_colors(num_colors=len(for_array), colormap_name=cmap)
+
+    plt.title(
+        title,
+        fontsize=14,
+    )
+    step = int(1 // n_points)
+    x = list(np.arange(trotter_steps+1))[::step]
+
+    for i, elem in enumerate(for_array):
+        res_mps = np.loadtxt(
+            f"{path}/{fname}_chi_{elem}"
+        )
+        y = res_mps[::step]
+        plt.scatter(
+            x,
+            y,
+            s=m_size,
+            marker=marker,
+            alpha=alpha,
+            linewidths=linewidth,
+            facecolors=colors[i],
+            label=f"mps: $\\chi={elem}$",
+        )
+
+        if exact:
+            res_exact = np.loadtxt(
+            f"{path_ex}/{fname_ex}_chi_{elem}"
+        )
+            res_exact = res_exact[::step]
+            plt.plot(
+                x,
+                res_exact,
+                color="indianred",
+                label=f"exact",
+            )
+        plt.xlabel("external field (h)")
+        plt.ylabel(ylabel)
+        plt.legend()
+         
+    if save:
+        plt.savefig(f"{path_save}/{fname_save}.png")
+    plt.show()
 
 def plot_colormaps_evolution(
         title: str, 
@@ -934,6 +984,8 @@ def plot_colormaps_evolution(
     matrix = np.loadtxt(
             f"{path}/{fname}"
         )
+    print(matrix.shape)
+    print(X.shape)
     if d:
         fig = plt.figure()
         ax = fig.add_subplot(111, projection="3d")
