@@ -416,8 +416,15 @@ def fitting(xs, results, guess):
     ), f"The x and y must have the same dimension, but x has dim({len(xs)}) and y has dim({len(results)})"
 
     # define the function to fit
+
+    # fit for correlation length
     def fit(x, c, corr_length):
         return c / 6 * np.log(x - np.log(x / corr_length + np.exp(-x / corr_length)))
+
+    # fit for computational time (chi)
+    def fit(x, a, b, theta):
+        return a * np.exp(theta * x) + b
+
 
     # fit your data with a given guess
     param_opt, covar_opt = curve_fit(fit, xs, results, guess)
