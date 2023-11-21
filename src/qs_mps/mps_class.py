@@ -715,15 +715,16 @@ class MPS:
         sites: list - list of sites we want to quench
         """
         I = np.eye(2)
+        I = np.array([[I]])
+        O = np.zeros((2, 2))
         X = np.array([[0, 1], [1, 0]])
-        I_exp = np.array([[expm(1j * I)]])
         X_exp = np.array([[expm(1j * X)]])
         w_tot = []
         for i in range(1,self.L+1):
             if i in sites:
                 w_tot.append(X_exp)
             else:
-                w_tot.append(I_exp)
+                w_tot.append(I)
         self.w = w_tot
         return self
     

@@ -206,16 +206,16 @@ else:
     raise SyntaxError("insert a valid result to plot: 'mag_tot', 'mag_z', 'mag_x', 'entropy', 'err_mag_tot', 'err_mag_z', 'err_mag_x', 'err_entropy'")
 
 if args.what in plot_val:
-    fname_ex = f"{fname_ex_what}_{args.model}_L_{args.L}_quench_{args.quench}_delta_{delta}_h_ev_{args.h_ev}"
-    fname = f"{fname_what}_{args.model}_L_{args.L}_quench_{args.quench}_delta_{delta}"
+    fname_ex = f"{fname_ex_what}_{args.model}_L_{args.L}_midflip_{args.flip}_quench_{args.quench}_delta_{delta}_h_ev_{args.h_ev}"
+    fname = f"{fname_what}_{args.model}_L_{args.L}_midflip_{args.flip}_quench_{args.quench}_delta_{delta}"
     second_part = f"_h_ev_{args.h_ev}"
-    fname_save = f"{args.what}_{args.model}_L_{args.L}_quench_{args.quench}_delta_{delta}"
+    fname_save = f"{args.what}_{args.model}_L_{args.L}_midflip_{args.flip}_quench_{args.quench}_delta_{delta}"
     second_part = f"_h_ev_{args.h_ev}"
     plot_results_TEBD(title, for_array=args.chis, trotter_steps=args.trotter_steps, delta=delta, fname=fname, second_part=second_part, path=path, fname_save=fname_save, path_save=path_save, ylabel=ylabel, save=args.save, exact=args.exact, fname_ex=fname_ex, path_ex=path_ex, marker=args.marker, m_size=args.m_size, linewidth=args.linewidth, alpha=args.alpha, n_points=args.n_points, cmap=args.cmap)
 
 if args.what in plot_cmap:
     for chi in args.chis:
         title_fin = title + f" ; $\\chi = {chi}$"
-        fname = f"{fname_what}_{args.model}_L_{args.L}_quench_{args.quench}_delta_{delta}_chi_{chi}_h_ev_{args.h_ev}"
-        fname_save = f"{args.what}_{args.model}_L_{args.L}_quench_{args.quench}_delta_{delta}_chi_{chi}_h_ev_{args.h_ev}"
+        fname = f"{fname_what}_{args.model}_L_{args.L}_midflip_{args.flip}_quench_{args.quench}_delta_{delta}_chi_{chi}_h_ev_{args.h_ev}"
+        fname_save = f"{args.what}_{args.model}_L_{args.L}_midflip_{args.flip}_quench_{args.quench}_delta_{delta}_chi_{chi}_h_ev_{args.h_ev}"
         plot_colormaps_evolution(title=title_fin, fname=fname, path=path, fname_save=fname_save, path_save=path_save, xlabel=xlabel, xticks=xticks, xlabels=xlabels, yticks=yticks, ylabels=ylabels, X=X, Y=Y, save=args.save, cmap=args.cmap, interpolation=args.interpolation, d=args.dim, view_init=view_init)

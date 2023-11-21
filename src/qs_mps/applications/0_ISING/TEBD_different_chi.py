@@ -177,7 +177,7 @@ for chi in args.chis:  # L // 2 + 1
         )
         np.savetxt(
             f"{path}/projects/0_ISING/results/entropy/{args.L//2}_bond_entropy_{args.model}_L_{args.L}_midflip_{args.flip}_quench_{args.quench}_delta_{delta}_chi_{chi}_h_ev_{args.h_ev}",
-            mag_mps_loc_Z,
+            entropy_mid,
         )
 
 # different folder paths:
