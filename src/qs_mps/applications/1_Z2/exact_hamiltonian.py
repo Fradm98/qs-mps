@@ -1,4 +1,3 @@
-# %%
 from qs_mps.utils import *
 from qs_mps.sparse_hamiltonians_and_operators import sparse_pauli_x, sparse_pauli_z
 from .lattice import Lattice
@@ -39,6 +38,12 @@ class H_Z2_gauss():
 
         return - loc - self.lamb * plaq
     
-    def diagonalize(self, H):
+    def diagonalize(self):
+        H = self.hamiltonian()
         e, v = np.linalg.eigh(H)
-        
+        return e, v
+    
+
+Z2_exact = H_Z2_gauss(L=3, l=3, model="Z2", lamb=0)
+e, v = Z2_exact.diagonalize()
+print(f"spectrum:\n{e}")
