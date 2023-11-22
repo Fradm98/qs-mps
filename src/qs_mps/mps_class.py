@@ -680,9 +680,57 @@ class MPS:
 
         pass
 
-    def mpo_Ising_time_ev(self, delta, h_ev, J_ev):
+    def mpo_quench(self,
+                   quench: str,
+                   delta: float = None,
+                   h_ev: float = None,
+                   J_ev: float = 1,
+                   sites: list = -1,
+        ):
         """
-        mpo_Ising_time_ev
+        mpo_quench
+
+        This function selects which quench we want to perform.
+
+        quench: str - type of quench. Available are: 'flip', 'global'
+
+        """
+        if sites == -1:
+            sites = [self.L//2]
+    
+        if quench == 'flip':
+            self.mpo_quench_flip(sites)
+        elif quench == 'global':
+            if self.model == 'Ising':
+                self.mpo_Ising_quench_global(delta, h_ev, J_ev)
+
+    def mpo_quench_flip(self, sites):
+        """
+        mpo_quench_flip
+
+        This function defines the quench of a hamiltonian
+        which flips the spin system in some sites. The default
+        flip is with the X operator.
+        
+        sites: list - list of sites we want to quench
+        """
+        I = np.eye(2)
+        I = np.array([[I]])
+        O = np.zeros((2, 2))
+        X = np.array([[0, 1], [1, 0]])
+        X_exp = np.array([[expm(1j * X)]])
+        w_tot = []
+        for i in range(1,self.L+1):
+            if i in sites:
+                w_tot.append(X_exp)
+            else:
+                w_tot.append(I)
+        self.w = w_tot
+        return self
+    
+    def mpo_Ising_quench_global(self, delta: float, h_ev: float, J_ev: float=1):
+        """
+        mpo_Ising_quench_global
 
         This function defines the MPO for the real time evolution of a 1D transverse field Ising model.
         We use this to perform a second order TEBD.
@@ -706,27 +754,15 @@ class MPS:
                 ]
             ]
         )
-        # w_even_3 = np.array(
-        #     [np.sqrt(np.cos(J_ev * delta)) * I, 1j * np.sqrt(np.sin(J_ev * delta)) * Z]
-        # )
         w_in = ncon([w_even, w_loc, w_loc], [[-1, -2, 1, 2], [-3, 1], [2, -4]])
         w_odd = np.array(
             [[np.sqrt(np.cos(J_ev * delta)) * I, np.sqrt(np.sin(J_ev * delta)) * Z]]
         )
         w_odd = np.swapaxes(w_odd, axis1=0, axis2=1)
-        # w_odd_3 = np.array(
-        #     [np.sqrt(np.cos(J_ev * delta)) * I, np.sqrt(np.sin(J_ev * delta)) * Z]
-        # )
-        # w_fin = ncon([w_odd.T, w_loc, w_loc], [[1, 2, -1, -2], [-3, 1], [2, -4]])
         w_fin = ncon([w_odd, w_loc, w_loc], [[-1, -2, 1, 2], [-3, 1], [2, -4]])
-        # w_fin = np.swapaxes(w_fin, axis1=0,axis2=1)
         w_tot.append(w_in)
         for site in range(2, self.L):
             if site % 2 == 0:
-                # w = ncon(
-                #     [w_loc, w_even_3, w_loc, w_odd_3.T],
-                #     [[1, -4], [-2, 2, 1], [3, 2], [3, -3, -1]],
-                # )
                 w = ncon(
                     [w_loc, w_even, w_loc, w_odd],
                     [[1, -6], [-2, -4, 2, 1], [3, 2], [-1, -3, -5, 3]],
@@ -737,10 +773,6 @@ class MPS:
                     w_even.shape[3],
                 )
             else:
-                # w = ncon(
-                #     [w_odd_3.T, w_loc, w_even_3, w_loc],
-                #     [[-4, 1, -1], [2, 1], [-2, 3, 2], [-3, 3]],
-                # )
                 w = ncon(
                     [w_odd, w_loc, w_even, w_loc],
                     [[-2, -4, 3, -6], [2, 3], [-1, -3, 1, 2], [-5, 1]],
@@ -1929,7 +1961,7 @@ class MPS:
         for T in range(trotter_steps):
             print(f"------ Trotter steps: {T} -------")
 
-            self.mpo_Ising_time_ev(delta=delta, h_ev=h_ev, J_ev=1)
+            self.mpo_Ising_quench_global(delta=delta, h_ev=h_ev, J_ev=1)
             self.mpo_to_mps()
             if trunc:
                 self.canonical_form(svd_direction="left")
@@ -1965,6 +1997,7 @@ class MPS:
         trotter_steps: int,
         delta: float,
         h_ev: float,
+        quench: str,
         flip: bool,
         n_sweeps: int = 2,
         conv_tol: float = 1e-7,
@@ -1981,7 +2014,8 @@ class MPS:
         trotter_steps: int - number of times we apply the mpo to the mps
         delta: float - time interval which defines the evolution per step
         h_ev: float - value of the external field in the evolving hamiltonian
-        J_ev: float - value of the Ising interaction in the evolving hamiltonian
+        flip: bool - flip the initial state middle qubit
+        quench: str - type of quench we want to execute. Available are 'flip', 'global'
         fidelity: bool - we can compute the fidelity with the initial state
                 if the chain is small enough. By default False
         err: bool - computes the distance error between the guess state and an
@@ -2037,18 +2071,9 @@ class MPS:
         
         for trott in range(trotter_steps):
             print(f"------ Trotter steps: {trott} -------")
-            self.mpo_Ising_time_ev(delta=delta, h_ev=h_ev, J_ev=1)
-            # self.mpo_to_mps(ancilla=True)
-            # self.canonical_form(
-            #     svd_direction="right", ancilla=True, trunc_chi=False, trunc_tol=True
-            # )
-            # self.canonical_form(
-            #     svd_direction="left", ancilla=True, trunc_chi=False, trunc_tol=True
-            # )
+            self.mpo_quench(quench, delta, h_ev)
             print(f"Bond dim ancilla: {self.ancilla_sites[self.L//2].shape[0]}")
             print(f"Bond dim site: {self.sites[self.L//2].shape[0]}")
-            # print("Braket <phi|psi>:")
-            # self._compute_norm(site=1, mixed=True)
             error, entropy = self.compression(
                 trunc_tol=False,
                 trunc_chi=True,
@@ -2058,7 +2083,6 @@ class MPS:
                 where=where,
             )
             self.ancilla_sites = self.sites.copy()
-            # self.canonical_form(trunc_chi=True, trunc_tol=False)
             errors.append(error)
             entropies.append(entropy)
 

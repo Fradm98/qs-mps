@@ -1,6 +1,6 @@
 import matplotlib.pyplot as plt
 import numpy as np
-from qs_mps.utils import plot_results_evolution, plot_colormaps_evolution
+from qs_mps.utils import plot_results_TEBD, plot_colormaps_evolution
 import argparse
 
 # default parameters of the plot layout
@@ -29,6 +29,9 @@ parser.add_argument(
 parser.add_argument("chis", help="Simulated bond dimensions", nargs="+", type=int)
 parser.add_argument(
     "-f", "--flip", help="Flip the middle site or not. By defalut True", action="store_false"
+)
+parser.add_argument(
+    "-q", "--quench", help="Type of quench. Available are 'flip', 'global'", default="global", type=str
 )
 parser.add_argument(
     "-m", "--model", help="Model to simulate", default="Ising", type=str
@@ -122,7 +125,7 @@ if args.what == "mag_tot":
     path = path_computer + f"results/mag_data"
     path_ex = path_computer + f"results/exact/mag_data"
     path_save = path_computer + f"figures/magnetization/"
-    ylabel = "$\sum_{i=1}^L \sigma_i^z$"
+    ylabel = "$\\sum_{i=1}^L \\sigma_i^z$"
 
 elif args.what == "mag_z":
     title = f"Magnetization Z in the middle site: $L = {args.L}$ ;" + " $h_{ev}=$ "+ f"${args.h_ev}$"
@@ -131,7 +134,7 @@ elif args.what == "mag_z":
     path = path_computer + f"results/mag_data"
     path_ex = path_computer + f"results/exact/mag_data"
     path_save = path_computer + f"figures/magnetization/"
-    ylabel = "$\sigma_{L/2}^z$"
+    ylabel = "$\\sigma_{L/2}^z$"
 
 elif args.what == "mag_x":
     title = f"Magnetization X in the middle site: $L = {args.L}$ ;" + " $h_{ev}=$ " + f"${args.h_ev}$"
@@ -140,7 +143,7 @@ elif args.what == "mag_x":
     path = path_computer + f"results/mag_data"
     path_ex = path_computer + f"results/exact/mag_data"
     path_save = path_computer + f"figures/magnetization/"
-    ylabel = "$\sigma_{L/2}^x$"
+    ylabel = "$\\sigma_{L/2}^x$"
 
 elif args.what == "entropy":
     title = f" ${args.where}-th$ Bond Entanglement Entropy: $L = {args.L}$ ;" + " $h_{ev}=$" + f" ${args.h_ev}$"
@@ -149,7 +152,7 @@ elif args.what == "entropy":
     path = path_computer + f"results/entropy"
     path_ex = path_computer + f"results/exact/entropy"
     path_save = path_computer + f"figures/entropy/"
-    ylabel = "entanglement von neumann entropy $(S_{\chi})$"
+    ylabel = "entanglement von neumann entropy $(S_{\\chi})$"
 
 elif args.what == "entropy_tot":
     title = f"All Bonds Entanglement Entropy: $L = {args.L}$ ;" + " $h_{ev}=$" + f" ${args.h_ev}$"
@@ -203,16 +206,16 @@ else:
     raise SyntaxError("insert a valid result to plot: 'mag_tot', 'mag_z', 'mag_x', 'entropy', 'err_mag_tot', 'err_mag_z', 'err_mag_x', 'err_entropy'")
 
 if args.what in plot_val:
-    fname_ex = f"{fname_ex_what}_{args.model}_L_{args.L}_flip_{args.flip}_delta_{delta}_h_ev_{args.h_ev}"
-    fname = f"{fname_what}_{args.model}_L_{args.L}_flip_{args.flip}_delta_{delta}"
+    fname_ex = f"{fname_ex_what}_{args.model}_L_{args.L}_midflip_{args.flip}_quench_{args.quench}_delta_{delta}_h_ev_{args.h_ev}"
+    fname = f"{fname_what}_{args.model}_L_{args.L}_midflip_{args.flip}_quench_{args.quench}_delta_{delta}"
     second_part = f"_h_ev_{args.h_ev}"
-    fname_save = f"{args.what}_{args.model}_L_{args.L}_flip_{args.flip}_delta_{delta}"
+    fname_save = f"{args.what}_{args.model}_L_{args.L}_midflip_{args.flip}_quench_{args.quench}_delta_{delta}"
     second_part = f"_h_ev_{args.h_ev}"
-    plot_results_evolution(title, for_array=args.chis, trotter_steps=args.trotter_steps, delta=delta, fname=fname, second_part=second_part, path=path, fname_save=fname_save, path_save=path_save, ylabel=ylabel, save=args.save, exact=args.exact, fname_ex=fname_ex, path_ex=path_ex, marker=args.marker, m_size=args.m_size, linewidth=args.linewidth, alpha=args.alpha, n_points=args.n_points, cmap=args.cmap)
+    plot_results_TEBD(title, for_array=args.chis, trotter_steps=args.trotter_steps, delta=delta, fname=fname, second_part=second_part, path=path, fname_save=fname_save, path_save=path_save, ylabel=ylabel, save=args.save, exact=args.exact, fname_ex=fname_ex, path_ex=path_ex, marker=args.marker, m_size=args.m_size, linewidth=args.linewidth, alpha=args.alpha, n_points=args.n_points, cmap=args.cmap)
 
 if args.what in plot_cmap:
     for chi in args.chis:
-        title_fin = title + f" ; $\chi = {chi}$"
-        fname = f"{fname_what}_{args.model}_L_{args.L}_flip_{args.flip}_delta_{delta}_chi_{chi}_h_ev_{args.h_ev}"
-        fname_save = f"{args.what}_{args.model}_L_{args.L}_flip_{args.flip}_delta_{delta}_chi_{chi}_h_ev_{args.h_ev}"
+        title_fin = title + f" ; $\\chi = {chi}$"
+        fname = f"{fname_what}_{args.model}_L_{args.L}_midflip_{args.flip}_quench_{args.quench}_delta_{delta}_chi_{chi}_h_ev_{args.h_ev}"
+        fname_save = f"{args.what}_{args.model}_L_{args.L}_midflip_{args.flip}_quench_{args.quench}_delta_{delta}_chi_{chi}_h_ev_{args.h_ev}"
         plot_colormaps_evolution(title=title_fin, fname=fname, path=path, fname_save=fname_save, path_save=path_save, xlabel=xlabel, xticks=xticks, xlabels=xlabels, yticks=yticks, ylabels=ylabels, X=X, Y=Y, save=args.save, cmap=args.cmap, interpolation=args.interpolation, d=args.dim, view_init=view_init)

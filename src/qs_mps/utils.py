@@ -165,23 +165,18 @@ def load_list_of_lists(file_path):
     loaded_data = []
 
     with open(file_path, "r") as file:
-        current_list = []
-        for line in file:
-            line = line.strip()
-            if line.startswith('['):
-                # Start a new list
-                current_list = []
-                elements = line.strip('[]').split()
-                current_list.extend([float(element) for element in elements])
-            else:
-                # Middle or last elements of the list
-                elements = line.strip('[]').split()
-                current_list.extend([float(element) for element in elements])
-            if line.endswith(']'):
-                # Append the current list to the loaded_data and reset it
-                loaded_data.append(current_list)
+        lines = file.readlines()
+        for line in lines:
+            # Remove square brackets and split the line into elements
+            elements = line.strip('[]\n').split()
+            # Convert elements to floats and remove square brackets from individual elements
+            elements = [float(element.strip('[]')) for element in elements]
+
+            # Append the sublist to the loaded_data list
+            loaded_data.append(elements)
 
     return loaded_data
+
 
 
 # ---------------------------------------------------------------------------------------
@@ -374,7 +369,7 @@ def get_middle_chain_schmidt_values(vec, where: int, bond: bool = True):
     L = int(np.log2(vec.shape[0]))
     sing_vals = []
     if bond:
-        assert (2 <= where < L-1), f"The decomposition can be performed only at bonds between {2} and {L-2}"
+        assert (1 < where < L-1), f"The decomposition can be performed only at bonds between {2} and {L-2}"
 
         new_shape = (2**(where),2**(L-where))
 
@@ -833,7 +828,7 @@ def create_sequential_colors(num_colors, colormap_name):
     return colors
 
 
-def plot_results_evolution(
+def plot_results_DMRG(
         title: str, 
         for_array: list, 
         trotter_steps: int,
@@ -888,7 +883,7 @@ def plot_results_evolution(
             alpha=alpha,
             linewidths=linewidth,
             facecolors=colors[i],
-            label=f"mps: $\chi={elem}$",
+            label=f"mps: $\\chi={elem}$",
         )
 
         if exact:
@@ -911,6 +906,78 @@ def plot_results_evolution(
         plt.savefig(f"{path_save}/{fname_save}_marker_{marker}.png")
     plt.show()
 
+def plot_results_TEBD(
+        title: str, 
+        for_array: list, 
+        trotter_steps: int,
+        delta: float,
+        second_part: str,
+        fname: str, 
+        path: str,         
+        fname_ex: str,
+        path_ex: str,
+        fname_save: str, 
+        path_save: str, 
+        ylabel: str,
+        exact: bool = False,
+        save: bool = True,
+        marker: str = "+", 
+        m_size: int = 25, 
+        linewidth: float = 1,
+        alpha: float = 1,
+        n_points: float = 1, 
+        cmap: str = "viridis",
+        ):
+    """
+    plot_results_evolution
+
+    This funciton plots the results of a time evolution for a specific model.
+    
+    """
+    colors = create_sequential_colors(num_colors=len(for_array), colormap_name=cmap)
+
+    plt.title(
+        title,
+        fontsize=14,
+    )
+    step = int(1 // n_points)
+    x = list(np.arange(trotter_steps+1))[::step]
+
+    for i, elem in enumerate(for_array):
+        res_mps = np.loadtxt(
+            f"{path}/{fname}_chi_{elem}{second_part}"
+        )
+        y = res_mps[::step]
+        plt.scatter(
+            x,
+            y,
+            s=m_size,
+            marker=marker,
+            alpha=alpha,
+            linewidths=linewidth,
+            facecolors=colors[i],
+            label=f"mps: $\\chi={elem}$",
+        )
+
+        if exact:
+            res_exact = np.loadtxt(
+            f"{path_ex}/{fname_ex}_chi_{elem}"
+        )
+            res_exact = res_exact[::step]
+            plt.plot(
+                x,
+                res_exact,
+                color="indianred",
+                label=f"exact",
+            )
+        plt.xlabel("time (t)")
+        plt.ylabel(ylabel)
+        plt.xticks(ticks=x[::int(len(x)/5)], labels=list(delta * np.asarray(x))[::int(len(x)/5)])
+        plt.legend()
+         
+    if save:
+        plt.savefig(f"{path_save}/{fname_save}.png")
+    plt.show()
 
 def plot_colormaps_evolution(
         title: str, 
@@ -935,12 +1002,12 @@ def plot_colormaps_evolution(
     matrix = np.loadtxt(
             f"{path}/{fname}"
         )
-    if "entropy" in fname:
-        new_row = np.zeros((1,50))
-        matrix = np.vstack([new_row, matrix])
     print(matrix.shape)
-    print(X.shape, Y.shape)
+    print(X.shape)
+    print(Y.shape)
     if d:
+        X = X[:-1,:]
+        Y = Y[:-1,:]
         fig = plt.figure()
         ax = fig.add_subplot(111, projection="3d")
         ax.set_title(title, fontsize=14)
