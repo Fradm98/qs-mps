@@ -1,10 +1,8 @@
-# %%
-from scipy.sparse import csc_array, identity
+from scipy.sparse import csc_array, identity, linalg
 from ncon import ncon
 from qs_mps.sparse_hamiltonians_and_operators import sparse_pauli_z, sparse_pauli_x
+from qs_mps.utils import mpo_to_matrix
 import numpy as np
-
-# %%
 
 class MPO_ladder():
     def __init__(
@@ -59,8 +57,8 @@ class MPO_ladder():
         element of the mpo tensor.
 
         """
-        I = identity(2**self.l)
-        O = csc_array((2**self.l,2**self.l))
+        I = identity(2**self.l, dtype=complex)
+        O = csc_array((2**self.l,2**self.l), dtype=complex)
         skeleton = np.array([[O.toarray() for i in range(2+self.l)] for j in range(2+self.l)])
         skeleton[0,0] = I.toarray()
         skeleton[-1,-1] = I.toarray()
@@ -103,7 +101,7 @@ class MPO_ladder():
         """
         charge_coeff_local_Z
 
-        This function computes the coefficient fro the local Z term in the
+        This function computes the coefficient for the local Z term in the
         ladder Z2 hamiltonian.
 
         """
@@ -181,10 +179,15 @@ class MPO_ladder():
         self.mpo = mpo_list
         return mpo_list
 
+    def diagonalize(self):
+        self.mpo_Z2_ladder_generalized()
+        H = mpo_to_matrix(self.mpo)
+        e, v = np.linalg.eigs(H)
+        return e, v
 
-# %%
-mpo = MPO_ladder(l=3, L=5)
+mpo = MPO_ladder(l=2, L=3, lamb=0)
 rows = []
 columns = []
-mpo.add_charges(rows, columns)
-mpo.charge_coeff_local_Z(n=3, mpo_site=3)
+e, v = mpo.diagonalize()
+print(f"spectrum:\n{e[:30]}")
+# mpo.add_charges(rows, columns)
