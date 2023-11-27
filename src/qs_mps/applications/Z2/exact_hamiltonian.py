@@ -15,6 +15,7 @@ class H_Z2_gauss():
         self.charges = np.ones((l+1,L))
         self.lamb = lamb
         self.latt = Lattice((self.L,self.l), (False,False))
+        self.dof = self.latt.nlinks
         
     def local_term(self, link):
         sigma_x = sparse_pauli_x(link, self.latt.nlinks)
@@ -47,4 +48,6 @@ class H_Z2_gauss():
 
 Z2_exact = H_Z2_gauss(L=3, l=3, model="Z2", lamb=0)
 e, v = Z2_exact.diagonalize()
+print(f"charges:\n{Z2_exact.charges}")
+print(f"degrees of freedom:\n{Z2_exact.dof}")
 print(f"spectrum:\n{e}")

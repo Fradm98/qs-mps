@@ -467,8 +467,9 @@ def mpo_to_matrix(mpo):
     a_index = first_index + second_index + [1]
     v_r = np.zeros(mpo[0].shape[0])
     v_r[-1] = 1
+    d = mpo[0].shape[2]
     final_matrix = ncon([a, v_r.T], [a_index, [1]])
-    final_matrix = final_matrix.reshape((2**L, 2**L))
+    final_matrix = final_matrix.reshape((d**L, d**L))
     return final_matrix
 
 

@@ -2,6 +2,7 @@ from scipy.sparse import csc_array, identity, linalg
 from ncon import ncon
 from qs_mps.sparse_hamiltonians_and_operators import sparse_pauli_z, sparse_pauli_x
 from qs_mps.utils import mpo_to_matrix
+from qs_mps.applications.Z2.lattice import Lattice
 import numpy as np
 
 class MPO_ladder():
@@ -14,6 +15,8 @@ class MPO_ladder():
         self.charges = np.ones((l+1,L))
         self.lamb = lamb
         self.mpo = []
+        self.latt = self.latt = Lattice((self.L,self.l), (False,False))
+        self.dof = self.l * (self.L - 1)
         
     def charge_constraint(self):
         """
@@ -182,12 +185,15 @@ class MPO_ladder():
     def diagonalize(self):
         self.mpo_Z2_ladder_generalized()
         H = mpo_to_matrix(self.mpo)
-        e, v = np.linalg.eigs(H)
+        e, v = np.linalg.eigh(H)
         return e, v
 
 mpo = MPO_ladder(l=2, L=3, lamb=0)
 rows = []
 columns = []
 e, v = mpo.diagonalize()
-print(f"spectrum:\n{e[:30]}")
+# print(f"spectrum:\n{e[:30]}")
 # mpo.add_charges(rows, columns)
+print(f"charges:\n{mpo.charges}")
+print(f"degrees of freedom:\n{mpo.dof}")
+print(f"spectrum:\n{e}")
