@@ -36,7 +36,7 @@ def sparse_pauli_x(n, L, row_indices_cache=None, col_indices_cache=None):
         if (row_indices_cache is None) or (col_indices_cache is None):
             row_indices_cache, col_indices_cache = sparse_non_diag_paulis_indices(n, L)
         data = np.ones_like(row_indices_cache)
-        result = sparse.csc_array((data, (row_indices_cache, col_indices_cache)), shape=(2**L, 2**L), dtype=complex)
+        result = sparse.csc_array((data, (row_indices_cache, col_indices_cache)), shape=(2**L, 2**L)) # , dtype=complex
         return result
     else:
         raise ValueError("Index n must fulfill 0 <= n < L")

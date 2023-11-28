@@ -1,7 +1,7 @@
 from scipy.sparse import csc_array, identity, linalg
 from ncon import ncon
 from qs_mps.sparse_hamiltonians_and_operators import sparse_pauli_z, sparse_pauli_x
-from qs_mps.utils import mpo_to_matrix
+from qs_mps.utils import mpo_to_matrix, tensor_shapes
 from qs_mps.applications.Z2.lattice import Lattice
 import numpy as np
 
@@ -15,7 +15,7 @@ class MPO_ladder():
         self.charges = np.ones((l+1,L))
         self.lamb = lamb
         self.mpo = []
-        self.latt = self.latt = Lattice((self.L,self.l), (False,False))
+        self.latt = self.latt = Lattice((self.L,self.l+1), (False,False))
         self.dof = self.l * (self.L - 1)
         
     def charge_constraint(self):
@@ -27,7 +27,7 @@ class MPO_ladder():
 
         """
         # take the product of the first l-1 rows
-        productory = np.prod([self.charges[line,:] for line in range(self.l-1)])
+        productory = np.prod([self.charges[line,:] for line in range(self.l)])
         # take the last row but the last charge
         productory = productory * np.prod([self.charges[-1,:-1]])
         self.charges[-1,-1] = productory
@@ -46,9 +46,10 @@ class MPO_ladder():
         """
         for i,j in zip(rows,columns):
             assert ((i != -1) and (j != -1)) or ((i == self.l-1) and (j == self.L-1)), ("Do not choose the last charge! We use it for Gauss Law constraint")
-            self.charges[i,j] = -1
+            self.charges[j,i] = -1
         # impose the constraint
         self.charge_constraint()
+        self.charges = np.flip(self.charges, axis=1)
         return self
     
     def mpo_skeleton(self):
@@ -160,11 +161,13 @@ class MPO_ladder():
             # -----------
             # interaction terms (from column 2 to l+1)
             for n in range(1,self.l+1):
+                # self.mpo[0,n] = - 1 * sparse_pauli_z(n=n-1, L=self.l).toarray() 
                 self.mpo[0,n] = - self.charge_coeff_interaction(n=n, mpo_site=mpo_site) * sparse_pauli_z(n=n-1, L=self.l).toarray() 
 
             # local terms (column l+2)
             # local Z and local X
             for i in range(1,self.l+1):
+                # self.mpo[0,n+1] += - 3 * sparse_pauli_z(n=i-1, L=self.l).toarray() - self.lamb * sparse_pauli_x(n=i-1, L=self.l).toarray()
                 self.mpo[0,n+1] += - self.charge_coeff_local_Z(n=i, mpo_site=mpo_site) * sparse_pauli_z(n=i-1, L=self.l).toarray() - self.lamb * sparse_pauli_x(n=i-1, L=self.l).toarray()
             # vertical Z interaction
             for j in range(self.l-1):
@@ -178,6 +181,7 @@ class MPO_ladder():
                 self.mpo[n,-1] = sparse_pauli_z(n=n-1, L=self.l).toarray()
 
             mpo_list.append(self.mpo)
+            self.mpo_skeleton()
 
         self.mpo = mpo_list
         return mpo_list
@@ -188,12 +192,13 @@ class MPO_ladder():
         e, v = np.linalg.eigh(H)
         return e, v
 
-mpo = MPO_ladder(l=2, L=3, lamb=0)
+mpo = MPO_ladder(l=3, L=3, lamb=0)
 rows = []
 columns = []
-e, v = mpo.diagonalize()
-# print(f"spectrum:\n{e[:30]}")
-# mpo.add_charges(rows, columns)
+mpo.add_charges([0,2],[2,1])
 print(f"charges:\n{mpo.charges}")
 print(f"degrees of freedom:\n{mpo.dof}")
+print(f"lattice:\n{mpo.latt._lattice_drawer.draw_lattice()}")
+print(f"shape:\n{tensor_shapes(mpo.mpo)}")
+e, v = mpo.diagonalize()
 print(f"spectrum:\n{e}")

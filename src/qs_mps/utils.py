@@ -451,26 +451,22 @@ def mpo_to_matrix(mpo):
     v_l = np.zeros(mpo[0].shape[0])
     v_l[0] = 1
     L = len(mpo)
-    a = ncon([v_l, mpo[0]], [[1], [1, -(2 * L + 1), -1, -(L + 1)]])
-    for i in range(1, L):
-        first_index = list(range(-i, 0))
-        first_index.reverse()
-        second_index = list(range(-(L + i), -L))
-        second_index.reverse()
-        a_index = first_index + second_index + [1]
-        a = ncon([a, mpo[i]], [a_index, [1, -(2 * L + 1), -(i + 1), -(L + i + 1)]])
+    env = v_l
 
-    first_index = list(range(-i - 1, 0))
-    first_index.reverse()
-    second_index = list(range(-(L + i) - 1, -L))
-    second_index.reverse()
-    a_index = first_index + second_index + [1]
+    mid = [1]
+    label_env = mid
+    for i in range(L):
+            label_mpo = [1,-L*100,-(i+1),-(L+i+1)]
+            env = ncon([env,mpo[i]],[label_env,label_mpo])
+            up = [int(-elem) for elem in np.linspace(1,i+1,i+1)]
+            down = [int(-elem) for elem in np.linspace(L+1,L+1+i,i+1)] 
+            label_env = up + down + mid
+        
     v_r = np.zeros(mpo[0].shape[0])
     v_r[-1] = 1
     d = mpo[0].shape[2]
-    final_matrix = ncon([a, v_r.T], [a_index, [1]])
-    final_matrix = final_matrix.reshape((d**L, d**L))
-    return final_matrix
+    matrix = ncon([env,v_r.T],[label_env,mid]).reshape((d**L, d**L))
+    return matrix
 
 
 # ---------------------------------------------------------------------------------------
