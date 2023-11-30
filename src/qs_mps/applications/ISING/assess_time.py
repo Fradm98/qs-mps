@@ -10,23 +10,24 @@ chis = [16,32,64,128] #,8,16,32,64,128,256,512
 h = 1
 J = 1
 eps = 0
+path = "/data/fdimarca/projects/0_ISING/results/time_data/"
 
-# time_tot = []
-# for chi in chis:
-#     print(f"start DMRG for L={L}, chi={chi}")
-#     time_st = time.perf_counter()
-#     chain = MPS(L=L, d=d, model=model, chi=chi, h=h, eps=eps, J=J)
-#     chain._random_state(seed=3, chi=chi)
-#     energy, entropy = chain.DMRG(trunc_chi=True, trunc_tol=False, n_sweeps=2)
-#     time_end = abs(time.perf_counter() - time_st)
-#     print(f"Time of computation: {time_end} sec")
-#     time_tot.append(time_end)
+time_tot = []
+for chi in chis:
+    print(f"start DMRG for L={L}, chi={chi}")
+    time_st = time.perf_counter()
+    chain = MPS(L=L, d=d, model=model, chi=chi, h=h, eps=eps, J=J)
+    chain._random_state(seed=3, chi=chi)
+    energy, entropy = chain.DMRG(trunc_chi=True, trunc_tol=False, n_sweeps=2)
+    time_end = abs(time.perf_counter() - time_st)
+    print(f"Time of computation: {time_end} sec")
+    time_tot.append(time_end)
 
-# np.savetxt(f"/data/fdimarca/projects/0_ISING/results/time_data/times_dmrg_L_{L}_chis_2-4-8-16-32-64-128", time_tot)
+np.savetxt(f"{path}times_dmrg_L_{L}_chis_2-4-8-16-32-64-128", time_tot)
 
 # load time
 
-# time_tot = np.loadtxt(f"/data/fdimarca/projects/0_ISING/results/time_data/times_dmrg_L_{L}_chis_2-4-8-16-32-64-128")
+time_tot = np.loadtxt(f"{path}times_dmrg_L_{L}_chis_2-4-8-16-32-64-128")
 
 # default parameters of the plot layout
 import matplotlib.pyplot as plt
@@ -87,8 +88,8 @@ def fit(x_data, y_data, ftype):
 # Example usage:
 # Generate some example data
 x_data = chis
-time_tot = np.array([3.23587389e+00,
-                    1.07527894e+01, 1.68719734e+02, 2.00160884e+03]) # 7.57573918e-02, 1.71739756e-01, 4.02117394e-01,
+# time_tot = np.array([3.23587389e+00,
+#                     1.07527894e+01, 1.68719734e+02, 2.00160884e+03]) # 7.57573918e-02, 1.71739756e-01, 4.02117394e-01,
 y_data = time_tot
 
 # Fit the data to the exponential function
@@ -159,15 +160,15 @@ chi = 64 #,8,16,32,64,128,256,512
 h = 1
 J = 1
 eps = 0
-time_tot = np.array([
-    4.262944635422900319e+01,
-    1.045260993340052664e+02,
-    1.592617676099762321e+02,
-    2.302356971697881818e+02,
-    3.002348961471579969e+02,
-    3.662781152101233602e+02,
-    4.503631118210032582e+02,
-    ])
+# time_tot = np.array([
+#     4.262944635422900319e+01,
+#     1.045260993340052664e+02,
+#     1.592617676099762321e+02,
+#     2.302356971697881818e+02,
+#     3.002348961471579969e+02,
+#     3.662781152101233602e+02,
+#     4.503631118210032582e+02,
+#     ])
 
 x_data = Ls
 y_data = time_tot

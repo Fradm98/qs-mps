@@ -133,7 +133,7 @@ class MPO_ladder():
                 else:
                     alpha = 0
                 
-            c_n_j = (1+self.charges[n,col])**(alpha) * np.prod(self.charges[n+1:,col])
+            c_n_j = (1+self.charges[n,col])**(alpha) * np.prod(self.charges[:n,col])
         else:
             if n == 1:
                 c_n_j = np.prod([self.charges[:,col] for col in range(mpo_site+1)])
@@ -192,13 +192,13 @@ class MPO_ladder():
         e, v = np.linalg.eigh(H)
         return e, v
 
-mpo = MPO_ladder(l=3, L=3, lamb=0)
+mpo = MPO_ladder(l=2, L=3, lamb=0)
 rows = []
 columns = []
-mpo.add_charges([0,2],[2,1])
+mpo.add_charges([1,1],[0,2])
 print(f"charges:\n{mpo.charges}")
-print(f"degrees of freedom:\n{mpo.dof}")
+# print(f"degrees of freedom:\n{mpo.dof}")
 print(f"lattice:\n{mpo.latt._lattice_drawer.draw_lattice()}")
-print(f"shape:\n{tensor_shapes(mpo.mpo)}")
+# print(f"shape:\n{tensor_shapes(mpo.mpo)}")
 e, v = mpo.diagonalize()
 print(f"spectrum:\n{e}")
