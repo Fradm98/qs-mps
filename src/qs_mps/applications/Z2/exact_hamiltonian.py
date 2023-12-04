@@ -1,6 +1,6 @@
 from qs_mps.utils import *
 from qs_mps.sparse_hamiltonians_and_operators import sparse_pauli_x, sparse_pauli_z
-from qs_mps.applications.Z2.lattice import Lattice
+from qs_mps.lattice import Lattice
 import numpy as np
 from scipy.sparse import identity, csc_array, linalg
 

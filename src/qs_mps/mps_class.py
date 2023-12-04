@@ -6,6 +6,7 @@ from scipy.linalg import expm, solve
 from .utils import *
 from .checks import check_matrix
 from .sparse_hamiltonians_and_operators import exact_evolution_sparse, sparse_ising_ground_state, U_evolution_sparse
+from .mpo_class import MPO_ladder
 import matplotlib.pyplot as plt
 import time
 import warnings
@@ -28,12 +29,11 @@ class MPS:
         self.bonds = []
         self.ancilla_sites = []
         self.ancilla_bonds = []
-        self.schmidt_left = []
-        self.schmidt_right = []
         self.env_left = []
         self.env_right = []
         self.env_left_sm = []
         self.env_right_sm = []
+        self.Z2 = MPO_ladder(L=self.L, l=int(np.log2(self.d)), model=self.model, lamb=self.h)
 
     # -------------------------------------------------
     # Manipulation of tensors, state preparation
@@ -509,6 +509,10 @@ class MPS:
         elif self.model == "Z2_two_ladder":
             self.mpo_Z2_two_ladder()
 
+        elif self.model == "Z2_dual":
+            self.Z2.mpo_Z2_ladder_generalized()
+            self.w = self.Z2.mpo
+
         return self
 
     # -------------------------------------------------
@@ -703,6 +707,8 @@ class MPS:
         elif quench == 'global':
             if self.model == 'Ising':
                 self.mpo_Ising_quench_global(delta, h_ev, J_ev)
+            if self.model == 'Z2':
+                MPO_ladder.mpo_Z2_quench_global(delta, h_ev, J_ev)
 
     def mpo_quench_flip(self, sites):
         """
@@ -792,7 +798,7 @@ class MPS:
     # -------------------------------------------------
     # Observables, order parameters
     # -------------------------------------------------
-    def order_param(self):
+    def order_param(self, op: None):
         """
         order_param
 
@@ -802,10 +808,13 @@ class MPS:
 
         """
         if self.model == "Ising":
-            self.order_param_Ising()
+            self.order_param_Ising(op=op)
 
         elif self.model == "Z2_two_ladder":
             self.order_param_Z2()
+        
+        elif self.model == "Z2_dual":
+            self.order_param_Z2_dual()
 
         return self
 
@@ -870,6 +879,38 @@ class MPS:
         self.w = w_tot
         return self
 
+    def order_param_Z2_dual(self):
+        """
+        order_param_Z2_dual
+
+        This function defines the MPO order parameter for the Z2 pure lattice gauge theory,
+        on the dual lattice. It is equivalent to a 2D transverse field Ising model.
+
+        """
+        self.Z2.order_param_Z2_dual()
+        self.w = self.Z2.mpo
+        return self
+
+    def local_param(self, site: None, op: None):
+        """
+        local_param
+
+        This function selects which local parameter to use according to the
+        studied model. Here you can add other local parameters that you have
+        independently defined in the class.
+
+        """
+        if self.model == "Ising":
+            self.single_operator_Ising(site=site, op=op)
+
+        elif self.model == "Z2_two_ladder":
+            self.sigma_x_Z2_two_ladder()
+
+        elif self.model == "Z2_dual":
+            self.single_operator_Z2_dual(site=site, l=op)
+
+        return self
+    
     def sigma_x_Z2_one_ladder(self, site):
         I = np.eye(2)
         O = np.zeros((2, 2))
@@ -942,6 +983,18 @@ class MPS:
         self.w = w_tot
         return self
 
+    def single_operator_Z2_dual(self, site, l):
+        """
+        order_param_Z2_dual
+
+        This function defines the MPO order parameter for the Z2 pure lattice gauge theory,
+        on the dual lattice. It is equivalent to a 2D transverse field Ising model.
+
+        """
+        self.Z2.local_site_observable_Z2_dual(mpo_site=site, l=l)
+        self.w = self.Z2.mpo
+        return self
+    
     def mps_local_exp_val(self, op):
         chain = []
         self.clear_envs()
@@ -951,6 +1004,7 @@ class MPS:
             chain.append(self.braket(site=i))
         self.clear_envs()
         return chain
+
 
     # -------------------------------------------------
     # Manipulation of MPOs
@@ -2042,15 +2096,15 @@ class MPS:
         self.enlarge_chi()
 
         # total
-        self.order_param_Ising(op=Z)
+        self.order_param(op=Z)
         mag_mps_tot.append(np.real(self.mpo_first_moment()))
         # loc X
-        self.single_operator_Ising(site=self.L // 2 + 1, op=X)
+        self.local_param(site=self.L // 2 + 1, op=X)
         mag_mps_loc_X.append(np.real(self.mpo_first_moment()))
         # local glob Z
         mag_loc = []
         for i in range(self.L):
-            self.single_operator_Ising(site=i + 1, op=Z)
+            self.local_param(site=i + 1, op=Z)
             mag_loc.append(np.real(self.mpo_first_moment()))
         mag_mps_loc.append(mag_loc)
 
@@ -2087,15 +2141,15 @@ class MPS:
             entropies.append(entropy)
 
             # total
-            self.order_param_Ising(op=Z)
+            self.order_param(op=Z)
             mag_mps_tot.append(np.real(self.mpo_first_moment(mixed=True)))
             # loc X
-            self.single_operator_Ising(site=self.L // 2 + 1, op=X)
+            self.local_param(site=self.L // 2 + 1, op=X)
             mag_mps_loc_X.append(np.real(self.mpo_first_moment(mixed=True)))
             # local glob Z
             mag = []
             for i in range(self.L):
-                self.single_operator_Ising(site=i + 1, op=Z)
+                self.local_param(site=i + 1, op=Z)
                 mag.append(self.mpo_first_moment(mixed=True).real)
             mag_mps_loc.append(mag)
 
@@ -2111,6 +2165,172 @@ class MPS:
                 overlap.append(np.abs((psi_new_mpo.T.conjugate() @ psi_exact).real))
         return mag_mps_tot, mag_mps_loc_X, mag_mps_loc, overlap, errors, entropies
 
+    def TEBD_variational_Z2(
+        self,
+        trotter_steps: int,
+        delta: float,
+        h_ev: float,
+        quench: str,
+        flip: bool,
+        n_sweeps: int = 2,
+        conv_tol: float = 1e-7,
+        fidelity: bool = False,
+        bond: bool = True,
+        where: int = -1,
+    ):
+        """
+        variational_mps_evolution
+
+        This function computes the magnetization and (on demand) the fidelity
+        of the trotter evolved MPS by the MPO direct application.
+
+        trotter_steps: int - number of times we apply the mpo to the mps
+        delta: float - time interval which defines the evolution per step
+        h_ev: float - value of the external field in the evolving hamiltonian
+        flip: bool - flip the initial state middle qubit
+        quench: str - type of quench we want to execute. Available are 'flip', 'global'
+        fidelity: bool - we can compute the fidelity with the initial state
+                if the chain is small enough. By default False
+        err: bool - computes the distance error between the guess state and an
+                uncompressed state. If True it is used as a convergence criterion.
+                By default True
+
+        """
+        overlap = []
+        mag_mps_tot = []
+        mag_mps_loc = []
+        mag_mps_int_hor = []
+        mag_mps_int_ver = []
+        entropies = []
+        X = np.array([[0, 1], [1, 0]])
+        Z = np.array([[1, 0], [0, -1]])
+
+        if flip:
+            if self.L % 2 == 0:
+                self.sites[self.L // 2] = np.array([[[0], [1]]])
+                self.sites[self.L // 2 - 1] = np.array([[[0], [1]]])
+            else:
+                self.sites[self.L // 2] = np.array([[[0], [1]]])
+
+        # enlarging our local tensor to the max bond dimension
+        self.enlarge_chi()
+
+        # total
+        self.order_param(op=Z)
+        mag_mps_tot.append(np.real(self.mpo_first_moment()))
+        # local glob Z
+        mag_loc = []
+        for i in range(self.L-1):
+            for j in range(self.Z2.l):
+                self.local_param(site=i, op=j)
+                mag_loc.append(np.real(self.mpo_first_moment()))
+        mag_mps_loc.append(mag_loc)
+        # zz horizontal
+        mag_int_hor = []
+        for i in range(self.L-2):
+            for j in range(self.Z2.l):
+                self.Z2.zz_observable_Z2_dual(mpo_site=i,l=j,direction='horizontal')
+                self.w = self.Z2.mpo
+                mag_int_hor.append(np.real(self.mpo_first_moment()))
+        mag_mps_int_hor.append(mag_int_hor)
+        # zz vertical
+        mag_int_ver = []
+        for i in range(self.L-1):
+            for j in range(self.Z2.l-1):
+                self.Z2.zz_observable_Z2_dual(mpo_site=i,l=j,direction='vertical')
+                self.w = self.Z2.mpo
+                mag_int_ver.append(np.real(self.mpo_first_moment()))
+        mag_mps_int_ver.append(mag_int_ver)
+
+        # fidelity
+        if fidelity:
+            psi_exact_0 = sparse_ising_ground_state(L=self.L, h_t=self.h).reshape(
+                2**self.L, 1
+            )
+            psi_new_mpo = mps_to_vector(self.sites)
+            overlap.append(np.abs((psi_new_mpo.T.conjugate() @ psi_exact_0).real))
+
+        # initialize ancilla with a state in Right Canonical Form
+        self.canonical_form(trunc_chi=True, trunc_tol=False)
+        self._compute_norm(site=1)
+        self.ancilla_sites = self.sites.copy()
+
+        errors = [[0, 0]]
+        
+        for trott in range(trotter_steps):
+            print(f"------ Trotter steps: {trott} -------")
+
+            # start with the half mu_x on each ladder
+            self.Z2._initialize_finalize_quench_local(delta=delta)
+            self.w = self.Z2.mpo
+            self.mpo_to_mps()
+            for l in range(1,self.Z2.l+1):
+                # apply repeatedly the mu_z evolution for every ladder
+                self.Z2.mpo_Z2_quench_ladder(l=l, delta=delta)
+                self.w = self.Z2.mpo
+
+                print(f"Bond dim ancilla: {self.ancilla_sites[self.L//2].shape[0]}")
+                print(f"Bond dim site: {self.sites[self.L//2].shape[0]}")
+                
+                # compress the ladder evolution operator
+                error, entropy = self.compression(
+                    trunc_tol=False,
+                    trunc_chi=True,
+                    n_sweeps=n_sweeps,
+                    conv_tol=conv_tol,
+                    bond=bond,
+                    where=where,
+                )
+                self.ancilla_sites = self.sites.copy()
+            
+            # finish with the other half mu_x on each ladder
+            self.Z2._initialize_finalize_quench_local(delta=delta)
+            self.w = self.Z2.mpo
+            self.mpo_to_mps()
+
+            self.ancilla_sites = self.sites.copy()
+            errors.append(error)
+            entropies.append(entropy)
+
+            # total
+            self.order_param(op=Z)
+            mag_mps_tot.append(np.real(self.mpo_first_moment()))
+            # local glob Z
+            mag_loc = []
+            for i in range(self.L-1):
+                for j in range(self.Z2.l):
+                    self.local_param(site=i, op=j)
+                    mag_loc.append(np.real(self.mpo_first_moment()))
+            mag_mps_loc.append(mag_loc)
+            # zz horizontal
+            mag_int_hor = []
+            for i in range(self.L-2):
+                for j in range(self.Z2.l):
+                    self.Z2.zz_observable_Z2_dual(mpo_site=i,l=j,direction='horizontal')
+                    self.w = self.Z2.mpo
+                    mag_int_hor.append(np.real(self.mpo_first_moment()))
+            mag_mps_int_hor.append(mag_int_hor)
+            # zz vertical
+            mag_int_ver = []
+            for i in range(self.L-1):
+                for j in range(self.Z2.l-1):
+                    self.Z2.zz_observable_Z2_dual(mpo_site=i,l=j,direction='vertical')
+                    self.w = self.Z2.mpo
+                    mag_int_ver.append(np.real(self.mpo_first_moment()))
+            mag_mps_int_ver.append(mag_int_ver)
+
+            if fidelity:
+                psi_exact = U_evolution_sparse(
+                    L=self.L,
+                    psi_init=psi_exact_0,
+                    trotter_step=(trott + 1),
+                    delta=delta,
+                    h_t=h_ev,
+                )
+                psi_new_mpo = mps_to_vector(self.sites)
+                overlap.append(np.abs((psi_new_mpo.T.conjugate() @ psi_exact).real))
+        return mag_mps_tot, mag_mps_loc, mag_mps_int_hor, mag_mps_int_ver, overlap, errors, entropies
+    
     # -------------------------------------------------
     # Computing expectation values
     # -------------------------------------------------

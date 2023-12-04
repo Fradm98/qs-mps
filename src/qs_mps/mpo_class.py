@@ -1,9 +1,9 @@
-from scipy.sparse import csc_array, identity, linalg
+from .lattice import Lattice
+from .sparse_hamiltonians_and_operators import sparse_pauli_z, sparse_pauli_x
+# from .mps_class import MPS
+from .utils import mpo_to_matrix
 from ncon import ncon
-from qs_mps.sparse_hamiltonians_and_operators import sparse_pauli_z, sparse_pauli_x
-from qs_mps.utils import mpo_to_matrix, tensor_shapes
-from qs_mps.lattice import Lattice
-from qs_mps.mps_class import MPS
+from scipy.sparse import csc_array, identity, linalg
 import numpy as np
 
 class MPO_ladder():
@@ -193,13 +193,13 @@ class MPO_ladder():
         e, v = np.linalg.eigh(H)
         return e, v
 
-    def mpo_Z2_quench_global(self, l: int=None, delta: float=None, mps: MPS=None):
+    # def initialize_finalize_Z2_quench_global(self, delta: float=None, mps: MPS=None):
 
-        self._initialize_quench_local()
-        mps.mpo_to_mps()
-        self.mpo_Z2_quench_ladder(l=l, delta=delta)
+    #     self._initialize_finalize_quench_local()
+    #     mps.w = self.mpo
+    #     mps.mpo_to_mps()
 
-    def _initialize_quench_local(self):
+    def _initialize_finalize_quench_local(self, delta):
 
         I = identity(2**self.l, dtype=complex).toarray()
         w_tot = []
@@ -207,7 +207,7 @@ class MPO_ladder():
             w_init_X = I
             for l in range(self.l):
                 X_l = sparse_pauli_x(n=l, L=self.l).toarray()
-                w_init_X_l = linalg.expm(1j * self.lamb * X_l)
+                w_init_X_l = linalg.expm(1j * self.lamb * delta * X_l)
                 w_init_X = ncon([w_init_X_l,w_init_X],[[-1,1],[1,-2]]) 
             w_tot.append(w_init_X)
         self.mpo = w_tot
@@ -281,15 +281,92 @@ class MPO_ladder():
         w_tot.append(w_fin)
         self.mpo = w_tot
         return self
+    
+    def order_param_Z2_dual(self):
+        """
+        mpo_skeleton
 
+        This function initializes the mpo tensor or shape (2+l,2+l,2**l,2**l)
+        with O matrices. We add as well the identities in the first and last 
+        element of the mpo tensor.
 
-# mpo = MPO_ladder(l=2, L=3, lamb=0)
-# rows = []
-# columns = []
-# mpo.add_charges([1,1],[0,2])
-# print(f"charges:\n{mpo.charges}")
-# # print(f"degrees of freedom:\n{mpo.dof}")
-# print(f"lattice:\n{mpo.latt._lattice_drawer.draw_lattice()}")
-# # print(f"shape:\n{tensor_shapes(mpo.mpo)}")
-# e, v = mpo.diagonalize()
-# print(f"spectrum:\n{e}")
+        """
+        I = identity(2**self.l, dtype=complex)
+        O = csc_array((2**self.l,2**self.l), dtype=complex)
+        skeleton = np.array([[O.toarray() for i in range(2)] for j in range(2)])
+        skeleton[0,0] = I.toarray()
+        skeleton[-1,-1] = I.toarray()
+        self.mpo = skeleton
+        
+        mpo_tot = []
+        for _ in range(self.L-1):
+            for i in range(self.l):
+                self.mpo[0,-1] += sparse_pauli_z(n=i, L=self.l).toarray()
+
+            mpo_tot.append(self.mpo)
+            self.mpo = skeleton
+
+        self.mpo = mpo_tot
+        return self
+    
+    def local_site_observable_Z2_dual(self, mpo_site, l):
+        """
+        mpo_skeleton
+
+        This function initializes the mpo tensor or shape (2+l,2+l,2**l,2**l)
+        with O matrices. We add as well the identities in the first and last 
+        element of the mpo tensor.
+
+        """
+        I = identity(2**self.l, dtype=complex)
+        O = csc_array((2**self.l,2**self.l), dtype=complex)
+        skeleton = np.array([[O.toarray() for i in range(2)] for j in range(2)])
+        skeleton[0,0] = I.toarray()
+        skeleton[-1,-1] = I.toarray()
+        self.mpo = skeleton
+        
+        mpo_tot = []
+        for site in range(self.L-1):
+            if mpo_site == site:
+                self.mpo[0,-1] = sparse_pauli_z(n=l, L=self.l).toarray()
+
+            mpo_tot.append(self.mpo)
+            self.mpo = skeleton
+
+        self.mpo = mpo_tot
+        return self
+    
+    def zz_observable_Z2_dual(self, mpo_site, l, direction):
+        """
+        mpo_skeleton
+
+        This function initializes the mpo tensor or shape (2+l,2+l,2**l,2**l)
+        with O matrices. We add as well the identities in the first and last 
+        element of the mpo tensor.
+
+        """
+        I = identity(2**self.l, dtype=complex)
+        O = csc_array((2**self.l,2**self.l), dtype=complex)
+        skeleton = np.array([[O.toarray() for i in range(3)] for j in range(3)])
+        skeleton[0,0] = I.toarray()
+        skeleton[-1,-1] = I.toarray()
+        self.mpo = skeleton
+        
+        mpo_tot = []
+        i = 0
+        
+        for site in range(self.L-1):
+            if direction == "horizontal":
+                if mpo_site == site or i == 1:
+                    self.mpo[0,1] = sparse_pauli_z(n=l, L=self.l).toarray()
+                    self.mpo[1,-1] = sparse_pauli_z(n=l, L=self.l).toarray()
+                    i = 1
+            elif direction == "vertical":
+                if mpo_site == site:
+                    self.mpo[0,-1] = sparse_pauli_z(n=l, L=self.l).toarray() @ sparse_pauli_z(n=l+1, L=self.l).toarray()
+
+            mpo_tot.append(self.mpo)
+            self.mpo = skeleton
+
+        self.mpo = mpo_tot
+        return self
