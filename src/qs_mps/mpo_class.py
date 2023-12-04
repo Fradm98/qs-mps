@@ -193,12 +193,6 @@ class MPO_ladder():
         e, v = np.linalg.eigh(H)
         return e, v
 
-    # def initialize_finalize_Z2_quench_global(self, delta: float=None, mps: MPS=None):
-
-    #     self._initialize_finalize_quench_local()
-    #     mps.w = self.mpo
-    #     mps.mpo_to_mps()
-
     def _initialize_finalize_quench_local(self, delta):
 
         I = identity(2**self.l, dtype=complex).toarray()
@@ -332,6 +326,34 @@ class MPO_ladder():
 
             mpo_tot.append(self.mpo)
             self.mpo = skeleton
+
+        self.mpo = mpo_tot
+        return self
+    
+    def wilson_Z2_dual(self, mpo_sites: list, ls: list):
+        """
+        mpo_skeleton
+
+        This function initializes the mpo tensor or shape (2+l,2+l,2**l,2**l)
+        with O matrices. We add as well the identities in the first and last 
+        element of the mpo tensor.
+
+        """
+        self.mpo_skeleton()
+        I = identity(2**self.l, dtype=complex)
+        mpo_tot = []
+        
+        for site in range(self.L-1):
+            if site in mpo_sites:
+                for n in ls:
+                    self.mpo[0,n] = sparse_pauli_x(n=n-1, L=self.l).toarray() 
+                    self.mpo[n,-1] = sparse_pauli_x(n=n-1, L=self.l).toarray()
+            else:
+                for n in ls:
+                    self.mpo[n,-1] = I
+
+            mpo_tot.append(self.mpo)
+            self.mpo_skeleton()
 
         self.mpo = mpo_tot
         return self

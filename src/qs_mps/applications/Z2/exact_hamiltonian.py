@@ -85,10 +85,10 @@ class H_Z2_gauss():
         # e, v = np.linalg.eigh(H.toarray())
         return e, v
 
-Z2_exact = H_Z2_gauss(L=3, l=3, model="Z2", lamb=0, U=1e+3)
-Z2_exact.add_charges([0,2],[1,1])
-print(f"charges:\n{Z2_exact.charges}")
-print(f"degrees of freedom:\n{Z2_exact.dof}")
-print(f"lattice:\n{Z2_exact.latt._lattice_drawer.draw_lattice()}")
-e, v = Z2_exact.diagonalize()
-print(f"spectrum:\n{np.sort(e)}")
+# Z2_exact = H_Z2_gauss(L=3, l=3, model="Z2", lamb=1e-7, U=1e+3)
+# # Z2_exact.add_charges([0,2],[1,1])
+# print(f"charges:\n{Z2_exact.charges}")
+# print(f"degrees of freedom:\n{Z2_exact.dof}")
+# print(f"lattice:\n{Z2_exact.latt._lattice_drawer.draw_lattice()}")
+# e, v = Z2_exact.diagonalize()
+# print(f"spectrum:\n{np.sort(e)}")

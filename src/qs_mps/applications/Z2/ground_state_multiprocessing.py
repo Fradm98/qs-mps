@@ -6,10 +6,13 @@ def ground_state_Z2_param(params):
     args_mps = params[0]
     param = params[1]
     ladder = MPS(L=args_mps['L'], d=args_mps['d'], model=args_mps['model'], chi=args_mps['chi'], h=param)
+    if ladder.model == "Z2_dual":
+        ladder.L = ladder.L-1
     ladder._random_state(seed = 7, chi=args_mps['chi'])
     ladder.canonical_form()
-    energy, entropy = ladder.DMRG(trunc_tol=args_mps['trunc_tol'],trunc_chi=args_mps['trunc_chi'])
-    ladder.save_sites("/Users/fradm98/Desktop/qs-mps/results/tensor_data")
+    energy, entropy = ladder.DMRG(trunc_tol=args_mps['trunc_tol'],trunc_chi=args_mps['trunc_chi'], where=args_mps['where'])
+    
+    ladder.save_sites("/Users/fradm98/Desktop/qs-mps")
     return energy, entropy
 
 def ground_state_Z2_multpr(args_mps, multpr_param, cpu_percentage=90):
@@ -39,6 +42,6 @@ def ground_state_Z2(args_mps, multpr, param):
             params = [args_mps, p]
             energy, entropy = ground_state_Z2_param(params=params)
             energies_param.append(energy[-1])
-            entropies_param.append(entropy[-1])
+            entropies_param.append(entropy)
 
     return energies_param, entropies_param
