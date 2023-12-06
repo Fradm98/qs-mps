@@ -15,21 +15,31 @@ import time
 L = 4
 l = 2
 d = int(2**l)
-chi = 2 # this is interpreted as d**(int(log2(chi))) --> e.g. chi=8 == 4**3=64
-array = np.linspace(1e-7,10,100)
+chi = 2  # this is interpreted as d**(int(log2(chi))) --> e.g. chi=8 == 4**3=64
+array = np.linspace(1e-7, 10, 100)
 hs = [h for h in array]
 model = "Z2_dual"
 energies_h = []
 multpr = False
 param = hs
 # %%
-if __name__ == '__main__':
+if __name__ == "__main__":
     i = 0
     # for L in Ls:
-    args_mps = {"L": L, "d": d, "chi": chi, "model": model, "trunc_tol": False, "trunc_chi": True, "where": L//2}
+    args_mps = {
+        "L": L,
+        "d": d,
+        "chi": chi,
+        "model": model,
+        "trunc_tol": False,
+        "trunc_chi": True,
+        "where": L // 2,
+    }
 
-    energies_h, entropy_h = ground_state_Z2(args_mps=args_mps, multpr=multpr, param=param)
-    
+    energies_h, entropy_h = ground_state_Z2(
+        args_mps=args_mps, multpr=multpr, param=param
+    )
+
     # %%
     # exact
     eig_exact = []
@@ -38,9 +48,9 @@ if __name__ == '__main__':
     for h in hs:
         ladder = MPS(L=L, d=d, model=model, h=h, eps=0, J=1, chi=chi)
         ladder.L = ladder.L - 1
-        
+
         ladder.load_sites("/Users/fradm98/Desktop/qs-mps")
-        ladder.Z2.wilson_Z2_dual(mpo_sites=[0,1], ls=[1])
+        ladder.Z2.wilson_Z2_dual(mpo_sites=[0, 1], ls=[1])
         ladder.w = ladder.Z2.mpo
         W.append(ladder.mpo_first_moment())
         # Z2_exact = H_Z2_gauss(L=5, l=2, model="Z2", lamb=h, U=1e+5)
@@ -65,8 +75,8 @@ if __name__ == '__main__':
     #             )
     # plt.plot(hs,eig_exact,'--',color='red', label='exact gs')
     print(ladder.Z2.latt._lattice_drawer.draw_lattice())
-    plt.plot(hs,W,'-',color='red', label='Wilson loop')
-    plt.vlines(x=3.044,ymin=np.min(W),ymax=np.max(W))
+    plt.plot(hs, W, "-", color="red", label="Wilson loop")
+    plt.vlines(x=3.044, ymin=np.min(W), ymax=np.max(W))
     # plt.plot(hs,eig_first,'--',color='blue', label='exact 1º excited')
     # print(f"Point of max energy: {array[np.argmax(energies_h)]}")
 # plt.title(f"Energy(h)")
@@ -76,6 +86,6 @@ plt.xlabel("electric local parameter (h)")
 plt.legend()
 plt.show()
 # %%
-plt.plot(hs,W,'-',color='red', label='Wilson loop')
-plt.vlines(x=1/3.044,ymin=np.min(W),ymax=np.max(W))
+plt.plot(hs, W, "-", color="red", label="Wilson loop")
+plt.vlines(x=1 / 3.044, ymin=np.min(W), ymax=np.max(W))
 # %%

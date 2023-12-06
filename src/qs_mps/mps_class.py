@@ -5,11 +5,16 @@ from scipy.sparse import csr_matrix, csr_array, identity
 from scipy.linalg import expm, solve
 from .utils import *
 from .checks import check_matrix
-from .sparse_hamiltonians_and_operators import exact_evolution_sparse, sparse_ising_ground_state, U_evolution_sparse
+from .sparse_hamiltonians_and_operators import (
+    exact_evolution_sparse,
+    sparse_ising_ground_state,
+    U_evolution_sparse,
+)
 from .mpo_class import MPO_ladder
 import matplotlib.pyplot as plt
 import time
 import warnings
+
 
 class MPS:
     def __init__(
@@ -33,7 +38,9 @@ class MPS:
         self.env_right = []
         self.env_left_sm = []
         self.env_right_sm = []
-        self.Z2 = MPO_ladder(L=self.L, l=int(np.log2(self.d)), model=self.model, lamb=self.h)
+        self.Z2 = MPO_ladder(
+            L=self.L, l=int(np.log2(self.d)), model=self.model, lamb=self.h
+        )
 
     # -------------------------------------------------
     # Manipulation of tensors, state preparation
@@ -126,7 +133,9 @@ class MPS:
 
         return self
 
-    def right_svd(self, schmidt_tol: float, ancilla: bool, trunc_chi: bool, trunc_tol: bool):
+    def right_svd(
+        self, schmidt_tol: float, ancilla: bool, trunc_chi: bool, trunc_tol: bool
+    ):
         """
         right_svd
 
@@ -195,7 +204,9 @@ class MPS:
 
         return self
 
-    def left_svd(self, schmidt_tol: float, ancilla: bool, trunc_chi: bool, trunc_tol: bool):
+    def left_svd(
+        self, schmidt_tol: float, ancilla: bool, trunc_chi: bool, trunc_tol: bool
+    ):
         """
         left_svd
 
@@ -384,7 +395,7 @@ class MPS:
         """
         check_canonical
 
-        This funciton checks if the tensor at a certain site is in the correct 
+        This funciton checks if the tensor at a certain site is in the correct
         mixed canonical form, e.g., LCF on the left of the site and RCF on the right of the site.
 
         site: int - where we want to observe the canonical form of our mps
@@ -392,12 +403,15 @@ class MPS:
         """
         array = self.sites
         a = np.array([1])
-        
-        env = ncon([a,a],[[-1],[-2]])
+
+        env = ncon([a, a], [[-1], [-2]])
         env_l = env
-        for i in range(0,site-1):
+        for i in range(0, site - 1):
             I = np.eye(array[i].shape[2])
-            env_l = ncon([env_l, array[i], array[i].conjugate()],[[1,2],[1,3,-1],[2,3,-2]])
+            env_l = ncon(
+                [env_l, array[i], array[i].conjugate()],
+                [[1, 2], [1, 3, -1], [2, 3, -2]],
+            )
             env_trunc = truncation(env_l, threshold=1e-15)
             env_trunc = csr_matrix(env_trunc)
             I = csr_matrix(I)
@@ -406,9 +420,12 @@ class MPS:
                 print(f"the tensor at site {i+1} is in the correct LFC")
 
         env_r = env
-        for i in range(self.L-1, site, -1):
+        for i in range(self.L - 1, site, -1):
             I = np.eye(array[i].shape[0])
-            env_r = ncon([array[i],array[i].conjugate(),env_r],[[-1,3,1],[-2,3,2],[1,2]])
+            env_r = ncon(
+                [array[i], array[i].conjugate(), env_r],
+                [[-1, 3, 1], [-2, 3, 2], [1, 2]],
+            )
             env_trunc = truncation(env_r, threshold=1e-15)
             env_trunc = csr_matrix(env_trunc)
             I = csr_matrix(I)
@@ -424,24 +441,26 @@ class MPS:
         kets = self.sites
         bras = [ket.conjugate() for ket in kets]
         a = np.array([1])
-        env = ncon([a,a],[[-1],[-2]])
-        up = [int(-elem) for elem in np.linspace(1,0,0)]
-        down = [int(-elem) for elem in np.linspace(self.L+1,0,0)] 
+        env = ncon([a, a], [[-1], [-2]])
+        up = [int(-elem) for elem in np.linspace(1, 0, 0)]
+        down = [int(-elem) for elem in np.linspace(self.L + 1, 0, 0)]
         mid_up = [1]
         mid_down = [2]
         label_env = up + down + mid_up + mid_down
         # first site:
         for i in range(len(kets)):
-            label_ket = [1,-1-i,-self.L*100]
-            label_bra = [2,-self.L-1-i,-self.L*100-1]
-            env = ncon([env,kets[i],bras[i]],[label_env,label_ket,label_bra])
-            up = [int(-elem) for elem in np.linspace(1,i+1,i+1)]
-            down = [int(-elem) for elem in np.linspace(self.L+1,self.L+1+i,i+1)] 
+            label_ket = [1, -1 - i, -self.L * 100]
+            label_bra = [2, -self.L - 1 - i, -self.L * 100 - 1]
+            env = ncon([env, kets[i], bras[i]], [label_env, label_ket, label_bra])
+            up = [int(-elem) for elem in np.linspace(1, i + 1, i + 1)]
+            down = [
+                int(-elem) for elem in np.linspace(self.L + 1, self.L + 1 + i, i + 1)
+            ]
             label_env = up + down + mid_up + mid_down
-        
-        mps_dm = ncon([env,a,a],[label_env,[1],[2]])
+
+        mps_dm = ncon([env, a, a], [label_env, [1], [2]])
         return mps_dm
-    
+
     def reduced_density_matrix(self, sites):
         """
         reduced_density_matrix
@@ -449,45 +468,48 @@ class MPS:
         This function allows us to get the reduced density matrix (rdm) of a mps.
         We trace out all the sites not specified in the argument sites.
         The algorithm only works for consecutive sites, e.g., [1,2,3],
-        [56,57], etc. To implement a rdm of sites [5,37] we need another middle 
+        [56,57], etc. To implement a rdm of sites [5,37] we need another middle
         environment that manages the contractions between the specified sites
         """
         kets = self.sites
         bras = [ket.conjugate() for ket in kets]
         a = np.array([1])
-        env = ncon([a,a],[[-1],[-2]])
-        up = [int(-elem) for elem in np.linspace(1,0,0)]
-        down = [int(-elem) for elem in np.linspace(self.L+1,0,0)] 
+        env = ncon([a, a], [[-1], [-2]])
+        up = [int(-elem) for elem in np.linspace(1, 0, 0)]
+        down = [int(-elem) for elem in np.linspace(self.L + 1, 0, 0)]
         mid_up = [1]
         mid_down = [2]
         label_env = up + down + mid_up + mid_down
         # left env:
         env_l = env
-        for i in range(sites[0]-1):
-            label_ket = [1,3,-1]
-            label_bra = [2,3,-2]
-            env_l = ncon([env_l,kets[i],bras[i]],[label_env,label_ket,label_bra])
+        for i in range(sites[0] - 1):
+            label_ket = [1, 3, -1]
+            label_bra = [2, 3, -2]
+            env_l = ncon([env_l, kets[i], bras[i]], [label_env, label_ket, label_bra])
         # right env:
         env_r = env
-        for i in range(self.L-1,sites[-1],-1): 
-            label_ket = [-1,3,1]
-            label_bra = [-2,3,2]
-            env_r = ncon([env_r,kets[i],bras[i]],[label_env,label_ket,label_bra])  
+        for i in range(self.L - 1, sites[-1], -1):
+            label_ket = [-1, 3, 1]
+            label_bra = [-2, 3, 2]
+            env_r = ncon([env_r, kets[i], bras[i]], [label_env, label_ket, label_bra])
         # central env
         idx = 0
-        for i in range(sites[0]-1,sites[-1]):
-            label_ket = [1,-1-i,-len(sites)*100]
-            label_bra = [2,-len(sites)-1-i,-len(sites)*100-1]
-            env_l = ncon([env_l,kets[i],bras[i]],[label_env,label_ket,label_bra])
-            up = [int(-elem) for elem in np.linspace(1,idx+1,idx+1)]
-            down = [int(-elem) for elem in np.linspace(len(sites)+1,len(sites)+1+idx,idx+1)] 
+        for i in range(sites[0] - 1, sites[-1]):
+            label_ket = [1, -1 - i, -len(sites) * 100]
+            label_bra = [2, -len(sites) - 1 - i, -len(sites) * 100 - 1]
+            env_l = ncon([env_l, kets[i], bras[i]], [label_env, label_ket, label_bra])
+            up = [int(-elem) for elem in np.linspace(1, idx + 1, idx + 1)]
+            down = [
+                int(-elem)
+                for elem in np.linspace(len(sites) + 1, len(sites) + 1 + idx, idx + 1)
+            ]
             label_env = up + down + mid_up + mid_down
             idx += 1
 
-        mps_dm = ncon([env_l,env_r],[[label_env],[1,2]])
+        mps_dm = ncon([env_l, env_r], [[label_env], [1, 2]])
 
         return mps_dm
-    
+
     # -------------------------------------------------
     # Matrix Product Operators, MPOs
     # -------------------------------------------------
@@ -684,13 +706,14 @@ class MPS:
 
         pass
 
-    def mpo_quench(self,
-                   quench: str,
-                   delta: float = None,
-                   h_ev: float = None,
-                   J_ev: float = 1,
-                   sites: list = -1,
-        ):
+    def mpo_quench(
+        self,
+        quench: str,
+        delta: float = None,
+        h_ev: float = None,
+        J_ev: float = 1,
+        sites: list = -1,
+    ):
         """
         mpo_quench
 
@@ -700,14 +723,14 @@ class MPS:
 
         """
         if sites == -1:
-            sites = [self.L//2]
-    
-        if quench == 'flip':
+            sites = [self.L // 2]
+
+        if quench == "flip":
             self.mpo_quench_flip(sites)
-        elif quench == 'global':
-            if self.model == 'Ising':
+        elif quench == "global":
+            if self.model == "Ising":
                 self.mpo_Ising_quench_global(delta, h_ev, J_ev)
-            if self.model == 'Z2':
+            if self.model == "Z2":
                 MPO_ladder.mpo_Z2_quench_global(delta, h_ev, J_ev)
 
     def mpo_quench_flip(self, sites):
@@ -717,7 +740,7 @@ class MPS:
         This function defines the quench of a hamiltonian
         which flips the spin system in some sites. The default
         flip is with the X operator.
-        
+
         sites: list - list of sites we want to quench
         """
         I = np.eye(2)
@@ -726,15 +749,15 @@ class MPS:
         X = np.array([[0, 1], [1, 0]])
         X_exp = np.array([[expm(1j * X)]])
         w_tot = []
-        for i in range(1,self.L+1):
+        for i in range(1, self.L + 1):
             if i in sites:
                 w_tot.append(X_exp)
             else:
                 w_tot.append(I)
         self.w = w_tot
         return self
-    
-    def mpo_Ising_quench_global(self, delta: float, h_ev: float, J_ev: float=1):
+
+    def mpo_Ising_quench_global(self, delta: float, h_ev: float, J_ev: float = 1):
         """
         mpo_Ising_quench_global
 
@@ -812,7 +835,7 @@ class MPS:
 
         elif self.model == "Z2_two_ladder":
             self.order_param_Z2()
-        
+
         elif self.model == "Z2_dual":
             self.order_param_Z2_dual()
 
@@ -910,7 +933,7 @@ class MPS:
             self.single_operator_Z2_dual(site=site, l=op)
 
         return self
-    
+
     def sigma_x_Z2_one_ladder(self, site):
         I = np.eye(2)
         O = np.zeros((2, 2))
@@ -994,7 +1017,7 @@ class MPS:
         self.Z2.local_site_observable_Z2_dual(mpo_site=site, l=l)
         self.w = self.Z2.mpo
         return self
-    
+
     def mps_local_exp_val(self, op):
         chain = []
         self.clear_envs()
@@ -1004,7 +1027,6 @@ class MPS:
             chain.append(self.braket(site=i))
         self.clear_envs()
         return chain
-
 
     # -------------------------------------------------
     # Manipulation of MPOs
@@ -1291,15 +1313,19 @@ class MPS:
             w = self.w
 
             for i in range(1, site):
-                E_l = ncon([E_l, ancilla_array[i - 1]],[[1,-3,-4],[1,-2,-1]])
-                E_l = ncon([E_l, w[i - 1]],[[-1,1,2,-4],[2,-2,1,-3]])
-                E_l = ncon([E_l, array[i - 1].conjugate()],[[-1,-2,1,2],[2,1,-3]])
+                E_l = ncon([E_l, ancilla_array[i - 1]], [[1, -3, -4], [1, -2, -1]])
+                E_l = ncon([E_l, w[i - 1]], [[-1, 1, 2, -4], [2, -2, 1, -3]])
+                E_l = ncon(
+                    [E_l, array[i - 1].conjugate()], [[-1, -2, 1, 2], [2, 1, -3]]
+                )
                 env_left.append(E_l)
 
             for j in range(self.L, site, -1):
-                E_r = ncon([E_r,ancilla_array[j - 1]],[[1,-3,-4],[-1,-2,1]])
-                E_r = ncon([E_r,w[j - 1]],[[-1,1,2,-4],[-2,2,1,-3]])
-                E_r = ncon([E_r,array[j - 1].conjugate()],[[-1,-2,1,2],[-3,1,2]])
+                E_r = ncon([E_r, ancilla_array[j - 1]], [[1, -3, -4], [-1, -2, 1]])
+                E_r = ncon([E_r, w[j - 1]], [[-1, 1, 2, -4], [-2, 2, 1, -3]])
+                E_r = ncon(
+                    [E_r, array[j - 1].conjugate()], [[-1, -2, 1, 2], [-3, 1, 2]]
+                )
                 env_right.append(E_r)
             if rev:
                 self.env_right_sm = env_right
@@ -1315,15 +1341,19 @@ class MPS:
                 array = self.ancilla_sites
             w = self.w
             for i in range(1, site):
-                E_l = ncon([E_l, array[i - 1]],[[1,-3,-4],[1,-2,-1]])
-                E_l = ncon([E_l, w[i - 1]],[[-1,1,2,-4],[2,-2,1,-3]])
-                E_l = ncon([E_l, array[i - 1].conjugate()],[[-1,-2,1,2],[2,1,-3]])
+                E_l = ncon([E_l, array[i - 1]], [[1, -3, -4], [1, -2, -1]])
+                E_l = ncon([E_l, w[i - 1]], [[-1, 1, 2, -4], [2, -2, 1, -3]])
+                E_l = ncon(
+                    [E_l, array[i - 1].conjugate()], [[-1, -2, 1, 2], [2, 1, -3]]
+                )
                 self.env_left.append(E_l)
 
             for i in range(self.L, site, -1):
-                E_r = ncon([E_r,array[i - 1]],[[1,-3,-4],[-1,-2,1]])
-                E_r = ncon([E_r,w[i - 1]],[[-1,1,2,-4],[-2,2,1,-3]])
-                E_r = ncon([E_r,array[i - 1].conjugate()],[[-1,-2,1,2],[-3,1,2]])
+                E_r = ncon([E_r, array[i - 1]], [[1, -3, -4], [-1, -2, 1]])
+                E_r = ncon([E_r, w[i - 1]], [[-1, 1, 2, -4], [-2, 2, 1, -3]])
+                E_r = ncon(
+                    [E_r, array[i - 1].conjugate()], [[-1, -2, 1, 2], [-3, 1, 2]]
+                )
                 self.env_right.append(E_r)
         return self
 
@@ -1518,9 +1548,9 @@ class MPS:
                 if mixed:
                     ancilla_array = self.ancilla_sites[site - 1]
                 E_l = self.env_left[-1]
-            E_l = ncon([E_l, ancilla_array],[[1,-3,-4],[1,-2,-1]])
-            E_l = ncon([E_l, w],[[-1,1,2,-4],[2,-2,1,-3]])
-            E_l = ncon([E_l, array.conjugate()],[[-1,-2,1,2],[2,1,-3]])
+            E_l = ncon([E_l, ancilla_array], [[1, -3, -4], [1, -2, -1]])
+            E_l = ncon([E_l, w], [[-1, 1, 2, -4], [2, -2, 1, -3]])
+            E_l = ncon([E_l, array.conjugate()], [[-1, -2, 1, 2], [2, 1, -3]])
             if rev:
                 self.env_left_sm.append(E_l)
                 self.env_right_sm.pop(-1)
@@ -1541,9 +1571,9 @@ class MPS:
                 if mixed:
                     ancilla_array = self.ancilla_sites[site - 1]
                 E_r = self.env_right[-1]
-            E_r = ncon([E_r,ancilla_array],[[1,-3,-4],[-1,-2,1]])
-            E_r = ncon([E_r,w],[[-1,1,2,-4],[-2,2,1,-3]])
-            E_r = ncon([E_r,array.conjugate()],[[-1,-2,1,2],[-3,1,2]])
+            E_r = ncon([E_r, ancilla_array], [[1, -3, -4], [-1, -2, 1]])
+            E_r = ncon([E_r, w], [[-1, 1, 2, -4], [-2, 2, 1, -3]])
+            E_r = ncon([E_r, array.conjugate()], [[-1, -2, 1, 2], [-3, 1, 2]])
             if rev:
                 self.env_right_sm.append(E_r)
                 self.env_left_sm.pop(-1)
@@ -1563,7 +1593,7 @@ class MPS:
         var: bool = False,
         bond: bool = True,
         where: int = -1,
-    ):  
+    ):
         energies = []
         variances = []
         sweeps = ["right", "left"]
@@ -1578,9 +1608,7 @@ class MPS:
             entropy = []
             for i in range(self.L - 1):
                 H = self.H_eff(sites[i])
-                energy = self.eigensolver(
-                    H_eff=H, site=sites[i]
-                ) 
+                energy = self.eigensolver(H_eff=H, site=sites[i])
                 energies.append(energy)
                 s = self.update_state(
                     sweeps[0], sites[i], trunc_tol, trunc_chi, schmidt_tol
@@ -1674,7 +1702,12 @@ class MPS:
         """
         if mpo:
             M = ncon(
-                [self.env_left[-1], self.ancilla_sites[site - 1], self.w[site - 1], self.env_right[-1]],
+                [
+                    self.env_left[-1],
+                    self.ancilla_sites[site - 1],
+                    self.w[site - 1],
+                    self.env_right[-1],
+                ],
                 [[1, 3, -1], [1, 5, 2], [3, 4, 5, -2], [2, 4, -3]],
             )
         else:
@@ -2122,7 +2155,7 @@ class MPS:
         self.ancilla_sites = self.sites.copy()
 
         errors = [[0, 0]]
-        
+
         for trott in range(trotter_steps):
             print(f"------ Trotter steps: {trott} -------")
             self.mpo_quench(quench, delta, h_ev)
@@ -2220,24 +2253,24 @@ class MPS:
         mag_mps_tot.append(np.real(self.mpo_first_moment()))
         # local glob Z
         mag_loc = []
-        for i in range(self.L-1):
+        for i in range(self.L - 1):
             for j in range(self.Z2.l):
                 self.local_param(site=i, op=j)
                 mag_loc.append(np.real(self.mpo_first_moment()))
         mag_mps_loc.append(mag_loc)
         # zz horizontal
         mag_int_hor = []
-        for i in range(self.L-2):
+        for i in range(self.L - 2):
             for j in range(self.Z2.l):
-                self.Z2.zz_observable_Z2_dual(mpo_site=i,l=j,direction='horizontal')
+                self.Z2.zz_observable_Z2_dual(mpo_site=i, l=j, direction="horizontal")
                 self.w = self.Z2.mpo
                 mag_int_hor.append(np.real(self.mpo_first_moment()))
         mag_mps_int_hor.append(mag_int_hor)
         # zz vertical
         mag_int_ver = []
-        for i in range(self.L-1):
-            for j in range(self.Z2.l-1):
-                self.Z2.zz_observable_Z2_dual(mpo_site=i,l=j,direction='vertical')
+        for i in range(self.L - 1):
+            for j in range(self.Z2.l - 1):
+                self.Z2.zz_observable_Z2_dual(mpo_site=i, l=j, direction="vertical")
                 self.w = self.Z2.mpo
                 mag_int_ver.append(np.real(self.mpo_first_moment()))
         mag_mps_int_ver.append(mag_int_ver)
@@ -2256,7 +2289,7 @@ class MPS:
         self.ancilla_sites = self.sites.copy()
 
         errors = [[0, 0]]
-        
+
         for trott in range(trotter_steps):
             print(f"------ Trotter steps: {trott} -------")
 
@@ -2264,14 +2297,14 @@ class MPS:
             self.Z2._initialize_finalize_quench_local(delta=delta)
             self.w = self.Z2.mpo
             self.mpo_to_mps()
-            for l in range(1,self.Z2.l+1):
+            for l in range(1, self.Z2.l + 1):
                 # apply repeatedly the mu_z evolution for every ladder
                 self.Z2.mpo_Z2_quench_ladder(l=l, delta=delta)
                 self.w = self.Z2.mpo
 
                 print(f"Bond dim ancilla: {self.ancilla_sites[self.L//2].shape[0]}")
                 print(f"Bond dim site: {self.sites[self.L//2].shape[0]}")
-                
+
                 # compress the ladder evolution operator
                 error, entropy = self.compression(
                     trunc_tol=False,
@@ -2282,7 +2315,7 @@ class MPS:
                     where=where,
                 )
                 self.ancilla_sites = self.sites.copy()
-            
+
             # finish with the other half mu_x on each ladder
             self.Z2._initialize_finalize_quench_local(delta=delta)
             self.w = self.Z2.mpo
@@ -2297,24 +2330,26 @@ class MPS:
             mag_mps_tot.append(np.real(self.mpo_first_moment()))
             # local glob Z
             mag_loc = []
-            for i in range(self.L-1):
+            for i in range(self.L - 1):
                 for j in range(self.Z2.l):
                     self.local_param(site=i, op=j)
                     mag_loc.append(np.real(self.mpo_first_moment()))
             mag_mps_loc.append(mag_loc)
             # zz horizontal
             mag_int_hor = []
-            for i in range(self.L-2):
+            for i in range(self.L - 2):
                 for j in range(self.Z2.l):
-                    self.Z2.zz_observable_Z2_dual(mpo_site=i,l=j,direction='horizontal')
+                    self.Z2.zz_observable_Z2_dual(
+                        mpo_site=i, l=j, direction="horizontal"
+                    )
                     self.w = self.Z2.mpo
                     mag_int_hor.append(np.real(self.mpo_first_moment()))
             mag_mps_int_hor.append(mag_int_hor)
             # zz vertical
             mag_int_ver = []
-            for i in range(self.L-1):
-                for j in range(self.Z2.l-1):
-                    self.Z2.zz_observable_Z2_dual(mpo_site=i,l=j,direction='vertical')
+            for i in range(self.L - 1):
+                for j in range(self.Z2.l - 1):
+                    self.Z2.zz_observable_Z2_dual(mpo_site=i, l=j, direction="vertical")
                     self.w = self.Z2.mpo
                     mag_int_ver.append(np.real(self.mpo_first_moment()))
             mag_mps_int_ver.append(mag_int_ver)
@@ -2329,8 +2364,16 @@ class MPS:
                 )
                 psi_new_mpo = mps_to_vector(self.sites)
                 overlap.append(np.abs((psi_new_mpo.T.conjugate() @ psi_exact).real))
-        return mag_mps_tot, mag_mps_loc, mag_mps_int_hor, mag_mps_int_ver, overlap, errors, entropies
-    
+        return (
+            mag_mps_tot,
+            mag_mps_loc,
+            mag_mps_int_hor,
+            mag_mps_int_ver,
+            overlap,
+            errors,
+            entropies,
+        )
+
     # -------------------------------------------------
     # Computing expectation values
     # -------------------------------------------------
@@ -2385,7 +2428,7 @@ class MPS:
             ancilla_sites = sites
         elif mixed:
             ancilla_sites = self.ancilla_sites
-            
+
         first_moment = ncon(
             [
                 self.env_left[-1],
@@ -2501,7 +2544,8 @@ class MPS:
         ).astype(int)
         # loading of the flat tensors
         filedata = np.loadtxt(
-            f"{path}/results/tensors/tensor_sites_{self.model}_L_{self.L}_chi_{self.chi}_h_{self.h:.{precision}f}", dtype=complex
+            f"{path}/results/tensors/tensor_sites_{self.model}_L_{self.L}_chi_{self.chi}_h_{self.h:.{precision}f}",
+            dtype=complex,
         )
         # auxiliary function to get the indices where to split
         labels = get_labels(shapes)

@@ -23,10 +23,17 @@ parser.add_argument(
 )
 parser.add_argument("chis", help="Simulated bond dimensions", nargs="+", type=int)
 parser.add_argument(
-    "-q", "--quench", help="Type of quench. Available are 'flip', 'global'", default="global", type=str
+    "-q",
+    "--quench",
+    help="Type of quench. Available are 'flip', 'global'",
+    default="global",
+    type=str,
 )
 parser.add_argument(
-    "-f", "--flip", help="Flip the initial state middle qubit. By default True", action="store_false"
+    "-f",
+    "--flip",
+    help="Flip the initial state middle qubit. By default True",
+    action="store_false",
 )
 parser.add_argument(
     "-m", "--model", help="Model to simulate", default="Ising", type=str
@@ -84,18 +91,18 @@ parser.add_argument(
 args = parser.parse_args()
 delta = args.time / args.trotter_steps
 if args.where == -1:
-    args.where = (args.L // 2)
+    args.where = args.L // 2
 elif args.where == -2:
     args.bond = False
 
 
-if args.path == 'pc':
+if args.path == "pc":
     path = "G:/My Drive"
-elif args.path == 'mac':
+elif args.path == "mac":
     path = "/Users/fradm98/Google Drive/My Drive"
-elif args.path == 'marcos':
+elif args.path == "marcos":
     path = "/Users/fradm/Google Drive/My Drive"
-elif args.path == 'other':
+elif args.path == "other":
     path = "replace_with_your_path"
     raise SyntaxError("specify your path in the main script")
 else:
@@ -170,7 +177,7 @@ for chi in args.chis:  # L // 2 + 1
         f"{path}/projects/0_ISING/results/entropy/{args.where}_bond_entropy_{args.model}_L_{args.L}_midflip_{args.flip}_quench_{args.quench}_delta_{delta}_chi_{chi}_h_ev_{args.h_ev}",
         entropies,
     )
-    if args.where == 'all':
+    if args.where == "all":
         entropy_mid = access_txt(
             f"{path}/projects/0_ISING/results/entropy/{args.where}_bond_entropy_{args.model}_L_{args.L}_midflip_{args.flip}_quench_{args.quench}_delta_{delta}_chi_{chi}_h_ev_{args.h_ev}",
             args.L // 2,
