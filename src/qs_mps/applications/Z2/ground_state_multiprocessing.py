@@ -23,7 +23,7 @@ def ground_state_Z2_param(params):
         where=args_mps["where"],
     )
 
-    ladder.save_sites("/Users/fradm98/Desktop/qs-mps")
+    ladder.save_sites(args_mps["path"])
     return energy, entropy
 
 

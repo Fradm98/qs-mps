@@ -84,20 +84,46 @@ class H_Z2_gauss:
             G += (g - self.charges[site[1], site[0]] * I) @ (
                 g - self.charges[site[1], site[0]] * I
             )
-        return -loc - (self.lamb * plaq) + (self.U * G)
+        return - (self.lamb * loc) - (1/self.lamb * plaq) + (self.U * G)
 
     def diagonalize(self):
         H = self.hamiltonian()
-        e, v = linalg.eigsh(H, k=2 ** len(self.latt.plaquettes()), which="SA")
+        e, v = linalg.eigsh(H, k=2 ** len(self.latt.plaquettes()), which="SA") # 
         # print(H.toarray())
         # e, v = np.linalg.eigh(H.toarray())
         return e, v
 
 
-# Z2_exact = H_Z2_gauss(L=3, l=3, model="Z2", lamb=1e-7, U=1e+3)
-# # Z2_exact.add_charges([0,2],[1,1])
-# print(f"charges:\n{Z2_exact.charges}")
-# print(f"degrees of freedom:\n{Z2_exact.dof}")
-# print(f"lattice:\n{Z2_exact.latt._lattice_drawer.draw_lattice()}")
-# e, v = Z2_exact.diagonalize()
-# print(f"spectrum:\n{np.sort(e)}")
+Z2_exact = H_Z2_gauss(L=2, l=2, model="Z2", lamb=1e+1, U=1e+3)
+# Z2_exact.add_charges([0,2],[1,1])
+print(f"charges:\n{Z2_exact.charges}")
+print(f"degrees of freedom:\n{Z2_exact.dof}")
+print(f"lattice:\n{Z2_exact.latt._lattice_drawer.draw_lattice()}")
+e, v = Z2_exact.diagonalize()
+print(f"spectrum:\n{e}")
+print(f"ground state:\n{v[:,0]}")
+X = sparse_pauli_x(n=3,L=4) @ sparse_pauli_x(n=1, L=4)
+psi = v[:,0]
+exp_val = (psi.T @ X @ psi).real
+print(exp_val)
+
+
+# exp_val = []
+# delta_e = []
+# hs = list(np.arange(0, 3, 0.1))
+# hs.reverse()
+# hs.pop()
+# print(hs)
+# for h in hs:
+#     Z2_exact = H_Z2_gauss(L=2, l=2, model="Z2", lamb=h, U=0)
+#     e, v = Z2_exact.diagonalize()
+#     delta_e.append(np.abs(e[1]-e[0]))
+#     X = sparse_pauli_x(n=3,L=4)
+#     psi = v[:,0]
+#     exp_val.append((psi.T @ X @ psi).real)
+
+# plt.plot(hs, exp_val)
+# plt.show()
+# plt.plot(hs, delta_e)
+# plt.plot(hs, 8*np.asarray(hs))
+# plt.show()
