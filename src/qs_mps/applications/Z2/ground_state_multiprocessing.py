@@ -15,7 +15,7 @@ def ground_state_Z2_param(params):
     )
     if ladder.model == "Z2_dual":
         ladder.L = ladder.L - 1
-    ladder._random_state(seed=7, chi=args_mps["chi"])
+    ladder._random_state(seed=7, chi=args_mps["chi"], type_shape=args_mps["type_shape"])
     ladder.canonical_form()
     energy, entropy = ladder.DMRG(
         trunc_tol=args_mps["trunc_tol"],
