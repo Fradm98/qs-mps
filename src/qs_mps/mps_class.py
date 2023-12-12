@@ -68,18 +68,19 @@ class MPS:
 
         if type_shape == "trapezoidal":
             chi = int(np.log2(chi))
+            chi_t = chi / int(np.log2(self.d))
             assert (
-                self.L >= 2 * chi
+                self.L >= 2 * chi_t
             ), "The spin chain is too small for the selected bond dimension chi"
             np.random.seed(seed)
 
-            for i in range(chi):
+            for i in range(int(chi_t)):
                 sites.append(np.random.rand(self.d**i, self.d, self.d ** (i + 1)))
-            for _ in range(self.L - (2 * chi)):
-                sites.append(np.random.rand(self.d**chi, self.d, self.d**chi))
-            for i in range(chi):
+            for _ in range(self.L - int(2 * chi_t)):
+                sites.append(np.random.rand(self.d**int(chi_t), self.d, self.d**int(chi_t)))
+            for i in range(int(chi_t)):
                 sites.append(
-                    np.random.rand(self.d ** (chi - i), self.d, self.d ** (chi - i - 1))
+                    np.random.rand(self.d ** (int(chi_t) - i), self.d, self.d ** (int(chi_t) - i - 1))
                 )
 
         elif type_shape == "pyramidal":
@@ -1603,12 +1604,14 @@ class MPS:
         self.envs()
 
         iter = 1
+        
         for n in range(n_sweeps):
             print(f"Sweep n: {n}\n")
             entropy = []
             for i in range(self.L - 1):
+                v0 = self.sites[i].flatten()
                 H = self.H_eff(sites[i])
-                energy = self.eigensolver(H_eff=H, site=sites[i])
+                energy = self.eigensolver(H_eff=H, site=sites[i]) # , v0=v0
                 energies.append(energy)
                 s = self.update_state(
                     sweeps[0], sites[i], trunc_tol, trunc_chi, schmidt_tol

@@ -1,8 +1,6 @@
-from .lattice import Lattice
-from .sparse_hamiltonians_and_operators import sparse_pauli_z, sparse_pauli_x, sparse_pauli_y
-
-# from .mps_class import MPS
-from .utils import mpo_to_matrix
+from qs_mps.lattice import Lattice
+from qs_mps.sparse_hamiltonians_and_operators import sparse_pauli_z, sparse_pauli_x, sparse_pauli_y
+from qs_mps.utils import mpo_to_matrix
 from ncon import ncon
 from scipy.sparse import csc_array, identity, linalg
 import numpy as np
@@ -428,8 +426,8 @@ class MPO_ladder:
 
         This function finds the wilson loop given by a list of indices in the lattice.
 
-        mpo_sites: list - define the x axis of the lattice, starts from zero. n° of rungs
-        ls: list - define the y axis of the lattice, starts from zero. n° of ladders
+        mpo_sites: list - define the x axis of the lattice, starts from zero (left). n° of rungs
+        ls: list - define the y axis of the lattice, starts from 1 (up). n° of ladders
 
         """
         # initialize
@@ -438,19 +436,29 @@ class MPO_ladder:
         mpo_tot = []
 
         for site in range(self.L - 1):
+            if len(mpo_sites) == 1:
+                # we are between two rungs
+                if site in mpo_sites and (mpo_sites[0] == 0):
+                    self.mpo[0, 1] = self.pauli_string(string=ls, direction="vertical", pauli_type="X")
+                else:
+                    self.mpo[1, -1] = self.pauli_string(string=ls, direction="vertical", pauli_type="X")
             # take the string of pauli on the ladders that creates the interaction among the mpo sites
-            if site == mpo_sites[0]:
-                self.mpo[0, 1] = self.pauli_string(string=ls)
-            # take the string of pauli on the ladders that ends the interaction among the mpo sites
-            elif site == mpo_sites[-1]:
-                self.mpo[1, -1] = self.pauli_string(string=ls)
-            # take the string of pauli on the ladders that continues the interaction among the mpo sites
-            elif site in mpo_sites[1:-1]:
-                self.mpo[1, 1] = self.pauli_string(string=ls)
             else:
-                for n in ls:
-                    # after the pauli strings, place identities for the remaining mpo sites
-                    self.mpo[1, -1] = I
+                if site == mpo_sites[0]:
+                    self.mpo[0, 1] = self.pauli_string(string=ls, direction="vertical", pauli_type="X")
+                # take the string of pauli on the ladders that ends the interaction among the mpo sites
+                elif site == mpo_sites[-1]:
+                    self.mpo[1, -1] = self.pauli_string(string=ls, direction="vertical", pauli_type="X")
+                # take the string of pauli on the ladders that continues the interaction among the mpo sites
+                elif site in mpo_sites[1:-1]:
+                    self.mpo[1, 1] = self.pauli_string(string=ls, direction="vertical", pauli_type="X")
+            
+            if site < mpo_sites[0]:
+                # before the pauli strings, place identities for the previous mpo sites
+                self.mpo[0, 1] = I
+            if site > mpo_sites[-1]:
+                # after the pauli strings, place identities for the remaining mpo sites
+                self.mpo[1, -1] = I
 
             mpo_tot.append(self.mpo)
             self.mpo_skeleton()
@@ -470,6 +478,7 @@ class MPO_ladder:
         pauli_type: str - type of pauli matrix we want to use. Available are: "X", "Y", "Z"
         
         """
+        # define the pauli type
         if pauli_type == "X":
             sigma = sparse_pauli_x
         elif pauli_type == "Y":
@@ -477,15 +486,18 @@ class MPO_ladder:
         elif pauli_type == "Z":
             sigma = sparse_pauli_z
         
+        # define the direction
         if direction == "horizontal":
             dim = self.L-1
         elif direction == "vertical":
             dim = self.l
-        pauli = identity(n=2**dim, dtype=complex).toarray()
-        for n in string:
-            pauli = pauli @ sigma(n=n - 1, L=dim).toarray()
 
-        return pauli
+        # compute the string
+        pauli = identity(n=2**dim, dtype=complex)
+        for n in string:
+            pauli = pauli @ sigma(n=n - 1, L=dim)
+
+        return pauli.toarray()
 
     def zz_observable_Z2_dual(self, mpo_site, l, direction):
         """
@@ -524,3 +536,7 @@ class MPO_ladder:
 
         self.mpo = mpo_tot
         return self
+
+H = MPO_ladder(L=3, l=2, model="Z2_dual", lamb=0)
+H.wilson_Z2_dual(mpo_sites=[1],ls=[1])
+# print(e)

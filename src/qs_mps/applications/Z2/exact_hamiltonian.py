@@ -95,7 +95,7 @@ class H_Z2_gauss:
 
 # lamb = 0
 # U = 1e+3
-# Z2_exact = H_Z2_gauss(L=2, l=2, model="Z2", lamb=lamb, U=U)
+# Z2_exact = H_Z2_gauss(L=4, l=2, model="Z2", lamb=lamb, U=U)
 # # Z2_exact.add_charges([0,2],[1,1])
 # print(f"charges:\n{Z2_exact.charges}")
 # print(f"degrees of freedom:\n{Z2_exact.dof}")
@@ -111,32 +111,48 @@ class H_Z2_gauss:
 # print(exp_val)
 
 
+# from qs_mps.mpo_class import MPO_ladder
 # exp_val = []
+# en = []
+# en_1 = []
+# en_mpo = []
+# en_mpo_1 = []
 # # delta_e = []
-# hs = list(np.arange(0, 6, 0.1))
+# hs = list(np.arange(-6, 6, 0.1))
 # hs.reverse()
 # hs.pop()
 # l = 2
-# L = 3
+# L = 2
 # dof = (2*l*L - l - L)
 # v0 = np.array([-0.25 for _ in range(2**dof)])
 # for h in hs:
+#     Z2_mpo = MPO_ladder(L=L, l=l-1, model="Z2", lamb=h)
+#     e, v = Z2_mpo.diagonalize()
+#     en_mpo.append(e[0])
+#     en_mpo_1.append(e[1])
 #     Z2_exact = H_Z2_gauss(L=L, l=l, model="Z2", lamb=h, U=1e+3)
 #     H, e, v = Z2_exact.diagonalize(v0=v0)
+#     print(e)
+#     en.append(e[0])
+#     en_1.append(e[1])
 #     # delta_e.append(np.abs(e[1]-e[0]))
-#     print(f"spectrum:\n{e}")
-#     print(f"{Z2_exact.latt.plaquettes()[1]}")
-#     loop = Z2_exact.latt.plaquettes(from_zero=True)[1]
-#     loop = Z2_exact.plaquette_term(loop=loop)
+#     # print(f"spectrum:\n{e}")
+#     # print(f"{Z2_exact.latt.plaquettes()[1]}")
+#     # loop = Z2_exact.latt.plaquettes(from_zero=True)[1]
+#     # loop = Z2_exact.plaquette_term(loop=loop)
 #     psi = v[:,0]
-#     # exp = ncon([psi.T,loop.toarray(),psi],[[1],[1,2],[2]]).real
-#     exp = (psi.T @ loop @ psi).real
-#     exp_val.append(exp)
+#     # # exp = ncon([psi.T,loop.toarray(),psi],[[1],[1,2],[2]]).real
+#     # exp = (psi.T @ loop @ psi).real
+#     # exp_val.append(exp)
 #     v0 = psi
 
 # print(f"lattice:\n{Z2_exact.latt._lattice_drawer.draw_lattice()}")
-# plt.plot(hs, np.abs(exp_val))
+# # plt.plot(hs, np.abs(exp_val))
+# # plt.show()
+# plt.plot(hs, en_mpo, 'o', color='g')
+# plt.plot(hs, en_mpo_1, '-', color='g')
+# plt.plot(hs, en, '--', color='r')
+# plt.plot(hs, en_1, '-', color='r')
 # plt.show()
-# plt.plot(hs, delta_e)
-# plt.plot(hs, 8*np.asarray(hs))
-# plt.show()
+# # plt.plot(hs, 8*np.asarray(hs))
+# # plt.show()
