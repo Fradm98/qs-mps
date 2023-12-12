@@ -47,7 +47,7 @@ eig_exact = []
 eig_first = []
 colors_mps = create_sequential_colors(20, "Blues")
 colors = create_sequential_colors(20, "Reds")
-markers = ["x","+","1"]
+markers = ["x","+","1","2"]
 
 # alphas = [1,0.7]
 l = 3

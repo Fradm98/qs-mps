@@ -440,7 +440,7 @@ class MPO_ladder:
                 # we are between two rungs
                 if site in mpo_sites and (mpo_sites[0] == 0):
                     self.mpo[0, 1] = self.pauli_string(string=ls, direction="vertical", pauli_type="X")
-                else:
+                elif site in mpo_sites:
                     self.mpo[1, -1] = self.pauli_string(string=ls, direction="vertical", pauli_type="X")
             # take the string of pauli on the ladders that creates the interaction among the mpo sites
             else:
