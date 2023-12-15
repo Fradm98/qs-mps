@@ -4,10 +4,10 @@ from qs_mps.mps_class import MPS
 from qs_mps.utils import get_precision, save_list_of_lists, access_txt
 from qs_mps.gs_multiprocessing import ground_state_ising
 
-# DENSITY MATRIX RENORMALIZATION GROUP to find ground states changing the transverse field
-# parameters
+# DENSITY MATRIX RENORMALIZATION GROUP to find ground states of the 
+# 1D Ising Transverse Field model changing the transverse field parameters
 
-parser = argparse.ArgumentParser(prog="gs_search")
+parser = argparse.ArgumentParser(prog="gs_search_Ising")
 parser.add_argument("L", help="Spin chain length", type=int)
 parser.add_argument(
     "npoints",

@@ -9,11 +9,6 @@ from scipy.sparse import identity
 import matplotlib.pyplot as plt
 import time
 
-# default parameters of the plot layout
-plt.rcParams["text.usetex"] = True  # use latex
-plt.rcParams["font.size"] = 13
-plt.rcParams["figure.dpi"] = 300
-plt.rcParams["figure.constrained_layout.use"] = True
 
 # finding the ground state of the vacuum sector
 L = 5
@@ -140,3 +135,5 @@ print(ladder.Z2.latt._lattice_drawer.draw_lattice())
 # # %%
 # plt.plot(hs, entropy_h)
 # plt.vlines(x=3.044, ymin=np.min(entropy_h), ymax=np.max(entropy_h))
+
+

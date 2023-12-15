@@ -11,17 +11,20 @@ class H_Z2_gauss:
         L,
         l,
         model: str,
-        lamb: None,
-        U: float,
+        lamb: float=0,
+        J: float=1,
+        U: float=1e+3,
     ):
         self.L = L
         self.l = l
         self.model = model
         self.charges = np.ones((l, L))
         self.lamb = lamb
+        self.J = J
         self.U = U
         self.latt = Lattice((self.L, self.l), (False, False))
         self.dof = self.latt.nlinks
+        self.sector = self._define_sector()
 
     def add_charges(self, rows: list, columns: list):
         """
@@ -42,6 +45,18 @@ class H_Z2_gauss:
 
         self.charges = np.flip(self.charges, axis=1)
         return self
+
+    def _define_sector(self):
+        particles = 0
+        for charge in self.charges.flatten():
+            if charge == -1:
+                particles += 1
+        
+        if particles == 0:
+            sector = "vacuum_sector"
+        else:
+            sector = f"{particles}_sector"
+        return sector
 
     def local_term(self, link):
         sigma_x = sparse_pauli_x(n=link, L=self.latt.nlinks)
@@ -84,15 +99,21 @@ class H_Z2_gauss:
             G += (g - self.charges[site[1], site[0]] * I) @ (
                 g - self.charges[site[1], site[0]] * I
             )
-        return - loc - (self.lamb * plaq) + (self.U * G)
+        return - (self.J * loc) - (self.lamb * plaq) + (self.U * G)
 
-    def diagonalize(self, v0: np.ndarray=None):
+    def diagonalize(self, v0: np.ndarray=None, sparse: bool=True, save: bool=True, path: str=None):
         H = self.hamiltonian()
-        e, v = linalg.eigsh(H, k=(2 ** len(self.latt.plaquettes())), which="SA", v0=v0) # 2 ** len(self.latt.plaquettes())
-        # print(H.toarray())
-        # e, v = np.linalg.eigh(H.toarray())
+        if sparse:
+            e, v = linalg.eigsh(H, k=(2 ** len(self.latt.plaquettes())), which="SA", v0=v0) # 2 ** len(self.latt.plaquettes())
+        else:
+            e, v = np.linalg.eigh(H.toarray())
+        if save:
+            np.savetxt(path+f"ground_state_direct_lattice_{self.l-1}x{self.L-1}_{self.sector}_U_{self.U}_h_{self.lamb}", v[:,0])
         return H, e, v
 
+    def time_evolution(self, path: str=None):
+        
+        pass
 # lamb = 0
 # U = 1e+3
 # Z2_exact = H_Z2_gauss(L=4, l=2, model="Z2", lamb=lamb, U=U)

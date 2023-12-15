@@ -193,6 +193,7 @@ def exact_evolution_sparse(
     flip: bool = False,
     where: int = -1,
     bond: bool = True,
+    model: str = None,
 ):
     """
     exact_evolution

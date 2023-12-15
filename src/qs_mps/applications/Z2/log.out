@@ -5,1407 +5,1643 @@ Sweep n: 1
 ##############################
 The energy between the two last updated states converged
 to an order of 1e-10 after:
-1 sweeps at site 1
-total iterations 3
+1 sweeps at site 3
+total iterations 7
 ##############################
 (1, 4, 4)
+(4, 4, 4)
+(4, 4, 4)
 (4, 4, 1)
 Sweep n: 0
 
 Sweep n: 1
 
-##############################
-The energy between the two last updated states converged
-to an order of 1e-10 after:
-1 sweeps at site 1
-total iterations 3
-##############################
-(1, 4, 4)
-(4, 4, 1)
-Sweep n: 0
+Sweep n: 2
 
-Sweep n: 1
+Sweep n: 3
 
-##############################
-The energy between the two last updated states converged
-to an order of 1e-10 after:
-1 sweeps at site 1
-total iterations 3
-##############################
-(1, 4, 4)
-(4, 4, 1)
-Sweep n: 0
+Sweep n: 4
 
-Sweep n: 1
+Sweep n: 5
 
 ##############################
 The energy between the two last updated states converged
-to an order of 1e-10 after:
-1 sweeps at site 1
-total iterations 3
+to an order of 8.942524942767704e-09
+instead of the convergence tolerance 1e-10
 ##############################
 (1, 4, 4)
+(4, 4, 4)
+(4, 4, 4)
 (4, 4, 1)
 Sweep n: 0
 
 Sweep n: 1
 
-##############################
-The energy between the two last updated states converged
-to an order of 1e-10 after:
-1 sweeps at site 1
-total iterations 3
-##############################
-(1, 4, 4)
-(4, 4, 1)
-Sweep n: 0
+Sweep n: 2
 
-Sweep n: 1
+Sweep n: 3
 
-##############################
-The energy between the two last updated states converged
-to an order of 1e-10 after:
-1 sweeps at site 1
-total iterations 3
-##############################
-(1, 4, 4)
-(4, 4, 1)
-Sweep n: 0
+Sweep n: 4
 
-Sweep n: 1
+Sweep n: 5
 
 ##############################
 The energy between the two last updated states converged
-to an order of 1e-10 after:
-1 sweeps at site 1
-total iterations 3
+to an order of 2.8629647630395993e-07
+instead of the convergence tolerance 1e-10
 ##############################
 (1, 4, 4)
+(4, 4, 4)
+(4, 4, 4)
 (4, 4, 1)
 Sweep n: 0
 
 Sweep n: 1
 
-##############################
-The energy between the two last updated states converged
-to an order of 1e-10 after:
-1 sweeps at site 1
-total iterations 3
-##############################
-(1, 4, 4)
-(4, 4, 1)
-Sweep n: 0
+Sweep n: 2
 
-Sweep n: 1
+Sweep n: 3
 
-##############################
-The energy between the two last updated states converged
-to an order of 1e-10 after:
-1 sweeps at site 1
-total iterations 3
-##############################
-(1, 4, 4)
-(4, 4, 1)
-Sweep n: 0
+Sweep n: 4
 
-Sweep n: 1
+Sweep n: 5
 
 ##############################
 The energy between the two last updated states converged
-to an order of 1e-10 after:
-1 sweeps at site 1
-total iterations 3
+to an order of 1.5000386852648262e-06
+instead of the convergence tolerance 1e-10
 ##############################
 (1, 4, 4)
+(4, 4, 4)
+(4, 4, 4)
 (4, 4, 1)
 Sweep n: 0
 
 Sweep n: 1
 
-##############################
-The energy between the two last updated states converged
-to an order of 1e-10 after:
-1 sweeps at site 1
-total iterations 3
-##############################
-(1, 4, 4)
-(4, 4, 1)
-Sweep n: 0
+Sweep n: 2
 
-Sweep n: 1
+Sweep n: 3
 
-##############################
-The energy between the two last updated states converged
-to an order of 1e-10 after:
-1 sweeps at site 1
-total iterations 3
-##############################
-(1, 4, 4)
-(4, 4, 1)
-Sweep n: 0
+Sweep n: 4
 
-Sweep n: 1
+Sweep n: 5
 
 ##############################
 The energy between the two last updated states converged
-to an order of 1e-10 after:
-1 sweeps at site 1
-total iterations 3
+to an order of 4.1710126659211255e-06
+instead of the convergence tolerance 1e-10
 ##############################
 (1, 4, 4)
+(4, 4, 4)
+(4, 4, 4)
 (4, 4, 1)
 Sweep n: 0
 
 Sweep n: 1
 
-##############################
-The energy between the two last updated states converged
-to an order of 1e-10 after:
-1 sweeps at site 1
-total iterations 3
-##############################
-(1, 4, 4)
-(4, 4, 1)
-Sweep n: 0
+Sweep n: 2
 
-Sweep n: 1
+Sweep n: 3
 
-##############################
-The energy between the two last updated states converged
-to an order of 1e-10 after:
-1 sweeps at site 1
-total iterations 3
-##############################
-(1, 4, 4)
-(4, 4, 1)
-Sweep n: 0
+Sweep n: 4
 
-Sweep n: 1
+Sweep n: 5
 
 ##############################
 The energy between the two last updated states converged
-to an order of 1e-10 after:
-1 sweeps at site 1
-total iterations 3
+to an order of 1.909684126388811e-05
+instead of the convergence tolerance 1e-10
 ##############################
 (1, 4, 4)
+(4, 4, 4)
+(4, 4, 4)
 (4, 4, 1)
 Sweep n: 0
 
 Sweep n: 1
 
-##############################
-The energy between the two last updated states converged
-to an order of 1e-10 after:
-1 sweeps at site 1
-total iterations 3
-##############################
-(1, 4, 4)
-(4, 4, 1)
-Sweep n: 0
+Sweep n: 2
 
-Sweep n: 1
+Sweep n: 3
 
-##############################
-The energy between the two last updated states converged
-to an order of 1e-10 after:
-1 sweeps at site 1
-total iterations 3
-##############################
-(1, 4, 4)
-(4, 4, 1)
-Sweep n: 0
+Sweep n: 4
 
-Sweep n: 1
+Sweep n: 5
 
 ##############################
 The energy between the two last updated states converged
-to an order of 1e-10 after:
-1 sweeps at site 1
-total iterations 3
+to an order of 8.799621755883891e-05
+instead of the convergence tolerance 1e-10
 ##############################
 (1, 4, 4)
+(4, 4, 4)
+(4, 4, 4)
 (4, 4, 1)
 Sweep n: 0
 
 Sweep n: 1
 
-##############################
-The energy between the two last updated states converged
-to an order of 1e-10 after:
-1 sweeps at site 1
-total iterations 3
-##############################
-(1, 4, 4)
-(4, 4, 1)
-Sweep n: 0
+Sweep n: 2
 
-Sweep n: 1
+Sweep n: 3
 
-##############################
-The energy between the two last updated states converged
-to an order of 1e-10 after:
-1 sweeps at site 1
-total iterations 3
-##############################
-(1, 4, 4)
-(4, 4, 1)
-Sweep n: 0
+Sweep n: 4
 
-Sweep n: 1
+Sweep n: 5
 
 ##############################
 The energy between the two last updated states converged
-to an order of 1e-10 after:
-1 sweeps at site 1
-total iterations 3
+to an order of 0.00044190361143137125
+instead of the convergence tolerance 1e-10
 ##############################
 (1, 4, 4)
+(4, 4, 4)
+(4, 4, 4)
 (4, 4, 1)
 Sweep n: 0
 
 Sweep n: 1
 
-##############################
-The energy between the two last updated states converged
-to an order of 1e-10 after:
-1 sweeps at site 1
-total iterations 3
-##############################
-(1, 4, 4)
-(4, 4, 1)
-Sweep n: 0
+Sweep n: 2
 
-Sweep n: 1
+Sweep n: 3
 
-##############################
-The energy between the two last updated states converged
-to an order of 1e-10 after:
-1 sweeps at site 1
-total iterations 3
-##############################
-(1, 4, 4)
-(4, 4, 1)
-Sweep n: 0
+Sweep n: 4
 
-Sweep n: 1
+Sweep n: 5
 
 ##############################
 The energy between the two last updated states converged
-to an order of 1e-10 after:
-1 sweeps at site 1
-total iterations 3
+to an order of 0.0004308645500827879
+instead of the convergence tolerance 1e-10
 ##############################
 (1, 4, 4)
+(4, 4, 4)
+(4, 4, 4)
 (4, 4, 1)
 Sweep n: 0
 
 Sweep n: 1
 
-##############################
-The energy between the two last updated states converged
-to an order of 1e-10 after:
-1 sweeps at site 1
-total iterations 3
-##############################
-(1, 4, 4)
-(4, 4, 1)
-Sweep n: 0
+Sweep n: 2
 
-Sweep n: 1
+Sweep n: 3
 
-##############################
-The energy between the two last updated states converged
-to an order of 1e-10 after:
-1 sweeps at site 1
-total iterations 3
-##############################
-(1, 4, 4)
-(4, 4, 1)
-Sweep n: 0
+Sweep n: 4
 
-Sweep n: 1
+Sweep n: 5
 
 ##############################
 The energy between the two last updated states converged
-to an order of 1e-10 after:
-1 sweeps at site 1
-total iterations 3
+to an order of 0.0006064770748679393
+instead of the convergence tolerance 1e-10
 ##############################
 (1, 4, 4)
+(4, 4, 4)
+(4, 4, 4)
 (4, 4, 1)
 Sweep n: 0
 
 Sweep n: 1
 
-##############################
-The energy between the two last updated states converged
-to an order of 1e-10 after:
-1 sweeps at site 1
-total iterations 3
-##############################
-(1, 4, 4)
-(4, 4, 1)
-Sweep n: 0
+Sweep n: 2
 
-Sweep n: 1
+Sweep n: 3
 
-##############################
-The energy between the two last updated states converged
-to an order of 1e-10 after:
-1 sweeps at site 1
-total iterations 3
-##############################
-(1, 4, 4)
-(4, 4, 1)
-Sweep n: 0
+Sweep n: 4
 
-Sweep n: 1
+Sweep n: 5
 
 ##############################
 The energy between the two last updated states converged
-to an order of 1e-10 after:
-1 sweeps at site 1
-total iterations 3
+to an order of 0.0020589369659447243
+instead of the convergence tolerance 1e-10
 ##############################
 (1, 4, 4)
+(4, 4, 4)
+(4, 4, 4)
 (4, 4, 1)
 Sweep n: 0
 
 Sweep n: 1
 
-##############################
-The energy between the two last updated states converged
-to an order of 1e-10 after:
-1 sweeps at site 1
-total iterations 3
-##############################
-(1, 4, 4)
-(4, 4, 1)
-Sweep n: 0
+Sweep n: 2
 
-Sweep n: 1
+Sweep n: 3
 
+Sweep n: 4
+
+Sweep n: 5
+
 ##############################
 The energy between the two last updated states converged
-to an order of 1e-10 after:
-1 sweeps at site 1
-total iterations 3
+to an order of 0.003433619238858654
+instead of the convergence tolerance 1e-10
 ##############################
 (1, 4, 4)
+(4, 4, 4)
+(4, 4, 4)
 (4, 4, 1)
 Sweep n: 0
 
 Sweep n: 1
+
+Sweep n: 2
 
+Sweep n: 3
+
+Sweep n: 4
+
+Sweep n: 5
+
 ##############################
 The energy between the two last updated states converged
-to an order of 1e-10 after:
-1 sweeps at site 1
-total iterations 3
+to an order of 0.004846388493064069
+instead of the convergence tolerance 1e-10
 ##############################
 (1, 4, 4)
+(4, 4, 4)
+(4, 4, 4)
 (4, 4, 1)
 Sweep n: 0
 
 Sweep n: 1
+
+Sweep n: 2
+
+Sweep n: 3
+
+Sweep n: 4
+
+Sweep n: 5
 
 ##############################
 The energy between the two last updated states converged
-to an order of 1e-10 after:
-1 sweeps at site 1
-total iterations 3
+to an order of 0.004065470351061862
+instead of the convergence tolerance 1e-10
 ##############################
 (1, 4, 4)
+(4, 4, 4)
+(4, 4, 4)
 (4, 4, 1)
 Sweep n: 0
 
 Sweep n: 1
 
+Sweep n: 2
+
+Sweep n: 3
+
+Sweep n: 4
+
+Sweep n: 5
+
 ##############################
 The energy between the two last updated states converged
-to an order of 1e-10 after:
-1 sweeps at site 1
-total iterations 3
+to an order of 0.008757097310066797
+instead of the convergence tolerance 1e-10
 ##############################
 (1, 4, 4)
+(4, 4, 4)
+(4, 4, 4)
 (4, 4, 1)
 Sweep n: 0
 
 Sweep n: 1
+
+Sweep n: 2
+
+Sweep n: 3
 
+Sweep n: 4
+
+Sweep n: 5
+
 ##############################
 The energy between the two last updated states converged
-to an order of 1e-10 after:
-1 sweeps at site 1
-total iterations 3
+to an order of 0.008266519401967543
+instead of the convergence tolerance 1e-10
 ##############################
 (1, 4, 4)
+(4, 4, 4)
+(4, 4, 4)
 (4, 4, 1)
 Sweep n: 0
 
 Sweep n: 1
+
+Sweep n: 2
 
+Sweep n: 3
+
+Sweep n: 4
+
+Sweep n: 5
+
 ##############################
 The energy between the two last updated states converged
-to an order of 1e-10 after:
-1 sweeps at site 1
-total iterations 3
+to an order of 0.007680962613722642
+instead of the convergence tolerance 1e-10
 ##############################
 (1, 4, 4)
+(4, 4, 4)
+(4, 4, 4)
 (4, 4, 1)
 Sweep n: 0
 
 Sweep n: 1
+
+Sweep n: 2
 
+Sweep n: 3
+
+Sweep n: 4
+
+Sweep n: 5
+
 ##############################
 The energy between the two last updated states converged
-to an order of 1e-10 after:
-1 sweeps at site 1
-total iterations 3
+to an order of 0.00964519555672183
+instead of the convergence tolerance 1e-10
 ##############################
 (1, 4, 4)
+(4, 4, 4)
+(4, 4, 4)
 (4, 4, 1)
 Sweep n: 0
 
 Sweep n: 1
+
+Sweep n: 2
+
+Sweep n: 3
+
+Sweep n: 4
 
+Sweep n: 5
+
 ##############################
 The energy between the two last updated states converged
-to an order of 1e-10 after:
-1 sweeps at site 1
-total iterations 3
+to an order of 0.022672970900920575
+instead of the convergence tolerance 1e-10
 ##############################
 (1, 4, 4)
+(4, 4, 4)
+(4, 4, 4)
 (4, 4, 1)
 Sweep n: 0
 
 Sweep n: 1
+
+Sweep n: 2
+
+Sweep n: 3
 
+Sweep n: 4
+
+Sweep n: 5
+
 ##############################
 The energy between the two last updated states converged
-to an order of 1e-10 after:
-1 sweeps at site 1
-total iterations 3
+to an order of 0.01190358281547077
+instead of the convergence tolerance 1e-10
 ##############################
 (1, 4, 4)
+(4, 4, 4)
+(4, 4, 4)
 (4, 4, 1)
 Sweep n: 0
 
 Sweep n: 1
+
+Sweep n: 2
+
+Sweep n: 3
 
+Sweep n: 4
+
+Sweep n: 5
+
 ##############################
 The energy between the two last updated states converged
-to an order of 1e-10 after:
-1 sweeps at site 1
-total iterations 3
+to an order of 0.017445964278536508
+instead of the convergence tolerance 1e-10
 ##############################
 (1, 4, 4)
+(4, 4, 4)
+(4, 4, 4)
 (4, 4, 1)
 Sweep n: 0
 
 Sweep n: 1
+
+Sweep n: 2
+
+Sweep n: 3
+
+Sweep n: 4
+
+Sweep n: 5
 
 ##############################
 The energy between the two last updated states converged
-to an order of 1e-10 after:
-1 sweeps at site 1
-total iterations 3
+to an order of 0.014497198487010365
+instead of the convergence tolerance 1e-10
 ##############################
 (1, 4, 4)
+(4, 4, 4)
+(4, 4, 4)
 (4, 4, 1)
 Sweep n: 0
 
 Sweep n: 1
 
+Sweep n: 2
+
+Sweep n: 3
+
+Sweep n: 4
+
+Sweep n: 5
+
 ##############################
 The energy between the two last updated states converged
-to an order of 1e-10 after:
-1 sweeps at site 1
-total iterations 3
+to an order of 0.04553006800663084
+instead of the convergence tolerance 1e-10
 ##############################
 (1, 4, 4)
+(4, 4, 4)
+(4, 4, 4)
 (4, 4, 1)
 Sweep n: 0
 
 Sweep n: 1
+
+Sweep n: 2
+
+Sweep n: 3
+
+Sweep n: 4
 
+Sweep n: 5
+
 ##############################
 The energy between the two last updated states converged
-to an order of 1e-10 after:
-1 sweeps at site 1
-total iterations 3
+to an order of 0.04298622277126185
+instead of the convergence tolerance 1e-10
 ##############################
 (1, 4, 4)
+(4, 4, 4)
+(4, 4, 4)
 (4, 4, 1)
 Sweep n: 0
 
 Sweep n: 1
+
+Sweep n: 2
+
+Sweep n: 3
 
+Sweep n: 4
+
+Sweep n: 5
+
 ##############################
 The energy between the two last updated states converged
-to an order of 1e-10 after:
-1 sweeps at site 1
-total iterations 3
+to an order of 0.016245669892754222
+instead of the convergence tolerance 1e-10
 ##############################
 (1, 4, 4)
+(4, 4, 4)
+(4, 4, 4)
 (4, 4, 1)
 Sweep n: 0
 
 Sweep n: 1
+
+Sweep n: 2
+
+Sweep n: 3
 
+Sweep n: 4
+
+Sweep n: 5
+
 ##############################
 The energy between the two last updated states converged
-to an order of 1e-10 after:
-1 sweeps at site 1
-total iterations 3
+to an order of 0.021517005565907965
+instead of the convergence tolerance 1e-10
 ##############################
 (1, 4, 4)
+(4, 4, 4)
+(4, 4, 4)
 (4, 4, 1)
 Sweep n: 0
 
 Sweep n: 1
+
+Sweep n: 2
 
+Sweep n: 3
+
+Sweep n: 4
+
+Sweep n: 5
+
 ##############################
 The energy between the two last updated states converged
-to an order of 1e-10 after:
-1 sweeps at site 1
-total iterations 3
+to an order of 0.005368595271637133
+instead of the convergence tolerance 1e-10
 ##############################
 (1, 4, 4)
+(4, 4, 4)
+(4, 4, 4)
 (4, 4, 1)
 Sweep n: 0
 
 Sweep n: 1
+
+Sweep n: 2
 
+Sweep n: 3
+
+Sweep n: 4
+
+Sweep n: 5
+
 ##############################
 The energy between the two last updated states converged
-to an order of 1e-10 after:
-1 sweeps at site 1
-total iterations 3
+to an order of 0.018116645727495495
+instead of the convergence tolerance 1e-10
 ##############################
 (1, 4, 4)
+(4, 4, 4)
+(4, 4, 4)
 (4, 4, 1)
 Sweep n: 0
 
 Sweep n: 1
+
+Sweep n: 2
+
+Sweep n: 3
+
+Sweep n: 4
 
+Sweep n: 5
+
 ##############################
 The energy between the two last updated states converged
-to an order of 1e-10 after:
-1 sweeps at site 1
-total iterations 3
+to an order of 0.0946789155106238
+instead of the convergence tolerance 1e-10
 ##############################
 (1, 4, 4)
+(4, 4, 4)
+(4, 4, 4)
 (4, 4, 1)
 Sweep n: 0
 
 Sweep n: 1
+
+Sweep n: 2
+
+Sweep n: 3
 
+Sweep n: 4
+
+Sweep n: 5
+
 ##############################
 The energy between the two last updated states converged
-to an order of 1e-10 after:
-1 sweeps at site 1
-total iterations 3
+to an order of 0.028355514798274584
+instead of the convergence tolerance 1e-10
 ##############################
 (1, 4, 4)
+(4, 4, 4)
+(4, 4, 4)
 (4, 4, 1)
 Sweep n: 0
 
 Sweep n: 1
+
+Sweep n: 2
+
+Sweep n: 3
 
+Sweep n: 4
+
+Sweep n: 5
+
 ##############################
 The energy between the two last updated states converged
-to an order of 1e-10 after:
-1 sweeps at site 1
-total iterations 3
+to an order of 0.0012572162815054355
+instead of the convergence tolerance 1e-10
 ##############################
 (1, 4, 4)
+(4, 4, 4)
+(4, 4, 4)
 (4, 4, 1)
 Sweep n: 0
 
 Sweep n: 1
+
+Sweep n: 2
+
+Sweep n: 3
+
+Sweep n: 4
+
+Sweep n: 5
 
 ##############################
 The energy between the two last updated states converged
-to an order of 1e-10 after:
-1 sweeps at site 1
-total iterations 3
+to an order of 0.08634306467032715
+instead of the convergence tolerance 1e-10
 ##############################
 (1, 4, 4)
+(4, 4, 4)
+(4, 4, 4)
 (4, 4, 1)
 Sweep n: 0
 
 Sweep n: 1
 
+Sweep n: 2
+
+Sweep n: 3
+
+Sweep n: 4
+
+Sweep n: 5
+
 ##############################
 The energy between the two last updated states converged
-to an order of 1e-10 after:
-1 sweeps at site 1
-total iterations 3
+to an order of 0.010209442100446608
+instead of the convergence tolerance 1e-10
 ##############################
 (1, 4, 4)
+(4, 4, 4)
+(4, 4, 4)
 (4, 4, 1)
 Sweep n: 0
 
 Sweep n: 1
+
+Sweep n: 2
+
+Sweep n: 3
+
+Sweep n: 4
 
+Sweep n: 5
+
 ##############################
 The energy between the two last updated states converged
-to an order of 1e-10 after:
-1 sweeps at site 1
-total iterations 3
+to an order of 0.12261256668634246
+instead of the convergence tolerance 1e-10
 ##############################
 (1, 4, 4)
+(4, 4, 4)
+(4, 4, 4)
 (4, 4, 1)
 Sweep n: 0
 
 Sweep n: 1
+
+Sweep n: 2
+
+Sweep n: 3
 
+Sweep n: 4
+
+Sweep n: 5
+
 ##############################
 The energy between the two last updated states converged
-to an order of 1e-10 after:
-1 sweeps at site 1
-total iterations 3
+to an order of 0.05375032869975627
+instead of the convergence tolerance 1e-10
 ##############################
 (1, 4, 4)
+(4, 4, 4)
+(4, 4, 4)
 (4, 4, 1)
 Sweep n: 0
 
 Sweep n: 1
+
+Sweep n: 2
 
+Sweep n: 3
+
+Sweep n: 4
+
+Sweep n: 5
+
 ##############################
 The energy between the two last updated states converged
-to an order of 1e-10 after:
-1 sweeps at site 1
-total iterations 3
+to an order of 0.001873979527680092
+instead of the convergence tolerance 1e-10
 ##############################
 (1, 4, 4)
+(4, 4, 4)
+(4, 4, 4)
 (4, 4, 1)
 Sweep n: 0
 
 Sweep n: 1
+
+Sweep n: 2
+
+Sweep n: 3
+
+Sweep n: 4
+
+Sweep n: 5
 
 ##############################
 The energy between the two last updated states converged
-to an order of 1e-10 after:
-1 sweeps at site 1
-total iterations 3
+to an order of 0.000857845080886932
+instead of the convergence tolerance 1e-10
 ##############################
 (1, 4, 4)
+(4, 4, 4)
+(4, 4, 4)
 (4, 4, 1)
 Sweep n: 0
 
 Sweep n: 1
 
+Sweep n: 2
+
+Sweep n: 3
+
+Sweep n: 4
+
+Sweep n: 5
+
 ##############################
 The energy between the two last updated states converged
-to an order of 1e-10 after:
-1 sweeps at site 1
-total iterations 3
+to an order of 0.006686312036585207
+instead of the convergence tolerance 1e-10
 ##############################
 (1, 4, 4)
+(4, 4, 4)
+(4, 4, 4)
 (4, 4, 1)
 Sweep n: 0
 
 Sweep n: 1
+
+Sweep n: 2
+
+Sweep n: 3
 
+Sweep n: 4
+
+Sweep n: 5
+
 ##############################
 The energy between the two last updated states converged
-to an order of 1e-10 after:
-1 sweeps at site 1
-total iterations 3
+to an order of 0.0028515343558552786
+instead of the convergence tolerance 1e-10
 ##############################
 (1, 4, 4)
+(4, 4, 4)
+(4, 4, 4)
 (4, 4, 1)
 Sweep n: 0
 
 Sweep n: 1
+
+Sweep n: 2
 
+Sweep n: 3
+
+Sweep n: 4
+
+Sweep n: 5
+
 ##############################
 The energy between the two last updated states converged
-to an order of 1e-10 after:
-1 sweeps at site 1
-total iterations 3
+to an order of 0.005696850194105707
+instead of the convergence tolerance 1e-10
 ##############################
 (1, 4, 4)
+(4, 4, 4)
+(4, 4, 4)
 (4, 4, 1)
 Sweep n: 0
 
 Sweep n: 1
+
+Sweep n: 2
 
+Sweep n: 3
+
+Sweep n: 4
+
+Sweep n: 5
+
 ##############################
 The energy between the two last updated states converged
-to an order of 1e-10 after:
-1 sweeps at site 1
-total iterations 3
+to an order of 0.0035856047197739827
+instead of the convergence tolerance 1e-10
 ##############################
 (1, 4, 4)
+(4, 4, 4)
+(4, 4, 4)
 (4, 4, 1)
 Sweep n: 0
 
 Sweep n: 1
+
+Sweep n: 2
+
+Sweep n: 3
+
+Sweep n: 4
 
+Sweep n: 5
+
 ##############################
 The energy between the two last updated states converged
-to an order of 1e-10 after:
-1 sweeps at site 1
-total iterations 3
+to an order of 0.0014403423255089365
+instead of the convergence tolerance 1e-10
 ##############################
 (1, 4, 4)
+(4, 4, 4)
+(4, 4, 4)
 (4, 4, 1)
 Sweep n: 0
 
 Sweep n: 1
+
+Sweep n: 2
+
+Sweep n: 3
 
+Sweep n: 4
+
+Sweep n: 5
+
 ##############################
 The energy between the two last updated states converged
-to an order of 1e-10 after:
-1 sweeps at site 1
-total iterations 3
+to an order of 0.0043795603155345475
+instead of the convergence tolerance 1e-10
 ##############################
 (1, 4, 4)
+(4, 4, 4)
+(4, 4, 4)
 (4, 4, 1)
 Sweep n: 0
 
 Sweep n: 1
+
+Sweep n: 2
+
+Sweep n: 3
 
+Sweep n: 4
+
+Sweep n: 5
+
 ##############################
 The energy between the two last updated states converged
-to an order of 1e-10 after:
-1 sweeps at site 1
-total iterations 3
+to an order of 0.006567781402964101
+instead of the convergence tolerance 1e-10
 ##############################
 (1, 4, 4)
+(4, 4, 4)
+(4, 4, 4)
 (4, 4, 1)
 Sweep n: 0
 
 Sweep n: 1
+
+Sweep n: 2
+
+Sweep n: 3
+
+Sweep n: 4
+
+Sweep n: 5
 
 ##############################
 The energy between the two last updated states converged
-to an order of 1e-10 after:
-1 sweeps at site 1
-total iterations 3
+to an order of 0.00024874269824692874
+instead of the convergence tolerance 1e-10
 ##############################
 (1, 4, 4)
+(4, 4, 4)
+(4, 4, 4)
 (4, 4, 1)
 Sweep n: 0
 
 Sweep n: 1
 
+Sweep n: 2
+
+Sweep n: 3
+
+Sweep n: 4
+
+Sweep n: 5
+
 ##############################
 The energy between the two last updated states converged
-to an order of 1e-10 after:
-1 sweeps at site 1
-total iterations 3
+to an order of 0.007297696123380604
+instead of the convergence tolerance 1e-10
 ##############################
 (1, 4, 4)
+(4, 4, 4)
+(4, 4, 4)
 (4, 4, 1)
 Sweep n: 0
 
 Sweep n: 1
+
+Sweep n: 2
+
+Sweep n: 3
+
+Sweep n: 4
 
+Sweep n: 5
+
 ##############################
 The energy between the two last updated states converged
-to an order of 1e-10 after:
-1 sweeps at site 1
-total iterations 3
+to an order of 0.1240583354751692
+instead of the convergence tolerance 1e-10
 ##############################
 (1, 4, 4)
+(4, 4, 4)
+(4, 4, 4)
 (4, 4, 1)
 Sweep n: 0
 
 Sweep n: 1
+
+Sweep n: 2
+
+Sweep n: 3
 
+Sweep n: 4
+
+Sweep n: 5
+
 ##############################
 The energy between the two last updated states converged
-to an order of 1e-10 after:
-1 sweeps at site 1
-total iterations 3
+to an order of 0.059422059960510865
+instead of the convergence tolerance 1e-10
 ##############################
 (1, 4, 4)
+(4, 4, 4)
+(4, 4, 4)
 (4, 4, 1)
 Sweep n: 0
 
 Sweep n: 1
+
+Sweep n: 2
 
+Sweep n: 3
+
+Sweep n: 4
+
+Sweep n: 5
+
 ##############################
 The energy between the two last updated states converged
-to an order of 1e-10 after:
-1 sweeps at site 1
-total iterations 3
+to an order of 0.1813768629495911
+instead of the convergence tolerance 1e-10
 ##############################
 (1, 4, 4)
+(4, 4, 4)
+(4, 4, 4)
 (4, 4, 1)
 Sweep n: 0
 
 Sweep n: 1
+
+Sweep n: 2
+
+Sweep n: 3
+
+Sweep n: 4
+
+Sweep n: 5
 
 ##############################
 The energy between the two last updated states converged
-to an order of 1e-10 after:
-1 sweeps at site 1
-total iterations 3
+to an order of 0.07728741476950063
+instead of the convergence tolerance 1e-10
 ##############################
 (1, 4, 4)
+(4, 4, 4)
+(4, 4, 4)
 (4, 4, 1)
 Sweep n: 0
 
 Sweep n: 1
 
+Sweep n: 2
+
+Sweep n: 3
+
+Sweep n: 4
+
+Sweep n: 5
+
 ##############################
 The energy between the two last updated states converged
-to an order of 1e-10 after:
-1 sweeps at site 1
-total iterations 3
+to an order of 0.042307818646534656
+instead of the convergence tolerance 1e-10
 ##############################
 (1, 4, 4)
+(4, 4, 4)
+(4, 4, 4)
 (4, 4, 1)
 Sweep n: 0
 
 Sweep n: 1
+
+Sweep n: 2
+
+Sweep n: 3
+
+Sweep n: 4
 
+Sweep n: 5
+
 ##############################
 The energy between the two last updated states converged
-to an order of 1e-10 after:
-1 sweeps at site 1
-total iterations 3
+to an order of 0.0006635227848050818
+instead of the convergence tolerance 1e-10
 ##############################
 (1, 4, 4)
+(4, 4, 4)
+(4, 4, 4)
 (4, 4, 1)
 Sweep n: 0
 
 Sweep n: 1
+
+Sweep n: 2
+
+Sweep n: 3
 
+Sweep n: 4
+
+Sweep n: 5
+
 ##############################
 The energy between the two last updated states converged
-to an order of 1e-10 after:
-1 sweeps at site 1
-total iterations 3
+to an order of 0.00016848676853697953
+instead of the convergence tolerance 1e-10
 ##############################
 (1, 4, 4)
+(4, 4, 4)
+(4, 4, 4)
 (4, 4, 1)
 Sweep n: 0
 
 Sweep n: 1
+
+Sweep n: 2
+
+Sweep n: 3
 
+Sweep n: 4
+
+Sweep n: 5
+
 ##############################
 The energy between the two last updated states converged
-to an order of 1e-10 after:
-1 sweeps at site 1
-total iterations 3
+to an order of 0.23925317669172586
+instead of the convergence tolerance 1e-10
 ##############################
 (1, 4, 4)
+(4, 4, 4)
+(4, 4, 4)
 (4, 4, 1)
 Sweep n: 0
 
 Sweep n: 1
+
+Sweep n: 2
+
+Sweep n: 3
+
+Sweep n: 4
+
+Sweep n: 5
 
 ##############################
 The energy between the two last updated states converged
-to an order of 1e-10 after:
-1 sweeps at site 1
-total iterations 3
+to an order of 0.022727074868370778
+instead of the convergence tolerance 1e-10
 ##############################
 (1, 4, 4)
+(4, 4, 4)
+(4, 4, 4)
 (4, 4, 1)
 Sweep n: 0
 
 Sweep n: 1
 
+Sweep n: 2
+
+Sweep n: 3
+
+Sweep n: 4
+
+Sweep n: 5
+
 ##############################
 The energy between the two last updated states converged
-to an order of 1e-10 after:
-1 sweeps at site 1
-total iterations 3
+to an order of 0.004724329527107329
+instead of the convergence tolerance 1e-10
 ##############################
 (1, 4, 4)
+(4, 4, 4)
+(4, 4, 4)
 (4, 4, 1)
 Sweep n: 0
 
 Sweep n: 1
+
+Sweep n: 2
+
+Sweep n: 3
+
+Sweep n: 4
 
+Sweep n: 5
+
 ##############################
 The energy between the two last updated states converged
-to an order of 1e-10 after:
-1 sweeps at site 1
-total iterations 3
+to an order of 0.06896718589865714
+instead of the convergence tolerance 1e-10
 ##############################
 (1, 4, 4)
+(4, 4, 4)
+(4, 4, 4)
 (4, 4, 1)
 Sweep n: 0
 
 Sweep n: 1
+
+Sweep n: 2
+
+Sweep n: 3
 
+Sweep n: 4
+
+Sweep n: 5
+
 ##############################
 The energy between the two last updated states converged
-to an order of 1e-10 after:
-1 sweeps at site 1
-total iterations 3
+to an order of 0.07981520767602746
+instead of the convergence tolerance 1e-10
 ##############################
 (1, 4, 4)
+(4, 4, 4)
+(4, 4, 4)
 (4, 4, 1)
 Sweep n: 0
 
 Sweep n: 1
+
+Sweep n: 2
 
+Sweep n: 3
+
+Sweep n: 4
+
+Sweep n: 5
+
 ##############################
 The energy between the two last updated states converged
-to an order of 1e-10 after:
-1 sweeps at site 1
-total iterations 3
+to an order of 0.005659517917997903
+instead of the convergence tolerance 1e-10
 ##############################
 (1, 4, 4)
+(4, 4, 4)
+(4, 4, 4)
 (4, 4, 1)
 Sweep n: 0
 
 Sweep n: 1
+
+Sweep n: 2
+
+Sweep n: 3
+
+Sweep n: 4
+
+Sweep n: 5
 
 ##############################
 The energy between the two last updated states converged
-to an order of 1e-10 after:
-1 sweeps at site 1
-total iterations 3
+to an order of 0.016946559074668244
+instead of the convergence tolerance 1e-10
 ##############################
 (1, 4, 4)
+(4, 4, 4)
+(4, 4, 4)
 (4, 4, 1)
 Sweep n: 0
 
 Sweep n: 1
 
+Sweep n: 2
+
+Sweep n: 3
+
+Sweep n: 4
+
+Sweep n: 5
+
 ##############################
 The energy between the two last updated states converged
-to an order of 1e-10 after:
-1 sweeps at site 1
-total iterations 3
+to an order of 0.22766418747517747
+instead of the convergence tolerance 1e-10
 ##############################
 (1, 4, 4)
+(4, 4, 4)
+(4, 4, 4)
 (4, 4, 1)
 Sweep n: 0
 
 Sweep n: 1
+
+Sweep n: 2
+
+Sweep n: 3
 
+Sweep n: 4
+
+Sweep n: 5
+
 ##############################
 The energy between the two last updated states converged
-to an order of 1e-10 after:
-1 sweeps at site 1
-total iterations 3
+to an order of 0.0014293932130868825
+instead of the convergence tolerance 1e-10
 ##############################
 (1, 4, 4)
+(4, 4, 4)
+(4, 4, 4)
 (4, 4, 1)
 Sweep n: 0
 
 Sweep n: 1
+
+Sweep n: 2
 
+Sweep n: 3
+
+Sweep n: 4
+
+Sweep n: 5
+
 ##############################
 The energy between the two last updated states converged
-to an order of 1e-10 after:
-1 sweeps at site 1
-total iterations 3
+to an order of 0.06452280413569866
+instead of the convergence tolerance 1e-10
 ##############################
 (1, 4, 4)
+(4, 4, 4)
+(4, 4, 4)
 (4, 4, 1)
 Sweep n: 0
 
 Sweep n: 1
+
+Sweep n: 2
 
+Sweep n: 3
+
+Sweep n: 4
+
+Sweep n: 5
+
 ##############################
 The energy between the two last updated states converged
-to an order of 1e-10 after:
-1 sweeps at site 1
-total iterations 3
+to an order of 0.0078988735299248
+instead of the convergence tolerance 1e-10
 ##############################
 (1, 4, 4)
+(4, 4, 4)
+(4, 4, 4)
 (4, 4, 1)
 Sweep n: 0
 
 Sweep n: 1
+
+Sweep n: 2
+
+Sweep n: 3
+
+Sweep n: 4
+
+Sweep n: 5
 
 ##############################
 The energy between the two last updated states converged
-to an order of 1e-10 after:
-1 sweeps at site 1
-total iterations 3
+to an order of 0.0009498778696084287
+instead of the convergence tolerance 1e-10
 ##############################
 (1, 4, 4)
+(4, 4, 4)
+(4, 4, 4)
 (4, 4, 1)
 Sweep n: 0
 
 Sweep n: 1
 
+Sweep n: 2
+
+Sweep n: 3
+
+Sweep n: 4
+
+Sweep n: 5
+
 ##############################
 The energy between the two last updated states converged
-to an order of 1e-10 after:
-1 sweeps at site 1
-total iterations 3
+to an order of 0.12332682244566939
+instead of the convergence tolerance 1e-10
 ##############################
 (1, 4, 4)
+(4, 4, 4)
+(4, 4, 4)
 (4, 4, 1)
 Sweep n: 0
 
 Sweep n: 1
+
+Sweep n: 2
+
+Sweep n: 3
+
+Sweep n: 4
 
+Sweep n: 5
+
 ##############################
 The energy between the two last updated states converged
-to an order of 1e-10 after:
-1 sweeps at site 1
-total iterations 3
+to an order of 0.01603559869214166
+instead of the convergence tolerance 1e-10
 ##############################
 (1, 4, 4)
+(4, 4, 4)
+(4, 4, 4)
 (4, 4, 1)
 Sweep n: 0
 
 Sweep n: 1
+
+Sweep n: 2
+
+Sweep n: 3
 
+Sweep n: 4
+
+Sweep n: 5
+
 ##############################
 The energy between the two last updated states converged
-to an order of 1e-10 after:
-1 sweeps at site 1
-total iterations 3
+to an order of 0.0407237822534654
+instead of the convergence tolerance 1e-10
 ##############################
 (1, 4, 4)
+(4, 4, 4)
+(4, 4, 4)
 (4, 4, 1)
 Sweep n: 0
 
 Sweep n: 1
+
+Sweep n: 2
 
+Sweep n: 3
+
+Sweep n: 4
+
+Sweep n: 5
+
 ##############################
 The energy between the two last updated states converged
-to an order of 1e-10 after:
-1 sweeps at site 1
-total iterations 3
+to an order of 0.04752030191962575
+instead of the convergence tolerance 1e-10
 ##############################
 (1, 4, 4)
+(4, 4, 4)
+(4, 4, 4)
 (4, 4, 1)
 Sweep n: 0
 
 Sweep n: 1
+
+Sweep n: 2
+
+Sweep n: 3
+
+Sweep n: 4
+
+Sweep n: 5
 
 ##############################
 The energy between the two last updated states converged
-to an order of 1e-10 after:
-1 sweeps at site 1
-total iterations 3
+to an order of 0.0003094074244458511
+instead of the convergence tolerance 1e-10
 ##############################
 (1, 4, 4)
+(4, 4, 4)
+(4, 4, 4)
 (4, 4, 1)
 Sweep n: 0
 
 Sweep n: 1
 
+Sweep n: 2
+
+Sweep n: 3
+
+Sweep n: 4
+
+Sweep n: 5
+
 ##############################
 The energy between the two last updated states converged
-to an order of 1e-10 after:
-1 sweeps at site 1
-total iterations 3
+to an order of 0.0697416766946759
+instead of the convergence tolerance 1e-10
 ##############################
 (1, 4, 4)
+(4, 4, 4)
+(4, 4, 4)
 (4, 4, 1)
 Sweep n: 0
 
 Sweep n: 1
+
+Sweep n: 2
+
+Sweep n: 3
 
+Sweep n: 4
+
+Sweep n: 5
+
 ##############################
 The energy between the two last updated states converged
-to an order of 1e-10 after:
-1 sweeps at site 1
-total iterations 3
+to an order of 0.007594331324014547
+instead of the convergence tolerance 1e-10
 ##############################
 (1, 4, 4)
+(4, 4, 4)
+(4, 4, 4)
 (4, 4, 1)
 Sweep n: 0
 
 Sweep n: 1
+
+Sweep n: 2
 
+Sweep n: 3
+
+Sweep n: 4
+
+Sweep n: 5
+
 ##############################
 The energy between the two last updated states converged
-to an order of 1e-10 after:
-1 sweeps at site 1
-total iterations 3
+to an order of 0.0005536906947725129
+instead of the convergence tolerance 1e-10
 ##############################
 (1, 4, 4)
+(4, 4, 4)
+(4, 4, 4)
 (4, 4, 1)
 Sweep n: 0
 
 Sweep n: 1
+
+Sweep n: 2
 
+Sweep n: 3
+
+Sweep n: 4
+
+Sweep n: 5
+
 ##############################
 The energy between the two last updated states converged
-to an order of 1e-10 after:
-1 sweeps at site 1
-total iterations 3
+to an order of 0.004146292670483831
+instead of the convergence tolerance 1e-10
 ##############################
 (1, 4, 4)
+(4, 4, 4)
+(4, 4, 4)
 (4, 4, 1)
 Sweep n: 0
 
 Sweep n: 1
+
+Sweep n: 2
+
+Sweep n: 3
+
+Sweep n: 4
 
+Sweep n: 5
+
 ##############################
 The energy between the two last updated states converged
-to an order of 1e-10 after:
-1 sweeps at site 1
-total iterations 3
+to an order of 0.0002510902257384373
+instead of the convergence tolerance 1e-10
 ##############################
 (1, 4, 4)
+(4, 4, 4)
+(4, 4, 4)
 (4, 4, 1)
 Sweep n: 0
 
 Sweep n: 1
+
+Sweep n: 2
+
+Sweep n: 3
 
+Sweep n: 4
+
+Sweep n: 5
+
 ##############################
 The energy between the two last updated states converged
-to an order of 1e-10 after:
-1 sweeps at site 1
-total iterations 3
+to an order of 0.020323555833357432
+instead of the convergence tolerance 1e-10
 ##############################
 (1, 4, 4)
+(4, 4, 4)
+(4, 4, 4)
 (4, 4, 1)
 Sweep n: 0
 
 Sweep n: 1
+
+Sweep n: 2
+
+Sweep n: 3
 
+Sweep n: 4
+
+Sweep n: 5
+
 ##############################
 The energy between the two last updated states converged
-to an order of 1e-10 after:
-1 sweeps at site 1
-total iterations 3
+to an order of 0.2085095666754384
+instead of the convergence tolerance 1e-10
 ##############################
 (1, 4, 4)
+(4, 4, 4)
+(4, 4, 4)
 (4, 4, 1)
 Sweep n: 0
 
 Sweep n: 1
+
+Sweep n: 2
 
+Sweep n: 3
+
+Sweep n: 4
+
+Sweep n: 5
+
 ##############################
 The energy between the two last updated states converged
-to an order of 1e-10 after:
-1 sweeps at site 1
-total iterations 3
+to an order of 0.07695767168304712
+instead of the convergence tolerance 1e-10
 ##############################
 (1, 4, 4)
+(4, 4, 4)
+(4, 4, 4)
 (4, 4, 1)
 Sweep n: 0
 
 Sweep n: 1
+
+Sweep n: 2
 
+Sweep n: 3
+
+Sweep n: 4
+
+Sweep n: 5
+
 ##############################
 The energy between the two last updated states converged
-to an order of 1e-10 after:
-1 sweeps at site 1
-total iterations 3
-##############################
-(1, 4, 4)
-(4, 4, 1)
-12
-h: 0.0
-h: 0.10101010101010101
-h: 0.20202020202020202
-h: 0.30303030303030304
-h: 0.40404040404040403
-h: 0.5050505050505051
-h: 0.6060606060606061
-h: 0.7070707070707071
-h: 0.8080808080808081
-h: 0.9090909090909091
-h: 1.0101010101010102
-h: 1.1111111111111112
-h: 1.2121212121212122
-h: 1.3131313131313131
-h: 1.4141414141414141
-h: 1.5151515151515151
-h: 1.6161616161616161
-h: 1.7171717171717171
-h: 1.8181818181818181
-h: 1.9191919191919191
-h: 2.0202020202020203
-h: 2.121212121212121
-h: 2.2222222222222223
-h: 2.323232323232323
-h: 2.4242424242424243
-h: 2.525252525252525
-h: 2.6262626262626263
-h: 2.727272727272727
-h: 2.8282828282828283
-h: 2.929292929292929
-h: 3.0303030303030303
-h: 3.131313131313131
-h: 3.2323232323232323
-h: 3.3333333333333335
-h: 3.4343434343434343
-h: 3.5353535353535355
-h: 3.6363636363636362
-h: 3.7373737373737375
-h: 3.8383838383838382
-h: 3.9393939393939394
-h: 4.040404040404041
-h: 4.141414141414141
-h: 4.242424242424242
-h: 4.343434343434343
-h: 4.444444444444445
-h: 4.545454545454545
-h: 4.646464646464646
-h: 4.747474747474747
-h: 4.848484848484849
-h: 4.94949494949495
-h: 5.05050505050505
-h: 5.151515151515151
-h: 5.252525252525253
-h: 5.353535353535354
-h: 5.454545454545454
-h: 5.555555555555555
-h: 5.656565656565657
-h: 5.757575757575758
-h: 5.858585858585858
-h: 5.959595959595959
-h: 6.0606060606060606
-h: 6.161616161616162
-h: 6.262626262626262
-h: 6.363636363636363
-h: 6.4646464646464645
-h: 6.565656565656566
-h: 6.666666666666667
-h: 6.767676767676767
-h: 6.8686868686868685
-h: 6.96969696969697
-h: 7.070707070707071
-h: 7.171717171717171
-h: 7.2727272727272725
-h: 7.373737373737374
-h: 7.474747474747475
-h: 7.575757575757575
-h: 7.6767676767676765
-h: 7.777777777777778
-h: 7.878787878787879
-h: 7.979797979797979
-h: 8.080808080808081
-h: 8.181818181818182
-h: 8.282828282828282
-h: 8.383838383838384
-h: 8.484848484848484
-h: 8.585858585858587
-h: 8.686868686868687
-h: 8.787878787878787
-h: 8.88888888888889
-h: 8.98989898989899
-h: 9.09090909090909
-h: 9.191919191919192
-h: 9.292929292929292
-h: 9.393939393939394
-h: 9.494949494949495
-h: 9.595959595959595
-h: 9.696969696969697
-h: 9.797979797979798
-h: 9.8989898989899
-h: 10.0
-h: 0.0
-h: 0.10101010101010101
-h: 0.20202020202020202
-h: 0.30303030303030304
-h: 0.40404040404040403
-h: 0.5050505050505051
-h: 0.6060606060606061
-h: 0.7070707070707071
-h: 0.8080808080808081
-h: 0.9090909090909091
-h: 1.0101010101010102
-h: 1.1111111111111112
-h: 1.2121212121212122
-h: 1.3131313131313131
-h: 1.4141414141414141
-h: 1.5151515151515151
-h: 1.6161616161616161
-h: 1.7171717171717171
-h: 1.8181818181818181
-h: 1.9191919191919191
-h: 2.0202020202020203
-h: 2.121212121212121
-h: 2.2222222222222223
-h: 2.323232323232323
-h: 2.4242424242424243
-h: 2.525252525252525
-h: 2.6262626262626263
-h: 2.727272727272727
-h: 2.8282828282828283
-h: 2.929292929292929
-h: 3.0303030303030303
-h: 3.131313131313131
-h: 3.2323232323232323
-h: 3.3333333333333335
-h: 3.4343434343434343
-h: 3.5353535353535355
-h: 3.6363636363636362
-h: 3.7373737373737375
-h: 3.8383838383838382
-h: 3.9393939393939394
-h: 4.040404040404041
-h: 4.141414141414141
-h: 4.242424242424242
-h: 4.343434343434343
-h: 4.444444444444445
-h: 4.545454545454545
-h: 4.646464646464646
-h: 4.747474747474747
-h: 4.848484848484849
-h: 4.94949494949495
-h: 5.05050505050505
-h: 5.151515151515151
-h: 5.252525252525253
-h: 5.353535353535354
-h: 5.454545454545454
-h: 5.555555555555555
-h: 5.656565656565657
-h: 5.757575757575758
-h: 5.858585858585858
-h: 5.959595959595959
-h: 6.0606060606060606
-h: 6.161616161616162
-h: 6.262626262626262
-h: 6.363636363636363
-h: 6.4646464646464645
-h: 6.565656565656566
-h: 6.666666666666667
-h: 6.767676767676767
-h: 6.8686868686868685
-h: 6.96969696969697
-h: 7.070707070707071
-h: 7.171717171717171
-h: 7.2727272727272725
-h: 7.373737373737374
-h: 7.474747474747475
-h: 7.575757575757575
-h: 7.6767676767676765
-h: 7.777777777777778
-h: 7.878787878787879
-h: 7.979797979797979
-h: 8.080808080808081
-h: 8.181818181818182
-h: 8.282828282828282
-h: 8.383838383838384
-h: 8.484848484848484
-h: 8.585858585858587
-h: 8.686868686868687
-h: 8.787878787878787
-h: 8.88888888888889
-h: 8.98989898989899
-h: 9.09090909090909
-h: 9.191919191919192
-h: 9.292929292929292
-h: 9.393939393939394
-h: 9.494949494949495
-h: 9.595959595959595
-h: 9.696969696969697
-h: 9.797979797979798
-h: 9.8989898989899
-h: 10.0
-      +-- 5--+-- 6--+      
-      |      |      |      
-      10     11     12
-      |      |      |      
-      +-- 3--+-- 4--+      
-      |      |      |      
-      7      8      9 
-      |      |      |      
-      +-- 1--+-- 2--+      
-
+to an order of 0.063596728006317
+instead of the convergence tolerance 1e-10
