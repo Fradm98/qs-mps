@@ -9,16 +9,22 @@ from scipy.sparse import identity
 import matplotlib.pyplot as plt
 import time
 
+# default parameters of the plot layout
+plt.rcParams["text.usetex"] = True  # use latex
+plt.rcParams["font.size"] = 13
+plt.rcParams["figure.dpi"] = 300
+plt.rcParams["figure.constrained_layout.use"] = True
+
 # finding the ground state of the vacuum sector
 L = 5
 l = 2
 d = int(2**l)
-chi = 16  # this is interpreted as d**(int(log2(chi))) --> e.g. chi=8 == 4**3=64
+chi = 4  # this is interpreted as d**(int(log2(chi))) --> e.g. chi=8 == 4**3=64
 type_shape = "trapezoidal"
 array = np.linspace(0, 10, 100)
 hs = [h for h in array]
 model = "Z2_dual"
-path = "D:/code/projects/1_Z2"
+path = "/Users/fradm98/Desktop/projects/1_Z2"
 multpr = False
 param = hs
 
@@ -58,7 +64,7 @@ for s in range(L-1):
     W = []
     W_exact = []
     for h in hs:
-        print(f"h: {h}")
+        # print(f"h: {h}")
         ladder = MPS(L=L, d=d, model=model, h=h, eps=0, J=1, chi=chi)
         ladder.L = ladder.L - 1
 
@@ -86,13 +92,13 @@ for s in range(L-1):
 
 
     # print(loop)
-    plt.plot(hs, W, marker=markers[s], color=colors_mps[s+3], label=f"mps {s}")
-    plt.plot(hs, W_exact, markers[s], color=colors[s+3], label=f"exact {s}")
+    plt.plot(hs, W, marker=markers[s], color="darkturquoise", label=f"mps {s}")
+    plt.plot(hs, W_exact, markers[s], color="firebrick", label=f"exact {s}")
 
 
 plt.xlabel("electric local parameter (h)")
 plt.legend(loc="lower right")
-plt.show()
+plt.savefig("wilson_loop.png")
 # plt.vlines(x=3.044, ymin=0, ymax=1)
 # plt.title(f"Energy(h)")
 # plt.xscale('symlog')
@@ -100,8 +106,10 @@ plt.show()
 # plt.xlabel("electric local parameter (h)")
 # # plt.ylim([-350, -50])
 # plt.legend(loc="lower right")
-# plt.show() 
+plt.figure().clear()
+# plt.figure().clear()
 
+fig = plt.figure()
 plt.title(f"Energy(h)")
 plt.scatter(hs,
             energies_h,
@@ -114,7 +122,8 @@ plt.scatter(hs,
 plt.plot(hs,eig_exact,'--',color='red', label='exact gs')
 plt.xlabel("electric local parameter (h)")
 plt.legend(loc="lower right")
-plt.show() 
+plt.savefig("energy.png")
+
 
 print(ladder.Z2.latt._lattice_drawer.draw_lattice())
 
