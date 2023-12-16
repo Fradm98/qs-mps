@@ -63,6 +63,12 @@ parser.add_argument(
     default=-1,
     type=int,
 )
+parser.add_argument(
+    "-v",
+    "--save",
+    help="Save the tensors. By default True",
+    action="store_false",
+)
 
 args = parser.parse_args()
 
@@ -108,6 +114,7 @@ for chi in args.chis:  # L // 2 + 1
         "trunc_chi": True,
         "where": args.L // 2,
         "path": path_tensor,
+        "save": args.save,
     }
 
     energy_chi, entropy_chi = ground_state_Z2(

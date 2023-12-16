@@ -3,44 +3,27 @@ import argparse
 from qs_mps.sparse_hamiltonians_and_operators import exact_evolution_sparse
 from qs_mps.utils import access_txt
 
-parser = argparse.ArgumentParser(prog="Exact Ground State and Time Evolution - Ising")
-parser.add_argument("L", help="Spin chain length", type=int)
+# DENSITY MATRIX RENORMALIZATION GROUP to find ground states of the Z2 Pure Gauge Theory 
+# changing the transverse field parameters in its dual formulation
+
+parser = argparse.ArgumentParser(prog="gs_search_Z2")
+parser.add_argument("L", help="Number of rungs per ladder", type=int)
+parser.add_argument("l", help="Number of ladders in the lattice", type=int)
 parser.add_argument(
-    "trotter_steps",
-    help="It will give you how many steps you need to reach time t",
+    "npoints",
+    help="Number of points in an interval of transverse field values",
     type=int,
 )
 parser.add_argument(
-    "h_ev", help="It will give you the magnitude of the quench", type=float
+    "h_i", help="Starting value of h (external transverse field on the dual lattice)", type=float
 )
 parser.add_argument(
-    "-f", "--flip", help="Flip the middle site or not", action="store_true"
+    "h_f", help="Final value of h (external transverse field on the dual lattice)", type=float
 )
 parser.add_argument(
-    "-m", "--model", help="Model to simulate", default="Ising", type=str
-)
-parser.add_argument(
-    "-t", "--time", help="Final time of the evolution", default=10, type=float
-)
-parser.add_argument(
-    "-h_ti",
-    "--h_transverse_init",
-    help="Initial transverse field before the quench",
-    default=0,
-    type=float,
-)
-parser.add_argument(
-    "-w",
-    "--where",
-    help="Where to compute the Schmidt decomposition",
-    default=-1,
-    type=int,
-)
-parser.add_argument(
-    "-b",
-    "--bond",
-    help="Perform a bond Schmidt decomposition, By default True",
-    action="store_false",
+    "path",
+    help="Path to the drive depending on the device used. Available are 'pc', 'mac', 'marcos'",
+    type=str,
 )
 
 args = parser.parse_args()

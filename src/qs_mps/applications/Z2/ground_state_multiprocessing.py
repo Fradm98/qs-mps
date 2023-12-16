@@ -13,6 +13,7 @@ def ground_state_Z2_param(params):
         chi=args_mps["chi"],
         h=param,
     )
+    save = args_mps["saves"] 
     if ladder.model == "Z2_dual":
         ladder.L = ladder.L - 1
     ladder._random_state(seed=3, chi=args_mps["chi"], type_shape=args_mps["type_shape"])
@@ -22,8 +23,8 @@ def ground_state_Z2_param(params):
         trunc_chi=args_mps["trunc_chi"],
         where=args_mps["where"],
     )
-
-    ladder.save_sites(args_mps["path"])
+    if save:
+        ladder.save_sites(args_mps["path"])
     return energy, entropy
 
 
