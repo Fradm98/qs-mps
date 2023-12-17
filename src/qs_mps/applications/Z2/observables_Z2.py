@@ -1,37 +1,83 @@
-# %%
 # import packages
+import argparse
 from qs_mps.mps_class import MPS
 from qs_mps.utils import *
-import matplotlib.pyplot as plt
-from ncon import ncon
-from scipy.sparse import csr_array
 
-# %%
-L = 4
-d = 4
-chi = 16  # this is interpreted as d**(int(log2(chi))) --> e.g. chi=8 == 4**3=64
-# array = np.linspace(1e-3,0.1,20)
-# array = np.linspace(0.4,2,20)
-array = np.linspace(100, 1000, 10)
+parser = argparse.ArgumentParser(prog="gs_search_Z2")
+parser.add_argument("l", help="Number of ladders in the direct lattice", type=int)
+parser.add_argument("L", help="Number of rungs per ladder", type=int)
+parser.add_argument(
+    "npoints",
+    help="Number of points in an interval of transverse field values",
+    type=int,
+)
+parser.add_argument(
+    "h_i", help="Starting value of h (external transverse field on the dual lattice)", type=float
+)
+parser.add_argument(
+    "h_f", help="Final value of h (external transverse field on the dual lattice)", type=float
+)
+parser.add_argument(
+    "path",
+    help="Path to the drive depending on the device used. Available are 'pc', 'mac', 'marcos'",
+    type=str,
+)
+parser.add_argument("o", help="Observable we want to compute. Available are 'wl'", type=str)
+parser.add_argument("sites", help="Number of sites in the wilson loop", type=int)
+parser.add_argument("ladders", help="Number of ladders in the wilson loop", type=int)
 
-hs = [h for h in array]
-model = "Z2_two_ladder"
-charges = [1, 1, -1, -1, 1, 1]
+parser.add_argument("chis", help="Simulated bond dimensions", nargs="+", type=int)
+parser.add_argument(
+    "-m", "--model", help="Model to simulate", default="Z2_dual", type=str
+)
 
-# %%
-for h in hs:
-    ladder = MPS(L=L, d=4, model=model, chi=chi, charges=charges, h=h)
-    ladder.load_sites("/Users/fradm98/Desktop/mps/tests/results/tensor_data")
-    mag_ladders = []
-    for l in range(1, 3):
-        mag_sites = []
-        for i in range(1, L + 1):
-            ladder.sigma_x_Z2_two_ladder(site=i, ladder=l)
-            mag_loc = ladder.mpo_first_moment()
-            mag_sites.append(mag_loc)
-        mag_ladders.append(mag_sites)
-    plt.imshow(mag_ladders, cmap="viridis", vmin=-1, vmax=1)
-    plt.colorbar()
-    plt.show()
+args = parser.parse_args()
 
-# %%
+# define the physical dimension
+d = int(2**(args.l))
+
+# define the interval of equally spaced values of external field
+interval = np.linspace(args.h_i, args.h_f, args.npoints)
+
+# take the path and precision to save files
+# if we want to save the tensors we save them locally because they occupy a lot of memory
+if args.path == "pc":
+    parent_path = "G:/My Drive/projects/1_Z2"
+    path_tensor = "D:/code/projects/1_Z2"
+elif args.path == "mac":
+    parent_path = "/Users/fradm98/Google Drive/My Drive/projects/1_Z2"
+    path_tensor = "/Users/fradm98/Desktop/projects/1_Z2"
+elif args.path == "marcos":
+    parent_path = "/Users/fradm/Google Drive/My Drive/projects/1_Z2"
+    path_tensor = "/Users/fradm/Desktop/projects/1_Z2"
+else:
+    raise SyntaxError("Path not valid. Choose among 'pc', 'mac', 'marcos'")
+
+num = (args.h_f - args.h_i) / args.npoints
+precision = get_precision(num)
+
+
+if args.sites == 1:
+    sites = 0
+if args.ladders == 1:
+    ladders = 1
+# ---------------------------------------------------------
+# Wilson Loop
+# ---------------------------------------------------------
+for chi in args.chis:
+    W = []
+    for h in interval:
+        lattice_mps = MPS(L=args.L, d=d, model=args.model, chi=chi, h=h)
+        lattice_mps.L = lattice_mps.L - 1
+
+        lattice_mps.load_sites(path=path_tensor, precision=precision)
+        if args.o == "wl":
+            lattice_mps.Z2.wilson_Z2_dual(mpo_sites=[sites], ls=[ladders]) #list(range(s))
+        lattice_mps.w = lattice_mps.Z2.mpo
+        W.append(lattice_mps.mpo_first_moment().real)
+    
+
+    np.savetxt(
+                f"{parent_path}/results/wilson_loops/wilson_loop_{args.model}_direct_lattice_{args.l}x{args.L-1}_h_{args.h_i}-{args.h_f}_delta_{args.npoints}_chi_{chi}",
+                W,
+            )
