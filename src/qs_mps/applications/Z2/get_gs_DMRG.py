@@ -8,8 +8,8 @@ from qs_mps.applications.Z2.ground_state_multiprocessing import ground_state_Z2
 # changing the transverse field parameters in its dual formulation
 
 parser = argparse.ArgumentParser(prog="gs_search_Z2")
+parser.add_argument("l", help="Number of ladders in the direct lattice", type=int)
 parser.add_argument("L", help="Number of rungs per ladder", type=int)
-parser.add_argument("l", help="Number of ladders in the lattice", type=int)
 parser.add_argument(
     "npoints",
     help="Number of points in an interval of transverse field values",
@@ -28,7 +28,7 @@ parser.add_argument(
 )
 parser.add_argument("chis", help="Simulated bond dimensions", nargs="+", type=int)
 parser.add_argument(
-    "-ty", "--shape_type", help="Type of shape of the bond dimension. Available are: 'trapezoidal', 'pyramidal', 'rectangular'", default="trapezoidal", type=str
+    "-ty", "--type_shape", help="Type of shape of the bond dimension. Available are: 'trapezoidal', 'pyramidal', 'rectangular'", default="trapezoidal", type=str
 )
 parser.add_argument(
     "-m", "--model", help="Model to simulate", default="Z2_dual", type=str
@@ -62,6 +62,12 @@ parser.add_argument(
     help="Bond where we want to observe the Schmidt values, should be between 1 and (L-1)",
     default=-1,
     type=int,
+)
+parser.add_argument(
+    "-v",
+    "--save",
+    help="Save the tensors. By default True",
+    action="store_false",
 )
 
 args = parser.parse_args()
@@ -108,6 +114,8 @@ for chi in args.chis:  # L // 2 + 1
         "trunc_chi": True,
         "where": args.L // 2,
         "path": path_tensor,
+        "save": args.save,
+        "precision": precision,
     }
 
     energy_chi, entropy_chi = ground_state_Z2(

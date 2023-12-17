@@ -101,15 +101,20 @@ class H_Z2_gauss:
             )
         return - (self.J * loc) - (self.lamb * plaq) + (self.U * G)
 
-    def diagonalize(self, v0: np.ndarray=None, sparse: bool=True, save: bool=True, path: str=None):
+    def diagonalize(self, v0: np.ndarray=None, sparse: bool=True, save: bool=True, path: str=None, precision: int=2, spectrum: str="gs"):
         H = self.hamiltonian()
+
         if sparse:
-            e, v = linalg.eigsh(H, k=(2 ** len(self.latt.plaquettes())), which="SA", v0=v0) # 2 ** len(self.latt.plaquettes())
+            if spectrum == "all":
+                k = (2 ** len(self.latt.plaquettes()))
+            elif spectrum == "gs":
+                k = 1
+            e, v = linalg.eigsh(H, k=k, which="SA", v0=v0) # 2 ** len(self.latt.plaquettes())
         else:
             e, v = np.linalg.eigh(H.toarray())
         if save:
-            np.savetxt(path+f"ground_state_direct_lattice_{self.l-1}x{self.L-1}_{self.sector}_U_{self.U}_h_{self.lamb}", v[:,0])
-        return H, e, v
+            np.savetxt(path+f"/results/eigenvectors/ground_state_direct_lattice_{self.l-1}x{self.L-1}_{self.sector}_U_{self.U}_h_{self.lamb:.{precision}f}", v[:,0])
+        return e, v
 
     def time_evolution(self, path: str=None):
         

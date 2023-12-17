@@ -135,5 +135,3 @@ print(ladder.Z2.latt._lattice_drawer.draw_lattice())
 # # %%
 # plt.plot(hs, entropy_h)
 # plt.vlines(x=3.044, ymin=np.min(entropy_h), ymax=np.max(entropy_h))
-
-

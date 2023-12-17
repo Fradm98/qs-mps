@@ -1,6 +1,26 @@
 import concurrent.futures
 import os
 from qs_mps.mps_class import MPS
+from qs_mps.applications.Z2.exact_hamiltonian import H_Z2_gauss
+
+
+def ground_state_Z2_exact_param(params):
+    args_lattice = params[0]
+    param = params[1]
+    Z2 = H_Z2_gauss(L=args_lattice["L"], l=args_lattice["l"], model=args_lattice["model"], lamb=param)
+    e, v = Z2.diagonalize(v0=args_lattice["v0"], path=args_lattice["path"], save=args_lattice["save"], precision=args_lattice["precision"])
+    return e, v
+
+def ground_state_Z2_exact(args_lattice, param):
+    energies_param = []
+    for p in param:
+        params = [args_lattice, p]
+        energy, vectors = ground_state_Z2_exact_param(params=params)
+        energies_param.append(energy)
+        v0 = vectors[:,0]
+        args_lattice["v0"] = v0
+
+    return energies_param
 
 
 def ground_state_Z2_param(params):
@@ -13,6 +33,7 @@ def ground_state_Z2_param(params):
         chi=args_mps["chi"],
         h=param,
     )
+    save = args_mps["save"]
     if ladder.model == "Z2_dual":
         ladder.L = ladder.L - 1
     ladder._random_state(seed=3, chi=args_mps["chi"], type_shape=args_mps["type_shape"])
@@ -23,7 +44,8 @@ def ground_state_Z2_param(params):
         where=args_mps["where"],
     )
 
-    ladder.save_sites(args_mps["path"])
+    if save:
+        ladder.save_sites(args_mps["path"], args_mps["precision"])
     return energy, entropy
 
 
