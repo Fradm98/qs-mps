@@ -247,7 +247,26 @@ def replace_zeros_with_nan(input_list):
 
     return result_list, num_zeros
 
+# ---------------------------------------------------------------------------------------
+# Logarithm base d
+# ---------------------------------------------------------------------------------------
+def logarithm_base_d(x: float, d: float):
+    """
+    logarithm_base_d
+    
+    This function performs the change of base of the logarithm to d for the value x.
 
+    x: float - value we want to evaulate the logarithm of
+    d: float - value of the base of the logarithm
+
+    """
+    if x <= 0 or d <= 0 or d == 1:
+        raise ValueError("Invalid input: x and d must be positive and d must not be equal to 1.")
+    
+    # Calculate the logarithms using the change of base formula
+    result = np.log(x) / np.log(d)
+    
+    return result
 # ---------------------------------------------------------------------------------------
 # ---------------------------------------------------------------------------------------
 # ---------------------------------------------------------------------------------------

@@ -67,20 +67,23 @@ class MPS:
             sites = self.ancilla_sites
 
         if type_shape == "trapezoidal":
-            chi = int(np.log2(chi))
-            chi_t = chi / int(np.log2(self.d))
             assert (
-                self.L >= 2 * chi_t
+                chi >= self.d
+            ), "The bond dimension is too small for the selected physical dimension d"
+            
+            n = int(logarithm_base_d(x=chi, d=self.d))
+            assert (
+                self.L >= 2 * n
             ), "The spin chain is too small for the selected bond dimension chi"
             np.random.seed(seed)
 
-            for i in range(int(chi_t)):
+            for i in range(n):
                 sites.append(np.random.rand(self.d**i, self.d, self.d ** (i + 1)))
-            for _ in range(self.L - int(2 * chi_t)):
-                sites.append(np.random.rand(self.d**int(chi_t), self.d, self.d**int(chi_t)))
-            for i in range(int(chi_t)):
+            for _ in range(self.L - int(2 * n)):
+                sites.append(np.random.rand(self.d**n, self.d, self.d**n))
+            for i in range(n):
                 sites.append(
-                    np.random.rand(self.d ** (int(chi_t) - i), self.d, self.d ** (int(chi_t) - i - 1))
+                    np.random.rand(self.d ** (n - i), self.d, self.d ** (n - i - 1))
                 )
 
         elif type_shape == "pyramidal":

@@ -69,6 +69,12 @@ parser.add_argument(
     help="Save the tensors. By default True",
     action="store_false",
 )
+parser.add_argument(
+    "-tr",
+    "--training",
+    help="Save all the energies also the ones during the variational optimization. By default True",
+    action="store_false",
+)
 
 args = parser.parse_args()
 
@@ -117,28 +123,43 @@ for chi in args.chis:  # L // 2 + 1
         "save": args.save,
         "precision": precision,
     }
-
-    energy_chi, entropy_chi = ground_state_Z2(
-        args_mps=args_mps, multpr=args.multpr, param=interval
-    )
-
-    if args.bond == False:
-        args.where = "all"
-
-    save_list_of_lists(
-        f"{parent_path}/results/energy_data/energies_{args.model}_direct_lattice_{args.l}x{args.L-1}_h_{args.h_i}-{args.h_f}_delta_{args.npoints}_chi_{chi}",
-        energy_chi,
-    )
-    save_list_of_lists(
-        f"{parent_path}/results/entropy/{args.where}_bond_entropy_{args.model}_direct_lattice_{args.l}x{args.L-1}_h_{args.h_i}-{args.h_f}_delta_{args.npoints}_chi_{chi}",
-        entropy_chi,
-    )
-    if args.where == "all":
-        entropy_mid = access_txt(
-            f"{parent_path}/results/entropy/{args.where}_bond_entropy_{args.model}_direct_lattice_{args.l}x{args.L-1}_h_{args.h_i}-{args.h_f}_delta_{args.npoints}_chi_{chi}",
-            args.L // 2,
+    if __name__ == "__main__":
+        energy_chi, entropy_chi = ground_state_Z2(
+            args_mps=args_mps, multpr=args.multpr, param=interval
         )
-        np.savetxt(
-            f"{parent_path}/results/entropy/{args.L // 2}_bond_entropy_{args.model}_direct_lattice_{args.l}x{args.L-1}_h_{args.h_i}-{args.h_f}_delta_{args.npoints}_chi_{chi}",
-            entropy_mid,
+
+        if args.bond == False:
+            args.where = "all"
+
+        if args.training:
+            save_list_of_lists(
+                f"{parent_path}/results/energy_data/energies_{args.model}_direct_lattice_{args.l}x{args.L-1}_h_{args.h_i}-{args.h_f}_delta_{args.npoints}_chi_{chi}",
+                energy_chi,
+            )
+            energy_gs = access_txt(
+                    f"{parent_path}/results/energy_data/energies_{args.model}_direct_lattice_{args.l}x{args.L-1}_h_{args.h_i}-{args.h_f}_delta_{args.npoints}_chi_{chi}",
+                    -1,
+                )
+            np.savetxt(
+                f"{parent_path}/results/energy_data/energies_{args.model}_direct_lattice_{args.l}x{args.L-1}_h_{args.h_i}-{args.h_f}_delta_{args.npoints}_chi_{chi}",
+                energy_gs,
+            )
+        else:
+            np.savetxt(
+                f"{parent_path}/results/energy_data/energies_{args.model}_direct_lattice_{args.l}x{args.L-1}_h_{args.h_i}-{args.h_f}_delta_{args.npoints}_chi_{chi}",
+                energy_chi,
+            )
+             
+        save_list_of_lists(
+            f"{parent_path}/results/entropy_data/{args.where}_bond_entropy_{args.model}_direct_lattice_{args.l}x{args.L-1}_h_{args.h_i}-{args.h_f}_delta_{args.npoints}_chi_{chi}",
+            entropy_chi,
         )
+        if args.where == "all":
+            entropy_mid = access_txt(
+                f"{parent_path}/results/entropy_data/{args.where}_bond_entropy_{args.model}_direct_lattice_{args.l}x{args.L-1}_h_{args.h_i}-{args.h_f}_delta_{args.npoints}_chi_{chi}",
+                args.L // 2,
+            )
+            np.savetxt(
+                f"{parent_path}/results/entropy_data/{args.L // 2}_bond_entropy_{args.model}_direct_lattice_{args.l}x{args.L-1}_h_{args.h_i}-{args.h_f}_delta_{args.npoints}_chi_{chi}",
+                entropy_mid,
+            )
