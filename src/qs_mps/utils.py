@@ -859,10 +859,8 @@ def create_sequential_colors(num_colors, colormap_name):
 def plot_results_DMRG(
     title: str,
     for_array: list,
-    trotter_steps: int,
-    delta: float,
+    interval: int,
     fname: str,
-    second_part: str,
     path: str,
     fname_ex: str,
     path_ex: str,
@@ -877,6 +875,7 @@ def plot_results_DMRG(
     alpha: float = 1,
     n_points: float = 1,
     cmap: str = "viridis",
+    precision: int = 2,
 ):
     """
     plot_results_evolution
@@ -891,10 +890,10 @@ def plot_results_DMRG(
         fontsize=14,
     )
     step = int(1 // n_points)
-    x = np.arange(trotter_steps + 1)[::step]
+    x = interval[::step]
 
     for i, elem in enumerate(for_array):
-        res_mps = np.loadtxt(f"{path}/{fname}_chi_{elem}{second_part}")
+        res_mps = np.loadtxt(f"{path}/{fname}_chi_{elem}")
         # res_mps = access_txt(
         #     f"{path}/all_bond_entropy_Ising_L_51_flip_True_delta_0.01_chi_{elem}_h_ev_1.75", 25
         # )
@@ -921,10 +920,12 @@ def plot_results_DMRG(
                 color="indianred",
                 label=f"exact",
             )
+        # labels = interval[:: (len(interval) // 10)],
+        # labels = [f"{h:.{precision}f}" for h in labels]
         plt.xlabel("time (t)")
         plt.xticks(
-            ticks=np.arange(trotter_steps + 1)[:: trotter_steps // 5],
-            labels=delta * np.arange(trotter_steps + 1)[:: trotter_steps // 5],
+            ticks=interval[:: (len(interval) // 2)],
+            labels=interval[:: (len(interval) // 2)],
         )
         plt.ylabel(ylabel)
         plt.legend()
@@ -968,7 +969,7 @@ def plot_results_TEBD(
         title,
         fontsize=14,
     )
-    step = int(1 // n_points)
+    step = 1 // n_points
     x = list(np.arange(trotter_steps + 1))[::step]
 
     for i, elem in enumerate(for_array):
