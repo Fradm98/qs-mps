@@ -137,19 +137,19 @@ else:
     raise SyntaxError("insert a valid location: 'pc', 'mac', 'marcos'")
 
 if args.what == "energy":
-    title = f"Energy: $lattice = {args.l}x{args.L-1}$"
+    title = f"Energy: lattice = ${args.l}$x${args.L-1}$ ; vacuum sector"
     fname_what = "energies"
-    fname_ex_what = "energy_exact"
+    fname_ex_what = "energies"
     path = path_computer + f"results/energy_data"
-    path_ex = path_computer + f"results/exact_energy_data"
+    path_ex = path_computer + f"results/exact/energy_data"
     path_save = path_computer + f"figures/energy/"
     ylabel = "$\\langle E\\rangle$"
 
 
 elif args.what == "entropy":
     title = (
-        f" ${args.where}-th$ Bond Entanglement Entropy: $L = {args.L}$ ;"
-        + f" $h \in ({args.h_i},{args.h_f})$"
+        f" ${args.where}-th$ Bond Entanglement Entropy: lattice = ${args.l}$x${args.L-1}$ ; vacuum sector"
+        # + f" $h \in ({args.h_i},{args.h_f})$"
     )
     fname_what = f"{args.where}_bond_entropy"
     fname_ex_what = f"{args.where}_bond_exact_entropy"
@@ -157,6 +157,15 @@ elif args.what == "entropy":
     path_ex = path_computer + f"results/exact/entropy_data"
     path_save = path_computer + f"figures/entropy/"
     ylabel = "entanglement von neumann entropy $(S_{\chi})$"
+
+elif args.what == "wilson_loop":
+    title = f"Wilson Loop: lattice = ${args.l}$x${args.L-1}$ ; vacuum sector"
+    fname_what = "wilson_loop"
+    fname_ex_what = "wilson_loop"
+    path = path_computer + f"results/wilson_loops"
+    path_ex = path_computer + f"results/exact/wilson_loops"
+    path_save = path_computer + f"figures/wilson_loops/"
+    ylabel = "$\\langle W\\rangle$"
 
 elif args.what == "entropy_tot":
     title = (
@@ -211,7 +220,7 @@ elif args.what == "mag_loc":
 
 else:
     raise SyntaxError(
-        "insert a valid result to plot: 'mag_tot', 'mag_z', 'mag_x', 'entropy', 'err_mag_tot', 'err_mag_z', 'err_mag_x', 'err_entropy'"
+        "insert a valid result to plot: 'energy', 'entropy', 'wilson_loop', 'energy_tr', 'entropy_tot'"
     )
 
 if args.what in plot_val:

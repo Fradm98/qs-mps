@@ -7,7 +7,7 @@ from qs_mps.applications.Z2.exact_hamiltonian import H_Z2_gauss
 def ground_state_Z2_exact_param(params):
     args_lattice = params[0]
     param = params[1]
-    Z2 = H_Z2_gauss(L=args_lattice["L"], l=args_lattice["l"], model=args_lattice["model"], lamb=param)
+    Z2 = H_Z2_gauss(L=args_lattice["L"], l=args_lattice["l"], model=args_lattice["model"], U=args_lattice["U"], lamb=param)
     e, v = Z2.diagonalize(v0=args_lattice["v0"], path=args_lattice["path"], save=args_lattice["save"], precision=args_lattice["precision"])
     return e, v
 

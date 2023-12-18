@@ -48,6 +48,9 @@ parser.add_argument(
     default=-1,
     type=int,
 )
+parser.add_argument(
+    "-U", "--gauss", help="Gauss constraint parameter", default=1e+3, type=float
+)
 
 args = parser.parse_args()
 
@@ -96,6 +99,7 @@ args_lattice = {
     "sparse": args.sparse,
     "precision": precision,
     "spectrum": spectrum,
+    "U": args.gauss,
 }
 
 energy = ground_state_Z2_exact(
@@ -104,17 +108,17 @@ energy = ground_state_Z2_exact(
 
 if spectrum == "all":
     save_list_of_lists(
-        f"{parent_path}/results/exact_energy_data/energies_{args.model}_direct_lattice_{args.l}x{args.L-1}_h_{args.h_i}-{args.h_f}_delta_{args.npoints}",
+        f"{parent_path}/results/exact/energy_data/energies_{args.model}_direct_lattice_{args.l-1}x{args.L-1}_h_{args.h_i}-{args.h_f}_delta_{args.npoints}",
         energy,
     )
     energy_gs = access_txt(
-            f"{parent_path}/results/exact_energy_data/energies_{args.model}_direct_lattice_{args.l}x{args.L-1}_h_{args.h_i}-{args.h_f}_delta_{args.npoints}",
+            f"{parent_path}/results/exact/energy_data/energies_{args.model}_direct_lattice_{args.l-1}x{args.L-1}_h_{args.h_i}-{args.h_f}_delta_{args.npoints}",
             0,
         )
-    np.savetxt(f"{parent_path}/results/exact_energy_data/energies_{args.model}_direct_lattice_{args.l}x{args.L-1}_h_{args.h_i}-{args.h_f}_delta_{args.npoints}",
+    np.savetxt(f"{parent_path}/results/exact/energy_data/energies_{args.model}_direct_lattice_{args.l-1}x{args.L-1}_h_{args.h_i}-{args.h_f}_delta_{args.npoints}",
         energy_gs,
     )
 else:
-    np.savetxt(f"{parent_path}/results/exact_energy_data/energies_{args.model}_direct_lattice_{args.l}x{args.L-1}_h_{args.h_i}-{args.h_f}_delta_{args.npoints}",
+    np.savetxt(f"{parent_path}/results/exact/energy_data/energies_{args.model}_direct_lattice_{args.l-1}x{args.L-1}_h_{args.h_i}-{args.h_f}_delta_{args.npoints}",
         energy,
     )

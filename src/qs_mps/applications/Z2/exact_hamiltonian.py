@@ -113,7 +113,7 @@ class H_Z2_gauss:
         else:
             e, v = np.linalg.eigh(H.toarray())
         if save:
-            np.savetxt(path+f"/results/eigenvectors/ground_state_direct_lattice_{self.l-1}x{self.L-1}_{self.sector}_U_{self.U}_h_{self.lamb:.{precision}f}", v[:,0])
+            np.save(path+f"/results/eigenvectors/ground_state_direct_lattice_{self.l-1}x{self.L-1}_{self.sector}_U_{self.U}_h_{self.lamb:.{precision}f}.npy", v[:,0])
         return e, v
 
     def time_evolution(self, path: str=None):

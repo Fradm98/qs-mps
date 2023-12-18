@@ -912,7 +912,7 @@ def plot_results_DMRG(
         )
 
         if exact:
-            res_exact = np.loadtxt(f"{path_ex}/{fname_ex}_chi_{elem}")
+            res_exact = np.loadtxt(f"{path_ex}/{fname_ex}")
             res_exact = res_exact[::step]
             plt.plot(
                 x,
@@ -922,11 +922,14 @@ def plot_results_DMRG(
             )
         # labels = interval[:: (len(interval) // 10)],
         # labels = [f"{h:.{precision}f}" for h in labels]
-        plt.xlabel("time (t)")
-        plt.xticks(
-            ticks=interval[:: (len(interval) // 2)],
-            labels=interval[:: (len(interval) // 2)],
-        )
+        labels = interval[:: (len(interval) // 5)]
+        labels = [round(lab, 1) for lab in labels]
+
+        plt.xlabel("plaquette term (h)")
+        # plt.xticks(
+        #     ticks=interval[:: (len(interval) // 5)],
+        #     labels=labels,
+        # )
         plt.ylabel(ylabel)
         plt.legend()
 
