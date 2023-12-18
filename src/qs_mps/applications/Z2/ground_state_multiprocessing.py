@@ -42,6 +42,7 @@ def ground_state_Z2_param(params):
         trunc_tol=args_mps["trunc_tol"],
         trunc_chi=args_mps["trunc_chi"],
         where=args_mps["where"],
+        bond=args_mps["bond"],
     )
 
     if save:
@@ -59,8 +60,9 @@ def ground_state_Z2_multpr(args_mps, multpr_param, cpu_percentage=90):
     entropies = []
     i = 0
     for result in results:
-        print(f"enegy of h:{multpr_param[i]} is:\n {result[0][-1]}")
+        print(f"energy of h:{multpr_param[i]} is:\n {result[0][-1]}")
         energies.append(result[0])
+        print(f"entropies of h:{multpr_param[i]} is:\n {result[1]}")
         entropies.append(result[1])
         i += 1
     return energies, entropies

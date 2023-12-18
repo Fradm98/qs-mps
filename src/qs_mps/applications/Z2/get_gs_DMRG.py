@@ -106,6 +106,7 @@ if args.where == -1:
     args.where = args.L // 2
 elif args.where == -2:
     args.bond = False
+
 # ---------------------------------------------------------
 # DMRG
 # ---------------------------------------------------------
@@ -118,7 +119,8 @@ for chi in args.chis:  # L // 2 + 1
         "model": args.model,
         "trunc_tol": False,
         "trunc_chi": True,
-        "where": args.L // 2,
+        "where": args.where,
+        "bond": args.bond,
         "path": path_tensor,
         "save": args.save,
         "precision": precision,
@@ -157,7 +159,7 @@ for chi in args.chis:  # L // 2 + 1
         if args.where == "all":
             entropy_mid = access_txt(
                 f"{parent_path}/results/entropy_data/{args.where}_bond_entropy_{args.model}_direct_lattice_{args.l}x{args.L-1}_h_{args.h_i}-{args.h_f}_delta_{args.npoints}_chi_{chi}",
-                args.L // 2,
+                (args.L-1) // 2,
             )
             np.savetxt(
                 f"{parent_path}/results/entropy_data/{args.L // 2}_bond_entropy_{args.model}_direct_lattice_{args.l}x{args.L-1}_h_{args.h_i}-{args.h_f}_delta_{args.npoints}_chi_{chi}",

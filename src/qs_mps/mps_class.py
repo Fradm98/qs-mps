@@ -1594,12 +1594,10 @@ class MPS:
         schmidt_tol: float = 1e-15,
         conv_tol: float = 1e-10,
         n_sweeps: int = 6,
-        var: bool = False,
         bond: bool = True,
         where: int = -1,
     ):
         energies = []
-        variances = []
         sweeps = ["right", "left"]
         sites = np.arange(1, self.L + 1).tolist()
 
@@ -1612,7 +1610,7 @@ class MPS:
             print(f"Sweep n: {n}\n")
             entropy = []
             for i in range(self.L - 1):
-                v0 = self.sites[i].flatten()
+                # v0 = self.sites[i].flatten()
                 H = self.H_eff(sites[i])
                 energy = self.eigensolver(H_eff=H, site=sites[i]) # , v0=v0
                 energies.append(energy)
