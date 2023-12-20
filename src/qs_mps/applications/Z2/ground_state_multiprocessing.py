@@ -36,6 +36,8 @@ def ground_state_Z2_param(params):
     save = args_mps["save"]
     if ladder.model == "Z2_dual":
         ladder.L = ladder.L - 1
+        if args_mps["sector"] != "vacuum_sector":
+            ladder.Z2.add_charges(rows=args_mps["charges_x"], columns=args_mps["charges_y"])
     ladder._random_state(seed=3, chi=args_mps["chi"], type_shape=args_mps["type_shape"])
     ladder.canonical_form(trunc_chi=True, trunc_tol=False)
     energy, entropy = ladder.DMRG(

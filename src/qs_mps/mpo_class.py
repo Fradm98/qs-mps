@@ -16,6 +16,7 @@ class MPO_ladder:
         self.mpo = []
         self.latt = self.latt = Lattice((self.L, self.l + 1), (False, False))
         self.dof = self.l * (self.L - 1)
+        self.sector = self._define_sector()
 
     def charge_constraint(self):
         """
@@ -53,6 +54,18 @@ class MPO_ladder:
         self.charges = np.flip(self.charges, axis=1)
         return self
 
+    def _define_sector(self):
+        particles = 0
+        for charge in self.charges.flatten():
+            if charge == -1:
+                particles += 1
+        
+        if particles == 0:
+            sector = "vacuum_sector"
+        else:
+            sector = f"{particles}_sector"
+        return sector
+    
     def mpo_skeleton(self):
         """
         mpo_skeleton

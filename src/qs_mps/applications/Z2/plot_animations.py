@@ -1,9 +1,5 @@
-# import packages
-import argparse
-from qs_mps.applications.Z2.exact_hamiltonian import H_Z2_gauss
 from qs_mps.utils import *
-import matplotlib.pyplot as plt
-
+import argparse
 
 parser = argparse.ArgumentParser(prog="observables_Z2_exact")
 parser.add_argument("l", help="Number of ladders in the direct lattice", type=int)
@@ -55,14 +51,6 @@ elif args.path == "marcos":
 else:
     raise SyntaxError("Path not valid. Choose among 'pc', 'mac', 'marcos'")
 
-num = (args.h_f - args.h_i) / args.npoints
-precision = get_precision(num)
-
-
-if args.sites == 1:
-    sites = 0
-if args.ladders == 1:
-    ladders = 1
 
 # define the sector by looking of the given charges
 if len(args.charges_x) == 0:
@@ -71,36 +59,11 @@ else:
     for i in range(1,args.l*args.L):
         if len(args.charges_x) == i:
             sector = f"{i}_particle(s)_sector"
-# ---------------------------------------------------------
-# Wilson Loop
-# ---------------------------------------------------------
 
-W = []
-E = []
+data = load_list_of_lists(
+    f"{parent_path}/results/exact/electric_field/electric_field_{args.model}_direct_lattice_{args.l-1}x{args.L-1}_{sector}_h_{args.h_i}-{args.h_f}_delta_{args.npoints}"
+        )
 
-for h in interval:
+data = np.asarray(data).reshape((args.npoints,2*args.l-1,2*args.l-1))
 
-    Z2_exact = H_Z2_gauss(L=args.L, l=args.l, model=args.model, lamb=h, U=1e+3)
-    # print(Z2_exact.latt._lattice_drawer.draw_lattice())
-    psi = np.load(f"{path_eigvec}/results/eigenvectors/ground_state_direct_lattice_{args.l-1}x{args.L-1}_{sector}_U_{args.gauss}_h_{h:.{precision}f}.npy")
-
-    if args.o == "wl":
-        W.append(Z2_exact.wilson_loop(psi, sites))
-    
-    if args.o == "el":  
-        E_h = np.zeros((2*args.l-1,2*args.L-1))
-        E_h[:] = np.nan
-        E_h = Z2_exact.electric_field(psi, E_h)
-        E.append(E_h)
-
-if args.o == "wl":
-    np.savetxt(
-                f"{parent_path}/results/exact/wilson_loops/wilson_loop_{args.model}_direct_lattice_{args.l-1}x{args.L-1}_{sector}_h_{args.h_i}-{args.h_f}_delta_{args.npoints}",
-                W,
-            )
-if args.o == "el":
-    save_list_of_lists(
-                f"{parent_path}/results/exact/electric_field/electric_field_{args.model}_direct_lattice_{args.l-1}x{args.L-1}_{sector}_h_{args.h_i}-{args.h_f}_delta_{args.npoints}",
-                E,
-            )
-    
+anim(frames=args.npoints, interval=200, data=data)

@@ -26,6 +26,8 @@ parser.add_argument(
     help="Path to the drive depending on the device used. Available are 'pc', 'mac', 'marcos'",
     type=str,
 )
+parser.add_argument("-cx", "--charges_x", help="a list of the first index of the charges", nargs="*", type=int)
+parser.add_argument("-cy", "--charges_y", help="a list of the second index of the charges", nargs="*", type=int)
 parser.add_argument(
     "-m", "--model", help="Model to simulate", default="Z2_dual", type=str
 )
@@ -51,9 +53,13 @@ parser.add_argument(
 parser.add_argument(
     "-U", "--gauss", help="Gauss constraint parameter", default=1e+3, type=float
 )
+parser.add_argument(
+    "-s", "--sector", help="Sector of the theory. Available sectors are vacuum=0, one particle=1, etc up to full filling", default=0, type=int
+)
 
 args = parser.parse_args()
 
+# define the interval
 interval = np.linspace(args.h_i, args.h_f, args.npoints)
 
 # take the path and precision to save files
@@ -70,13 +76,15 @@ elif args.path == "marcos":
 else:
     raise SyntaxError("Path not valid. Choose among 'pc', 'mac', 'marcos'")
 
+# define the precision
 num = (args.h_f - args.h_i) / args.npoints
 precision = get_precision(num)
 
+# define the initial guess state
 dof_direct = (2*args.l*args.L - args.l - args.L)
-# print(dof_direct)
 v0 = np.array([-0.25 for _ in range(2**dof_direct)])
 
+# choose how many eigenvalues to compute
 if args.spectrum == -1:
     spectrum = 1
 elif args.spectrum == 0:
@@ -86,6 +94,14 @@ elif args.spectrum == 0:
 if args.sparse == False:
     spectrum = "all"
     
+# define the sector by looking of the given charges
+if len(args.chargex) == 0:
+    sector = "vacuum_sector"
+else:
+    for i in range(1,args.l*args.L):
+        if len(args.chargex) == i:
+            sector = f"{i}_particle(s)_sector"
+
 # ---------------------------------------------------------
 # Exact Diagonalization
 # ---------------------------------------------------------
@@ -100,6 +116,9 @@ args_lattice = {
     "precision": precision,
     "spectrum": spectrum,
     "U": args.gauss,
+    "sector": sector,
+    "charges_x": args.charges_x,
+    "charges_y": args.charges_y,
 }
 
 energy = ground_state_Z2_exact(
@@ -108,17 +127,17 @@ energy = ground_state_Z2_exact(
 
 if spectrum == "all":
     save_list_of_lists(
-        f"{parent_path}/results/exact/energy_data/energies_{args.model}_direct_lattice_{args.l-1}x{args.L-1}_h_{args.h_i}-{args.h_f}_delta_{args.npoints}",
+        f"{parent_path}/results/exact/energy_data/energies_{args.model}_direct_lattice_{args.l-1}x{args.L-1}_{sector}_h_{args.h_i}-{args.h_f}_delta_{args.npoints}",
         energy,
     )
     energy_gs = access_txt(
-            f"{parent_path}/results/exact/energy_data/energies_{args.model}_direct_lattice_{args.l-1}x{args.L-1}_h_{args.h_i}-{args.h_f}_delta_{args.npoints}",
+            f"{parent_path}/results/exact/energy_data/energies_{args.model}_direct_lattice_{args.l-1}x{args.L-1}_{sector}_h_{args.h_i}-{args.h_f}_delta_{args.npoints}",
             0,
         )
-    np.savetxt(f"{parent_path}/results/exact/energy_data/energies_{args.model}_direct_lattice_{args.l-1}x{args.L-1}_h_{args.h_i}-{args.h_f}_delta_{args.npoints}",
+    np.savetxt(f"{parent_path}/results/exact/energy_data/energies_{args.model}_direct_lattice_{args.l-1}x{args.L-1}_{sector}_h_{args.h_i}-{args.h_f}_delta_{args.npoints}",
         energy_gs,
     )
 else:
-    np.savetxt(f"{parent_path}/results/exact/energy_data/energies_{args.model}_direct_lattice_{args.l-1}x{args.L-1}_h_{args.h_i}-{args.h_f}_delta_{args.npoints}",
+    np.savetxt(f"{parent_path}/results/exact/energy_data/energies_{args.model}_direct_lattice_{args.l-1}x{args.L-1}_{sector}_h_{args.h_i}-{args.h_f}_delta_{args.npoints}",
         energy,
     )

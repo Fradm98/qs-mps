@@ -6,8 +6,9 @@ import os
 from ncon import ncon
 import matplotlib.pyplot as plt
 from matplotlib import gridspec
+from matplotlib.animation import FuncAnimation
 from typing import Union
-
+from functools import partial
 
 # ---------------------------------------------------------------------------------------
 # Tensor shapes
@@ -174,13 +175,17 @@ def load_list_of_lists(file_path):
             # Remove square brackets and split the line into elements
             elements = line.strip("[]\n").split()
             # Convert elements to floats and remove square brackets from individual elements
-            elements = [float(element.strip("[]")) for element in elements]
+            el = []
+            for element in elements:
+                if element.strip("[]") != "":
+                    el.append(float(element.strip("[]")))
+            # elements = [float(element.strip("[]")) for element in elements]
 
             # Append the sublist to the loaded_data list
-            loaded_data.append(elements)
+            loaded_data.append(el)
+            # loaded_data.append(elements)
 
     return loaded_data
-
 
 # ---------------------------------------------------------------------------------------
 # Access txt
@@ -1062,3 +1067,37 @@ def plot_colormaps_evolution(
     if save:
         plt.savefig(f"{path_save}/{fname_save}.png")
     plt.show()
+
+
+def anim(frames: int, interval: int, data: np.ndarray):
+
+    # Create a figure and axis
+    fig, ax = plt.subplots()
+    title = ax.set_title("Frame: 0")
+    # cbar = ax.set_colorbar()
+    # cbar.set_label('Values')
+    # Function to update the colormap in each frame
+    def update(frame, data: np.ndarray):
+        # print(frame, type(frame))
+        # Generate some example data
+        data_frame = data[frame]
+
+        # Update the colormap
+        cmap = plt.get_cmap('viridis')
+        im = ax.imshow(data_frame, vmin=0, vmax=1, cmap=cmap, interpolation="nearest")
+        title.set_text(f'Frame {frame}')
+        # Set colorbar
+        # cbar.set(im, ax=ax)
+        
+
+    # Create the animation
+    animation = FuncAnimation(fig, partial(update, data=data), frames=frames, interval=interval, repeat=False)
+
+    # Show the animation
+    plt.show()
+
+
+data = load_list_of_lists("/Users/fradm98/Library/CloudStorage/GoogleDrive-fra.di.marcantonio@gmail.com/My Drive/projects/1_Z2/results/exact/electric_field/electric_field_Z2_dual_direct_lattice_2x2_vacuum_sector_h_0.0-10.0_delta_100")
+data = np.asarray(data).reshape((100,5,5))
+
+anim(frames=100, interval=200, data=data)

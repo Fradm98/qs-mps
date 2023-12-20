@@ -116,9 +116,35 @@ class H_Z2_gauss:
             np.save(path+f"/results/eigenvectors/ground_state_direct_lattice_{self.l-1}x{self.L-1}_{self.sector}_U_{self.U}_h_{self.lamb:.{precision}f}.npy", v[:,0])
         return e, v
 
-    def time_evolution(self, path: str=None):
-        
-        pass
+    # observables
+    def wilson_loop(self, psi, sites):
+        loop = self.latt.plaquettes(from_zero=True)
+        plaq = self.plaquette_term(loop[sites])
+        exp_val_wilson_loop = np.real(psi.T @ plaq @ psi)
+        return exp_val_wilson_loop
+    
+    def h_electric_field(self, psi):
+        exp_val_h_links = []
+        for link in range((self.l*(self.L-1))):
+            obs = self.local_term(link)
+            exp_val_electric_field = np.real(psi.T @ obs @ psi)
+            exp_val_h_links.append(exp_val_electric_field)
+        exp_val_h_links = np.array(exp_val_h_links).reshape((self.l,self.L-1))
+        return exp_val_h_links
+    
+    def v_electric_field(self, psi):
+        exp_val_v_links = []
+        for link in range((self.l*(self.L-1)),self.dof):
+            obs = self.local_term(link)
+            exp_val_electric_field = np.real(psi.T @ obs @ psi)
+            exp_val_v_links.append(exp_val_electric_field)
+        exp_val_v_links = np.array(exp_val_v_links).reshape((self.l-1,self.L))
+        return exp_val_v_links
+    
+    def electric_field(self, psi, E):
+        E[::2,1::2] = self.h_electric_field(psi)
+        E[1::2,::2] = self.v_electric_field(psi)
+        return E
 # lamb = 0
 # U = 1e+3
 # Z2_exact = H_Z2_gauss(L=4, l=2, model="Z2", lamb=lamb, U=U)
