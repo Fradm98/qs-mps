@@ -8,12 +8,19 @@ def ground_state_Z2_exact_param(params):
     args_lattice = params[0]
     param = params[1]
     Z2 = H_Z2_gauss(L=args_lattice["L"], l=args_lattice["l"], model=args_lattice["model"], U=args_lattice["U"], lamb=param)
+    if len(args_lattice["charges_x"]) > 0:
+        # print(Z2.charges)
+        Z2.add_charges(rows=args_lattice["charges_x"], columns=args_lattice["charges_y"])
+        # print(Z2.charges)
+        Z2._define_sector()
     e, v = Z2.diagonalize(v0=args_lattice["v0"], path=args_lattice["path"], save=args_lattice["save"], precision=args_lattice["precision"])
     return e, v
 
 def ground_state_Z2_exact(args_lattice, param):
     energies_param = []
+    prec = args_lattice["precision"]
     for p in param:
+        print(f"computing ground state for param: {p:.{prec}f}")
         params = [args_lattice, p]
         energy, vectors = ground_state_Z2_exact_param(params=params)
         energies_param.append(energy)

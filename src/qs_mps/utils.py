@@ -6,6 +6,7 @@ import os
 from ncon import ncon
 import matplotlib.pyplot as plt
 from matplotlib import gridspec
+from matplotlib.patches import Ellipse
 from matplotlib.animation import FuncAnimation
 from typing import Union
 from functools import partial
@@ -151,7 +152,8 @@ def save_list_of_lists(file_path, list):
     """
     with open(file_path, "w") as file:
         for sublist in list:
-            line = " ".join(str(item) for item in sublist)
+            print(sublist)
+            line = " ".join(repr(item) for item in sublist)
             file.write(line + "\n")
 
 
@@ -1069,35 +1071,56 @@ def plot_colormaps_evolution(
     plt.show()
 
 
-def anim(frames: int, interval: int, data: np.ndarray):
+def anim(frames: int, interval: int, data: np.ndarray, params: np.ndarray, show: bool, charges_x: list, charges_y: list, precision: int):
 
     # Create a figure and axis
     fig, ax = plt.subplots()
-    title = ax.set_title("Frame: 0")
-    # cbar = ax.set_colorbar()
-    # cbar.set_label('Values')
+    title = ax.set_title("")
+
+    # create the lattice
+    hlines = list(range(data[0].shape[0]))[::2]
+    vlines = list(range(data[0].shape[1]))[::2] 
+    ax.hlines(y=hlines, xmin=0, xmax=data[0].shape[1]-1, colors='k', linewidth=0.8)
+    ax.vlines(x=vlines, ymin=0, ymax=data[0].shape[0]-1, colors='k', linewidth=0.8)
+
+    # add the links expectation values
+    cmap = plt.get_cmap('viridis')
+    im = ax.imshow(data[0], vmin=-1, vmax=1, cmap=cmap, interpolation="nearest")
+    cbar = plt.colorbar(im, ax=ax)
+    cbar.set_label("Electric field")
+
+    # add vacuum
+    for i in vlines:
+        for j in hlines:
+            circle = Ellipse((i, j), 0.1, 0.1, edgecolor='blue', facecolor='none', linewidth=1)
+            ax.add_patch(circle)
+
+    # add charges
+    for i in range(len(charges_x)):
+        ax.text(x=2*charges_x[i]+0.1, y=2*charges_y[i]-0.1, s="-1", color="red")
+        circle = Ellipse((2*charges_x[i], 2*charges_y[i]), 0.1, 0.1, edgecolor='red', facecolor='none', linewidth=1)
+        ax.add_patch(circle)
+
+    
     # Function to update the colormap in each frame
-    def update(frame, data: np.ndarray):
+    def update(frame, data: np.ndarray, params: np.ndarray, precision: int):
         # print(frame, type(frame))
         # Generate some example data
         data_frame = data[frame]
+        param_frame = params[frame]
 
         # Update the colormap
-        cmap = plt.get_cmap('viridis')
-        im = ax.imshow(data_frame, vmin=0, vmax=1, cmap=cmap, interpolation="nearest")
-        title.set_text(f'Frame {frame}')
+        im.set_data(data_frame)
+        # im.imshow(data_frame, vmin=0, vmax=1, cmap=cmap, interpolation="nearest")
+        title.set_text(f'Magnetic term: {param_frame:.{precision}f}')
         # Set colorbar
         # cbar.set(im, ax=ax)
         
 
     # Create the animation
-    animation = FuncAnimation(fig, partial(update, data=data), frames=frames, interval=interval, repeat=False)
+    animation = FuncAnimation(fig, partial(update, data=data, params=params, precision=precision), frames=frames, interval=interval, repeat=False)
 
     # Show the animation
-    plt.show()
-
-
-data = load_list_of_lists("/Users/fradm98/Library/CloudStorage/GoogleDrive-fra.di.marcantonio@gmail.com/My Drive/projects/1_Z2/results/exact/electric_field/electric_field_Z2_dual_direct_lattice_2x2_vacuum_sector_h_0.0-10.0_delta_100")
-data = np.asarray(data).reshape((100,5,5))
-
-anim(frames=100, interval=200, data=data)
+    if show:
+        plt.show()
+    return animation

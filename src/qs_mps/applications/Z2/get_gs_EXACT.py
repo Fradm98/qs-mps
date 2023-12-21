@@ -29,7 +29,7 @@ parser.add_argument(
 parser.add_argument("-cx", "--charges_x", help="a list of the first index of the charges", nargs="*", type=int)
 parser.add_argument("-cy", "--charges_y", help="a list of the second index of the charges", nargs="*", type=int)
 parser.add_argument(
-    "-m", "--model", help="Model to simulate", default="Z2_dual", type=str
+    "-m", "--model", help="Model to simulate. By default Z2_dual", default="Z2_dual", type=str
 )
 parser.add_argument(
     "-v",
@@ -51,10 +51,7 @@ parser.add_argument(
     type=int,
 )
 parser.add_argument(
-    "-U", "--gauss", help="Gauss constraint parameter", default=1e+3, type=float
-)
-parser.add_argument(
-    "-s", "--sector", help="Sector of the theory. Available sectors are vacuum=0, one particle=1, etc up to full filling", default=0, type=int
+    "-U", "--gauss", help="Gauss constraint parameter. By default 1e+3", default=1e+3, type=float
 )
 
 args = parser.parse_args()
@@ -95,11 +92,11 @@ if args.sparse == False:
     spectrum = "all"
     
 # define the sector by looking of the given charges
-if len(args.chargex) == 0:
+if len(args.charges_x) == 0:
     sector = "vacuum_sector"
 else:
     for i in range(1,args.l*args.L):
-        if len(args.chargex) == i:
+        if len(args.charges_x) == i:
             sector = f"{i}_particle(s)_sector"
 
 # ---------------------------------------------------------

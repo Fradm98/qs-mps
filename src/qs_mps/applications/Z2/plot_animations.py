@@ -1,5 +1,12 @@
 from qs_mps.utils import *
+import matplotlib.pyplot as plt
 import argparse
+
+# default parameters of the plot layout
+plt.rcParams["text.usetex"] = True  # use latex
+plt.rcParams["font.size"] = 13
+plt.rcParams["figure.dpi"] = 300
+plt.rcParams["figure.constrained_layout.use"] = True
 
 parser = argparse.ArgumentParser(prog="observables_Z2_exact")
 parser.add_argument("l", help="Number of ladders in the direct lattice", type=int)
@@ -23,19 +30,35 @@ parser.add_argument(
 parser.add_argument("o", help="Observable we want to compute. Available are 'wl', 'el'", type=str)
 parser.add_argument("-cx", "--charges_x", help="a list of the first index of the charges", nargs="*", type=int)
 parser.add_argument("-cy", "--charges_y", help="a list of the second index of the charges", nargs="*", type=int)
-parser.add_argument("-s","--sites", help="Number of sites in the wilson loop", type=int)
-parser.add_argument("-v","--ladders", help="Number of ladders in the wilson loop", type=int)
+parser.add_argument("-lx","--sites", help="Number of sites in the wilson loop", type=int)
+parser.add_argument("-ly","--ladders", help="Number of ladders in the wilson loop", type=int)
 parser.add_argument(
     "-m", "--model", help="Model to simulate", default="Z2_dual", type=str
 )
 parser.add_argument(
     "-U", "--gauss", help="Gauss constraint parameter", default=1e+3, type=float
 )
+parser.add_argument(
+    "-sh",
+    "--show",
+    help="Show the animation. By default False",
+    action="store_true",
+)
+parser.add_argument(
+    "-v",
+    "--save",
+    help="Save the animation. By default True",
+    action="store_false",
+)
 
 args = parser.parse_args()
 
 # define the interval of equally spaced values of external field
 interval = np.linspace(args.h_i, args.h_f, args.npoints)
+
+# define the precision
+num = (args.h_f - args.h_i) / args.npoints
+precision = get_precision(num)
 
 # take the path and precision to save files
 # if we want to save the tensors we save them locally because they occupy a lot of memory
@@ -60,10 +83,12 @@ else:
         if len(args.charges_x) == i:
             sector = f"{i}_particle(s)_sector"
 
-data = load_list_of_lists(
-    f"{parent_path}/results/exact/electric_field/electric_field_{args.model}_direct_lattice_{args.l-1}x{args.L-1}_{sector}_h_{args.h_i}-{args.h_f}_delta_{args.npoints}"
-        )
+if args.o == 'el':
+    path_file = f"electric_field_{args.model}_direct_lattice_{args.l-1}x{args.L-1}_{sector}_{args.charges_x}-{args.charges_y}_h_{args.h_i}-{args.h_f}_delta_{args.npoints}"
+    data = np.load(
+        f"{parent_path}/results/exact/electric_field/{path_file}.npy")
 
-data = np.asarray(data).reshape((args.npoints,2*args.l-1,2*args.l-1))
 
-anim(frames=args.npoints, interval=200, data=data)
+movie = anim(frames=args.npoints, interval=200, data=data, params=interval, show=args.show, charges_x=args.charges_x, charges_y=args.charges_y, precision=precision)
+if args.save:
+    movie.save(f"{parent_path}/figures/animations/animation_{path_file}.mp4")

@@ -7,7 +7,7 @@ import numpy as np
 
 
 class MPO_ladder:
-    def __init__(self, L, l, model=str, lamb=None):
+    def __init__(self, l, L, model=str, lamb=None):
         self.L = L
         self.l = l
         self.model = model

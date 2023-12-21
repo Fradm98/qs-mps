@@ -27,13 +27,13 @@ parser.add_argument(
 parser.add_argument("o", help="Observable we want to compute. Available are 'wl', 'el'", type=str)
 parser.add_argument("-cx", "--charges_x", help="a list of the first index of the charges", nargs="*", type=int)
 parser.add_argument("-cy", "--charges_y", help="a list of the second index of the charges", nargs="*", type=int)
-parser.add_argument("-s","--sites", help="Number of sites in the wilson loop", type=int)
-parser.add_argument("-v","--ladders", help="Number of ladders in the wilson loop", type=int)
+parser.add_argument("-s","--sites", help="Indices of sites in the wilson loop. Start from 0, left", nargs="*", type=int)
+parser.add_argument("-v","--ladders", help="Indices of ladders in the wilson loop. Start from 1, above", nargs="*", type=int)
 parser.add_argument(
-    "-m", "--model", help="Model to simulate", default="Z2_dual", type=str
+    "-m", "--model", help="Model to simulate. By default Z2_dual", default="Z2_dual", type=str
 )
 parser.add_argument(
-    "-U", "--gauss", help="Gauss constraint parameter", default=1e+3, type=float
+    "-U", "--gauss", help="Gauss constraint parameter. By default 1e+3", default=1e+3, type=float
 )
 
 args = parser.parse_args()
@@ -59,11 +59,6 @@ num = (args.h_f - args.h_i) / args.npoints
 precision = get_precision(num)
 
 
-if args.sites == 1:
-    sites = 0
-if args.ladders == 1:
-    ladders = 1
-
 # define the sector by looking of the given charges
 if len(args.charges_x) == 0:
     sector = "vacuum_sector"
@@ -85,9 +80,9 @@ for h in interval:
     psi = np.load(f"{path_eigvec}/results/eigenvectors/ground_state_direct_lattice_{args.l-1}x{args.L-1}_{sector}_U_{args.gauss}_h_{h:.{precision}f}.npy")
 
     if args.o == "wl":
-        W.append(Z2_exact.wilson_loop(psi, sites))
+        W.append(Z2_exact.wilson_loop(psi, args.sites, args.ladders))
     
-    if args.o == "el":  
+    if args.o == "el":
         E_h = np.zeros((2*args.l-1,2*args.L-1))
         E_h[:] = np.nan
         E_h = Z2_exact.electric_field(psi, E_h)
@@ -99,8 +94,8 @@ if args.o == "wl":
                 W,
             )
 if args.o == "el":
-    save_list_of_lists(
-                f"{parent_path}/results/exact/electric_field/electric_field_{args.model}_direct_lattice_{args.l-1}x{args.L-1}_{sector}_h_{args.h_i}-{args.h_f}_delta_{args.npoints}",
+    np.save(
+                f"{parent_path}/results/exact/electric_field/electric_field_{args.model}_direct_lattice_{args.l-1}x{args.L-1}_{sector}_{args.charges_x}-{args.charges_y}_h_{args.h_i}-{args.h_f}_delta_{args.npoints}.npy",
                 E,
             )
     
