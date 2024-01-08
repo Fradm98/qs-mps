@@ -81,15 +81,15 @@ for chi in args.chis:
         lattice_mps = MPS(L=args.L, d=d, model=args.model, chi=chi, h=h)
         lattice_mps.L = lattice_mps.L - 1
 
-        lattice_mps.load_sites(path=path_tensor, precision=precision)
+        lattice_mps.load_sites(path=path_tensor, precision=precision, cx=args.charges_x, cy=args.charges_y)
         if args.o == "wl":
             lattice_mps.Z2.wilson_Z2_dual(mpo_sites=[sites], ls=[ladders]) #list(range(s))
-        lattice_mps.w = lattice_mps.Z2.mpo
-        W.append(lattice_mps.mpo_first_moment().real)
+            lattice_mps.w = lattice_mps.Z2.mpo
+            W.append(lattice_mps.mpo_first_moment().real)
 
         if args.o == "el":
             print(f"electric field for h:{h:.{precision}f}")
-            E_h = np.zeros((2*args.l-1,2*args.L-1))
+            E_h = np.zeros((2*args.l+1,2*args.L-1))
             E_h[:] = np.nan
             E_h = lattice_mps.electric_field_Z2(E_h)
             E.append(E_h)
