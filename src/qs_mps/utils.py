@@ -874,7 +874,7 @@ def plot_results_evolution(
             alpha=alpha,
             linewidths=linewidth,
             facecolors=colors[i],
-            label=f"mps: $\chi={elem}$",
+            label=f"mps: $\\chi={elem}$",
         )
 
         if exact:

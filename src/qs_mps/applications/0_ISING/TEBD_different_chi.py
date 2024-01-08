@@ -75,7 +75,7 @@ parser.add_argument(
     "-p",
     "--path",
     help="Path to the drive. Available values are 'pc', 'mac', 'marcos', 'other'",
-    default="mac",
+    default='mac',
     type=str,
 )
 args = parser.parse_args()
@@ -87,12 +87,12 @@ elif args.where == -2:
 
 
 if args.path == 'pc':
-    path = "/Users/fradm/Google Drive/My Drive"
+    path = "G:/My Drive"
 elif args.path == 'mac':
+    path = "/Users/fradm98/Google Drive/My Drive"
+elif args.path == 'marcos':
     path = "/Users/fradm/Google Drive/My Drive"
-if args.path == 'marcos':
-    path = "/Users/fradm/Google Drive/My Drive"
-if args.path == 'other':
+elif args.path == 'other':
     path = "replace_with_your_path"
     raise SyntaxError("specify your path in the main script")
 else:
@@ -155,9 +155,6 @@ for chi in args.chis:  # L // 2 + 1
         f"{path}/projects/0_ISING/results/mag_data/mag_mps_loc_Z_{args.model}_L_{args.L}_flip_{args.flip}_delta_{delta}_chi_{chi}_h_ev_{args.h_ev}",
         mag_mps_loc_Z,
     )
-    # np.savetxt(
-    #     f"{path}/projects/0_ISING/results/fidelity_data/fidelity_{args.model}_L_{args.L}_flip_{args.flip}_delta_{delta}_chi_{chi}_h_ev_{args.h_ev}", overlap
-    # )
     save_list_of_lists(
         f"{path}/projects/0_ISING/results/errors_data/errors_{args.model}_L_{args.L}_flip_{args.flip}_delta_{delta}_chi_{chi}_h_ev_{args.h_ev}",
         errors,
@@ -168,25 +165,10 @@ for chi in args.chis:  # L // 2 + 1
     )
     if args.where == 'all':
         entropy_mid = access_txt(
-            f"{path}/projects/0_ISING/results/entropy/{args.where}_bond_sentropy_{args.model}_L_{args.L}_flip_{args.flip}_delta_{delta}_chi_{chi}_h_ev_{args.h_ev}",
+            f"{path}/projects/0_ISING/results/entropy/{args.where}_bond_entropy_{args.model}_L_{args.L}_flip_{args.flip}_delta_{delta}_chi_{chi}_h_ev_{args.h_ev}",
             args.L // 2,
         )
         np.savetxt(
             f"{path}/projects/0_ISING/results/entropy/{args.L//2}_bond_entropy_{args.model}_L_{args.L}_flip_{args.flip}_delta_{delta}_chi_{chi}_h_ev_{args.h_ev}",
             mag_mps_loc_Z,
         )
-
-# different folder paths:
-"""
-# external drive:
-D:/code/
-
-# Google drive on my PC:
-G:/My Drive/
-
-# Google drive on my Mac:
-/Users/fradm98/Google Drive/My Drive/
-
-# Google drive on MarcOS:
-/Users/fradm/Google Drive/My Drive/
-"""
