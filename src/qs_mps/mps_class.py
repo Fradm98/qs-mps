@@ -1030,7 +1030,58 @@ class MPS:
             self.envs(site=i)
             chain.append(self.braket(site=i))
         self.clear_envs()
-        return chain
+        return chain 
+         
+    def electric_field_Z2(self, E):
+        """
+        electric_field_Z2
+
+        This function finds the mpo for the electric field in the direct lattice of a Z2 theory.
+        To reconstruct the field in the direct lattices we need functions to compute the 
+        borders and the bulk fields, weighted for the appropriate charges.
+
+        """
+        # let us find the observables for the boudary fields
+        i = 0
+        for mpo_site in range(self.L-1):
+            j = 0
+            if mpo_site == 0 or mpo_site == (self.L-2):
+                E_v = []
+                for l in range(self.Z2.l):
+                    self.Z2.local_observable_Z2_dual(mpo_site=mpo_site, l=l)
+                    coeff = self.Z2.charge_coeff_v_edge(mpo_site=mpo_site+i, l=l)
+                    self.w = self.Z2.mpo
+                    E_v.append(coeff * self.mpo_first_moment().real)
+                E[1::2, (mpo_site+i)*2] = E_v
+                i = 1
+            
+            for l in [0,self.Z2.l-1]:
+                self.Z2.local_observable_Z2_dual(mpo_site=mpo_site, l=l)
+                coeff = self.Z2.charge_coeff_v(mpo_site=mpo_site, l=l)
+                self.w = self.Z2.mpo
+                E[(l+j)*2,mpo_site*2+1] = coeff * self.mpo_first_moment().real
+                j = 1
+            
+        # now we can obtain the bullk values given by the zz interactions
+        # vertical
+        for l in range(self.Z2.l-1):
+            E_v = []
+            for mpo_site in range(self.L-1):
+                self.Z2.zz_observable_Z2_dual(mpo_site=mpo_site, l=l, direction="vertical")
+                self.w = self.Z2.mpo
+                E_v.append(self.mpo_first_moment().real)
+            E[(l+1)*2, 1::2] = E_v
+         # horizontal
+        for l in range(self.Z2.l):
+            E_h = []
+            for mpo_site in range(self.L-2):
+                self.Z2.zz_observable_Z2_dual(mpo_site=mpo_site, l=l, direction="horizontal")
+                coeff = self.Z2.charge_coeff_interaction(n=l+1,mpo_site=mpo_site)
+                self.w = self.Z2.mpo
+                E_h.append(self.mpo_first_moment().real)
+            E[(l*2+1), 2::2] = E_h
+        
+        return E
 
     # -------------------------------------------------
     # Manipulation of MPOs

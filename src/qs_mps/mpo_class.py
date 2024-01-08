@@ -164,6 +164,31 @@ class MPO_ladder:
 
         return c_n_j
 
+    def charge_coeff_v_edge(self, mpo_site, l):
+        """
+        charge_coeff_v_edge
+
+        This function gives the charge coefficients of the vertical edges of
+        the fields in the direct lattice of a Z2 theory.
+
+        """
+        coeff = np.prod(self.charges[(l+1):, mpo_site])
+        return coeff  
+
+    def charge_coeff_v(self, mpo_site, l):
+        """
+        charge_coeff_v_edge
+
+        This function gives the charge coefficients of the vertical edges of
+        the fields in the direct lattice of a Z2 theory.
+
+        """
+        if l == self.l-1:
+            coeff = 1
+        else:
+            coeff = np.prod([self.charges[:, col] for col in range(mpo_site + 1)])
+        return coeff
+    
     def mpo_Z2_ladder_generalized(self):
         """
         mpo_Z2_ladder_generalized
@@ -406,33 +431,6 @@ class MPO_ladder:
         self.mpo = mpo_tot
         return self
 
-    def local_site_observable_Z2_dual(self, mpo_site, l):
-        """
-        mpo_skeleton
-
-        This function initializes the mpo tensor or shape (2+l,2+l,2**l,2**l)
-        with O matrices. We add as well the identities in the first and last
-        element of the mpo tensor.
-
-        """
-        I = identity(2**self.l, dtype=complex)
-        O = csc_array((2**self.l, 2**self.l), dtype=complex)
-        skeleton = np.array([[O.toarray() for i in range(2)] for j in range(2)])
-        skeleton[0, 0] = I.toarray()
-        skeleton[-1, -1] = I.toarray()
-        self.mpo = skeleton
-
-        mpo_tot = []
-        for site in range(self.L - 1):
-            if mpo_site == site:
-                self.mpo[0, -1] = sparse_pauli_z(n=l, L=self.l).toarray()
-
-            mpo_tot.append(self.mpo)
-            self.mpo = skeleton
-
-        self.mpo = mpo_tot
-        return self
-
     def wilson_Z2_dual(self, mpo_sites: list, ls: list):
         """
         wilson_Z2_dual
@@ -512,18 +510,48 @@ class MPO_ladder:
 
         return pauli.toarray()
 
+    def local_observable_Z2_dual(self, mpo_site, l):
+        """
+        local_observable_Z2_dual
+
+        This function finds the mpo representing local observables in the 
+        dual lattice of the Z2 theory.
+
+        """
+        assert (0 <= mpo_site < self.L-1), "The mpo site is out of bound. Choose it 0 <= site < L-1"
+        assert (0 <= l < self.l), "The mpo ladder is out of bound. Choose it 0 <= site < l"
+
+        I = identity(2**self.l, dtype=complex)
+        O = csc_array((2**self.l, 2**self.l), dtype=complex)
+        skeleton = np.array([[O.toarray() for i in range(2)] for j in range(2)])
+        skeleton[0, 0] = I.toarray()
+        skeleton[-1, -1] = I.toarray()
+        self.mpo = skeleton
+
+        mpo_tot = []
+        for site in range(self.L - 1):
+            if mpo_site == site:
+                self.mpo[0, -1] = sparse_pauli_z(n=l, L=self.l).toarray()
+
+            mpo_tot.append(self.mpo)
+            self.mpo = skeleton
+
+        self.mpo = mpo_tot
+        return self
+
     def zz_observable_Z2_dual(self, mpo_site, l, direction):
         """
-        mpo_skeleton
+        zz_observable_Z2_dual
 
-        This function initializes the mpo tensor or shape (2+l,2+l,2**l,2**l)
-        with O matrices. We add as well the identities in the first and last
-        element of the mpo tensor.
+        This function finds the mpo representing the interacting observales in the
+        dual lattice of the Z2 theory. We make a distinction in the direction of
+        the interaction because in our mps formalism the vertical interaction falls
+        back into a local one.
 
         """
         I = identity(2**self.l, dtype=complex)
         O = csc_array((2**self.l, 2**self.l), dtype=complex)
-        skeleton = np.array([[O.toarray() for i in range(3)] for j in range(3)])
+        skeleton = np.array([[O.toarray() for i in range(2)] for j in range(2)])
         skeleton[0, 0] = I.toarray()
         skeleton[-1, -1] = I.toarray()
         self.mpo = skeleton
@@ -533,11 +561,12 @@ class MPO_ladder:
 
         for site in range(self.L - 1):
             if direction == "horizontal":
-                if mpo_site == site or i == 1:
-                    self.mpo[0, 1] = sparse_pauli_z(n=l, L=self.l).toarray()
-                    self.mpo[1, -1] = sparse_pauli_z(n=l, L=self.l).toarray()
+                assert (0 <= mpo_site < self.L-2), "The mpo site is out of bound. Choose it 0 <= site < L-2"
+                if (mpo_site+i) == site:
+                    self.mpo[0, -1] = sparse_pauli_z(n=l, L=self.l).toarray()
                     i = 1
             elif direction == "vertical":
+                assert (0 <= l < self.l-1), "The mpo ladder is out of bound. Choose it 0 <= site < l-1"
                 if mpo_site == site:
                     self.mpo[0, -1] = (
                         sparse_pauli_z(n=l, L=self.l).toarray()
@@ -550,6 +579,6 @@ class MPO_ladder:
         self.mpo = mpo_tot
         return self
 
-H = MPO_ladder(L=3, l=2, model="Z2_dual", lamb=0)
-H.wilson_Z2_dual(mpo_sites=[1],ls=[1])
+# H = MPO_ladder(L=3, l=2, model="Z2_dual", lamb=0)
+# H.wilson_Z2_dual(mpo_sites=[1],ls=[1])
 # print(e)
