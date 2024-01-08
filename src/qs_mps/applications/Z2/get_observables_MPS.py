@@ -22,11 +22,14 @@ parser.add_argument(
     help="Path to the drive depending on the device used. Available are 'pc', 'mac', 'marcos'",
     type=str,
 )
-parser.add_argument("o", help="Observable we want to compute. Available are 'wl'", type=str)
-parser.add_argument("sites", help="Number of sites in the wilson loop", type=int)
-parser.add_argument("ladders", help="Number of ladders in the wilson loop", type=int)
-
+parser.add_argument("o", help="Observable we want to compute. Available are 'wl', 'el'", type=str)
 parser.add_argument("chis", help="Simulated bond dimensions", nargs="+", type=int)
+parser.add_argument("-cx", "--charges_x", help="a list of the first index of the charges", nargs="*", type=int)
+parser.add_argument("-cy", "--charges_y", help="a list of the second index of the charges", nargs="*", type=int)
+parser.add_argument("-s", "--sites", help="Number of sites in the wilson loop", nargs="*", type=int)
+parser.add_argument("-r", "--ladders", help="Number of ladders in the wilson loop", nargs="*", type=int)
+
+
 parser.add_argument(
     "-m", "--model", help="Model to simulate", default="Z2_dual", type=str
 )

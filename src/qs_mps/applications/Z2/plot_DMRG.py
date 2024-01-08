@@ -35,6 +35,8 @@ parser.add_argument(
     type=str,
 )
 parser.add_argument("chis", help="Simulated bond dimensions", nargs="+", type=int)
+parser.add_argument("-cx", "--charges_x", help="a list of the first index of the charges", nargs="*", type=int)
+parser.add_argument("-cy", "--charges_y", help="a list of the second index of the charges", nargs="*", type=int)
 parser.add_argument(
     "-m", "--model", help="Model to simulate", default="Z2_dual", type=str
 )
@@ -191,6 +193,15 @@ elif args.what == "entropy_tot":
     X, Y = np.meshgrid(x_ticks, y_ticks)
     view_init = False
 
+elif args.what == "e_string":
+    title = f"Sum of the Electric String: lattice = ${args.l}$x${args.L-1}$ ; charges {args.charges_x}-{args.charges_y}"
+    fname_what = "sum_of_electric_field"
+    fname_ex_what = "sum_of_electric_field"
+    path = path_computer + f"results/electric_field"
+    path_ex = path_computer + f"results/exact/electric_field"
+    path_save = path_computer + f"figures/electric_field/"
+    ylabel = "$\\sum_i^R\\sigma_i^x$"
+
 elif args.what == "mag_loc":
     title = (
         f"Local Magnetization Evolution: $L = {args.L}$ ;"
@@ -220,13 +231,21 @@ elif args.what == "mag_loc":
 
 else:
     raise SyntaxError(
-        "insert a valid result to plot: 'energy', 'entropy', 'wilson_loop', 'energy_tr', 'entropy_tot'"
+        "insert a valid result to plot: 'energy', 'entropy', 'wilson_loop', 'energy_tr', 'entropy_tot', 'e_string'"
     )
 
+# define the sector by looking of the given charges
+if len(args.charges_x) == 0:
+    sector = "vacuum_sector"
+else:
+    for i in range(1,args.l*args.L):
+        if len(args.charges_x) == i:
+            sector = f"{i}_particle(s)_sector"
+
 if args.what in plot_val:
-    fname = f"{fname_what}_{args.model}_direct_lattice_{args.l}x{args.L-1}_h_{args.h_i}-{args.h_f}_delta_{args.npoints}"
-    fname_ex = f"{fname_ex_what}_{args.model}_direct_lattice_{args.l}x{args.L-1}_h_{args.h_i}-{args.h_f}_delta_{args.npoints}"
-    fname_save = f"{args.what}_{args.model}_direct_lattice_{args.l}x{args.L-1}_h_{args.h_i}-{args.h_f}_delta_{args.npoints}"
+    fname = f"{fname_what}_{args.model}_direct_lattice_{args.l}x{args.L-1}_{sector}_{args.charges_x}-{args.charges_y}_h_{args.h_i}-{args.h_f}_delta_{args.npoints}"
+    fname_ex = f"{fname_ex_what}_{args.model}_direct_lattice_{args.l}x{args.L-1}_{sector}_{args.charges_x}-{args.charges_y}_h_{args.h_i}-{args.h_f}_delta_{args.npoints}"
+    fname_save = f"{args.what}_{args.model}_direct_lattice_{args.l}x{args.L-1}_{sector}_{args.charges_x}-{args.charges_y}_h_{args.h_i}-{args.h_f}_delta_{args.npoints}"
     plot_results_DMRG(
         title,
         for_array=args.chis,

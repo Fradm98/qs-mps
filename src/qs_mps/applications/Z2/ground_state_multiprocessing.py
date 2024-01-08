@@ -13,7 +13,7 @@ def ground_state_Z2_exact_param(params):
         Z2.add_charges(rows=args_lattice["charges_x"], columns=args_lattice["charges_y"])
         # print(Z2.charges)
         Z2._define_sector()
-    e, v = Z2.diagonalize(v0=args_lattice["v0"], path=args_lattice["path"], save=args_lattice["save"], precision=args_lattice["precision"])
+    e, v = Z2.diagonalize(v0=args_lattice["v0"], path=args_lattice["path"], save=args_lattice["save"], precision=args_lattice["precision"], cx=args_lattice["charges_x"], cy=args_lattice["charges_y"])
     return e, v
 
 def ground_state_Z2_exact(args_lattice, param):
@@ -55,7 +55,7 @@ def ground_state_Z2_param(params):
     )
 
     if save:
-        ladder.save_sites(args_mps["path"], args_mps["precision"])
+        ladder.save_sites(args_mps["path"], args_mps["precision"], args_mps["charges_x"], args_mps["charges_y"])
     return energy, entropy
 
 

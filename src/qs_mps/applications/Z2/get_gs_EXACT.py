@@ -124,17 +124,17 @@ energy = ground_state_Z2_exact(
 
 if spectrum == "all":
     save_list_of_lists(
-        f"{parent_path}/results/exact/energy_data/energies_{args.model}_direct_lattice_{args.l-1}x{args.L-1}_{sector}_h_{args.h_i}-{args.h_f}_delta_{args.npoints}",
+        f"{parent_path}/results/exact/energy_data/energies_{args.model}_direct_lattice_{args.l-1}x{args.L-1}_{sector}_{args.charges_x}-{args.charges_y}_h_{args.h_i}-{args.h_f}_delta_{args.npoints}",
         energy,
     )
     energy_gs = access_txt(
-            f"{parent_path}/results/exact/energy_data/energies_{args.model}_direct_lattice_{args.l-1}x{args.L-1}_{sector}_h_{args.h_i}-{args.h_f}_delta_{args.npoints}",
+            f"{parent_path}/results/exact/energy_data/energies_{args.model}_direct_lattice_{args.l-1}x{args.L-1}_{sector}_{args.charges_x}-{args.charges_y}_h_{args.h_i}-{args.h_f}_delta_{args.npoints}",
             0,
         )
-    np.savetxt(f"{parent_path}/results/exact/energy_data/energies_{args.model}_direct_lattice_{args.l-1}x{args.L-1}_{sector}_h_{args.h_i}-{args.h_f}_delta_{args.npoints}",
+    np.savetxt(f"{parent_path}/results/exact/energy_data/energies_{args.model}_direct_lattice_{args.l-1}x{args.L-1}_{sector}_{args.charges_x}-{args.charges_y}_h_{args.h_i}-{args.h_f}_delta_{args.npoints}",
         energy_gs,
     )
 else:
-    np.savetxt(f"{parent_path}/results/exact/energy_data/energies_{args.model}_direct_lattice_{args.l-1}x{args.L-1}_{sector}_h_{args.h_i}-{args.h_f}_delta_{args.npoints}",
+    np.savetxt(f"{parent_path}/results/exact/energy_data/energies_{args.model}_direct_lattice_{args.l-1}x{args.L-1}_{sector}_{args.charges_x}-{args.charges_y}_h_{args.h_i}-{args.h_f}_delta_{args.npoints}",
         energy,
     )

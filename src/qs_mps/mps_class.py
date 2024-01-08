@@ -2506,7 +2506,63 @@ class MPS:
 
         return bond_dims
 
-    def save_sites(self, path, precision=2):
+    def save_sites(self, path: str, precision: int=2, cx: list=None, cy: list=None):
+        """
+        save_sites
+
+        This function saves the sites, e.g., the tensors composing our MPS.
+        In order to do that we need to flatten the whole list of tensors and save
+        their original shapes in order to reshape them in the loading step.
+
+        precision: int - indicates the precision of the variable h
+        """
+        if "Ising" in self.model:
+            self.save_sites_Ising(path=path, precision=precision)
+        elif "Z2" in self.model:
+            self.save_sites_Z2(path=path, precision=precision, cx=cx, cy=cy)
+        return self
+    
+    def load_sites(self, path: str, precision: int=2, cx: list=None, cy: list=None):
+        """
+        load_sites
+
+        This function load the tensors into the sites of the MPS.
+        We fetch a completely flat list, split it to recover the original tensors
+        (but still flat) and reshape each of them accordingly with the saved shapes.
+        To initially split the list in the correct index position refer to the auxiliary
+        function get_labels().
+
+        """
+        if "Ising" in self.model:
+            self.load_sites_Ising(path=path, precision=precision)
+        elif "Z2" in self.model:
+            self.load_sites_Z2(path=path, precision=precision, cx=cx, cy=cy)
+        return self
+
+    def save_sites_Ising(self, path, precision: int=2):
+        np.save(
+            f"{path}/results/tensors/tensor_sites_{self.model}_L_{self.L}_chi_{self.chi}_h_{self.h:.{precision}f}.npy",
+            self.sites,
+        )
+    
+    def save_sites_Z2(self, path, precision: int=2, cx: list=None, cy: list=None):
+        np.save(
+            f"{path}/results/tensors/tensor_sites_{self.model}_direct_lattice_{self.Z2.l}_{self.Z2.L}_{cx}-{cy}_chi_{self.chi}_h_{self.h:.{precision}f}.npy",
+            self.sites,
+        )
+
+    def load_sites_Ising(self, path, precision: int=2):
+        np.load(
+            f"{path}/results/tensors/tensor_sites_{self.model}_L_{self.L}_chi_{self.chi}_h_{self.h:.{precision}f}.npy"
+        )
+
+    def load_sites_Z2(self, path, precision: int=2, cx: list=None, cy: list=None):
+        np.load(
+            f"{path}/results/tensors/tensor_sites_{self.model}_direct_lattice_{self.Z2.l}_{self.Z2.L}_{cx}-{cy}_chi_{self.chi}_h_{self.h:.{precision}f}.npy"
+        )
+
+
+    def save_sites_old(self, path, precision=2):
         """
         save_sites
 
@@ -2531,7 +2587,7 @@ class MPS:
             tensor,
         )
 
-    def load_sites(self, path, precision=2):
+    def load_sites_old(self, path, precision=2):
         """
         load_sites
 
@@ -2559,8 +2615,6 @@ class MPS:
         self.sites = [site.reshape(shapes[i]) for i, site in enumerate(flat_tn)]
 
         return self
-
-
 # if __name__ == "__main__":
 #     L = 15
 #     model = "Ising"

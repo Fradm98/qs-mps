@@ -72,21 +72,32 @@ else:
 
 W = []
 E = []
+E_sum = []
 
 for h in interval:
 
     Z2_exact = H_Z2_gauss(L=args.L, l=args.l, model=args.model, lamb=h, U=1e+3)
     # print(Z2_exact.latt._lattice_drawer.draw_lattice())
-    psi = np.load(f"{path_eigvec}/results/eigenvectors/ground_state_direct_lattice_{args.l-1}x{args.L-1}_{sector}_U_{args.gauss}_h_{h:.{precision}f}.npy")
+    psi = np.load(f"{path_eigvec}/results/eigenvectors/ground_state_direct_lattice_{args.l-1}x{args.L-1}_{sector}_{args.charges_x}-{args.charges_y}_U_{args.gauss}_h_{h:.{precision}f}.npy")
 
     if args.o == "wl":
         W.append(Z2_exact.wilson_loop(psi, args.sites, args.ladders))
     
     if args.o == "el":
+        print(f"electric field for h:{h:.{precision}f}")
         E_h = np.zeros((2*args.l-1,2*args.L-1))
         E_h[:] = np.nan
         E_h = Z2_exact.electric_field(psi, E_h)
         E.append(E_h)
+
+        if sector != "vacuum_sector":
+            if args.charges_x[0] == args.charges_x[1]:
+                # vertical charges
+                sum_el = sum(E_h[args.charges_y[0]*2+1:args.charges_y[1]*2, args.charges_x[0]*2])
+            elif args.charges_y[0] == args.charges_y[1]:
+                # horizontal charges
+                sum_el = sum(E_h[args.charges_y[0]*2,args.charges_x[0]*2+1, args.charges_x[1]*2])
+            E_sum.append(sum_el)
 
 if args.o == "wl":
     np.savetxt(
@@ -98,4 +109,10 @@ if args.o == "el":
                 f"{parent_path}/results/exact/electric_field/electric_field_{args.model}_direct_lattice_{args.l-1}x{args.L-1}_{sector}_{args.charges_x}-{args.charges_y}_h_{args.h_i}-{args.h_f}_delta_{args.npoints}.npy",
                 E,
             )
+    if sector != "vacuum_sector":
+        np.save(
+                f"{parent_path}/results/exact/electric_field/sum_of_electric_field_{args.model}_direct_lattice_{args.l-1}x{args.L-1}_{sector}_{args.charges_x}-{args.charges_y}_h_{args.h_i}-{args.h_f}_delta_{args.npoints}.npy",
+                E_sum,
+            )
+    
     

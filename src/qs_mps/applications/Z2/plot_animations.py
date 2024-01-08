@@ -8,7 +8,7 @@ plt.rcParams["font.size"] = 13
 plt.rcParams["figure.dpi"] = 300
 plt.rcParams["figure.constrained_layout.use"] = True
 
-parser = argparse.ArgumentParser(prog="observables_Z2_exact")
+parser = argparse.ArgumentParser(prog="plot animations")
 parser.add_argument("l", help="Number of ladders in the direct lattice", type=int)
 parser.add_argument("L", help="Number of rungs per ladder", type=int)
 parser.add_argument(
