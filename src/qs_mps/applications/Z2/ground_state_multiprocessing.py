@@ -13,7 +13,8 @@ def ground_state_Z2_exact_param(params):
         Z2.add_charges(rows=args_lattice["charges_x"], columns=args_lattice["charges_y"])
         # print(Z2.charges)
         Z2._define_sector()
-    e, v = Z2.diagonalize(v0=args_lattice["v0"], path=args_lattice["path"], save=args_lattice["save"], precision=args_lattice["precision"], cx=args_lattice["charges_x"], cy=args_lattice["charges_y"])
+        print("before diag")
+    e, v = Z2.diagonalize(v0=args_lattice["v0"], path=args_lattice["path"], save=args_lattice["save"], precision=args_lattice["precision"], cx=args_lattice["charges_x"], cy=args_lattice["charges_y"], sparse=args_lattice["sparse"])
     return e, v
 
 def ground_state_Z2_exact(args_lattice, param):
@@ -22,6 +23,7 @@ def ground_state_Z2_exact(args_lattice, param):
     for p in param:
         print(f"computing ground state for param: {p:.{prec}f}")
         params = [args_lattice, p]
+        print(args_lattice["v0"])
         energy, vectors = ground_state_Z2_exact_param(params=params)
         energies_param.append(energy)
         v0 = vectors[:,0]
@@ -29,6 +31,23 @@ def ground_state_Z2_exact(args_lattice, param):
 
     return energies_param
 
+def ground_state_Z2_exact_test(args_lattice, param):
+    energies_param = []
+    prec = args_lattice["precision"]
+    for p in param:
+        print(f"computing ground state for param: {p:.{prec}f}")
+        Z2 = H_Z2_gauss(L=args_lattice["L"], l=args_lattice["l"], model=args_lattice["model"], U=args_lattice["U"], lamb=p)
+        if len(args_lattice["charges_x"]) > 0:
+            print("adding charges")
+            Z2.add_charges(rows=args_lattice["charges_x"], columns=args_lattice["charges_y"])
+            Z2._define_sector()       
+        energy, vectors = Z2.diagonalize(v0=args_lattice["v0"], sparse=args_lattice["sparse"], path=args_lattice["path"], save=args_lattice["save"], precision=args_lattice["precision"], cx=args_lattice["charges_x"], cy=args_lattice["charges_y"])
+        energies_param.append(energy)
+        v0 = vectors[:,0]
+        args_lattice["v0"] = v0
+        print(args_lattice["v0"])
+
+    return energies_param
 
 def ground_state_Z2_param(params):
     args_mps = params[0]

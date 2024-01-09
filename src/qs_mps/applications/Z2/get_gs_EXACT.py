@@ -2,7 +2,8 @@ import numpy as np
 import argparse
 from qs_mps.sparse_hamiltonians_and_operators import exact_evolution_sparse
 from qs_mps.utils import get_precision, save_list_of_lists, access_txt
-from qs_mps.applications.Z2.ground_state_multiprocessing import ground_state_Z2_exact
+from qs_mps.applications.Z2.ground_state_multiprocessing import ground_state_Z2_exact, ground_state_Z2_exact_test
+from qs_mps.applications.Z2.exact_hamiltonian import H_Z2_gauss
 
 # EXACT DIAGONALIZATION to find ground states of the Z2 Pure Gauge Theory 
 # changing the plaquette (magnetic) parameters in its direct formulation
@@ -79,17 +80,20 @@ precision = get_precision(num)
 
 # define the initial guess state
 dof_direct = (2*args.l*args.L - args.l - args.L)
-v0 = np.array([-0.25 for _ in range(2**dof_direct)])
+# computed constants without sparse method
+c = (1/np.sqrt(2))**dof_direct
+
+print("finding guess for the sparse computation...")
+v0 = [c]*(2**dof_direct)
+v0 = np.array(v0, dtype=complex)
+print(v0)
 
 # choose how many eigenvalues to compute
 if args.spectrum == -1:
-    spectrum = 1
+    spectrum = "gs"
 elif args.spectrum == 0:
     spectrum = "all"
 
-
-if args.sparse == False:
-    spectrum = "all"
     
 # define the sector by looking of the given charges
 if len(args.charges_x) == 0:
@@ -108,7 +112,7 @@ args_lattice = {
     "model": args.model,
     "path": path_eigvec,
     "save": args.save,
-    "v0": v0,
+    # "v0": v0,
     "sparse": args.sparse,
     "precision": precision,
     "spectrum": spectrum,
@@ -118,9 +122,21 @@ args_lattice = {
     "charges_y": args.charges_y,
 }
 
-energy = ground_state_Z2_exact(
-    args_lattice=args_lattice, param=interval
-)
+energy = []
+
+for h in interval:
+    Z2 = H_Z2_gauss(l=args.l, L=args.L, model=args.model, lamb=h, U=args.gauss)
+    if len(args.charges_x) > 0:
+        Z2.add_charges(rows=args.charges_x, columns=args.charges_y)
+    e, v = Z2.diagonalize(v0=v0, sparse=args.sparse, save=args.save, path=path_eigvec) # , path=args.path, precision=precision, spectrum=spectrum, cx=args.charges_x, cy=args.charges_y
+    energy.append(e[0])
+    v0 = v[:,0]
+    print("groud state:")
+    print(v0)
+
+# energy = ground_state_Z2_exact_test(
+#     args_lattice=args_lattice, param=interval
+# )
 
 if spectrum == "all":
     save_list_of_lists(
