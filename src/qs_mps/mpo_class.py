@@ -526,7 +526,7 @@ class MPO_ladder:
         skeleton = np.array([[O.toarray() for i in range(2)] for j in range(2)])
         skeleton[0, 0] = I.toarray()
         skeleton[-1, -1] = I.toarray()
-        self.mpo = skeleton
+        self.mpo = skeleton.copy()
 
         mpo_tot = []
         for site in range(self.L - 1):
@@ -534,7 +534,7 @@ class MPO_ladder:
                 self.mpo[0, -1] = sparse_pauli_z(n=l, L=self.l).toarray()
 
             mpo_tot.append(self.mpo)
-            self.mpo = skeleton
+            self.mpo = skeleton.copy()
 
         self.mpo = mpo_tot
         return self
@@ -551,10 +551,10 @@ class MPO_ladder:
         """
         I = identity(2**self.l, dtype=complex)
         O = csc_array((2**self.l, 2**self.l), dtype=complex)
-        skeleton = np.array([[O.toarray() for i in range(2)] for j in range(2)])
+        skeleton = np.array([[O.toarray() for i in range(3)] for j in range(3)])
         skeleton[0, 0] = I.toarray()
         skeleton[-1, -1] = I.toarray()
-        self.mpo = skeleton
+        self.mpo = skeleton.copy()
 
         mpo_tot = []
         i = 0
@@ -563,7 +563,10 @@ class MPO_ladder:
             if direction == "horizontal":
                 assert (0 <= mpo_site < self.L-2), "The mpo site is out of bound. Choose it 0 <= site < L-2"
                 if (mpo_site+i) == site:
-                    self.mpo[0, -1] = sparse_pauli_z(n=l, L=self.l).toarray()
+                    if i == 0:
+                        self.mpo[0, 1] = sparse_pauli_z(n=l, L=self.l).toarray()
+                    else:
+                        self.mpo[1, -1] = sparse_pauli_z(n=l, L=self.l).toarray()
                     i = 1
             elif direction == "vertical":
                 assert (0 <= l < self.l-1), "The mpo ladder is out of bound. Choose it 0 <= site < l-1"
@@ -574,7 +577,7 @@ class MPO_ladder:
                     )
 
             mpo_tot.append(self.mpo)
-            self.mpo = skeleton
+            self.mpo = skeleton.copy()
 
         self.mpo = mpo_tot
         return self

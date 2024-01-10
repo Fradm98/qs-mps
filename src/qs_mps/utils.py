@@ -467,6 +467,7 @@ def fitting(xs, results, guess):
 
 def mps_to_vector(mps):
     D = mps[0].shape[0]
+    d = mps[0].shape[1]
     a = np.zeros(D)
     a[0] = 1
     a = ncon([a, mps[0]], [[1], [1, -1, -2]])
@@ -482,7 +483,7 @@ def mps_to_vector(mps):
     b = np.zeros(D)
     b[-1] = 1
     final_vec = ncon([a, b.T], [a_index, [1]])
-    final_vec = final_vec.reshape(2 ** len(mps))
+    final_vec = final_vec.reshape(d ** len(mps))
     return final_vec
 
 
@@ -1096,10 +1097,11 @@ def anim(frames: int, interval: int, data: np.ndarray, params: np.ndarray, show:
             ax.add_patch(circle)
 
     # add charges
-    for i in range(len(charges_x)):
-        ax.text(x=2*charges_x[i]+0.1, y=2*charges_y[i]-0.1, s="-1", color="red")
-        circle = Ellipse((2*charges_x[i], 2*charges_y[i]), 0.1, 0.1, edgecolor='red', facecolor='none', linewidth=1)
-        ax.add_patch(circle)
+    if charges_x == []:
+        for i in range(len(charges_x)):
+            ax.text(x=2*charges_x[i]+0.1, y=2*charges_y[i]-0.1, s="-1", color="red")
+            circle = Ellipse((2*charges_x[i], 2*charges_y[i]), 0.1, 0.1, edgecolor='red', facecolor='none', linewidth=1)
+            ax.add_patch(circle)
 
     
     # Function to update the colormap in each frame

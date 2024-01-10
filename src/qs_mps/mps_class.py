@@ -3,14 +3,16 @@ from ncon import ncon
 from scipy.sparse.linalg import eigsh
 from scipy.sparse import csr_matrix, csr_array, identity
 from scipy.linalg import expm, solve
-from .utils import *
-from .checks import check_matrix
-from .sparse_hamiltonians_and_operators import (
+from qs_mps.utils import *
+from qs_mps.checks import check_matrix
+from qs_mps.sparse_hamiltonians_and_operators import (
     exact_evolution_sparse,
     sparse_ising_ground_state,
     U_evolution_sparse,
+    sparse_pauli_x,
+    sparse_pauli_z
 )
-from .mpo_class import MPO_ladder
+from qs_mps.mpo_class import MPO_ladder
 import matplotlib.pyplot as plt
 import time
 import warnings
@@ -422,6 +424,8 @@ class MPS:
             ratio = check_matrix(env_trunc, I)
             if ratio < 1e-12:
                 print(f"the tensor at site {i+1} is in the correct LFC")
+            else:
+                print(f"the  tensor at site {i+1} has a ratio with the identity matrix equal to: {ratio}")
 
         env_r = env
         for i in range(self.L - 1, site, -1):
@@ -436,7 +440,9 @@ class MPS:
             ratio = check_matrix(env_trunc, I)
             if ratio < 1e-12:
                 print(f"the tensor at site {i+1} is in the correct RFC")
-        pass
+            else:
+                print(f"the  tensor at site {i+1} has a ratio with the identity matrix equal to: {ratio}")
+        return self
 
     # -------------------------------------------------
     # Density Matrix MPS and manipulation
@@ -1043,14 +1049,14 @@ class MPS:
         """
         # let us find the observables for the boudary fields
         i = 0
-        for mpo_site in range(self.L-1):
+        for mpo_site in range(self.Z2.L-1):
             j = 0
-            if mpo_site == 0 or mpo_site == (self.L-2):
+            if mpo_site == 0 or mpo_site == (self.Z2.L-2):
                 E_v = []
                 for l in range(self.Z2.l):
                     self.Z2.local_observable_Z2_dual(mpo_site=mpo_site, l=l)
                     coeff = self.Z2.charge_coeff_v_edge(mpo_site=mpo_site+i, l=l)
-                    self.w = self.Z2.mpo
+                    self.w = self.Z2.mpo.copy()
                     E_v.append(coeff * self.mpo_first_moment().real)
                 E[1::2, (mpo_site+i)*2] = E_v
                 i = 1
@@ -1058,27 +1064,28 @@ class MPS:
             for l in [0,self.Z2.l-1]:
                 self.Z2.local_observable_Z2_dual(mpo_site=mpo_site, l=l)
                 coeff = self.Z2.charge_coeff_v(mpo_site=mpo_site, l=l)
-                self.w = self.Z2.mpo
+                self.w = self.Z2.mpo.copy()
                 E[(l+j)*2,mpo_site*2+1] = coeff * self.mpo_first_moment().real
                 j = 1
             
-        # now we can obtain the bullk values given by the zz interactions
+        # now we can obtain the bulk values given by the zz interactions
         # vertical
         for l in range(self.Z2.l-1):
             E_v = []
-            for mpo_site in range(self.L-1):
+            for mpo_site in range(self.Z2.L-1):
                 self.Z2.zz_observable_Z2_dual(mpo_site=mpo_site, l=l, direction="vertical")
-                self.w = self.Z2.mpo
+                self.w = self.Z2.mpo.copy()
                 E_v.append(self.mpo_first_moment().real)
             E[(l+1)*2, 1::2] = E_v
          # horizontal
         for l in range(self.Z2.l):
             E_h = []
-            for mpo_site in range(self.L-2):
+            for mpo_site in range(self.Z2.L-2):
                 self.Z2.zz_observable_Z2_dual(mpo_site=mpo_site, l=l, direction="horizontal")
                 coeff = self.Z2.charge_coeff_interaction(n=l+1,mpo_site=mpo_site)
-                self.w = self.Z2.mpo
-                E_h.append(self.mpo_first_moment().real)
+                self.w = self.Z2.mpo.copy()
+                E_h.append(coeff * self.mpo_first_moment().real)
+            E_h.append(E[(l*2+1), -1])
             E[(l*2+1), 2::2] = E_h
         
         return E
@@ -2611,7 +2618,7 @@ class MPS:
         # shapes of the tensors
         shapes = tensor_shapes(self.sites)
         np.savetxt(
-            f"{path}/results/tensors/shapes_sites_{self.model}_direct_lattice_{self.Z2.l}_{self.Z2.L}_{cx}-{cy}_chi_{self.chi}_h_{self.h:.{precision}f}",
+            f"{path}/results/tensors/shapes_sites_{self.model}_direct_lattice_{self.Z2.l}x{self.Z2.L-1}_{cx}-{cy}_chi_{self.chi}_h_{self.h:.{precision}f}",
             shapes,
             fmt="%1.i",  # , delimiter=','
         )
@@ -2619,7 +2626,7 @@ class MPS:
         # flattening of the tensors
         tensor = [element for site in self.sites for element in site.flatten()]
         np.savetxt(
-            f"{path}/results/tensors/tensor_sites_{self.model}_direct_lattice_{self.Z2.l}_{self.Z2.L}_{cx}-{cy}_chi_{self.chi}_h_{self.h:.{precision}f}",
+            f"{path}/results/tensors/tensor_sites_{self.model}_direct_lattice_{self.Z2.l}x{self.Z2.L-1}_{cx}-{cy}_chi_{self.chi}_h_{self.h:.{precision}f}",
             tensor,
         )
 
@@ -2665,12 +2672,12 @@ class MPS:
         """
         # loading of the shapes
         shapes = np.loadtxt(
-            f"{path}/results/tensors/shapes_sites_{self.model}_direct_lattice_{self.Z2.l}_{self.Z2.L}_{cx}-{cy}_chi_{self.chi}_h_{self.h:.{precision}f}",
+            f"{path}/results/tensors/shapes_sites_{self.model}_direct_lattice_{self.Z2.l}x{self.Z2.L-1}_{cx}-{cy}_chi_{self.chi}_h_{self.h:.{precision}f}",
 
         ).astype(int)
         # loading of the flat tensors
         filedata = np.loadtxt(
-            f"{path}/results/tensors/tensor_sites_{self.model}_direct_lattice_{self.Z2.l}_{self.Z2.L}_{cx}-{cy}_chi_{self.chi}_h_{self.h:.{precision}f}",
+            f"{path}/results/tensors/tensor_sites_{self.model}_direct_lattice_{self.Z2.l}x{self.Z2.L-1}_{cx}-{cy}_chi_{self.chi}_h_{self.h:.{precision}f}",
             dtype=complex,
         )
         # auxiliary function to get the indices where to split
@@ -2769,3 +2776,24 @@ class MPS:
 #         flip=flip,
 #         where=7
 #     )
+    
+# L = 4
+# l = 3
+# d = int(2**(l))
+# chi = 16
+# h = 0
+# lattice = MPS(L=L, d=d, model="Z2_dual", chi=chi, h=h)
+# cx = [0,3]
+# cy = [0,3]
+# lattice.L = lattice.L - 1
+# # lattice.Z2.add_charges(cx,cy)
+# lattice.load_sites(path="/Users/fradm98/Desktop/projects/1_Z2", cx=cx, cy=cy, precision=1)
+# lattice.check_canonical(site=0)
+# psi = mps_to_vector(lattice.sites)
+# print([psi.T.conjugate() @ sparse_pauli_z(n=n, L=9) @ psi for n in range(9)])
+# E_h = np.zeros((2*l+1,2*L-1))
+# E_h[:] = np.nan
+# E = lattice.electric_field_Z2(E_h)
+# plt.imshow(E)
+# plt.show()
+# print(E)

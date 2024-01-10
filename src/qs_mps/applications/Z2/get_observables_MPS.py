@@ -106,7 +106,7 @@ for chi in args.chis:
                 elif args.charges_y[0] == args.charges_y[1]:
                     # horizontal charges
                     sum_el = sum(E_h[args.charges_y[0]*2,args.charges_x[0]*2+1, args.charges_x[1]*2])
-                E_sum.append(sum_el)
+                # E_sum.append(sum_el)
 
     np.savetxt(
                 f"{parent_path}/results/wilson_loops/wilson_loop_{args.model}_direct_lattice_{args.l}x{args.L-1}_h_{args.h_i}-{args.h_f}_delta_{args.npoints}_chi_{chi}",
@@ -117,8 +117,8 @@ for chi in args.chis:
                     f"{parent_path}/results/electric_field/electric_field_{args.model}_direct_lattice_{args.l}x{args.L-1}_{sector}_{args.charges_x}-{args.charges_y}_h_{args.h_i}-{args.h_f}_delta_{args.npoints}_chi_{chi}.npy",
                     E,
                 )
-        if sector != "vacuum_sector":
-            np.save(
-                    f"{parent_path}/results/electric_field/sum_of_electric_field_{args.model}_direct_lattice_{args.l}x{args.L-1}_{sector}_{args.charges_x}-{args.charges_y}_h_{args.h_i}-{args.h_f}_delta_{args.npoints}_chi_{chi}.npy",
-                    E_sum,
-                )
+        # if sector != "vacuum_sector":
+        #     np.save(
+        #             f"{parent_path}/results/electric_field/sum_of_electric_field_{args.model}_direct_lattice_{args.l}x{args.L-1}_{sector}_{args.charges_x}-{args.charges_y}_h_{args.h_i}-{args.h_f}_delta_{args.npoints}_chi_{chi}.npy",
+        #             E_sum,
+        #         )
