@@ -80,7 +80,7 @@ precision = get_precision(num)
 
 # define the initial guess state
 dof_direct = (2*args.l*args.L - args.l - args.L)
-# computed constants without sparse method
+# constant without sparse method (if we start from h=0)
 c = (1/np.sqrt(2))**dof_direct
 
 print("finding guess for the sparse computation...")
@@ -125,10 +125,12 @@ args_lattice = {
 energy = []
 
 for h in interval:
+    print(f"computing ground state for param: {h:.{precision}f}")
     Z2 = H_Z2_gauss(l=args.l, L=args.L, model=args.model, lamb=h, U=args.gauss)
     if len(args.charges_x) > 0:
         Z2.add_charges(rows=args.charges_x, columns=args.charges_y)
-    e, v = Z2.diagonalize(v0=v0, sparse=args.sparse, save=args.save, path=path_eigvec) # , path=args.path, precision=precision, spectrum=spectrum, cx=args.charges_x, cy=args.charges_y
+        Z2._define_sector()
+    e, v = Z2.diagonalize(v0=v0, sparse=args.sparse, save=args.save, path=path_eigvec, cx=args.charges_x, cy=args.charges_y, precision=precision) # , path=args.path, precision=precision, spectrum=spectrum, cx=args.charges_x, cy=args.charges_y
     energy.append(e[0])
     v0 = v[:,0]
     print("groud state:")

@@ -104,10 +104,7 @@ class H_Z2_gauss:
         return - (self.J * loc) - (self.lamb * plaq) + (self.U * G)
 
     def diagonalize(self, v0: np.ndarray=None, sparse: bool=True, save: bool=True, path: str=None, precision: int=2, spectrum: str="gs", cx: list=None, cy: list=None):
-        t_start = time.perf_counter()
         H = self.hamiltonian()
-        print(f"time for the hamiltonian: {t_start-time.perf_counter()}")
-        print(len(H.data))
 
         if sparse:
             if spectrum == "all":
@@ -116,18 +113,11 @@ class H_Z2_gauss:
                 k = 1
             e, v = linalg.eigsh(H, k=k, which="SA", v0=v0)
         else:
-            t_start = time.perf_counter()
             H = H.toarray()
-            print(f"time for the hamiltonian to array: {t_start-time.perf_counter()}")
             e, v = np.linalg.eigh(H)
         if save:
             # print(self.sector)
-            if cx == None:
-                np.save(path+f"/results/eigenvectors/ground_state_direct_lattice_{self.l-1}x{self.L-1}_{self.sector}_U_{self.U}_h_{self.lamb:.{precision}f}.npy", v[:,0])
-            else:
-                # print("here")
-                print(v[:,0])
-                np.save(path+f"/results/eigenvectors/ground_state_direct_lattice_{self.l-1}x{self.L-1}_{self.sector}_{cx}-{cy}_U_{self.U}_h_{self.lamb:.{precision}f}.npy", v[:,0])
+            np.save(path+f"/results/eigenvectors/ground_state_direct_lattice_{self.l-1}x{self.L-1}_{self.sector}_{cx}-{cy}_U_{self.U}_h_{self.lamb:.{precision}f}.npy", v[:,0])
         return e, v
 
     # observables
