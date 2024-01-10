@@ -6,8 +6,10 @@ import os
 from ncon import ncon
 import matplotlib.pyplot as plt
 from matplotlib import gridspec
+from matplotlib.patches import Ellipse
+from matplotlib.animation import FuncAnimation
 from typing import Union
-
+from functools import partial
 
 # ---------------------------------------------------------------------------------------
 # Tensor shapes
@@ -39,6 +41,7 @@ Saving and loading tools
 # ---------------------------------------------------------------------------------------
 # ---------------------------------------------------------------------------------------
 
+
 # ---------------------------------------------------------------------------------------
 # Get precision
 # ---------------------------------------------------------------------------------------
@@ -54,17 +57,20 @@ def get_precision(num: float):
     """
     # Convert the number to a string to work with its representation
     num_str = str(num)
-    
+
     # Split the number into its integer and fractional parts
-    integer_part, fractional_part = num_str.split('.')
-    
+    integer_part, fractional_part = num_str.split(".")
+
     # Count leading zeros in the fractional part
-    leading_zeros = len(fractional_part) - len(fractional_part.lstrip('0'))
-    
+    leading_zeros = len(fractional_part) - len(fractional_part.lstrip("0"))
+
     # Calculate the absolute value of the exponent
-    exponent = leading_zeros + 1  # Subtract 1 to account for the first digit before the decimal point
-    
+    exponent = (
+        leading_zeros + 1
+    )  # Subtract 1 to account for the first digit before the decimal point
+
     return abs(exponent)
+
 
 # ---------------------------------------------------------------------------------------
 # Get labels
@@ -146,7 +152,8 @@ def save_list_of_lists(file_path, list):
     """
     with open(file_path, "w") as file:
         for sublist in list:
-            line = " ".join(str(item) for item in sublist)
+            print(sublist)
+            line = " ".join(repr(item) for item in sublist)
             file.write(line + "\n")
 
 
@@ -165,24 +172,22 @@ def load_list_of_lists(file_path):
     loaded_data = []
 
     with open(file_path, "r") as file:
-        current_list = []
-        for line in file:
-            line = line.strip()
-            if line.startswith('['):
-                # Start a new list
-                current_list = []
-                elements = line.strip('[]').split()
-                current_list.extend([float(element) for element in elements])
-            else:
-                # Middle or last elements of the list
-                elements = line.strip('[]').split()
-                current_list.extend([float(element) for element in elements])
-            if line.endswith(']'):
-                # Append the current list to the loaded_data and reset it
-                loaded_data.append(current_list)
+        lines = file.readlines()
+        for line in lines:
+            # Remove square brackets and split the line into elements
+            elements = line.strip("[]\n").split()
+            # Convert elements to floats and remove square brackets from individual elements
+            el = []
+            for element in elements:
+                if element.strip("[]") != "":
+                    el.append(float(element.strip("[]")))
+            # elements = [float(element.strip("[]")) for element in elements]
+
+            # Append the sublist to the loaded_data list
+            loaded_data.append(el)
+            # loaded_data.append(elements)
 
     return loaded_data
-
 
 # ---------------------------------------------------------------------------------------
 # Access txt
@@ -240,16 +245,35 @@ def replace_zeros_with_nan(input_list):
 
     # Count the number of zeros
     num_zeros = np.count_nonzero(arr == 0)
-    
+
     # Replace zeros with np.nan
     arr[arr == 0] = np.nan
-    
+
     # Convert back to a Python list with np.nan values
     result_list = arr.tolist()
-    
+
     return result_list, num_zeros
 
+# ---------------------------------------------------------------------------------------
+# Logarithm base d
+# ---------------------------------------------------------------------------------------
+def logarithm_base_d(x: float, d: float):
+    """
+    logarithm_base_d
+    
+    This function performs the change of base of the logarithm to d for the value x.
 
+    x: float - value we want to evaulate the logarithm of
+    d: float - value of the base of the logarithm
+
+    """
+    if x <= 0 or d <= 0 or d == 1:
+        raise ValueError("Invalid input: x and d must be positive and d must not be equal to 1.")
+    
+    # Calculate the logarithms using the change of base formula
+    result = np.log(x) / np.log(d)
+    
+    return result
 # ---------------------------------------------------------------------------------------
 # ---------------------------------------------------------------------------------------
 # ---------------------------------------------------------------------------------------
@@ -366,7 +390,7 @@ def get_middle_chain_schmidt_values(vec, where: int, bond: bool = True):
     a chain of spins. The decomposition is operated in the middle of the chain.
 
     vec: csc_array - statevector of our system
-    bond: bool - compute the middle chain schmidt values or 
+    bond: bool - compute the middle chain schmidt values or
         the ones from all the chain (excluding the edge sites). By defalut True
     where: int - bond where we want to perform the Schmidt decomposition
 
@@ -374,22 +398,33 @@ def get_middle_chain_schmidt_values(vec, where: int, bond: bool = True):
     L = int(np.log2(vec.shape[0]))
     sing_vals = []
     if bond:
-        assert (2 <= where < L-1), f"The decomposition can be performed only at bonds between {2} and {L-2}"
+        assert (
+            1 < where < L - 1
+        ), f"The decomposition can be performed only at bonds between {2} and {L-2}"
 
-        new_shape = (2**(where),2**(L-where))
+        new_shape = (2 ** (where), 2 ** (L - where))
 
         matrix = vec.reshape(new_shape)
-        s = svds(matrix, k=(min(matrix.shape[0],matrix.shape[1]) - 2), return_singular_vectors=False)
+        s = svds(
+            matrix,
+            k=(min(matrix.shape[0], matrix.shape[1]) - 2),
+            return_singular_vectors=False,
+        )
         # u, s, v = np.linalg.svd(matrix.toarray(), full_matrices=False)
         sing_vals.append(s)
     else:
-        sub = [2]*(L-2)
-        for i in range(2,L-1):
-            new_shape = (2**(i),2**(L-i))
+        sub = [2] * (L - 2)
+        for i in range(2, L - 1):
+            new_shape = (2 ** (i), 2 ** (L - i))
             matrix = vec.reshape(new_shape)
-            s = svds(matrix, k=(min(matrix.shape[0],matrix.shape[1]) - sub[i-1]), return_singular_vectors=False, which="LM")
+            s = svds(
+                matrix,
+                k=(min(matrix.shape[0], matrix.shape[1]) - sub[i - 1]),
+                return_singular_vectors=False,
+                which="LM",
+            )
             sing_vals.append(s)
-    
+
     return sing_vals
 
 
@@ -416,8 +451,14 @@ def fitting(xs, results, guess):
     ), f"The x and y must have the same dimension, but x has dim({len(xs)}) and y has dim({len(results)})"
 
     # define the function to fit
+
+    # fit for correlation length
     def fit(x, c, corr_length):
         return c / 6 * np.log(x - np.log(x / corr_length + np.exp(-x / corr_length)))
+
+    # fit for computational time (chi)
+    def fit(x, a, b, theta):
+        return a * np.exp(theta * x) + b
 
     # fit your data with a given guess
     param_opt, covar_opt = curve_fit(fit, xs, results, guess)
@@ -449,25 +490,22 @@ def mpo_to_matrix(mpo):
     v_l = np.zeros(mpo[0].shape[0])
     v_l[0] = 1
     L = len(mpo)
-    a = ncon([v_l, mpo[0]], [[1], [1, -(2 * L + 1), -1, -(L + 1)]])
-    for i in range(1, L):
-        first_index = list(range(-i, 0))
-        first_index.reverse()
-        second_index = list(range(-(L + i), -L))
-        second_index.reverse()
-        a_index = first_index + second_index + [1]
-        a = ncon([a, mpo[i]], [a_index, [1, -(2 * L + 1), -(i + 1), -(L + i + 1)]])
+    env = v_l
 
-    first_index = list(range(-i - 1, 0))
-    first_index.reverse()
-    second_index = list(range(-(L + i) - 1, -L))
-    second_index.reverse()
-    a_index = first_index + second_index + [1]
+    mid = [1]
+    label_env = mid
+    for i in range(L):
+        label_mpo = [1, -L * 100, -(i + 1), -(L + i + 1)]
+        env = ncon([env, mpo[i]], [label_env, label_mpo])
+        up = [int(-elem) for elem in np.linspace(1, i + 1, i + 1)]
+        down = [int(-elem) for elem in np.linspace(L + 1, L + 1 + i, i + 1)]
+        label_env = up + down + mid
+
     v_r = np.zeros(mpo[0].shape[0])
     v_r[-1] = 1
-    final_matrix = ncon([a, v_r.T], [a_index, [1]])
-    final_matrix = final_matrix.reshape((2**L, 2**L))
-    return final_matrix
+    d = mpo[0].shape[2]
+    matrix = ncon([env, v_r.T], [label_env, mid]).reshape((d**L, d**L))
+    return matrix
 
 
 # ---------------------------------------------------------------------------------------
@@ -706,7 +744,6 @@ def H_ising_gen(
     return -J * H_int(L, op=op_l) - h_l * H_loc(L, op_l) - h_t * H_loc(L, op_t)
 
 
-
 # ---------------------------------------------------------------------------------------
 # Flipping half
 # ---------------------------------------------------------------------------------------
@@ -826,31 +863,32 @@ def create_sequential_colors(num_colors, colormap_name):
     return colors
 
 
-def plot_results_evolution(
-        title: str, 
-        for_array: list, 
-        interval: list,
-        fname: str, 
-        path: str,         
-        fname_ex: str,
-        path_ex: str,
-        fname_save: str, 
-        path_save: str, 
-        ylabel: str,
-        exact: bool = False,
-        save: bool = True,
-        marker: str = "+", 
-        m_size: int = 25, 
-        linewidth: float = 1,
-        alpha: float = 1,
-        n_points: float = 1, 
-        cmap: str = "viridis",
-        ):
+def plot_results_DMRG(
+    title: str,
+    for_array: list,
+    interval: int,
+    fname: str,
+    path: str,
+    fname_ex: str,
+    path_ex: str,
+    fname_save: str,
+    path_save: str,
+    ylabel: str,
+    exact: bool = False,
+    save: bool = True,
+    marker: str = "+",
+    m_size: int = 25,
+    linewidth: float = 1,
+    alpha: float = 1,
+    n_points: float = 1,
+    cmap: str = "viridis",
+    precision: int = 2,
+):
     """
     plot_results_evolution
 
     This funciton plots the results of a time evolution for a specific model.
-    
+
     """
     colors = create_sequential_colors(num_colors=len(for_array), colormap_name=cmap)
 
@@ -862,9 +900,90 @@ def plot_results_evolution(
     x = interval[::step]
 
     for i, elem in enumerate(for_array):
-        res_mps = np.loadtxt(
-            f"{path}/{fname}_chi_{elem}"
+        res_mps = np.loadtxt(f"{path}/{fname}_chi_{elem}")
+        # res_mps = access_txt(
+        #     f"{path}/all_bond_entropy_Ising_L_51_flip_True_delta_0.01_chi_{elem}_h_ev_1.75", 25
+        # )
+        y = res_mps[::step]
+        # first_elem = np.array(0)
+        # y = np.append(first_elem, y)[::step]
+        plt.scatter(
+            x,
+            y,
+            s=m_size,
+            marker=marker,
+            alpha=alpha,
+            linewidths=linewidth,
+            facecolors=colors[i],
+            label=f"mps: $\\chi={elem}$",
         )
+
+        if exact:
+            res_exact = np.loadtxt(f"{path_ex}/{fname_ex}")
+            res_exact = res_exact[::step]
+            plt.plot(
+                x,
+                res_exact,
+                color="indianred",
+                label=f"exact",
+            )
+        # labels = interval[:: (len(interval) // 10)],
+        # labels = [f"{h:.{precision}f}" for h in labels]
+        labels = interval[:: (len(interval) // 5)]
+        labels = [round(lab, 1) for lab in labels]
+
+        plt.xlabel("plaquette term (h)")
+        # plt.xticks(
+        #     ticks=interval[:: (len(interval) // 5)],
+        #     labels=labels,
+        # )
+        plt.ylabel(ylabel)
+        plt.legend()
+
+    if save:
+        plt.savefig(f"{path_save}/{fname_save}_marker_{marker}.png")
+    plt.show()
+
+
+def plot_results_TEBD(
+    title: str,
+    for_array: list,
+    trotter_steps: int,
+    delta: float,
+    second_part: str,
+    fname: str,
+    path: str,
+    fname_ex: str,
+    path_ex: str,
+    fname_save: str,
+    path_save: str,
+    ylabel: str,
+    exact: bool = False,
+    save: bool = True,
+    marker: str = "+",
+    m_size: int = 25,
+    linewidth: float = 1,
+    alpha: float = 1,
+    n_points: float = 1,
+    cmap: str = "viridis",
+):
+    """
+    plot_results_evolution
+
+    This funciton plots the results of a time evolution for a specific model.
+
+    """
+    colors = create_sequential_colors(num_colors=len(for_array), colormap_name=cmap)
+
+    plt.title(
+        title,
+        fontsize=14,
+    )
+    step = 1 // n_points
+    x = list(np.arange(trotter_steps + 1))[::step]
+
+    for i, elem in enumerate(for_array):
+        res_mps = np.loadtxt(f"{path}/{fname}_chi_{elem}{second_part}")
         y = res_mps[::step]
         plt.scatter(
             x,
@@ -878,9 +997,7 @@ def plot_results_evolution(
         )
 
         if exact:
-            res_exact = np.loadtxt(
-            f"{path_ex}/{fname_ex}_chi_{elem}"
-        )
+            res_exact = np.loadtxt(f"{path_ex}/{fname_ex}_chi_{elem}")
             res_exact = res_exact[::step]
             plt.plot(
                 x,
@@ -888,61 +1005,122 @@ def plot_results_evolution(
                 color="indianred",
                 label=f"exact",
             )
-        plt.xlabel("external field (h)")
+        plt.xlabel("time (t)")
         plt.ylabel(ylabel)
+        plt.xticks(
+            ticks=x[:: int(len(x) / 5)],
+            labels=list(delta * np.asarray(x))[:: int(len(x) / 5)],
+        )
         plt.legend()
-         
+
     if save:
         plt.savefig(f"{path_save}/{fname_save}.png")
     plt.show()
 
 
 def plot_colormaps_evolution(
-        title: str, 
-        fname: str, 
-        path: str,         
-        fname_save: str, 
-        path_save: str, 
-        xlabel: str,
-        xticks: np.ndarray,
-        xlabels: np.ndarray,
-        yticks: np.ndarray,
-        ylabels: np.ndarray,
-        X,
-        Y,
-        save: bool = True,
-        cmap: str = "viridis",
-        interpolation: str = "antialiased",
-        d: bool = False,
-        view_init: bool = False,
-    ):
-
-    matrix = np.loadtxt(
-            f"{path}/{fname}"
-        )
+    title: str,
+    fname: str,
+    path: str,
+    fname_save: str,
+    path_save: str,
+    xlabel: str,
+    xticks: np.ndarray,
+    xlabels: np.ndarray,
+    yticks: np.ndarray,
+    ylabels: np.ndarray,
+    X,
+    Y,
+    save: bool = True,
+    cmap: str = "viridis",
+    interpolation: str = "antialiased",
+    d: bool = False,
+    view_init: bool = False,
+):
+    matrix = np.loadtxt(f"{path}/{fname}")
+    print(matrix.shape)
+    print(X.shape)
+    print(Y.shape)
     if d:
+        X = X[:-1, :]
+        Y = Y[:-1, :]
         fig = plt.figure()
         ax = fig.add_subplot(111, projection="3d")
         ax.set_title(title, fontsize=14)
         ax.plot_surface(X, Y, matrix, cmap=cmap)
-        # ax.set_xticks(ticks=xticks, labels=xlabels)
+        ax.set_xticks(ticks=xticks, labels=xlabels)
         ax.set_xlabel(xlabel)
-        # ax.set_yticks(ticks=yticks, labels=ylabels)
-        ax.set_ylabel("external field (h)")
+        ax.set_yticks(ticks=yticks, labels=ylabels)
+        ax.set_ylabel("time (t)")
         if view_init:
-            ax.view_init(20 , 80)
+            ax.view_init(20, 80)
         if save:
             fig.savefig(f"{path_save}/{fname_save}_3D.png")
         fig.show()
     else:
         plt.title(title, fontsize=14)
-        plt.imshow(matrix, cmap=cmap, aspect='auto', interpolation=interpolation)
+        plt.imshow(matrix, cmap=cmap, aspect="auto", interpolation=interpolation)
         plt.colorbar()
         plt.xticks(ticks=xticks, labels=xlabels)
         plt.xlabel(xlabel)
         plt.yticks(ticks=yticks, labels=ylabels)
-        plt.ylabel("external field (h)")
+        plt.ylabel("time (t)")
 
     if save:
         plt.savefig(f"{path_save}/{fname_save}.png")
     plt.show()
+
+
+def anim(frames: int, interval: int, data: np.ndarray, params: np.ndarray, show: bool, charges_x: list, charges_y: list, precision: int):
+
+    # Create a figure and axis
+    fig, ax = plt.subplots()
+    title = ax.set_title("")
+
+    # create the lattice
+    hlines = list(range(data[0].shape[0]))[::2]
+    vlines = list(range(data[0].shape[1]))[::2] 
+    ax.hlines(y=hlines, xmin=0, xmax=data[0].shape[1]-1, colors='k', linewidth=0.8)
+    ax.vlines(x=vlines, ymin=0, ymax=data[0].shape[0]-1, colors='k', linewidth=0.8)
+
+    # add the links expectation values
+    cmap = plt.get_cmap('viridis')
+    im = ax.imshow(data[0], vmin=-1, vmax=1, cmap=cmap, interpolation="nearest")
+    cbar = plt.colorbar(im, ax=ax)
+    cbar.set_label("Electric field")
+
+    # add vacuum
+    for i in vlines:
+        for j in hlines:
+            circle = Ellipse((i, j), 0.1, 0.1, edgecolor='blue', facecolor='none', linewidth=1)
+            ax.add_patch(circle)
+
+    # add charges
+    for i in range(len(charges_x)):
+        ax.text(x=2*charges_x[i]+0.1, y=2*charges_y[i]-0.1, s="-1", color="red")
+        circle = Ellipse((2*charges_x[i], 2*charges_y[i]), 0.1, 0.1, edgecolor='red', facecolor='none', linewidth=1)
+        ax.add_patch(circle)
+
+    
+    # Function to update the colormap in each frame
+    def update(frame, data: np.ndarray, params: np.ndarray, precision: int):
+        # print(frame, type(frame))
+        # Generate some example data
+        data_frame = data[frame]
+        param_frame = params[frame]
+
+        # Update the colormap
+        im.set_data(data_frame)
+        # im.imshow(data_frame, vmin=0, vmax=1, cmap=cmap, interpolation="nearest")
+        title.set_text(f'Magnetic term: {param_frame:.{precision}f}')
+        # Set colorbar
+        # cbar.set(im, ax=ax)
+        
+
+    # Create the animation
+    animation = FuncAnimation(fig, partial(update, data=data, params=params, precision=precision), frames=frames, interval=interval, repeat=False)
+
+    # Show the animation
+    if show:
+        plt.show()
+    return animation

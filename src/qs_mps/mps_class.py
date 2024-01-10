@@ -5,10 +5,16 @@ from scipy.sparse import csr_matrix, csr_array, identity
 from scipy.linalg import expm, solve
 from .utils import *
 from .checks import check_matrix
-from .sparse_hamiltonians_and_operators import exact_evolution_sparse, sparse_ising_ground_state, U_evolution_sparse
+from .sparse_hamiltonians_and_operators import (
+    exact_evolution_sparse,
+    sparse_ising_ground_state,
+    U_evolution_sparse,
+)
+from .mpo_class import MPO_ladder
 import matplotlib.pyplot as plt
 import time
 import warnings
+
 
 class MPS:
     def __init__(
@@ -28,12 +34,13 @@ class MPS:
         self.bonds = []
         self.ancilla_sites = []
         self.ancilla_bonds = []
-        self.schmidt_left = []
-        self.schmidt_right = []
         self.env_left = []
         self.env_right = []
         self.env_left_sm = []
         self.env_right_sm = []
+        self.Z2 = MPO_ladder(
+            L=self.L, l=int(np.log2(self.d)), model=self.model, lamb=self.h
+        )
 
     # -------------------------------------------------
     # Manipulation of tensors, state preparation
@@ -60,19 +67,23 @@ class MPS:
             sites = self.ancilla_sites
 
         if type_shape == "trapezoidal":
-            chi = int(np.log2(chi))
             assert (
-                self.L >= 2 * chi
+                chi >= self.d
+            ), "The bond dimension is too small for the selected physical dimension d"
+            
+            n = int(logarithm_base_d(x=chi, d=self.d))
+            assert (
+                self.L >= 2 * n
             ), "The spin chain is too small for the selected bond dimension chi"
             np.random.seed(seed)
 
-            for i in range(chi):
+            for i in range(n):
                 sites.append(np.random.rand(self.d**i, self.d, self.d ** (i + 1)))
-            for _ in range(self.L - (2 * chi)):
-                sites.append(np.random.rand(self.d**chi, self.d, self.d**chi))
-            for i in range(chi):
+            for _ in range(self.L - int(2 * n)):
+                sites.append(np.random.rand(self.d**n, self.d, self.d**n))
+            for i in range(n):
                 sites.append(
-                    np.random.rand(self.d ** (chi - i), self.d, self.d ** (chi - i - 1))
+                    np.random.rand(self.d ** (n - i), self.d, self.d ** (n - i - 1))
                 )
 
         elif type_shape == "pyramidal":
@@ -126,7 +137,9 @@ class MPS:
 
         return self
 
-    def right_svd(self, schmidt_tol: float, ancilla: bool, trunc_chi: bool, trunc_tol: bool):
+    def right_svd(
+        self, schmidt_tol: float, ancilla: bool, trunc_chi: bool, trunc_tol: bool
+    ):
         """
         right_svd
 
@@ -195,7 +208,9 @@ class MPS:
 
         return self
 
-    def left_svd(self, schmidt_tol: float, ancilla: bool, trunc_chi: bool, trunc_tol: bool):
+    def left_svd(
+        self, schmidt_tol: float, ancilla: bool, trunc_chi: bool, trunc_tol: bool
+    ):
         """
         left_svd
 
@@ -384,7 +399,7 @@ class MPS:
         """
         check_canonical
 
-        This funciton checks if the tensor at a certain site is in the correct 
+        This funciton checks if the tensor at a certain site is in the correct
         mixed canonical form, e.g., LCF on the left of the site and RCF on the right of the site.
 
         site: int - where we want to observe the canonical form of our mps
@@ -392,12 +407,15 @@ class MPS:
         """
         array = self.sites
         a = np.array([1])
-        
-        env = ncon([a,a],[[-1],[-2]])
+
+        env = ncon([a, a], [[-1], [-2]])
         env_l = env
-        for i in range(0,site-1):
+        for i in range(0, site - 1):
             I = np.eye(array[i].shape[2])
-            env_l = ncon([env_l, array[i], array[i].conjugate()],[[1,2],[1,3,-1],[2,3,-2]])
+            env_l = ncon(
+                [env_l, array[i], array[i].conjugate()],
+                [[1, 2], [1, 3, -1], [2, 3, -2]],
+            )
             env_trunc = truncation(env_l, threshold=1e-15)
             env_trunc = csr_matrix(env_trunc)
             I = csr_matrix(I)
@@ -406,9 +424,12 @@ class MPS:
                 print(f"the tensor at site {i+1} is in the correct LFC")
 
         env_r = env
-        for i in range(self.L-1, site, -1):
+        for i in range(self.L - 1, site, -1):
             I = np.eye(array[i].shape[0])
-            env_r = ncon([array[i],array[i].conjugate(),env_r],[[-1,3,1],[-2,3,2],[1,2]])
+            env_r = ncon(
+                [array[i], array[i].conjugate(), env_r],
+                [[-1, 3, 1], [-2, 3, 2], [1, 2]],
+            )
             env_trunc = truncation(env_r, threshold=1e-15)
             env_trunc = csr_matrix(env_trunc)
             I = csr_matrix(I)
@@ -424,24 +445,26 @@ class MPS:
         kets = self.sites
         bras = [ket.conjugate() for ket in kets]
         a = np.array([1])
-        env = ncon([a,a],[[-1],[-2]])
-        up = [int(-elem) for elem in np.linspace(1,0,0)]
-        down = [int(-elem) for elem in np.linspace(self.L+1,0,0)] 
+        env = ncon([a, a], [[-1], [-2]])
+        up = [int(-elem) for elem in np.linspace(1, 0, 0)]
+        down = [int(-elem) for elem in np.linspace(self.L + 1, 0, 0)]
         mid_up = [1]
         mid_down = [2]
         label_env = up + down + mid_up + mid_down
         # first site:
         for i in range(len(kets)):
-            label_ket = [1,-1-i,-self.L*100]
-            label_bra = [2,-self.L-1-i,-self.L*100-1]
-            env = ncon([env,kets[i],bras[i]],[label_env,label_ket,label_bra])
-            up = [int(-elem) for elem in np.linspace(1,i+1,i+1)]
-            down = [int(-elem) for elem in np.linspace(self.L+1,self.L+1+i,i+1)] 
+            label_ket = [1, -1 - i, -self.L * 100]
+            label_bra = [2, -self.L - 1 - i, -self.L * 100 - 1]
+            env = ncon([env, kets[i], bras[i]], [label_env, label_ket, label_bra])
+            up = [int(-elem) for elem in np.linspace(1, i + 1, i + 1)]
+            down = [
+                int(-elem) for elem in np.linspace(self.L + 1, self.L + 1 + i, i + 1)
+            ]
             label_env = up + down + mid_up + mid_down
-        
-        mps_dm = ncon([env,a,a],[label_env,[1],[2]])
+
+        mps_dm = ncon([env, a, a], [label_env, [1], [2]])
         return mps_dm
-    
+
     def reduced_density_matrix(self, sites):
         """
         reduced_density_matrix
@@ -449,45 +472,48 @@ class MPS:
         This function allows us to get the reduced density matrix (rdm) of a mps.
         We trace out all the sites not specified in the argument sites.
         The algorithm only works for consecutive sites, e.g., [1,2,3],
-        [56,57], etc. To implement a rdm of sites [5,37] we need another middle 
+        [56,57], etc. To implement a rdm of sites [5,37] we need another middle
         environment that manages the contractions between the specified sites
         """
         kets = self.sites
         bras = [ket.conjugate() for ket in kets]
         a = np.array([1])
-        env = ncon([a,a],[[-1],[-2]])
-        up = [int(-elem) for elem in np.linspace(1,0,0)]
-        down = [int(-elem) for elem in np.linspace(self.L+1,0,0)] 
+        env = ncon([a, a], [[-1], [-2]])
+        up = [int(-elem) for elem in np.linspace(1, 0, 0)]
+        down = [int(-elem) for elem in np.linspace(self.L + 1, 0, 0)]
         mid_up = [1]
         mid_down = [2]
         label_env = up + down + mid_up + mid_down
         # left env:
         env_l = env
-        for i in range(sites[0]-1):
-            label_ket = [1,3,-1]
-            label_bra = [2,3,-2]
-            env_l = ncon([env_l,kets[i],bras[i]],[label_env,label_ket,label_bra])
+        for i in range(sites[0] - 1):
+            label_ket = [1, 3, -1]
+            label_bra = [2, 3, -2]
+            env_l = ncon([env_l, kets[i], bras[i]], [label_env, label_ket, label_bra])
         # right env:
         env_r = env
-        for i in range(self.L-1,sites[-1],-1): 
-            label_ket = [-1,3,1]
-            label_bra = [-2,3,2]
-            env_r = ncon([env_r,kets[i],bras[i]],[label_env,label_ket,label_bra])  
+        for i in range(self.L - 1, sites[-1], -1):
+            label_ket = [-1, 3, 1]
+            label_bra = [-2, 3, 2]
+            env_r = ncon([env_r, kets[i], bras[i]], [label_env, label_ket, label_bra])
         # central env
         idx = 0
-        for i in range(sites[0]-1,sites[-1]):
-            label_ket = [1,-1-i,-len(sites)*100]
-            label_bra = [2,-len(sites)-1-i,-len(sites)*100-1]
-            env_l = ncon([env_l,kets[i],bras[i]],[label_env,label_ket,label_bra])
-            up = [int(-elem) for elem in np.linspace(1,idx+1,idx+1)]
-            down = [int(-elem) for elem in np.linspace(len(sites)+1,len(sites)+1+idx,idx+1)] 
+        for i in range(sites[0] - 1, sites[-1]):
+            label_ket = [1, -1 - i, -len(sites) * 100]
+            label_bra = [2, -len(sites) - 1 - i, -len(sites) * 100 - 1]
+            env_l = ncon([env_l, kets[i], bras[i]], [label_env, label_ket, label_bra])
+            up = [int(-elem) for elem in np.linspace(1, idx + 1, idx + 1)]
+            down = [
+                int(-elem)
+                for elem in np.linspace(len(sites) + 1, len(sites) + 1 + idx, idx + 1)
+            ]
             label_env = up + down + mid_up + mid_down
             idx += 1
 
-        mps_dm = ncon([env_l,env_r],[[label_env],[1,2]])
+        mps_dm = ncon([env_l, env_r], [[label_env], [1, 2]])
 
         return mps_dm
-    
+
     # -------------------------------------------------
     # Matrix Product Operators, MPOs
     # -------------------------------------------------
@@ -508,6 +534,10 @@ class MPS:
 
         elif self.model == "Z2_two_ladder":
             self.mpo_Z2_two_ladder()
+
+        elif self.model == "Z2_dual":
+            self.Z2.mpo_Z2_ladder_generalized()
+            self.w = self.Z2.mpo
 
         return self
 
@@ -680,9 +710,60 @@ class MPS:
 
         pass
 
-    def mpo_Ising_time_ev(self, delta, h_ev, J_ev):
+    def mpo_quench(
+        self,
+        quench: str,
+        delta: float = None,
+        h_ev: float = None,
+        J_ev: float = 1,
+        sites: list = -1,
+    ):
         """
-        mpo_Ising_time_ev
+        mpo_quench
+
+        This function selects which quench we want to perform.
+
+        quench: str - type of quench. Available are: 'flip', 'global'
+
+        """
+        if sites == -1:
+            sites = [self.L // 2]
+
+        if quench == "flip":
+            self.mpo_quench_flip(sites)
+        elif quench == "global":
+            if self.model == "Ising":
+                self.mpo_Ising_quench_global(delta, h_ev, J_ev)
+            if self.model == "Z2":
+                MPO_ladder.mpo_Z2_quench_global(delta, h_ev, J_ev)
+
+    def mpo_quench_flip(self, sites):
+        """
+        mpo_quench_flip
+
+        This function defines the quench of a hamiltonian
+        which flips the spin system in some sites. The default
+        flip is with the X operator.
+
+        sites: list - list of sites we want to quench
+        """
+        I = np.eye(2)
+        I = np.array([[I]])
+        O = np.zeros((2, 2))
+        X = np.array([[0, 1], [1, 0]])
+        X_exp = np.array([[expm(1j * X)]])
+        w_tot = []
+        for i in range(1, self.L + 1):
+            if i in sites:
+                w_tot.append(X_exp)
+            else:
+                w_tot.append(I)
+        self.w = w_tot
+        return self
+
+    def mpo_Ising_quench_global(self, delta: float, h_ev: float, J_ev: float = 1):
+        """
+        mpo_Ising_quench_global
 
         This function defines the MPO for the real time evolution of a 1D transverse field Ising model.
         We use this to perform a second order TEBD.
@@ -706,27 +787,15 @@ class MPS:
                 ]
             ]
         )
-        # w_even_3 = np.array(
-        #     [np.sqrt(np.cos(J_ev * delta)) * I, 1j * np.sqrt(np.sin(J_ev * delta)) * Z]
-        # )
         w_in = ncon([w_even, w_loc, w_loc], [[-1, -2, 1, 2], [-3, 1], [2, -4]])
         w_odd = np.array(
             [[np.sqrt(np.cos(J_ev * delta)) * I, np.sqrt(np.sin(J_ev * delta)) * Z]]
         )
         w_odd = np.swapaxes(w_odd, axis1=0, axis2=1)
-        # w_odd_3 = np.array(
-        #     [np.sqrt(np.cos(J_ev * delta)) * I, np.sqrt(np.sin(J_ev * delta)) * Z]
-        # )
-        # w_fin = ncon([w_odd.T, w_loc, w_loc], [[1, 2, -1, -2], [-3, 1], [2, -4]])
         w_fin = ncon([w_odd, w_loc, w_loc], [[-1, -2, 1, 2], [-3, 1], [2, -4]])
-        # w_fin = np.swapaxes(w_fin, axis1=0,axis2=1)
         w_tot.append(w_in)
         for site in range(2, self.L):
             if site % 2 == 0:
-                # w = ncon(
-                #     [w_loc, w_even_3, w_loc, w_odd_3.T],
-                #     [[1, -4], [-2, 2, 1], [3, 2], [3, -3, -1]],
-                # )
                 w = ncon(
                     [w_loc, w_even, w_loc, w_odd],
                     [[1, -6], [-2, -4, 2, 1], [3, 2], [-1, -3, -5, 3]],
@@ -737,10 +806,6 @@ class MPS:
                     w_even.shape[3],
                 )
             else:
-                # w = ncon(
-                #     [w_odd_3.T, w_loc, w_even_3, w_loc],
-                #     [[-4, 1, -1], [2, 1], [-2, 3, 2], [-3, 3]],
-                # )
                 w = ncon(
                     [w_odd, w_loc, w_even, w_loc],
                     [[-2, -4, 3, -6], [2, 3], [-1, -3, 1, 2], [-5, 1]],
@@ -760,7 +825,7 @@ class MPS:
     # -------------------------------------------------
     # Observables, order parameters
     # -------------------------------------------------
-    def order_param(self):
+    def order_param(self, op: None):
         """
         order_param
 
@@ -770,10 +835,13 @@ class MPS:
 
         """
         if self.model == "Ising":
-            self.order_param_Ising()
+            self.order_param_Ising(op=op)
 
         elif self.model == "Z2_two_ladder":
             self.order_param_Z2()
+
+        elif self.model == "Z2_dual":
+            self.order_param_Z2_dual()
 
         return self
 
@@ -836,6 +904,38 @@ class MPS:
             )
             w_tot.append(w)
         self.w = w_tot
+        return self
+
+    def order_param_Z2_dual(self):
+        """
+        order_param_Z2_dual
+
+        This function defines the MPO order parameter for the Z2 pure lattice gauge theory,
+        on the dual lattice. It is equivalent to a 2D transverse field Ising model.
+
+        """
+        self.Z2.order_param_Z2_dual()
+        self.w = self.Z2.mpo
+        return self
+
+    def local_param(self, site: None, op: None):
+        """
+        local_param
+
+        This function selects which local parameter to use according to the
+        studied model. Here you can add other local parameters that you have
+        independently defined in the class.
+
+        """
+        if self.model == "Ising":
+            self.single_operator_Ising(site=site, op=op)
+
+        elif self.model == "Z2_two_ladder":
+            self.sigma_x_Z2_two_ladder()
+
+        elif self.model == "Z2_dual":
+            self.single_operator_Z2_dual(site=site, l=op)
+
         return self
 
     def sigma_x_Z2_one_ladder(self, site):
@@ -910,6 +1010,18 @@ class MPS:
         self.w = w_tot
         return self
 
+    def single_operator_Z2_dual(self, site, l):
+        """
+        order_param_Z2_dual
+
+        This function defines the MPO order parameter for the Z2 pure lattice gauge theory,
+        on the dual lattice. It is equivalent to a 2D transverse field Ising model.
+
+        """
+        self.Z2.local_site_observable_Z2_dual(mpo_site=site, l=l)
+        self.w = self.Z2.mpo
+        return self
+
     def mps_local_exp_val(self, op):
         chain = []
         self.clear_envs()
@@ -918,7 +1030,58 @@ class MPS:
             self.envs(site=i)
             chain.append(self.braket(site=i))
         self.clear_envs()
-        return chain
+        return chain 
+         
+    def electric_field_Z2(self, E):
+        """
+        electric_field_Z2
+
+        This function finds the mpo for the electric field in the direct lattice of a Z2 theory.
+        To reconstruct the field in the direct lattices we need functions to compute the 
+        borders and the bulk fields, weighted for the appropriate charges.
+
+        """
+        # let us find the observables for the boudary fields
+        i = 0
+        for mpo_site in range(self.L-1):
+            j = 0
+            if mpo_site == 0 or mpo_site == (self.L-2):
+                E_v = []
+                for l in range(self.Z2.l):
+                    self.Z2.local_observable_Z2_dual(mpo_site=mpo_site, l=l)
+                    coeff = self.Z2.charge_coeff_v_edge(mpo_site=mpo_site+i, l=l)
+                    self.w = self.Z2.mpo
+                    E_v.append(coeff * self.mpo_first_moment().real)
+                E[1::2, (mpo_site+i)*2] = E_v
+                i = 1
+            
+            for l in [0,self.Z2.l-1]:
+                self.Z2.local_observable_Z2_dual(mpo_site=mpo_site, l=l)
+                coeff = self.Z2.charge_coeff_v(mpo_site=mpo_site, l=l)
+                self.w = self.Z2.mpo
+                E[(l+j)*2,mpo_site*2+1] = coeff * self.mpo_first_moment().real
+                j = 1
+            
+        # now we can obtain the bullk values given by the zz interactions
+        # vertical
+        for l in range(self.Z2.l-1):
+            E_v = []
+            for mpo_site in range(self.L-1):
+                self.Z2.zz_observable_Z2_dual(mpo_site=mpo_site, l=l, direction="vertical")
+                self.w = self.Z2.mpo
+                E_v.append(self.mpo_first_moment().real)
+            E[(l+1)*2, 1::2] = E_v
+         # horizontal
+        for l in range(self.Z2.l):
+            E_h = []
+            for mpo_site in range(self.L-2):
+                self.Z2.zz_observable_Z2_dual(mpo_site=mpo_site, l=l, direction="horizontal")
+                coeff = self.Z2.charge_coeff_interaction(n=l+1,mpo_site=mpo_site)
+                self.w = self.Z2.mpo
+                E_h.append(self.mpo_first_moment().real)
+            E[(l*2+1), 2::2] = E_h
+        
+        return E
 
     # -------------------------------------------------
     # Manipulation of MPOs
@@ -1205,15 +1368,19 @@ class MPS:
             w = self.w
 
             for i in range(1, site):
-                E_l = ncon([E_l, ancilla_array[i - 1]],[[1,-3,-4],[1,-2,-1]])
-                E_l = ncon([E_l, w[i - 1]],[[-1,1,2,-4],[2,-2,1,-3]])
-                E_l = ncon([E_l, array[i - 1].conjugate()],[[-1,-2,1,2],[2,1,-3]])
+                E_l = ncon([E_l, ancilla_array[i - 1]], [[1, -3, -4], [1, -2, -1]])
+                E_l = ncon([E_l, w[i - 1]], [[-1, 1, 2, -4], [2, -2, 1, -3]])
+                E_l = ncon(
+                    [E_l, array[i - 1].conjugate()], [[-1, -2, 1, 2], [2, 1, -3]]
+                )
                 env_left.append(E_l)
 
             for j in range(self.L, site, -1):
-                E_r = ncon([E_r,ancilla_array[j - 1]],[[1,-3,-4],[-1,-2,1]])
-                E_r = ncon([E_r,w[j - 1]],[[-1,1,2,-4],[-2,2,1,-3]])
-                E_r = ncon([E_r,array[j - 1].conjugate()],[[-1,-2,1,2],[-3,1,2]])
+                E_r = ncon([E_r, ancilla_array[j - 1]], [[1, -3, -4], [-1, -2, 1]])
+                E_r = ncon([E_r, w[j - 1]], [[-1, 1, 2, -4], [-2, 2, 1, -3]])
+                E_r = ncon(
+                    [E_r, array[j - 1].conjugate()], [[-1, -2, 1, 2], [-3, 1, 2]]
+                )
                 env_right.append(E_r)
             if rev:
                 self.env_right_sm = env_right
@@ -1229,15 +1396,19 @@ class MPS:
                 array = self.ancilla_sites
             w = self.w
             for i in range(1, site):
-                E_l = ncon([E_l, array[i - 1]],[[1,-3,-4],[1,-2,-1]])
-                E_l = ncon([E_l, w[i - 1]],[[-1,1,2,-4],[2,-2,1,-3]])
-                E_l = ncon([E_l, array[i - 1].conjugate()],[[-1,-2,1,2],[2,1,-3]])
+                E_l = ncon([E_l, array[i - 1]], [[1, -3, -4], [1, -2, -1]])
+                E_l = ncon([E_l, w[i - 1]], [[-1, 1, 2, -4], [2, -2, 1, -3]])
+                E_l = ncon(
+                    [E_l, array[i - 1].conjugate()], [[-1, -2, 1, 2], [2, 1, -3]]
+                )
                 self.env_left.append(E_l)
 
             for i in range(self.L, site, -1):
-                E_r = ncon([E_r,array[i - 1]],[[1,-3,-4],[-1,-2,1]])
-                E_r = ncon([E_r,w[i - 1]],[[-1,1,2,-4],[-2,2,1,-3]])
-                E_r = ncon([E_r,array[i - 1].conjugate()],[[-1,-2,1,2],[-3,1,2]])
+                E_r = ncon([E_r, array[i - 1]], [[1, -3, -4], [-1, -2, 1]])
+                E_r = ncon([E_r, w[i - 1]], [[-1, 1, 2, -4], [-2, 2, 1, -3]])
+                E_r = ncon(
+                    [E_r, array[i - 1].conjugate()], [[-1, -2, 1, 2], [-3, 1, 2]]
+                )
                 self.env_right.append(E_r)
         return self
 
@@ -1432,9 +1603,9 @@ class MPS:
                 if mixed:
                     ancilla_array = self.ancilla_sites[site - 1]
                 E_l = self.env_left[-1]
-            E_l = ncon([E_l, ancilla_array],[[1,-3,-4],[1,-2,-1]])
-            E_l = ncon([E_l, w],[[-1,1,2,-4],[2,-2,1,-3]])
-            E_l = ncon([E_l, array.conjugate()],[[-1,-2,1,2],[2,1,-3]])
+            E_l = ncon([E_l, ancilla_array], [[1, -3, -4], [1, -2, -1]])
+            E_l = ncon([E_l, w], [[-1, 1, 2, -4], [2, -2, 1, -3]])
+            E_l = ncon([E_l, array.conjugate()], [[-1, -2, 1, 2], [2, 1, -3]])
             if rev:
                 self.env_left_sm.append(E_l)
                 self.env_right_sm.pop(-1)
@@ -1455,9 +1626,9 @@ class MPS:
                 if mixed:
                     ancilla_array = self.ancilla_sites[site - 1]
                 E_r = self.env_right[-1]
-            E_r = ncon([E_r,ancilla_array],[[1,-3,-4],[-1,-2,1]])
-            E_r = ncon([E_r,w],[[-1,1,2,-4],[-2,2,1,-3]])
-            E_r = ncon([E_r,array.conjugate()],[[-1,-2,1,2],[-3,1,2]])
+            E_r = ncon([E_r, ancilla_array], [[1, -3, -4], [-1, -2, 1]])
+            E_r = ncon([E_r, w], [[-1, 1, 2, -4], [-2, 2, 1, -3]])
+            E_r = ncon([E_r, array.conjugate()], [[-1, -2, 1, 2], [-3, 1, 2]])
             if rev:
                 self.env_right_sm.append(E_r)
                 self.env_left_sm.pop(-1)
@@ -1474,12 +1645,10 @@ class MPS:
         schmidt_tol: float = 1e-15,
         conv_tol: float = 1e-10,
         n_sweeps: int = 6,
-        var: bool = False,
         bond: bool = True,
         where: int = -1,
-    ):  
+    ):
         energies = []
-        variances = []
         sweeps = ["right", "left"]
         sites = np.arange(1, self.L + 1).tolist()
 
@@ -1487,14 +1656,14 @@ class MPS:
         self.envs()
 
         iter = 1
+        
         for n in range(n_sweeps):
             print(f"Sweep n: {n}\n")
             entropy = []
             for i in range(self.L - 1):
+                # v0 = self.sites[i].flatten()
                 H = self.H_eff(sites[i])
-                energy = self.eigensolver(
-                    H_eff=H, site=sites[i]
-                ) 
+                energy = self.eigensolver(H_eff=H, site=sites[i]) # , v0=v0
                 energies.append(energy)
                 s = self.update_state(
                     sweeps[0], sites[i], trunc_tol, trunc_chi, schmidt_tol
@@ -1588,7 +1757,12 @@ class MPS:
         """
         if mpo:
             M = ncon(
-                [self.env_left[-1], self.ancilla_sites[site - 1], self.w[site - 1], self.env_right[-1]],
+                [
+                    self.env_left[-1],
+                    self.ancilla_sites[site - 1],
+                    self.w[site - 1],
+                    self.env_right[-1],
+                ],
                 [[1, 3, -1], [1, 5, 2], [3, 4, 5, -2], [2, 4, -3]],
             )
         else:
@@ -1929,7 +2103,7 @@ class MPS:
         for T in range(trotter_steps):
             print(f"------ Trotter steps: {T} -------")
 
-            self.mpo_Ising_time_ev(delta=delta, h_ev=h_ev, J_ev=1)
+            self.mpo_Ising_quench_global(delta=delta, h_ev=h_ev, J_ev=1)
             self.mpo_to_mps()
             if trunc:
                 self.canonical_form(svd_direction="left")
@@ -1965,6 +2139,7 @@ class MPS:
         trotter_steps: int,
         delta: float,
         h_ev: float,
+        quench: str,
         flip: bool,
         n_sweeps: int = 2,
         conv_tol: float = 1e-7,
@@ -1981,7 +2156,8 @@ class MPS:
         trotter_steps: int - number of times we apply the mpo to the mps
         delta: float - time interval which defines the evolution per step
         h_ev: float - value of the external field in the evolving hamiltonian
-        J_ev: float - value of the Ising interaction in the evolving hamiltonian
+        flip: bool - flip the initial state middle qubit
+        quench: str - type of quench we want to execute. Available are 'flip', 'global'
         fidelity: bool - we can compute the fidelity with the initial state
                 if the chain is small enough. By default False
         err: bool - computes the distance error between the guess state and an
@@ -2008,15 +2184,15 @@ class MPS:
         self.enlarge_chi()
 
         # total
-        self.order_param_Ising(op=Z)
+        self.order_param(op=Z)
         mag_mps_tot.append(np.real(self.mpo_first_moment()))
         # loc X
-        self.single_operator_Ising(site=self.L // 2 + 1, op=X)
+        self.local_param(site=self.L // 2 + 1, op=X)
         mag_mps_loc_X.append(np.real(self.mpo_first_moment()))
         # local glob Z
         mag_loc = []
         for i in range(self.L):
-            self.single_operator_Ising(site=i + 1, op=Z)
+            self.local_param(site=i + 1, op=Z)
             mag_loc.append(np.real(self.mpo_first_moment()))
         mag_mps_loc.append(mag_loc)
 
@@ -2034,21 +2210,12 @@ class MPS:
         self.ancilla_sites = self.sites.copy()
 
         errors = [[0, 0]]
-        
+
         for trott in range(trotter_steps):
             print(f"------ Trotter steps: {trott} -------")
-            self.mpo_Ising_time_ev(delta=delta, h_ev=h_ev, J_ev=1)
-            # self.mpo_to_mps(ancilla=True)
-            # self.canonical_form(
-            #     svd_direction="right", ancilla=True, trunc_chi=False, trunc_tol=True
-            # )
-            # self.canonical_form(
-            #     svd_direction="left", ancilla=True, trunc_chi=False, trunc_tol=True
-            # )
+            self.mpo_quench(quench, delta, h_ev)
             print(f"Bond dim ancilla: {self.ancilla_sites[self.L//2].shape[0]}")
             print(f"Bond dim site: {self.sites[self.L//2].shape[0]}")
-            # print("Braket <phi|psi>:")
-            # self._compute_norm(site=1, mixed=True)
             error, entropy = self.compression(
                 trunc_tol=False,
                 trunc_chi=True,
@@ -2058,20 +2225,19 @@ class MPS:
                 where=where,
             )
             self.ancilla_sites = self.sites.copy()
-            # self.canonical_form(trunc_chi=True, trunc_tol=False)
             errors.append(error)
             entropies.append(entropy)
 
             # total
-            self.order_param_Ising(op=Z)
+            self.order_param(op=Z)
             mag_mps_tot.append(np.real(self.mpo_first_moment(mixed=True)))
             # loc X
-            self.single_operator_Ising(site=self.L // 2 + 1, op=X)
+            self.local_param(site=self.L // 2 + 1, op=X)
             mag_mps_loc_X.append(np.real(self.mpo_first_moment(mixed=True)))
             # local glob Z
             mag = []
             for i in range(self.L):
-                self.single_operator_Ising(site=i + 1, op=Z)
+                self.local_param(site=i + 1, op=Z)
                 mag.append(self.mpo_first_moment(mixed=True).real)
             mag_mps_loc.append(mag)
 
@@ -2086,6 +2252,182 @@ class MPS:
                 psi_new_mpo = mps_to_vector(self.sites)
                 overlap.append(np.abs((psi_new_mpo.T.conjugate() @ psi_exact).real))
         return mag_mps_tot, mag_mps_loc_X, mag_mps_loc, overlap, errors, entropies
+
+    def TEBD_variational_Z2(
+        self,
+        trotter_steps: int,
+        delta: float,
+        h_ev: float,
+        quench: str,
+        flip: bool,
+        n_sweeps: int = 2,
+        conv_tol: float = 1e-7,
+        fidelity: bool = False,
+        bond: bool = True,
+        where: int = -1,
+    ):
+        """
+        variational_mps_evolution
+
+        This function computes the magnetization and (on demand) the fidelity
+        of the trotter evolved MPS by the MPO direct application.
+
+        trotter_steps: int - number of times we apply the mpo to the mps
+        delta: float - time interval which defines the evolution per step
+        h_ev: float - value of the external field in the evolving hamiltonian
+        flip: bool - flip the initial state middle qubit
+        quench: str - type of quench we want to execute. Available are 'flip', 'global'
+        fidelity: bool - we can compute the fidelity with the initial state
+                if the chain is small enough. By default False
+        err: bool - computes the distance error between the guess state and an
+                uncompressed state. If True it is used as a convergence criterion.
+                By default True
+
+        """
+        overlap = []
+        mag_mps_tot = []
+        mag_mps_loc = []
+        mag_mps_int_hor = []
+        mag_mps_int_ver = []
+        entropies = []
+        X = np.array([[0, 1], [1, 0]])
+        Z = np.array([[1, 0], [0, -1]])
+
+        if flip:
+            if self.L % 2 == 0:
+                self.sites[self.L // 2] = np.array([[[0], [1]]])
+                self.sites[self.L // 2 - 1] = np.array([[[0], [1]]])
+            else:
+                self.sites[self.L // 2] = np.array([[[0], [1]]])
+
+        # enlarging our local tensor to the max bond dimension
+        self.enlarge_chi()
+
+        # total
+        self.order_param(op=Z)
+        mag_mps_tot.append(np.real(self.mpo_first_moment()))
+        # local glob Z
+        mag_loc = []
+        for i in range(self.L - 1):
+            for j in range(self.Z2.l):
+                self.local_param(site=i, op=j)
+                mag_loc.append(np.real(self.mpo_first_moment()))
+        mag_mps_loc.append(mag_loc)
+        # zz horizontal
+        mag_int_hor = []
+        for i in range(self.L - 2):
+            for j in range(self.Z2.l):
+                self.Z2.zz_observable_Z2_dual(mpo_site=i, l=j, direction="horizontal")
+                self.w = self.Z2.mpo
+                mag_int_hor.append(np.real(self.mpo_first_moment()))
+        mag_mps_int_hor.append(mag_int_hor)
+        # zz vertical
+        mag_int_ver = []
+        for i in range(self.L - 1):
+            for j in range(self.Z2.l - 1):
+                self.Z2.zz_observable_Z2_dual(mpo_site=i, l=j, direction="vertical")
+                self.w = self.Z2.mpo
+                mag_int_ver.append(np.real(self.mpo_first_moment()))
+        mag_mps_int_ver.append(mag_int_ver)
+
+        # fidelity
+        if fidelity:
+            psi_exact_0 = sparse_ising_ground_state(L=self.L, h_t=self.h).reshape(
+                2**self.L, 1
+            )
+            psi_new_mpo = mps_to_vector(self.sites)
+            overlap.append(np.abs((psi_new_mpo.T.conjugate() @ psi_exact_0).real))
+
+        # initialize ancilla with a state in Right Canonical Form
+        self.canonical_form(trunc_chi=True, trunc_tol=False)
+        self._compute_norm(site=1)
+        self.ancilla_sites = self.sites.copy()
+
+        errors = [[0, 0]]
+
+        for trott in range(trotter_steps):
+            print(f"------ Trotter steps: {trott} -------")
+
+            # start with the half mu_x on each ladder
+            self.Z2._initialize_finalize_quench_local(delta=delta)
+            self.w = self.Z2.mpo
+            self.mpo_to_mps()
+            for l in range(1, self.Z2.l + 1):
+                # apply repeatedly the mu_z evolution for every ladder
+                self.Z2.mpo_Z2_quench_ladder(l=l, delta=delta)
+                self.w = self.Z2.mpo
+
+                print(f"Bond dim ancilla: {self.ancilla_sites[self.L//2].shape[0]}")
+                print(f"Bond dim site: {self.sites[self.L//2].shape[0]}")
+
+                # compress the ladder evolution operator
+                error, entropy = self.compression(
+                    trunc_tol=False,
+                    trunc_chi=True,
+                    n_sweeps=n_sweeps,
+                    conv_tol=conv_tol,
+                    bond=bond,
+                    where=where,
+                )
+                self.ancilla_sites = self.sites.copy()
+
+            # finish with the other half mu_x on each ladder
+            self.Z2._initialize_finalize_quench_local(delta=delta)
+            self.w = self.Z2.mpo
+            self.mpo_to_mps()
+
+            self.ancilla_sites = self.sites.copy()
+            errors.append(error)
+            entropies.append(entropy)
+
+            # total
+            self.order_param(op=Z)
+            mag_mps_tot.append(np.real(self.mpo_first_moment()))
+            # local glob Z
+            mag_loc = []
+            for i in range(self.L - 1):
+                for j in range(self.Z2.l):
+                    self.local_param(site=i, op=j)
+                    mag_loc.append(np.real(self.mpo_first_moment()))
+            mag_mps_loc.append(mag_loc)
+            # zz horizontal
+            mag_int_hor = []
+            for i in range(self.L - 2):
+                for j in range(self.Z2.l):
+                    self.Z2.zz_observable_Z2_dual(
+                        mpo_site=i, l=j, direction="horizontal"
+                    )
+                    self.w = self.Z2.mpo
+                    mag_int_hor.append(np.real(self.mpo_first_moment()))
+            mag_mps_int_hor.append(mag_int_hor)
+            # zz vertical
+            mag_int_ver = []
+            for i in range(self.L - 1):
+                for j in range(self.Z2.l - 1):
+                    self.Z2.zz_observable_Z2_dual(mpo_site=i, l=j, direction="vertical")
+                    self.w = self.Z2.mpo
+                    mag_int_ver.append(np.real(self.mpo_first_moment()))
+            mag_mps_int_ver.append(mag_int_ver)
+
+            if fidelity:
+                psi_exact = U_evolution_sparse(
+                    L=self.L,
+                    psi_init=psi_exact_0,
+                    trotter_step=(trott + 1),
+                    delta=delta,
+                    h_t=h_ev,
+                )
+                psi_new_mpo = mps_to_vector(self.sites)
+                overlap.append(np.abs((psi_new_mpo.T.conjugate() @ psi_exact).real))
+        return (
+            mag_mps_tot,
+            mag_mps_loc,
+            mag_mps_int_hor,
+            mag_mps_int_ver,
+            overlap,
+            errors,
+            entropies,
+        )
 
     # -------------------------------------------------
     # Computing expectation values
@@ -2141,7 +2483,7 @@ class MPS:
             ancilla_sites = sites
         elif mixed:
             ancilla_sites = self.ancilla_sites
-            
+
         first_moment = ncon(
             [
                 self.env_left[-1],
@@ -2215,7 +2557,133 @@ class MPS:
 
         return bond_dims
 
-    def save_sites(self, path, precision=2):
+    def save_sites(self, path: str, precision: int=2, cx: list=None, cy: list=None):
+        """
+        save_sites
+
+        This function saves the sites, e.g., the tensors composing our MPS.
+        In order to do that we need to flatten the whole list of tensors and save
+        their original shapes in order to reshape them in the loading step.
+
+        precision: int - indicates the precision of the variable h
+        """
+        if "Ising" in self.model:
+            self.save_sites_Ising(path=path, precision=precision)
+        elif "Z2" in self.model:
+            self.save_sites_Z2(path=path, precision=precision, cx=cx, cy=cy)
+        return self
+    
+    def load_sites(self, path: str, precision: int=2, cx: list=None, cy: list=None):
+        """
+        load_sites
+
+        This function load the tensors into the sites of the MPS.
+        We fetch a completely flat list, split it to recover the original tensors
+        (but still flat) and reshape each of them accordingly with the saved shapes.
+        To initially split the list in the correct index position refer to the auxiliary
+        function get_labels().
+
+        """
+        if "Ising" in self.model:
+            self.load_sites_Ising(path=path, precision=precision)
+        elif "Z2" in self.model:
+            self.load_sites_Z2(path=path, precision=precision, cx=cx, cy=cy)
+        return self
+
+    def save_sites_Ising(self, path, precision: int=2):
+        # shapes of the tensors
+        shapes = tensor_shapes(self.sites)
+        np.savetxt(
+            f"{path}/results/tensors/shapes_sites_{self.model}_L_{self.L}_chi_{self.chi}_h_{self.h:.{precision}f}",
+            shapes,
+            fmt="%1.i",  # , delimiter=','
+        )
+
+        # flattening of the tensors
+        tensor = [element for site in self.sites for element in site.flatten()]
+        np.savetxt(
+            f"{path}/results/tensors/tensor_sites_{self.model}_L_{self.L}_chi_{self.chi}_h_{self.h:.{precision}f}",
+            tensor,
+        )
+        return self
+    
+    def save_sites_Z2(self, path, precision: int=2, cx: list=None, cy: list=None):
+        # shapes of the tensors
+        shapes = tensor_shapes(self.sites)
+        np.savetxt(
+            f"{path}/results/tensors/shapes_sites_{self.model}_direct_lattice_{self.Z2.l}_{self.Z2.L}_{cx}-{cy}_chi_{self.chi}_h_{self.h:.{precision}f}",
+            shapes,
+            fmt="%1.i",  # , delimiter=','
+        )
+
+        # flattening of the tensors
+        tensor = [element for site in self.sites for element in site.flatten()]
+        np.savetxt(
+            f"{path}/results/tensors/tensor_sites_{self.model}_direct_lattice_{self.Z2.l}_{self.Z2.L}_{cx}-{cy}_chi_{self.chi}_h_{self.h:.{precision}f}",
+            tensor,
+        )
+
+    def load_sites_Ising(self, path, precision: int=2):
+        """
+        load_sites
+
+        This function load the tensors into the sites of the MPS.
+        We fetch a completely flat list, split it to recover the original tensors
+        (but still flat) and reshape each of them accordingly with the saved shapes.
+        To initially split the list in the correct index position refer to the auxiliary
+        function get_labels().
+
+        """
+        # loading of the shapes
+        shapes = np.loadtxt(
+            f"{path}/results/tensors/shapes_sites_{self.model}_L_{self.L}_chi_{self.chi}_h_{self.h:.{precision}f}"
+        ).astype(int)
+        # loading of the flat tensors
+        filedata = np.loadtxt(
+            f"{path}/results/tensors/tensor_sites_{self.model}_L_{self.L}_chi_{self.chi}_h_{self.h:.{precision}f}",
+            dtype=complex,
+        )
+        # auxiliary function to get the indices where to split
+        labels = get_labels(shapes)
+        flat_tn = np.array_split(filedata, labels)
+        flat_tn.pop(-1)
+        # reshape the flat tensors and initializing the sites
+        self.sites = [site.reshape(shapes[i]) for i, site in enumerate(flat_tn)]
+
+        return self
+
+    def load_sites_Z2(self, path, precision: int=2, cx: list=None, cy: list=None):
+        """
+        load_sites
+
+        This function load the tensors into the sites of the MPS.
+        We fetch a completely flat list, split it to recover the original tensors
+        (but still flat) and reshape each of them accordingly with the saved shapes.
+        To initially split the list in the correct index position refer to the auxiliary
+        function get_labels().
+
+        """
+        # loading of the shapes
+        shapes = np.loadtxt(
+            f"{path}/results/tensors/shapes_sites_{self.model}_direct_lattice_{self.Z2.l}_{self.Z2.L}_{cx}-{cy}_chi_{self.chi}_h_{self.h:.{precision}f}",
+
+        ).astype(int)
+        # loading of the flat tensors
+        filedata = np.loadtxt(
+            f"{path}/results/tensors/tensor_sites_{self.model}_direct_lattice_{self.Z2.l}_{self.Z2.L}_{cx}-{cy}_chi_{self.chi}_h_{self.h:.{precision}f}",
+            dtype=complex,
+        )
+        # auxiliary function to get the indices where to split
+        labels = get_labels(shapes)
+        flat_tn = np.array_split(filedata, labels)
+        flat_tn.pop(-1)
+        # reshape the flat tensors and initializing the sites
+        self.sites = [site.reshape(shapes[i]) for i, site in enumerate(flat_tn)]
+
+        return self
+
+
+    def save_sites_old(self, path, precision=2):
         """
         save_sites
 
@@ -2240,7 +2708,7 @@ class MPS:
             tensor,
         )
 
-    def load_sites(self, path, precision=2):
+    def load_sites_old(self, path, precision=2):
         """
         load_sites
 
@@ -2253,11 +2721,12 @@ class MPS:
         """
         # loading of the shapes
         shapes = np.loadtxt(
-            f"{path}/results/tensors/shapes_sites_L_{self.L}_chi_{self.chi}_h_{self.h:.{precision}f}"
+            f"{path}/results/tensors/shapes_sites_{self.model}_L_{self.L}_chi_{self.chi}_h_{self.h:.{precision}f}"
         ).astype(int)
         # loading of the flat tensors
         filedata = np.loadtxt(
-            f"{path}/results/tensors/tensor_sites_L_{self.L}_chi_{self.chi}_h_{self.h:.{precision}f}"
+            f"{path}/results/tensors/tensor_sites_{self.model}_L_{self.L}_chi_{self.chi}_h_{self.h:.{precision}f}",
+            dtype=complex,
         )
         # auxiliary function to get the indices where to split
         labels = get_labels(shapes)
@@ -2267,8 +2736,6 @@ class MPS:
         self.sites = [site.reshape(shapes[i]) for i, site in enumerate(flat_tn)]
 
         return self
-
-
 # if __name__ == "__main__":
 #     L = 15
 #     model = "Ising"
