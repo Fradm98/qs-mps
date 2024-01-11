@@ -150,9 +150,10 @@ class MPO_ladder:
                     n = n
                 else:
                     alpha = 0
+                    
 
             c_n_j = (1 + self.charges[n, col]) ** (alpha) * np.prod(
-                self.charges[:n, col]
+                self.charges[n:, col]
             )
         else:
             if n == 1:
@@ -177,16 +178,13 @@ class MPO_ladder:
 
     def charge_coeff_v(self, mpo_site, l):
         """
-        charge_coeff_v_edge
+        charge_coeff_v
 
         This function gives the charge coefficients of the vertical edges of
         the fields in the direct lattice of a Z2 theory.
 
         """
-        if l == self.l-1:
-            coeff = 1
-        else:
-            coeff = np.prod([self.charges[:, col] for col in range(mpo_site + 1)])
+        coeff = np.prod([self.charges[:, col] for col in range(mpo_site + 1)])
         return coeff
     
     def mpo_Z2_ladder_generalized(self):
