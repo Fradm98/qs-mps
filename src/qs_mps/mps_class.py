@@ -1077,7 +1077,7 @@ class MPS:
                 self.w = self.Z2.mpo.copy()
                 E_v.append(self.mpo_first_moment().real)
             E[(l+1)*2, 1::2] = E_v
-         # horizontal
+        # horizontal
         for l in range(self.Z2.l):
             E_h = []
             for mpo_site in range(self.Z2.L-2):

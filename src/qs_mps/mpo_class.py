@@ -184,7 +184,10 @@ class MPO_ladder:
         the fields in the direct lattice of a Z2 theory.
 
         """
-        coeff = np.prod([self.charges[:, col] for col in range(mpo_site + 1)])
+        if l == 0:
+            coeff = np.prod([self.charges[:, col] for col in range(mpo_site + 1)])
+        elif l == (self.l-1):
+            coeff = 1
         return coeff
     
     def mpo_Z2_ladder_generalized(self):
