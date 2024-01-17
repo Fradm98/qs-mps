@@ -4,6 +4,7 @@ from qs_mps.lattice import Lattice
 import numpy as np
 from scipy.sparse import identity, csc_array, linalg
 from ncon import ncon
+import time
 
 class H_Z2_gauss:
     def __init__(
@@ -110,15 +111,13 @@ class H_Z2_gauss:
                 k = (2 ** len(self.latt.plaquettes()))
             elif spectrum == "gs":
                 k = 1
-            e, v = linalg.eigsh(H, k=k, which="SA", v0=v0) # 2 ** len(self.latt.plaquettes())
+            e, v = linalg.eigsh(H, k=k, which="SA", v0=v0)
         else:
-            e, v = np.linalg.eigh(H.toarray())
+            H = H.toarray()
+            e, v = np.linalg.eigh(H)
         if save:
-            print(self.sector)
-            if cx == None:
-                np.save(path+f"/results/eigenvectors/ground_state_direct_lattice_{self.l-1}x{self.L-1}_{self.sector}_U_{self.U}_h_{self.lamb:.{precision}f}.npy", v[:,0])
-            else:
-                np.save(path+f"/results/eigenvectors/ground_state_direct_lattice_{self.l-1}x{self.L-1}_{self.sector}_{cx}-{cy}_U_{self.U}_h_{self.lamb:.{precision}f}.npy", v[:,0])
+            # print(self.sector)
+            np.save(path+f"/results/eigenvectors/ground_state_direct_lattice_{self.l-1}x{self.L-1}_{self.sector}_{cx}-{cy}_U_{self.U}_h_{self.lamb:.{precision}f}.npy", v[:,0])
         return e, v
 
     # observables
@@ -152,18 +151,20 @@ class H_Z2_gauss:
         return E
 # lamb = 0
 # U = 1e+3
-# Z2_exact = H_Z2_gauss(L=4, l=2, model="Z2", lamb=lamb, U=U)
-# # Z2_exact.add_charges([0,2],[1,1])
+# Z2_exact = H_Z2_gauss(L=4, l=3, model="Z2_dual", lamb=lamb, U=U)
+# Z2_exact.add_charges([0,2],[1,1])
 # print(f"charges:\n{Z2_exact.charges}")
 # print(f"degrees of freedom:\n{Z2_exact.dof}")
 # print(f"lattice:\n{Z2_exact.latt._lattice_drawer.draw_lattice()}")
-# H, e, v = Z2_exact.diagonalize()
+# e, v = Z2_exact.diagonalize(save=False, sparse=False)
+# psi = v[:,0]
+# print(psi)
 # print(f"spectrum:\n{e}")
 # # print(f"Delta Energy gs - ex: {e[0]-e[1]}\nth: {8*lamb}")
 # # print(f"H:\n{H.toarray()}")
 # print(f"ground state:\n{v[:,0]}")
 # X = sparse_pauli_z(n=0,L=4) @ sparse_pauli_z(n=1,L=4) @ sparse_pauli_z(n=2,L=4) @ sparse_pauli_z(n=3,L=4) 
-# psi = v[:,0]
+
 # exp_val = (psi.T @ X @ psi).real
 # print(exp_val)
 

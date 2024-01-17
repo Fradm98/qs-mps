@@ -106,11 +106,14 @@ precision = get_precision(num)
 # define the sector by looking of the given charges
 if len(args.charges_x) == 0:
     sector = "vacuum_sector"
+    args.charges_x = None
+    args.charges_y = None
 else:
     for i in range(1,args.l*args.L):
         if len(args.charges_x) == i:
             sector = f"{i}_particle(s)_sector"
 
+# where to look at for the entropy
 if args.where == -1:
     args.where = args.L // 2
 elif args.where == -2:
