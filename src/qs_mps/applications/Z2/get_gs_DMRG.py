@@ -104,7 +104,8 @@ num = (args.h_f - args.h_i) / args.npoints
 precision = get_precision(num)
 
 # define the sector by looking of the given charges
-if len(args.charges_x) == 0:
+# print(f"charge x: {type(args.charges_x)}")
+if args.charges_x == []:
     sector = "vacuum_sector"
     args.charges_x = None
     args.charges_y = None

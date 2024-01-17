@@ -28,6 +28,7 @@ parser.add_argument(
     type=str,
 )
 parser.add_argument("o", help="Observable we want to compute. Available are 'wl', 'el'", type=str)
+parser.add_argument("chis", help="Simulated bond dimensions", nargs="+", type=int)
 parser.add_argument("-cx", "--charges_x", help="a list of the first index of the charges", nargs="*", type=int)
 parser.add_argument("-cy", "--charges_y", help="a list of the second index of the charges", nargs="*", type=int)
 parser.add_argument("-lx","--sites", help="Number of sites in the wilson loop", type=int)
@@ -50,6 +51,12 @@ parser.add_argument(
     help="Save the animation. By default True",
     action="store_false",
 )
+parser.add_argument(
+    "-e",
+    "--exact",
+    help="Save the animation. By default False",
+    action="store_true",
+)
 
 args = parser.parse_args()
 
@@ -64,31 +71,42 @@ precision = get_precision(num)
 # if we want to save the tensors we save them locally because they occupy a lot of memory
 if args.path == "pc":
     parent_path = "G:/My Drive/projects/1_Z2"
-    path_eigvec = "D:/code/projects/1_Z2"
+    path_state = "D:/code/projects/1_Z2"
 elif args.path == "mac":
     parent_path = "/Users/fradm98/Google Drive/My Drive/projects/1_Z2"
-    path_eigvec = "/Users/fradm98/Desktop/projects/1_Z2"
+    path_state = "/Users/fradm98/Desktop/projects/1_Z2"
 elif args.path == "marcos":
     parent_path = "/Users/fradm/Google Drive/My Drive/projects/1_Z2"
-    path_eigvec = "/Users/fradm/Desktop/projects/1_Z2"
+    path_state = "/Users/fradm/Desktop/projects/1_Z2"
 else:
     raise SyntaxError("Path not valid. Choose among 'pc', 'mac', 'marcos'")
 
 
 # define the sector by looking of the given charges
-if len(args.charges_x) == 0:
+if args.charges_x == []:
     sector = "vacuum_sector"
+    args.charges_x = None
+    args.charges_y = None
 else:
     for i in range(1,args.l*args.L):
         if len(args.charges_x) == i:
             sector = f"{i}_particle(s)_sector"
 
-if args.o == 'el':
-    path_file = f"electric_field_{args.model}_direct_lattice_{args.l-1}x{args.L-1}_{sector}_{args.charges_x}-{args.charges_y}_h_{args.h_i}-{args.h_f}_delta_{args.npoints}"
-    data = np.load(
-        f"{parent_path}/results/exact/electric_field/{path_file}.npy")
+for chi in args.chis:
+    if args.o == 'el':
+        
+        if args.exact:
+            path_file = f"electric_field_{args.model}_direct_lattice_{args.l-1}x{args.L-1}_{sector}_{args.charges_x}-{args.charges_y}_h_{args.h_i}-{args.h_f}_delta_{args.npoints}"
+            dataname = f"{parent_path}/results/exact/electric_field/{path_file}.npy"
+            savename = f"{parent_path}/figures/exact/animations/animation_{path_file}.mp4"
+        else:
+            path_file = f"electric_field_{args.model}_direct_lattice_{args.l}x{args.L-1}_{sector}_{args.charges_x}-{args.charges_y}_h_{args.h_i}-{args.h_f}_delta_{args.npoints}_chi_{chi}"
+            dataname = f"{parent_path}/results/electric_field/{path_file}.npy"
+            savename = f"{parent_path}/figures/animations/animation_{path_file}.mp4"
+        
+        data = np.load(dataname)
 
 
-movie = anim(frames=args.npoints, interval=200, data=data, params=interval, show=args.show, charges_x=args.charges_x, charges_y=args.charges_y, precision=precision)
-if args.save:
-    movie.save(f"{parent_path}/figures/animations/animation_{path_file}.mp4")
+    movie = anim(frames=args.npoints, interval=200, data=data, params=interval, show=args.show, charges_x=args.charges_x, charges_y=args.charges_y, precision=precision)
+    if args.save:
+        movie.save(savename)
