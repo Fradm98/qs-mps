@@ -405,30 +405,38 @@ class MPO_ladder:
         self.mpo = w_tot
         return self
 
-    def order_param_Z2_dual(self):
+    def thooft(self, site: list, l: list, direction: str):
         """
-        mpo_skeleton
+        thooft
 
-        This function initializes the mpo tensor or shape (2+l,2+l,2**l,2**l)
-        with O matrices. We add as well the identities in the first and last
-        element of the mpo tensor.
+        This function finds the 't Hooft string for the Z2 dual lattice.
+        It gives us vertical and horizontal strings from a specific dual lattice
+        site and going, conventionally, up and left, respectively (to vertical and horizontal).
+        
+        site: list - the first element is the mps site of the interested dual lattice site
+        l: list - the first element is the ladder of the interested dual lattice site
+        direction: str - indicates in the direction of the string. We use the convention:
+                hor -> from left to 'site' at a specific 'l'
+                ver -> from up to 'l' at a specific 'site'
 
         """
-        I = identity(2**self.l, dtype=complex)
-        O = csc_array((2**self.l, 2**self.l), dtype=complex)
-        skeleton = np.array([[O.toarray() for i in range(2)] for j in range(2)])
-        skeleton[0, 0] = I.toarray()
-        skeleton[-1, -1] = I.toarray()
-        self.mpo = skeleton
-
+        self.mpo_skeleton()
+        site = site[0]
+        l = l[0]
         mpo_tot = []
-        for _ in range(self.L - 1):
-            for i in range(self.l):
-                self.mpo[0, -1] += sparse_pauli_z(n=i, L=self.l).toarray()
+        if direction == "vertical":
+            coeff = self.charge_coeff_v(mpo_site=site, l=0)
+        if direction == "horizontal":
+            coeff = self.charge_coeff_v_edge(mpo_site=site, l=l)
+            for mpo_site in range(site):
+                coeff = coeff * self.charge_coeff_interaction(n=l+1, mpo_site=mpo_site)
 
+        for mpo_site in range(self.L-1):
+            if mpo_site == site:
+                self.mpo[0,-1] = coeff * sparse_pauli_z(n=l, L=self.l).toarray()
             mpo_tot.append(self.mpo)
-            self.mpo = skeleton
-
+            self.mpo_skeleton()
+                    
         self.mpo = mpo_tot
         return self
 
@@ -485,7 +493,7 @@ class MPO_ladder:
         This function creates a string of certain paulis in a given direction 
         of the lattice.
 
-        string: list - list of the sites on the dual lattice
+        string: list - list of the sites on the dual lattice. Starts from 1
         direction: str - direction of the string on the sites of the dual lattice
         pauli_type: str - type of pauli matrix we want to use. Available are: "X", "Y", "Z"
         
@@ -582,7 +590,3 @@ class MPO_ladder:
 
         self.mpo = mpo_tot
         return self
-
-# H = MPO_ladder(L=3, l=2, model="Z2_dual", lamb=0)
-# H.wilson_Z2_dual(mpo_sites=[1],ls=[1])
-# print(e)

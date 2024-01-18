@@ -22,14 +22,15 @@ parser.add_argument(
     help="Path to the drive depending on the device used. Available are 'pc', 'mac', 'marcos'",
     type=str,
 )
-parser.add_argument("o", help="Observable we want to compute. Available are 'wl', 'el'", type=str)
+parser.add_argument("o", help="Observable we want to compute. Available are 'wl', 'el', 'thooft'", type=str)
 parser.add_argument("chis", help="Simulated bond dimensions", nargs="+", type=int)
 parser.add_argument("-cx", "--charges_x", help="a list of the first index of the charges", nargs="*", type=int)
 parser.add_argument("-cy", "--charges_y", help="a list of the second index of the charges", nargs="*", type=int)
 parser.add_argument("-s", "--sites", help="Number of sites in the wilson loop", nargs="*", type=int)
 parser.add_argument("-r", "--ladders", help="Number of ladders in the wilson loop", nargs="*", type=int)
-
-
+parser.add_argument(
+    "-d", "--direction", help="Direction of the string", default="hor", type=str
+)
 parser.add_argument(
     "-m", "--model", help="Model to simulate", default="Z2_dual", type=str
 )
@@ -59,11 +60,17 @@ else:
 num = (args.h_f - args.h_i) / args.npoints
 precision = get_precision(num)
 
-
+# for the wilson loop
 if args.sites == 1:
     sites = 0
 if args.ladders == 1:
     ladders = 1
+
+# define the direction
+if args.direction == "ver":
+    direction = "vertical"
+elif args.direction == "hor":
+    direction = "horizontal"    
 
 # define the sector by looking of the given charges
 if len(args.charges_x) == 0:
@@ -82,14 +89,19 @@ for chi in args.chis:
     W = []
     E = []
     E_sum = []
+    S = []
     for h in interval:
         lattice_mps = MPS(L=args.L, d=d, model=args.model, chi=chi, h=h)
         lattice_mps.L = lattice_mps.L - 1
 
         lattice_mps.load_sites(path=path_tensor, precision=precision, cx=args.charges_x, cy=args.charges_y)
+        if sector != "vacuum_sector":
+            lattice_mps.Z2.add_charges(args.charges_x, args.charges_y)
+        
         if args.o == "wl":
+            print(f"wilson loop for h:{h:.{precision}f}")
             lattice_mps.Z2.wilson_Z2_dual(mpo_sites=[sites], ls=[ladders]) #list(range(s))
-            lattice_mps.w = lattice_mps.Z2.mpo
+            lattice_mps.w = lattice_mps.Z2.mpo.copy()
             W.append(lattice_mps.mpo_first_moment().real)
 
         if args.o == "el":
@@ -98,6 +110,12 @@ for chi in args.chis:
             E_h[:] = np.nan
             E_h = lattice_mps.electric_field_Z2(E_h)
             E.append(E_h)
+        
+        if args.o == "thooft":
+            print(f"'t Hooft string for h:{h:.{precision}f}")
+            lattice_mps.Z2.thooft(site=args.sites, l=args.ladders, direction=direction)
+            lattice_mps.w = lattice_mps.Z2.mpo.copy()
+            S.append(lattice_mps.mpo_first_moment().real)
 
             # if sector != "vacuum_sector":
             #     if args.charges_x[0] == args.charges_x[1]:
@@ -108,14 +126,20 @@ for chi in args.chis:
             #         sum_el = sum(E_h[args.charges_y[0]*2,args.charges_x[0]*2+1, args.charges_x[1]*2])
             #     E_sum.append(sum_el)
 
-    np.savetxt(
-                f"{parent_path}/results/wilson_loops/wilson_loop_{args.model}_direct_lattice_{args.l}x{args.L-1}_h_{args.h_i}-{args.h_f}_delta_{args.npoints}_chi_{chi}",
-                W,
-            )
+    if args.o == "wl":
+        np.savetxt(
+                    f"{parent_path}/results/wilson_loops/wilson_loop_{args.model}_direct_lattice_{args.l}x{args.L-1}_h_{args.h_i}-{args.h_f}_delta_{args.npoints}_chi_{chi}",
+                    W,
+                )
     if args.o == "el":
         np.save(
                     f"{parent_path}/results/electric_field/electric_field_{args.model}_direct_lattice_{args.l}x{args.L-1}_{sector}_{args.charges_x}-{args.charges_y}_h_{args.h_i}-{args.h_f}_delta_{args.npoints}_chi_{chi}.npy",
                     E,
+                )
+    if args.o == "hooft":
+        np.save(
+                    f"{parent_path}/results/thooft/thooft_string_{args.sites[0]}-{args.ladders[0]}_{direction}_{args.model}_direct_lattice_{args.l}x{args.L-1}_{sector}_{args.charges_x}-{args.charges_y}_h_{args.h_i}-{args.h_f}_delta_{args.npoints}_chi_{chi}.npy",
+                    S,
                 )
         # if sector != "vacuum_sector":
         #     np.save(

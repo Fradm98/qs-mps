@@ -25,18 +25,23 @@ parser.add_argument(
     "h_f", help="Final value of h (external transverse field)", type=float
 )
 parser.add_argument(
-    "what",
-    help="Results we want to plot. Available are: 'energy', 'entropy', 'wilson_loop', 'energy_tr', 'entropy_tot'",
+    "loc",
+    help="From which computer you want to access the drive. Useful for the path spec. Available are: 'pc', 'mac', 'marcos'",
     type=str,
 )
 parser.add_argument(
-    "loc",
-    help="From which computer you want to access the drive. Useful for the path spec. Available are: 'pc', 'mac', 'marcos'",
+    "what",
+    help="Results we want to plot. Available are: 'energy', 'entropy', 'wilson_loop', 'thooft', 'energy_tr', 'entropy_tot'",
     type=str,
 )
 parser.add_argument("chis", help="Simulated bond dimensions", nargs="+", type=int)
 parser.add_argument("-cx", "--charges_x", help="a list of the first index of the charges", nargs="*", type=int)
 parser.add_argument("-cy", "--charges_y", help="a list of the second index of the charges", nargs="*", type=int)
+parser.add_argument("-s","--sites", help="Indices of sites in the wilson loop. Start from 0, left", nargs="*", type=int)
+parser.add_argument("-r","--ladders", help="Indices of ladders in the wilson loop. Start from 1, above", nargs="*", type=int)
+parser.add_argument(
+    "-dir", "--direction", help="Direction of the string", default="hor", type=str
+)
 parser.add_argument(
     "-m", "--model", help="Model to simulate", default="Z2_dual", type=str
 )
@@ -44,7 +49,7 @@ parser.add_argument(
     "-t", "--time", help="Final time of the evolution", default=10, type=float
 )
 parser.add_argument(
-    "-s",
+    "-v",
     "--save",
     help="Save plot, by default True",
     action="store_false",
@@ -117,15 +122,33 @@ elif args.where == -2:
     args.bond = False
     args.where = "all"
 
+# define interval and precision
 interval = np.linspace(args.h_i, args.h_f, args.npoints).tolist()
 num = (args.h_f - args.h_i) / args.npoints
 precision = get_precision(num)
+
+# define the direction
+if args.direction == "ver":
+    direction = "vertical"
+elif args.direction == "hor":
+    direction = "horizontal"  
+
+# define the sector by looking of the given charges
+if len(args.charges_x) == 0:
+    sector = "vacuum_sector"
+    args.charges_x = None
+    args.charges_y = None
+else:
+    for i in range(1,args.l*args.L):
+        if len(args.charges_x) == i:
+            sector = f"{i}_particle(s)_sector"
 
 
 plot_val = [
     "energy",
     "entropy",
     "wilson_loop",
+    "thooft"
 ]
 plot_cmap = ["energy_tr", "entropy_tot"]
 
@@ -137,6 +160,7 @@ elif args.loc == "marcos":
     path_computer = "/Users/fradm/Google Drive/My Drive/projects/1_Z2/"
 else:
     raise SyntaxError("insert a valid location: 'pc', 'mac', 'marcos'")
+
 
 if args.what == "energy":
     title = f"Energy: lattice = ${args.l}$x${args.L-1}$ ; vacuum sector"
@@ -150,7 +174,7 @@ if args.what == "energy":
 
 elif args.what == "entropy":
     title = (
-        f" ${args.where}-th$ Bond Entanglement Entropy: lattice = ${args.l}$x${args.L-1}$ ; vacuum sector"
+        f" ${args.where}-th$ Bond Entanglement Entropy: lattice = ${args.l}$x${args.L-1}$ ; {sector}"
         # + f" $h \in ({args.h_i},{args.h_f})$"
     )
     fname_what = f"{args.where}_bond_entropy"
@@ -161,13 +185,22 @@ elif args.what == "entropy":
     ylabel = "entanglement von neumann entropy $(S_{\chi})$"
 
 elif args.what == "wilson_loop":
-    title = f"Wilson Loop: lattice = ${args.l}$x${args.L-1}$ ; vacuum sector"
+    title = f"Wilson Loop: lattice = ${args.l}$x${args.L-1}$"
     fname_what = "wilson_loop"
     fname_ex_what = "wilson_loop"
     path = path_computer + f"results/wilson_loops"
     path_ex = path_computer + f"results/exact/wilson_loops"
     path_save = path_computer + f"figures/wilson_loops/"
     ylabel = "$\\langle W\\rangle$"
+
+elif args.what == "thooft":
+    title = f"'t Hooft {direction} string: lattice = ${args.l}$x${args.L-1}$ ;" + " $\mu^z$ for " + f"L={args.sites[0]}, l={args.ladders[0]}" + " dual"
+    fname_what = f"thooft_string_{args.sites[0]}-{args.ladders[0]}_{direction}"
+    fname_ex_what = f"thooft_string_{args.sites[0]}-{args.ladders[0]}_{direction}"
+    path = path_computer + f"results/thooft"
+    path_ex = path_computer + f"results/exact/thooft"
+    path_save = path_computer + f"figures/thooft/"
+    ylabel = "$\\langle \sigma^x \sigma^x \\rangle$"
 
 elif args.what == "entropy_tot":
     title = (
@@ -233,14 +266,6 @@ else:
     raise SyntaxError(
         "insert a valid result to plot: 'energy', 'entropy', 'wilson_loop', 'energy_tr', 'entropy_tot', 'e_string'"
     )
-
-# define the sector by looking of the given charges
-if len(args.charges_x) == 0:
-    sector = "vacuum_sector"
-else:
-    for i in range(1,args.l*args.L):
-        if len(args.charges_x) == i:
-            sector = f"{i}_particle(s)_sector"
 
 if args.what in plot_val:
     fname = f"{fname_what}_{args.model}_direct_lattice_{args.l}x{args.L-1}_{sector}_{args.charges_x}-{args.charges_y}_h_{args.h_i}-{args.h_f}_delta_{args.npoints}"

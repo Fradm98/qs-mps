@@ -149,6 +149,47 @@ class H_Z2_gauss:
         E[::2,1::2] = self.h_electric_field(psi)
         E[1::2,::2] = self.v_electric_field(psi)
         return E
+
+    def v_thooft_idx(self, plaq_tot_spl: np.ndarray, mpo_site: int, l: int):
+        plaqs = [pl for pl in plaq_tot_spl[mpo_site]].copy()
+        plaqs.reverse()
+        pauli = []
+        for i in range(self.l-(l+1)):
+            pauli = pauli + [plaqs[i][0]]
+
+        return pauli
+    
+    def h_thooft_idx(self, plaq_tot_spl: np.ndarray, mpo_site: int, l: int):
+        plaqs = np.swapaxes(plaq_tot_spl, axis1=0, axis2=1)
+        plaqs = [pl for pl in plaqs].copy()
+        plaqs.reverse()
+        plaqs_h = plaqs[l].copy()
+        pauli = []
+        for i in range(mpo_site+1):
+            pauli = pauli + [plaqs_h[i][3]]
+        
+        return pauli
+
+    def thooft(self, psi: np.ndarray, mpo_site: int, l: int, direction: str):
+        plaq_tot = self.latt.plaquettes(from_zero=True)
+        plaq_tot_spl = np.array_split(plaq_tot, self.L-1)
+        if direction == "vertical":
+            pauli = self.v_thooft_idx(plaq_tot_spl=plaq_tot_spl, 
+                                      mpo_site=mpo_site, 
+                                      l=l)
+        if direction == "horizontal":
+            pauli = self.h_thooft_idx(plaq_tot_spl=plaq_tot_spl, 
+                                      mpo_site=mpo_site, 
+                                      l=l)
+            
+        op = identity(n=2**self.latt.nlinks)
+        for idx in pauli:
+            op = op @ sparse_pauli_x(n=idx, L=self.latt.nlinks)
+        
+        thooft_string = (psi.T @ op @ psi).real
+        return thooft_string
+
+
 # lamb = 0
 # U = 1e+3
 # Z2_exact = H_Z2_gauss(L=4, l=3, model="Z2_dual", lamb=lamb, U=U)

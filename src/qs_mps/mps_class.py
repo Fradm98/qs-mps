@@ -1037,7 +1037,7 @@ class MPS:
             chain.append(self.braket(site=i))
         self.clear_envs()
         return chain 
-         
+
     def electric_field_Z2(self, E):
         """
         electric_field_Z2
@@ -1058,6 +1058,7 @@ class MPS:
                     coeff = self.Z2.charge_coeff_v_edge(mpo_site=mpo_site+i, l=l)
                     self.w = self.Z2.mpo.copy()
                     E_v.append(coeff * self.mpo_first_moment().real)
+                    # E_v.append(self.mpo_first_moment().real)
                 E[1::2, (mpo_site+i)*2] = E_v
                 i = 1
             
@@ -1066,6 +1067,7 @@ class MPS:
                 coeff = self.Z2.charge_coeff_v(mpo_site=mpo_site, l=l)
                 self.w = self.Z2.mpo.copy()
                 E[(l+j)*2,mpo_site*2+1] = coeff * self.mpo_first_moment().real
+                # E[(l+j)*2,mpo_site*2+1] = self.mpo_first_moment().real
                 j = 1
             
         # now we can obtain the bulk values given by the zz interactions
@@ -2776,24 +2778,3 @@ class MPS:
 #         flip=flip,
 #         where=7
 #     )
-    
-L = 4
-l = 3
-d = int(2**(l))
-chi = 16
-h = 0
-lattice = MPS(L=L, d=d, model="Z2_dual", chi=chi, h=h)
-cx = [0,3]
-cy = [1,1]
-lattice.L = lattice.L - 1
-lattice.Z2.add_charges(cx,cy)
-lattice.load_sites(path="/Users/fradm98/Desktop/projects/1_Z2", cx=cx, cy=cy, precision=1)
-lattice.check_canonical(site=0)
-psi = mps_to_vector(lattice.sites)
-print([psi.T.conjugate() @ sparse_pauli_z(n=n, L=9) @ psi for n in range(9)])
-# E_h = np.zeros((2*l+1,2*L-1))
-# E_h[:] = np.nan
-# E = lattice.electric_field_Z2(E_h)
-# plt.imshow(E)
-# plt.show()
-# print(E)
