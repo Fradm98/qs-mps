@@ -44,7 +44,7 @@ class H_Z2_gauss:
             ), "Do not choose the last charge! We use it for Gauss Law constraint"
             self.charges[j, i] = -1
 
-        self.charges = np.flip(self.charges, axis=1)
+        self.charges = np.flip(self.charges, axis=0)
         return self
 
     def _define_sector(self):
@@ -152,7 +152,7 @@ class H_Z2_gauss:
 
     def v_thooft_idx(self, plaq_tot_spl: np.ndarray, mpo_site: int, l: int):
         plaqs = [pl for pl in plaq_tot_spl[mpo_site]].copy()
-        plaqs.reverse()
+        # plaqs.reverse()
         pauli = []
         for i in range(self.l-(l+1)):
             pauli = pauli + [plaqs[i][0]]
