@@ -901,7 +901,7 @@ def plot_results_DMRG(
     x = interval[::step]
 
     for i, elem in enumerate(for_array):
-        res_mps = np.loadtxt(f"{path}/{fname}_chi_{elem}")
+        res_mps = np.load(f"{path}/{fname}_chi_{elem}.npy")
         # res_mps = access_txt(
         #     f"{path}/all_bond_entropy_Ising_L_51_flip_True_delta_0.01_chi_{elem}_h_ev_1.75", 25
         # )
@@ -920,7 +920,7 @@ def plot_results_DMRG(
         )
 
         if exact:
-            res_exact = np.loadtxt(f"{path_ex}/{fname_ex}")
+            res_exact = np.load(f"{path_ex}/{fname_ex}.npy")
             res_exact = res_exact[::step]
             plt.plot(
                 x,

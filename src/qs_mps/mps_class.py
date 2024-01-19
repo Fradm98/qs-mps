@@ -1037,7 +1037,7 @@ class MPS:
             chain.append(self.braket(site=i))
         self.clear_envs()
         return chain 
-         
+
     def electric_field_Z2(self, E):
         """
         electric_field_Z2
@@ -1058,6 +1058,7 @@ class MPS:
                     coeff = self.Z2.charge_coeff_v_edge(mpo_site=mpo_site+i, l=l)
                     self.w = self.Z2.mpo.copy()
                     E_v.append(coeff * self.mpo_first_moment().real)
+                    # E_v.append(self.mpo_first_moment().real)
                 E[1::2, (mpo_site+i)*2] = E_v
                 i = 1
             
@@ -1066,6 +1067,7 @@ class MPS:
                 coeff = self.Z2.charge_coeff_v(mpo_site=mpo_site, l=l)
                 self.w = self.Z2.mpo.copy()
                 E[(l+j)*2,mpo_site*2+1] = coeff * self.mpo_first_moment().real
+                # E[(l+j)*2,mpo_site*2+1] = self.mpo_first_moment().real
                 j = 1
             
         # now we can obtain the bulk values given by the zz interactions
@@ -2743,57 +2745,3 @@ class MPS:
         self.sites = [site.reshape(shapes[i]) for i, site in enumerate(flat_tn)]
 
         return self
-# if __name__ == "__main__":
-#     L = 15
-#     model = "Ising"
-#     chi = 16
-#     h_transverse_init = 0
-#     trotter_steps = 2
-#     delta = 0.02
-#     h_ev = 0.3
-#     flip = True
-#     chain = MPS(
-#         L=L, d=2, model=model, chi=chi, h=h_transverse_init, eps=0, J=1
-#     )
-#     chain._random_state(seed=3, chi=chi)
-#     chain.canonical_form(trunc_chi=False, trunc_tol=True)
-#     # chain.sweeping(trunc_chi=False, trunc_tol=True, n_sweeps=2)
-#     init_state = np.zeros((1, 2, 1))
-#     init_state[0, 0, 0] = 1
-#     for i in range(chain.L):
-#         chain.sites[i] = init_state
-#     (
-#         mag_mps_tot,
-#         mag_mps_loc_X,
-#         mag_mps_loc,
-#         overlap,
-#         errors,
-#         schmidt_values,
-#     ) = chain.TEBD_variational(
-#         trotter_steps=trotter_steps,
-#         delta=delta,
-#         h_ev=h_ev,
-#         flip=flip,
-#         where=7
-#     )
-    
-# L = 4
-# l = 3
-# d = int(2**(l))
-# chi = 16
-# h = 0
-# lattice = MPS(L=L, d=d, model="Z2_dual", chi=chi, h=h)
-# cx = [0,3]
-# cy = [1,1]
-# lattice.L = lattice.L - 1
-# lattice.Z2.add_charges(cx,cy)
-# lattice.load_sites(path="/Users/fradm98/Desktop/projects/1_Z2", cx=cx, cy=cy, precision=1)
-# lattice.check_canonical(site=0)
-# psi = mps_to_vector(lattice.sites)
-# print([psi.T.conjugate() @ sparse_pauli_z(n=n, L=9) @ psi for n in range(9)])
-# E_h = np.zeros((2*l+1,2*L-1))
-# E_h[:] = np.nan
-# E = lattice.electric_field_Z2(E_h)
-# plt.imshow(E)
-# plt.show()
-# print(E)

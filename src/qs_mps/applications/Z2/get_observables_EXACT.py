@@ -24,11 +24,14 @@ parser.add_argument(
     help="Path to the drive depending on the device used. Available are 'pc', 'mac', 'marcos'",
     type=str,
 )
-parser.add_argument("o", help="Observable we want to compute. Available are 'wl', 'el'", type=str)
+parser.add_argument("o", help="Observable we want to compute. Available are 'wl', 'el', 'thooft'", type=str)
 parser.add_argument("-cx", "--charges_x", help="a list of the first index of the charges", nargs="*", type=int)
 parser.add_argument("-cy", "--charges_y", help="a list of the second index of the charges", nargs="*", type=int)
 parser.add_argument("-s","--sites", help="Indices of sites in the wilson loop. Start from 0, left", nargs="*", type=int)
-parser.add_argument("-v","--ladders", help="Indices of ladders in the wilson loop. Start from 1, above", nargs="*", type=int)
+parser.add_argument("-r","--ladders", help="Indices of ladders in the wilson loop. Start from 1, above", nargs="*", type=int)
+parser.add_argument(
+    "-d", "--direction", help="Direction of the string", default="hor", type=str
+)
 parser.add_argument(
     "-m", "--model", help="Model to simulate. By default Z2_dual", default="Z2_dual", type=str
 )
@@ -58,6 +61,11 @@ else:
 num = (args.h_f - args.h_i) / args.npoints
 precision = get_precision(num)
 
+# define the direction
+if args.direction == "ver":
+    direction = "vertical"
+elif args.direction == "hor":
+    direction = "horizontal"   
 
 # define the sector by looking of the given charges
 if len(args.charges_x) == 0:
@@ -74,7 +82,7 @@ else:
 # ---------------------------------------------------------
 W = []
 E = []
-E_sum = []
+S = []
 
 for h in interval:
 
@@ -94,14 +102,10 @@ for h in interval:
         # print(E_h)
         E.append(E_h)
 
-        if sector != "vacuum_sector":
-            if args.charges_x[0] == args.charges_x[1]:
-                # vertical charges
-                sum_el = sum(E_h[(args.charges_y[0]*2+1):args.charges_y[1]*2, args.charges_x[0]*2])
-            elif args.charges_y[0] == args.charges_y[1]:
-                # horizontal charges
-                sum_el = sum(E_h[args.charges_y[0]*2,(args.charges_x[0]*2+1):args.charges_x[1]*2])
-            E_sum.append(sum_el)
+    if args.o == "thooft":
+        print(f"'t Hooft string for h:{h:.{precision}f}")
+        s_h = Z2_exact.thooft(psi=psi, mpo_site=args.sites[0], l=args.ladders[0], direction=direction)
+        S.append(s_h)
 
 if args.o == "wl":
     np.savetxt(
@@ -113,10 +117,10 @@ if args.o == "el":
                 f"{parent_path}/results/exact/electric_field/electric_field_{args.model}_direct_lattice_{args.l-1}x{args.L-1}_{sector}_{args.charges_x}-{args.charges_y}_h_{args.h_i}-{args.h_f}_delta_{args.npoints}.npy",
                 E,
             )
-    if sector != "vacuum_sector":
-        np.save(
-                f"{parent_path}/results/exact/electric_field/sum_of_electric_field_{args.model}_direct_lattice_{args.l-1}x{args.L-1}_{sector}_{args.charges_x}-{args.charges_y}_h_{args.h_i}-{args.h_f}_delta_{args.npoints}.npy",
-                E_sum,
+if args.o == "thooft":
+    np.save(
+                f"{parent_path}/results/exact/thooft/thooft_string_{args.sites[0]}-{args.ladders[0]}_{direction}_{args.model}_direct_lattice_{args.l-1}x{args.L-1}_{sector}_{args.charges_x}-{args.charges_y}_h_{args.h_i}-{args.h_f}_delta_{args.npoints}.npy",
+                S,
             )
     
     
