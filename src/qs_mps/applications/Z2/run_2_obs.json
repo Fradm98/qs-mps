@@ -1,0 +1,25 @@
+{
+  "run": 2,
+  "arguments": {
+    "l": 3,
+    "L": 4,
+    "npoints": 50,
+    "h_i": 0.0,
+    "h_f": 10.0,
+    "path": "pc",
+    "o": "thooft",
+    "chis": [
+      8
+    ],
+    "charges_x": [],
+    "charges_y": [],
+    "sites": [
+      1
+    ],
+    "ladders": [
+      1
+    ],
+    "direction": "hor",
+    "model": "Z2_dual"
+  }
+}

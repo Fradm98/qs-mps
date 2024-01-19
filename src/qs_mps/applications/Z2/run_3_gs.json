@@ -1,0 +1,25 @@
+{
+  "run": 3,
+  "arguments": {
+    "l": 4,
+    "L": 5,
+    "npoints": 50,
+    "h_i": 0.0,
+    "h_f": 10.0,
+    "path": "pc",
+    "chis": [
+      32
+    ],
+    "charges_x": [],
+    "charges_y": [],
+    "type_shape": "trapezoidal",
+    "model": "Z2_dual",
+    "multpr": true,
+    "number_sweeps": 8,
+    "conv_tol": 1e-10,
+    "bond": true,
+    "where": -1,
+    "save": true,
+    "training": true
+  }
+}
