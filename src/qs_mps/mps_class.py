@@ -2777,20 +2777,20 @@ class MPS:
 #         where=7
 #     )
     
-L = 4
-l = 3
-d = int(2**(l))
-chi = 16
-h = 0
-lattice = MPS(L=L, d=d, model="Z2_dual", chi=chi, h=h)
-cx = [0,3]
-cy = [1,1]
-lattice.L = lattice.L - 1
-lattice.Z2.add_charges(cx,cy)
-lattice.load_sites(path="/Users/fradm98/Desktop/projects/1_Z2", cx=cx, cy=cy, precision=1)
-lattice.check_canonical(site=0)
-psi = mps_to_vector(lattice.sites)
-print([psi.T.conjugate() @ sparse_pauli_z(n=n, L=9) @ psi for n in range(9)])
+# L = 4
+# l = 3
+# d = int(2**(l))
+# chi = 16
+# h = 0
+# lattice = MPS(L=L, d=d, model="Z2_dual", chi=chi, h=h)
+# cx = [0,3]
+# cy = [1,1]
+# lattice.L = lattice.L - 1
+# lattice.Z2.add_charges(cx,cy)
+# lattice.load_sites(path="/Users/fradm98/Desktop/projects/1_Z2", cx=cx, cy=cy, precision=1)
+# lattice.check_canonical(site=0)
+# psi = mps_to_vector(lattice.sites)
+# print([psi.T.conjugate() @ sparse_pauli_z(n=n, L=9) @ psi for n in range(9)])
 # E_h = np.zeros((2*l+1,2*L-1))
 # E_h[:] = np.nan
 # E = lattice.electric_field_Z2(E_h)
