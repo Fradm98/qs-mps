@@ -2745,36 +2745,3 @@ class MPS:
         self.sites = [site.reshape(shapes[i]) for i, site in enumerate(flat_tn)]
 
         return self
-# if __name__ == "__main__":
-#     L = 15
-#     model = "Ising"
-#     chi = 16
-#     h_transverse_init = 0
-#     trotter_steps = 2
-#     delta = 0.02
-#     h_ev = 0.3
-#     flip = True
-#     chain = MPS(
-#         L=L, d=2, model=model, chi=chi, h=h_transverse_init, eps=0, J=1
-#     )
-#     chain._random_state(seed=3, chi=chi)
-#     chain.canonical_form(trunc_chi=False, trunc_tol=True)
-#     # chain.sweeping(trunc_chi=False, trunc_tol=True, n_sweeps=2)
-#     init_state = np.zeros((1, 2, 1))
-#     init_state[0, 0, 0] = 1
-#     for i in range(chain.L):
-#         chain.sites[i] = init_state
-#     (
-#         mag_mps_tot,
-#         mag_mps_loc_X,
-#         mag_mps_loc,
-#         overlap,
-#         errors,
-#         schmidt_values,
-#     ) = chain.TEBD_variational(
-#         trotter_steps=trotter_steps,
-#         delta=delta,
-#         h_ev=h_ev,
-#         flip=flip,
-#         where=7
-#     )

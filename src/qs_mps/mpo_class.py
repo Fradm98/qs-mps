@@ -94,7 +94,7 @@ class MPO_ladder:
 
         The coefficient
 
-                c_n(j,j+1) = \prod_{k=(n+1)}^{l+1} q_{k,(n+1)}
+                c_n(j,j+1) = \\prod_{k=(n+1)}^{l+1} q_{k,(n+1)}
 
         is the product of the charges in the direct lattice "below"
         the interacting sites of the dual lattice.

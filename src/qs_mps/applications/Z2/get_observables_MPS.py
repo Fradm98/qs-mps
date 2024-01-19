@@ -88,7 +88,6 @@ else:
 for chi in args.chis:
     W = []
     E = []
-    E_sum = []
     S = []
     for h in interval:
         lattice_mps = MPS(L=args.L, d=d, model=args.model, chi=chi, h=h)
@@ -117,14 +116,6 @@ for chi in args.chis:
             lattice_mps.w = lattice_mps.Z2.mpo.copy()
             S.append(lattice_mps.mpo_first_moment().real)
 
-            # if sector != "vacuum_sector":
-            #     if args.charges_x[0] == args.charges_x[1]:
-            #         # vertical charges
-            #         sum_el = sum(E_h[args.charges_y[0]*2+1:args.charges_y[1]*2, args.charges_x[0]*2])
-            #     elif args.charges_y[0] == args.charges_y[1]:
-            #         # horizontal charges
-            #         sum_el = sum(E_h[args.charges_y[0]*2,args.charges_x[0]*2+1, args.charges_x[1]*2])
-            #     E_sum.append(sum_el)
 
     if args.o == "wl":
         np.savetxt(
@@ -141,8 +132,3 @@ for chi in args.chis:
                     f"{parent_path}/results/thooft/thooft_string_{args.sites[0]}-{args.ladders[0]}_{direction}_{args.model}_direct_lattice_{args.l}x{args.L-1}_{sector}_{args.charges_x}-{args.charges_y}_h_{args.h_i}-{args.h_f}_delta_{args.npoints}_chi_{chi}.npy",
                     S,
                 )
-        # if sector != "vacuum_sector":
-        #     np.save(
-        #             f"{parent_path}/results/electric_field/sum_of_electric_field_{args.model}_direct_lattice_{args.l}x{args.L-1}_{sector}_{args.charges_x}-{args.charges_y}_h_{args.h_i}-{args.h_f}_delta_{args.npoints}_chi_{chi}.npy",
-        #             E_sum,
-        #         )
