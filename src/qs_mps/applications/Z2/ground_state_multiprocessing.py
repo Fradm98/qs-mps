@@ -60,6 +60,7 @@ def ground_state_Z2_param(params):
         h=param,
     )
     save = args_mps["save"]
+    precision = args_mps["precision"]
     if ladder.model == "Z2_dual":
         ladder.L = ladder.L - 1
         if args_mps["sector"] != "vacuum_sector":
@@ -73,6 +74,7 @@ def ground_state_Z2_param(params):
         where=args_mps["where"],
         bond=args_mps["bond"],
     )
+    print(f"energy of h:{param:.{precision}f} is:\n {energy}")
 
     if save:
         ladder.save_sites(args_mps["path"], args_mps["precision"], args_mps["charges_x"], args_mps["charges_y"])

@@ -1097,7 +1097,7 @@ def anim(frames: int, interval: int, data: np.ndarray, params: np.ndarray, show:
             ax.add_patch(circle)
 
     # add charges
-    if charges_x != []:
+    if charges_x != None:
         for i in range(len(charges_x)):
             ax.text(x=2*charges_x[i]+0.1, y=2*charges_y[i]-0.1, s="-1", color="red")
             circle = Ellipse((2*charges_x[i], 2*charges_y[i]), 0.1, 0.1, edgecolor='red', facecolor='none', linewidth=1)
