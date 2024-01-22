@@ -34,6 +34,9 @@ parser.add_argument(
 parser.add_argument(
     "-m", "--model", help="Model to simulate", default="Z2_dual", type=str
 )
+parser.add_argument(
+    "-mo", "--moment", help="Moment degree of the Free energy. E.g. Magnetization -> First Moment, Susceptibility -> Second Moment, etc. Available are 1,2,4", default=1, type=int
+)
 
 args = parser.parse_args()
 
@@ -82,6 +85,14 @@ else:
         if len(args.charges_x) == i:
             sector = f"{i}_particle(s)_sector"
 
+# define moment
+if args.moment == 1:
+    moment = "first"
+if args.moment == 2:
+    moment = "second"
+if args.moment == 4:
+    moment = "fourth"
+
 # ---------------------------------------------------------
 # Observables
 # ---------------------------------------------------------
@@ -114,7 +125,12 @@ for chi in args.chis:
             print(f"'t Hooft string for h:{h:.{precision}f}")
             lattice_mps.Z2.thooft(site=args.sites, l=args.ladders, direction=direction)
             lattice_mps.w = lattice_mps.Z2.mpo.copy()
-            S.append(lattice_mps.mpo_first_moment().real)
+            if args.moment == 1:
+                S.append(lattice_mps.mpo_first_moment().real)
+            elif args.moment == 2:
+                S.append(lattice_mps.mpo_second_moment().real)
+            elif args.moment == 4:
+                S.append(lattice_mps.mpo_fourth_moment().real)
 
 
     if args.o == "wl":
@@ -129,6 +145,6 @@ for chi in args.chis:
                 )
     if args.o == "thooft":
         np.save(
-                    f"{parent_path}/results/thooft/thooft_string_{args.sites[0]}-{args.ladders[0]}_{direction}_{args.model}_direct_lattice_{args.l}x{args.L-1}_{sector}_{args.charges_x}-{args.charges_y}_h_{args.h_i}-{args.h_f}_delta_{args.npoints}_chi_{chi}.npy",
+                    f"{parent_path}/results/thooft/thooft_string_{moment}_moment_{args.sites[0]}-{args.ladders[0]}_{direction}_{args.model}_direct_lattice_{args.l}x{args.L-1}_{sector}_{args.charges_x}-{args.charges_y}_h_{args.h_i}-{args.h_f}_delta_{args.npoints}_chi_{chi}.npy",
                     S,
                 )
