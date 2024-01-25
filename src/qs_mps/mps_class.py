@@ -831,7 +831,7 @@ class MPS:
     # -------------------------------------------------
     # Observables, order parameters
     # -------------------------------------------------
-    def order_param(self, op: None):
+    def order_param(self, op: np.ndarray=None, site: int=None, l: int=None, direction: str=None):
         """
         order_param
 
@@ -847,7 +847,7 @@ class MPS:
             self.order_param_Z2()
 
         elif self.model == "Z2_dual":
-            self.order_param_Z2_dual()
+            self.order_param_Z2_dual(site=site, l=l, direction=direction)
 
         return self
 
@@ -912,7 +912,7 @@ class MPS:
         self.w = w_tot
         return self
 
-    def order_param_Z2_dual(self):
+    def order_param_Z2_dual(self, site: int, l: int, direction: str):
         """
         order_param_Z2_dual
 
@@ -920,7 +920,19 @@ class MPS:
         on the dual lattice. It is equivalent to a 2D transverse field Ising model.
 
         """
-        self.Z2.order_param_Z2_dual()
+        # self.Z2.thooft(site=site, l=l, direction=direction)
+
+        self.Z2.mpo_skeleton(aux_dim=2)
+
+        mpo_tot = []
+        for mpo_site in range(self.Z2.L-1):
+            for l in range(self.Z2.l):
+                self.Z2.mpo[0,-1] += sparse_pauli_z(n=l, L=self.Z2.l).toarray()
+            mpo_tot.append(self.Z2.mpo)
+            self.Z2.mpo_skeleton(aux_dim=2)
+                    
+        self.Z2.mpo = mpo_tot
+
         self.w = self.Z2.mpo
         return self
 
@@ -1210,157 +1222,59 @@ class MPS:
 
         if sm:
             array = self.sites
-            E_l_sm = ncon(
-                [a, v_l, v_l, a, array[0], self.w[0], self.w[0], array[0].conjugate()],
-                [
-                    [1],
-                    [3],
-                    [5],
-                    [7],
-                    [1, 2, -1],
-                    [3, -2, 2, 4],
-                    [5, -3, 4, 6],
-                    [7, 6, -4],
-                ],
-            )
-            if opt:
-                self.env_left_sm.append(E_l_sm)
-            else:
-                self.env_left.append(E_l_sm)
-            E_r_sm = ncon(
-                [
-                    a,
-                    v_r.T,
-                    v_r.T,
-                    a,
-                    array[-1],
-                    self.w[-1],
-                    self.w[-1],
-                    array[-1].conjugate(),
-                ],
-                [
-                    [1],
-                    [3],
-                    [5],
-                    [7],
-                    [-1, 2, 1],
-                    [-2, 3, 2, 4],
-                    [-3, 5, 4, 6],
-                    [-4, 6, 7],
-                ],
-            )
-            if opt:
-                self.env_right_sm.append(E_r_sm)
-            else:
-                self.env_right.append(E_r_sm)
-            for i in range(self.L - 1, site, -1):
-                E_r_sm = ncon(
-                    [
-                        E_r_sm,
-                        array[i - 1],
-                        self.w[i - 1],
-                        self.w[i - 1],
-                        array[i - 1].conjugate(),
-                    ],
-                    [
-                        [1, 3, 5, 7],
-                        [-1, 2, 1],
-                        [-2, 3, 2, 4],
-                        [-3, 5, 4, 6],
-                        [-4, 6, 7],
-                    ],
+            w = self.w
+            E_l = ncon([a, v_l, v_l, a],[[-1],[-2],[-3],[-4]])
+            E_r = ncon([a, v_r.T, v_r.T, a],[[-1],[-2],[-3],[-4]])
+            self.env_left.append(E_l)
+            self.env_right.append(E_r)
+
+            for i in range(1, site):
+                E_l = ncon([E_l, ancilla_array[i - 1]], [[1, -3, -4, -5], [1, -2, -1]])
+                E_l = ncon([E_l, w[i - 1]], [[-1, 1, 2, -4, -5], [2, -2, 1, -3]])
+                E_l = ncon([E_l, w[i - 1]], [[-1, -2, 1, 2, -5], [2, -3, 1, -4]])
+                E_l = ncon(
+                    [E_l, array[i - 1].conjugate()], [[-1, -2, -3, 1, 2], [2, 1, -4]]
                 )
-                if opt:
-                    self.env_right_sm.append(E_r_sm)
-                else:
-                    self.env_right.append(E_r_sm)
+                self.env_left.append(E_l)
+
+            for i in range(self.L, site, -1):
+                E_r = ncon([E_r, array[i - 1]], [[1, -3, -4, -5], [-1, -2, 1]])
+                E_r = ncon([E_r, w[i - 1]], [[-1, 1, 2, -4, -5], [-2, 2, 1, -3]])
+                E_r = ncon([E_r, w[i - 1]], [[-1, -2, 1, 2, -5], [-3, 2, 1, -4]])
+                E_r = ncon(
+                    [E_r, array[i - 1].conjugate()], [[-1, -2, -3, 1, 2], [-4, 1, 2]]
+                )
+                self.env_right.append(E_r) 
 
         elif fm:
             array = self.sites
-            E_l_sm = ncon(
-                [
-                    a,
-                    v_l,
-                    v_l,
-                    v_l,
-                    v_l,
-                    a,
-                    array[0],
-                    self.w[0],
-                    self.w[0],
-                    self.w[0],
-                    self.w[0],
-                    array[0].conjugate(),
-                ],
-                [
-                    [1],
-                    [3],
-                    [5],
-                    [7],
-                    [9],
-                    [11],
-                    [1, 2, -1],
-                    [3, -2, 2, 4],
-                    [5, -3, 4, 6],
-                    [7, -4, 6, 8],
-                    [9, -5, 8, 10],
-                    [11, 10, -6],
-                ],
-            )
-            self.env_left.append(E_l_sm)
-            E_r_sm = ncon(
-                [
-                    a,
-                    v_r.T,
-                    v_r.T,
-                    v_r.T,
-                    v_r.T,
-                    a,
-                    array[-1],
-                    self.w[-1],
-                    self.w[-1],
-                    self.w[-1],
-                    self.w[-1],
-                    array[-1].conjugate(),
-                ],
-                [
-                    [1],
-                    [3],
-                    [5],
-                    [7],
-                    [9],
-                    [11],
-                    [-1, 2, 1],
-                    [-2, 3, 2, 4],
-                    [-3, 5, 4, 6],
-                    [-4, 7, 6, 8],
-                    [-5, 9, 8, 10],
-                    [-6, 10, 11],
-                ],
-            )
-            self.env_right.append(E_r_sm)
-            for i in range(self.L - 1, site, -1):
-                E_r_sm = ncon(
-                    [
-                        E_r_sm,
-                        array[i - 1],
-                        self.w[i - 1],
-                        self.w[i - 1],
-                        self.w[i - 1],
-                        self.w[i - 1],
-                        array[i - 1].conjugate(),
-                    ],
-                    [
-                        [1, 3, 5, 7, 9, 11],
-                        [-1, 2, 1],
-                        [-2, 3, 2, 4],
-                        [-3, 5, 4, 6],
-                        [-4, 7, 6, 8],
-                        [-5, 9, 8, 10],
-                        [-6, 10, 11],
-                    ],
+            w = self.w
+            E_l = ncon([a, v_l, v_l, v_l, v_l, a],[[-1],[-2],[-3],[-4],[-5],[-6]])
+            E_r = ncon([a, v_r.T, v_r.T,v_r.T, v_r.T, a],[[-1],[-2],[-3],[-4],[-5],[-6]])
+            self.env_left.append(E_l)
+            self.env_right.append(E_r)
+
+            for i in range(1, site):
+                E_l = ncon([E_l, ancilla_array[i - 1]], [[1, -3, -4, -5, -6, -7], [1, -2, -1]])
+                E_l = ncon([E_l, w[i - 1]], [[-1, 1, 2, -4, -5, -6, -7], [2, -2, 1, -3]])
+                E_l = ncon([E_l, w[i - 1]], [[-1, -2, 1, 2, -5, -6, -7], [2, -3, 1, -4]])
+                E_l = ncon([E_l, w[i - 1]], [[-1, -2, -3, 1, 2, -6, -7], [2, -4, 1, -5]])
+                E_l = ncon([E_l, w[i - 1]], [[-1, -2, -3, -4, 1, 2, -7], [2, -5, 1, -6]])
+                E_l = ncon(
+                    [E_l, array[i - 1].conjugate()], [[-1, -2, -3, -4, -5, 1, 2], [2, 1, -6]]
                 )
-                self.env_right.append(E_r_sm)
+                self.env_left.append(E_l)
+
+            for i in range(self.L, site, -1):
+                E_r = ncon([E_r, array[i - 1]], [[1, -3, -4, -5, -6, -7], [-1, -2, 1]])
+                E_r = ncon([E_r, w[i - 1]], [[-1, 1, 2, -4, -5, -6, -7], [-2, 2, 1, -3]])
+                E_r = ncon([E_r, w[i - 1]], [[-1, -2, 1, 2, -5, -6, -7], [-3, 2, 1, -4]])
+                E_r = ncon([E_r, w[i - 1]], [[-1, -2, -3, 1, 2, -6, -7], [-4, 2, 1, -5]])
+                E_r = ncon([E_r, w[i - 1]], [[-1, -2, -3, -4, 1, 2, -7], [-5, 2, 1, -6]])
+                E_r = ncon(
+                    [E_r, array[i - 1].conjugate()], [[-1, -2, -3, -4, -5, 1, 2], [-6, 1, 2]]
+                )
+                self.env_right.append(E_r)
 
         elif mixed:
             env_right = []
@@ -1669,6 +1583,7 @@ class MPS:
         for n in range(n_sweeps):
             print(f"Sweep n: {n}\n")
             entropy = []
+            schmidt_vals = []
             for i in range(self.L - 1):
                 # v0 = self.sites[i].flatten()
                 H = self.H_eff(sites[i])
@@ -1681,9 +1596,12 @@ class MPS:
                     if sites[i] - 1 == where:
                         entr = von_neumann_entropy(s)
                         entropy.append(entr)
+                        schmidt_vals.append(s)
                 else:
                     entr = von_neumann_entropy(s)
                     entropy.append(entr)
+                    schmidt_vals.append(s)
+
                 self.update_envs(sweeps[0], sites[i])
                 iter += 1
 
@@ -1713,7 +1631,7 @@ class MPS:
                 + f"instead of the convergence tolerance {conv_tol}"
             )
             print("##############################")
-        return energies, entropy
+        return energies, entropy, schmidt_vals
 
     def environments_ev(self, site):
         a = np.array([1])
@@ -2506,7 +2424,7 @@ class MPS:
         self.clear_envs()
         return first_moment
 
-    def mpo_second_moment(self, opt=False):
+    def mpo_second_moment(self, opt: bool=False, op: np.ndarray=None, site: int=None, l: int=None, direction: str=None):
         """
         mpo_second_moment
 
@@ -2527,22 +2445,51 @@ class MPS:
             self.env_left_sm = []
             self.env_right_sm = []
         else:
-            self.order_param()
+            self.order_param(op=op, site=site, l=l, direction=direction)
             self.clear_envs()
             self.envs(sm=True)
             sm = ncon(
-                [self.env_left[0], self.env_right[-1]], [[1, 2, 3, 4], [1, 2, 3, 4]]
+                [self.env_left[-1], self.sites[0]], [[1, -3, -4, -5], [1, -2, -1]]
+            )
+            sm = ncon(
+                [sm, self.w[0]], [[-1, 1, 2, -4, -5], [2, -2, 1, -3]]
+            )
+            sm = ncon(
+                [sm, self.w[0]], [[-1, -2, 1, 2, -5], [2, -3, 1, -4]]
+            )
+            sm = ncon(
+                [sm, self.sites[0].conjugate()], [[-1, -2, -3, 1, 2], [2, 1, -4]]
+            )
+            sm = ncon(
+                [sm, self.env_right[-1]], [[1,2,3,4], [1,2,3,4]]
             )
 
         return sm
 
-    def mpo_fourth_moment(self):
-        self.order_param()
+    def mpo_fourth_moment(self, op: np.ndarray=None, site: int=None, l: int=None, direction: str=None):
+        self.order_param(op=op, site=site, l=l, direction=direction)
         self.clear_envs()
         self.envs(fm=True)
         fm = ncon(
-            [self.env_left[0], self.env_right[-1]],
-            [[1, 2, 3, 4, 5, 6], [1, 2, 3, 4, 5, 6]],
+                [self.env_left[-1], self.sites[0]], [[1, -3, -4, -5, -6, -7], [1, -2, -1]]
+            )
+        fm = ncon(
+            [fm, self.w[0]], [[-1, 1, 2, -4, -5, -6, -7], [2, -2, 1, -3]]
+        )
+        fm = ncon(
+            [fm, self.w[0]], [[-1, -2, 1, 2, -5, -6, -7], [2, -3, 1, -4]]
+        )
+        fm = ncon(
+            [fm, self.w[0]], [[-1, -2, -3, 1, 2, -6, -7], [2, -4, 1, -5]]
+        )
+        fm = ncon(
+            [fm, self.w[0]], [[-1, -2, -3, -4, 1, 2, -7], [2, -5, 1, -6]]
+        )
+        fm = ncon(
+            [fm, self.sites[0].conjugate()], [[-1, -2, -3, -4, -5, 1, 2], [2, 1, -6]]
+        )
+        fm = ncon(
+            [fm, self.env_right[-1]], [[1,2,3,4,5,6], [1,2,3,4,5,6]]
         )
         return fm
 
@@ -2745,3 +2692,30 @@ class MPS:
         self.sites = [site.reshape(shapes[i]) for i, site in enumerate(flat_tn)]
 
         return self
+    
+
+# L = 4
+# l = 3
+# d = 2**l
+# model = "Z2_dual"
+# chi = 8
+# h_i = 0
+# h_f = 10
+# npoints = 20
+# hs = np.linspace(h_i,h_f,npoints)
+# charges_x = None
+# charges_y = None
+# num = (h_f - h_i) / npoints
+# precision = get_precision(num)
+# path_tensor = "/Users/fradm/Desktop/projects/1_Z2"
+# sites = [1]
+# ladders = [1]
+# direction = "horizontal"
+
+# S = []
+# for h in hs:
+#     lattice_mps = MPS(L=L, d=d, model=model, chi=chi, h=h)
+#     lattice_mps.L = lattice_mps.L - 1
+
+#     lattice_mps.load_sites(path=path_tensor, precision=precision, cx=charges_x, cy=charges_y)
+#     S.append(lattice_mps.mpo_second_moment(site=sites, l=ladders, direction=direction).real)

@@ -2,7 +2,7 @@ import concurrent.futures
 import os
 from qs_mps.mps_class import MPS
 from qs_mps.applications.Z2.exact_hamiltonian import H_Z2_gauss
-
+from qs_mps.utils import tensor_shapes
 
 def ground_state_Z2_exact_param(params):
     args_lattice = params[0]
@@ -67,14 +67,17 @@ def ground_state_Z2_param(params):
             ladder.Z2.add_charges(rows=args_mps["charges_x"], columns=args_mps["charges_y"])
             print(ladder.Z2.charges)
     ladder._random_state(seed=3, chi=args_mps["chi"], type_shape=args_mps["type_shape"])
+    tensor_shapes(ladder.sites)
     ladder.canonical_form(trunc_chi=True, trunc_tol=False)
-    energy, entropy = ladder.DMRG(
+    
+    energy, entropy, schmidt_vals = ladder.DMRG(
         trunc_tol=args_mps["trunc_tol"],
         trunc_chi=args_mps["trunc_chi"],
         where=args_mps["where"],
         bond=args_mps["bond"],
     )
     print(f"energy of h:{param:.{precision}f} is:\n {energy}")
+    print(f"Schmidt values in the middle of the chain:\n {schmidt_vals}")
 
     if save:
         ladder.save_sites(args_mps["path"], args_mps["precision"], args_mps["charges_x"], args_mps["charges_y"])

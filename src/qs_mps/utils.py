@@ -14,7 +14,7 @@ from functools import partial
 # ---------------------------------------------------------------------------------------
 # Tensor shapes
 # ---------------------------------------------------------------------------------------
-def tensor_shapes(lists):
+def tensor_shapes(lists: np.ndarray, prnt: bool=True):
     """
     tensor_shapes
 
@@ -25,8 +25,9 @@ def tensor_shapes(lists):
 
     """
     shapes = [array.shape for array in lists]
-    for i in range(len(lists)):
-        print(lists[i].shape)
+    if prnt:
+        for i in range(len(lists)):
+            print(lists[i].shape)
 
     return shapes
 

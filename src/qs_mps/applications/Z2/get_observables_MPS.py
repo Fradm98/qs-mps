@@ -128,9 +128,9 @@ for chi in args.chis:
             if args.moment == 1:
                 S.append(lattice_mps.mpo_first_moment().real)
             elif args.moment == 2:
-                S.append(lattice_mps.mpo_second_moment().real)
+                S.append(lattice_mps.mpo_second_moment(site=args.sites, l=args.ladders, direction=direction).real/len(lattice_mps.Z2.latt.plaquettes()))
             elif args.moment == 4:
-                S.append(lattice_mps.mpo_fourth_moment().real)
+                S.append(lattice_mps.mpo_fourth_moment(site=args.sites, l=args.ladders, direction=direction).real)
 
 
     if args.o == "wl":

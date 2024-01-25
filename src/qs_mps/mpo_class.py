@@ -66,7 +66,7 @@ class MPO_ladder:
             sector = f"{particles}_sector"
         return sector
     
-    def mpo_skeleton(self):
+    def mpo_skeleton(self, aux_dim: int=None):
         """
         mpo_skeleton
 
@@ -74,12 +74,21 @@ class MPO_ladder:
         with O matrices. We add as well the identities in the first and last
         element of the mpo tensor.
 
+        aux_dim: int - This auxiliary dimension represents how many rows and 
+                    columns we want in our MPO. By default None means that it adapts
+                    to the system under study. Fixing the auxiliary dimension is
+                    useful for known observables which will not need larger MPOs
         """
         I = identity(2**self.l, dtype=complex)
         O = csc_array((2**self.l, 2**self.l), dtype=complex)
-        skeleton = np.array(
-            [[O.toarray() for i in range(2 + self.l)] for j in range(2 + self.l)]
-        )
+        if aux_dim == None:
+            skeleton = np.array(
+                [[O.toarray() for i in range(2 + self.l)] for j in range(2 + self.l)]
+            )
+        else:
+            skeleton = np.array(
+                [[O.toarray() for i in range(aux_dim)] for j in range(aux_dim)]
+            )
         skeleton[0, 0] = I.toarray()
         skeleton[-1, -1] = I.toarray()
         self.mpo = skeleton
@@ -420,7 +429,8 @@ class MPO_ladder:
                 ver -> from up to 'l' at a specific 'site'
 
         """
-        self.mpo_skeleton()
+        self.mpo_skeleton(aux_dim=2)
+
         site = site[0]
         l = l[0]
         mpo_tot = []
@@ -435,7 +445,7 @@ class MPO_ladder:
             if mpo_site == site:
                 self.mpo[0,-1] = coeff * sparse_pauli_z(n=l, L=self.l).toarray()
             mpo_tot.append(self.mpo)
-            self.mpo_skeleton()
+            self.mpo_skeleton(aux_dim=2)
                     
         self.mpo = mpo_tot
         return self
