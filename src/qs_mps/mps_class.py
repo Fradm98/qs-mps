@@ -2694,11 +2694,11 @@ class MPS:
         return self
     
 
-# L = 4
-# l = 3
+# L = 6
+# l = 5
 # d = 2**l
 # model = "Z2_dual"
-# chi = 8
+# chi = 64
 # h_i = 0
 # h_f = 10
 # npoints = 20
@@ -2708,6 +2708,7 @@ class MPS:
 # num = (h_f - h_i) / npoints
 # precision = get_precision(num)
 # path_tensor = "/Users/fradm/Desktop/projects/1_Z2"
+# path_tensor = "D:/code/projects/1_Z2"
 # sites = [1]
 # ladders = [1]
 # direction = "horizontal"
@@ -2718,4 +2719,4 @@ class MPS:
 #     lattice_mps.L = lattice_mps.L - 1
 
 #     lattice_mps.load_sites(path=path_tensor, precision=precision, cx=charges_x, cy=charges_y)
-#     S.append(lattice_mps.mpo_second_moment(site=sites, l=ladders, direction=direction).real)
+#     S.append(lattice_mps.mpo_second_moment(site=sites, l=ladders, direction=direction).real/(len(lattice_mps.Z2.latt.plaquettes())**2))
