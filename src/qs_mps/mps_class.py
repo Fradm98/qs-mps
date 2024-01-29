@@ -16,6 +16,7 @@ from qs_mps.mpo_class import MPO_ladder
 import matplotlib.pyplot as plt
 import time
 import warnings
+import tensorflow as tf
 
 
 class MPS:
@@ -1345,31 +1346,48 @@ class MPS:
         site: int - site to optimize
 
         """
-        # H_eff_time = time.perf_counter()
-        H = ncon(
-            [self.env_left[-1], self.w[site - 1], self.env_right[-1]],
-            [
-                [-1, 1, -4],
-                [1, 2, -2, -5],
-                [-3, 2, -6],
-            ],
-        )
+        tn_env_l = tf.constant(self.env_left[-1], dtype=tf.complex128)
+        tn_env_r = tf.constant(self.env_right[-1], dtype=tf.complex128)
+        tn_w = tf.constant(self.w[site-1], dtype=tf.complex128)
+        H_eff_time = time.perf_counter()
+        # H = ncon(
+        #     [self.env_left[-1], self.w[site - 1]],
+        #     [
+        #         [-1, 1, -5],
+        #         [1, -3, -2, -4],
+        #     ]
+        # )
+        # H = ncon(
+        #     [H, self.env_right[-1]],
+        #     [
+        #         [-1, -2, 1, -5, -4],
+        #         [-3 , 1, -6]
+        #     ]
+        # )
+        env_new = tf.tensordot(tn_env_l,tn_w,[[1],[0]])
+        env_new = tf.reshape(env_new, (tn_env_l.shape[0],tn_w.shape[2],tn_w.shape[1],tn_w.shape[3],tn_env_l.shape[-1]))
+        print(env_new.shape)
+        env_new = tf.tensordot(env_new,tn_env_r,[[2],[1]])
+        env_new = tf.reshape(env_new, (tn_env_l.shape[0],tn_w.shape[2],tn_env_r.shape[0],tn_env_l.shape[-1],tn_w.shape[3],tn_env_r.shape[-1]))
+        print(env_new.shape)
         # np.savetxt(
         #     f"/Users/fradm/mps/results/times_data/H_eff_contraction_site_{site}_h_{self.h:.2f}",
         #     [time.perf_counter() - H_eff_time],
         # )
-        # print(f"Time of H_eff contraction: {time.perf_counter()-H_eff_time}")
+        print(f"Time of H_eff contraction: {time.perf_counter()-H_eff_time}")
 
-        # reshape_time = time.perf_counter()
-        H = H.reshape(
-            self.env_left[-1].shape[0] * self.d * self.env_right[-1].shape[0],
-            self.env_left[-1].shape[2] * self.d * self.env_right[-1].shape[2],
-        )
+        reshape_time = time.perf_counter()
+        # H = H.reshape(
+        #     self.env_left[-1].shape[0] * self.d * self.env_right[-1].shape[0],
+        #     self.env_left[-1].shape[2] * self.d * self.env_right[-1].shape[2],
+        # )
+        H = tf.reshape(env_new, (tn_env_l.shape[0] * self.d * tn_env_r.shape[0],tn_env_l.shape[2] * self.d * tn_env_r.shape[2])).numpy()
         # np.savetxt(
         #     f"/Users/fradm/mps/results/times_data/H_eff_reshape_site_{site}_h_{self.h:.2f}",
         #     [time.perf_counter() - reshape_time],
         # )
-        # print(f"Time of H_eff reshaping: {time.perf_counter()-reshape_time}")
+        print(f"Time of H_eff reshaping: {time.perf_counter()-reshape_time}")
+        print(H.shape)
 
         return H
 
@@ -1388,13 +1406,13 @@ class MPS:
             site. Default Nones
 
         """
-        # time_eig = time.perf_counter()
+        time_eig = time.perf_counter()
         e, v = eigsh(H_eff, k=1, which="SA", v0=v0)
         # np.savetxt(
         #     f"/Users/fradm/mps/results/times_data/eigsh_eigensolver_site_{site}_h_{self.h:.2f}",
         #     [time.perf_counter() - time_eig],
         # )
-        # print(f"Time of eigsh during eigensolver for site {site}: {time.perf_counter()-time_eig}")
+        print(f"Time of eigsh during eigensolver for site {site}: {time.perf_counter()-time_eig}")
         e_min = e[0]
         eigvec = np.array(v)
 
@@ -1567,7 +1585,7 @@ class MPS:
         trunc_chi: bool,
         schmidt_tol: float = 1e-15,
         conv_tol: float = 1e-10,
-        n_sweeps: int = 6,
+        n_sweeps: int = 2,
         bond: bool = True,
         where: int = -1,
     ):
@@ -1585,13 +1603,19 @@ class MPS:
             entropy = []
             schmidt_vals = []
             for i in range(self.L - 1):
-                # v0 = self.sites[i].flatten()
+                v0 = self.sites[i].flatten()
+                t_start = time.perf_counter()
                 H = self.H_eff(sites[i])
-                energy = self.eigensolver(H_eff=H, site=sites[i]) # , v0=v0
+                print(f"Time effective Ham: {abs(time.perf_counter()-t_start)}")
+                t_start = time.perf_counter()
+                energy = self.eigensolver(H_eff=H, site=sites[i], v0=v0) # , v0=v0
+                print(f"Time eigensolver: {abs(time.perf_counter()-t_start)}")
                 energies.append(energy)
+                t_start = time.perf_counter()
                 s = self.update_state(
                     sweeps[0], sites[i], trunc_tol, trunc_chi, schmidt_tol
                 )
+                print(f"Time update state: {abs(time.perf_counter()-t_start)}")
                 if bond:
                     if sites[i] - 1 == where:
                         entr = von_neumann_entropy(s)
@@ -1602,7 +1626,9 @@ class MPS:
                     entropy.append(entr)
                     schmidt_vals.append(s)
 
+                t_start = time.perf_counter()
                 self.update_envs(sweeps[0], sites[i])
+                print(f"Time update envs: {abs(time.perf_counter()-t_start)}")
                 iter += 1
 
             # print("reversing the sweep")
