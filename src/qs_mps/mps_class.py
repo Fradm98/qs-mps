@@ -1402,7 +1402,7 @@ class MPS:
         #     [time.perf_counter() - time_eig],
         # )
         print(f"Time of eigsh during eigensolver for site {site}: {time.perf_counter()-time_eig}")
-        e_min = e[0]
+        e_min = e[0].real
         eigvec = np.array(v)
 
         self.sites[site - 1] = eigvec.reshape(
