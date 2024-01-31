@@ -1,6 +1,7 @@
 import numpy as np
 from ncon import ncon
-from scipy.sparse.linalg import eigsh
+import scipy
+from scipy.sparse.linalg import eigsh, eigs
 from scipy.sparse import csr_matrix, csr_array, identity
 from scipy.linalg import expm, solve
 from qs_mps.utils import *
@@ -16,8 +17,7 @@ from qs_mps.mpo_class import MPO_ladder
 import matplotlib.pyplot as plt
 import time
 import warnings
-import tensorflow as tf
-
+from qs_mps.TensorMultiplier import TensorMultiplierOperator
 
 class MPS:
     def __init__(
@@ -33,6 +33,7 @@ class MPS:
         self.eps = eps
         self.J = J
         self.charges = charges
+        self.site = 1
         self.sites = []
         self.bonds = []
         self.ancilla_sites = []
@@ -1346,52 +1347,34 @@ class MPS:
         site: int - site to optimize
 
         """
-        tn_env_l = tf.constant(self.env_left[-1], dtype=tf.complex128)
-        tn_env_r = tf.constant(self.env_right[-1], dtype=tf.complex128)
-        tn_w = tf.constant(self.w[site-1], dtype=tf.complex128)
         H_eff_time = time.perf_counter()
-        # H = ncon(
-        #     [self.env_left[-1], self.w[site - 1]],
-        #     [
-        #         [-1, 1, -5],
-        #         [1, -3, -2, -4],
-        #     ]
-        # )
-        # H = ncon(
-        #     [H, self.env_right[-1]],
-        #     [
-        #         [-1, -2, 1, -5, -4],
-        #         [-3 , 1, -6]
-        #     ]
-        # )
-        env_new = tf.tensordot(tn_env_l,tn_w,[[1],[0]])
-        env_new = tf.reshape(env_new, (tn_env_l.shape[0],tn_w.shape[2],tn_w.shape[1],tn_w.shape[3],tn_env_l.shape[-1]))
-        print(env_new.shape)
-        env_new = tf.tensordot(env_new,tn_env_r,[[2],[1]])
-        env_new = tf.reshape(env_new, (tn_env_l.shape[0],tn_w.shape[2],tn_env_r.shape[0],tn_env_l.shape[-1],tn_w.shape[3],tn_env_r.shape[-1]))
-        print(env_new.shape)
-        # np.savetxt(
-        #     f"/Users/fradm/mps/results/times_data/H_eff_contraction_site_{site}_h_{self.h:.2f}",
-        #     [time.perf_counter() - H_eff_time],
-        # )
+        H = ncon(
+            [self.env_left[-1], self.w[site - 1]],
+            [
+                [-1, 1, -5],
+                [1, -3, -2, -4],
+            ]
+        )
+        H = ncon(
+            [H, self.env_right[-1]],
+            [
+                [-1, -2, 1, -5, -4],
+                [-3 , 1, -6]
+            ]
+        )
         print(f"Time of H_eff contraction: {time.perf_counter()-H_eff_time}")
 
         reshape_time = time.perf_counter()
-        # H = H.reshape(
-        #     self.env_left[-1].shape[0] * self.d * self.env_right[-1].shape[0],
-        #     self.env_left[-1].shape[2] * self.d * self.env_right[-1].shape[2],
-        # )
-        H = tf.reshape(env_new, (tn_env_l.shape[0] * self.d * tn_env_r.shape[0],tn_env_l.shape[2] * self.d * tn_env_r.shape[2])).numpy()
-        # np.savetxt(
-        #     f"/Users/fradm/mps/results/times_data/H_eff_reshape_site_{site}_h_{self.h:.2f}",
-        #     [time.perf_counter() - reshape_time],
-        # )
+        H = H.reshape(
+            self.env_left[-1].shape[0] * self.d * self.env_right[-1].shape[0],
+            self.env_left[-1].shape[2] * self.d * self.env_right[-1].shape[2],
+        )
         print(f"Time of H_eff reshaping: {time.perf_counter()-reshape_time}")
         print(H.shape)
 
         return H
 
-    def eigensolver(self, H_eff, site, v0=None):
+    def eigensolver(self, site: int=None, v0: np.ndarray=None, H_eff: np.ndarray=None,):
         """
         eigensolver
 
@@ -1407,7 +1390,13 @@ class MPS:
 
         """
         time_eig = time.perf_counter()
-        e, v = eigsh(H_eff, k=1, which="SA", v0=v0)
+        A = TensorMultiplierOperator((
+                            self.env_left[-1].shape[0] * self.d * self.env_right[-1].shape[0],
+                            self.env_left[-1].shape[2] * self.d * self.env_right[-1].shape[2],
+                            ), matvec=self.mv, dtype=np.complex128)
+        
+        e, v = eigs(A, k=1, v0=v0)
+        # e, v = eigsh(H_eff, k=1, which="SA", v0=v0)
         # np.savetxt(
         #     f"/Users/fradm/mps/results/times_data/eigsh_eigensolver_site_{site}_h_{self.h:.2f}",
         #     [time.perf_counter() - time_eig],
@@ -1579,6 +1568,14 @@ class MPS:
 
         return self
 
+    def mv(self, v):
+        v = v.reshape(self.env_left[-1].shape[0], self.d, self.env_right[-1].shape[0])
+        res = ncon([self.env_left[-1],v],[[1,-3,-4],[1,-2,-1]])
+        res = ncon([res, self.w[self.site-1]],[[-1,1,2,-4],[2,-2,1,-3]])
+        res = ncon([res,self.env_right[-1]],[[1,2,-2,-1],[1,2,-3]])
+        res = res.flatten()
+        return res
+
     def DMRG(
         self,
         trunc_tol: bool,
@@ -1604,11 +1601,13 @@ class MPS:
             schmidt_vals = []
             for i in range(self.L - 1):
                 v0 = self.sites[i].flatten()
+                # t_start = time.perf_counter()
+                # H = self.H_eff(sites[i])
+                # print(f"Time effective Ham: {abs(time.perf_counter()-t_start)}")
                 t_start = time.perf_counter()
-                H = self.H_eff(sites[i])
-                print(f"Time effective Ham: {abs(time.perf_counter()-t_start)}")
-                t_start = time.perf_counter()
-                energy = self.eigensolver(H_eff=H, site=sites[i], v0=v0) # , v0=v0
+                self.site = sites[i]
+                energy = self.eigensolver(site=sites[i], v0=v0) # , v0=v0
+                # energy = self.eigensolver(H_eff=H, site=sites[i], v0=v0) # , v0=v0
                 print(f"Time eigensolver: {abs(time.perf_counter()-t_start)}")
                 energies.append(energy)
                 t_start = time.perf_counter()
