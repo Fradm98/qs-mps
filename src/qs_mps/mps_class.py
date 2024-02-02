@@ -21,7 +21,7 @@ from qs_mps.TensorMultiplier import TensorMultiplierOperator
 
 class MPS:
     def __init__(
-        self, L, d, model=str, chi=None, w=None, h=None, eps=None, J=None, charges=None
+        self, L, d, model=str, chi=None, w=None, h=None, eps=None, J=None, J2=None, charges=None
     ):
         self.L = L
         self.d = d
@@ -32,6 +32,7 @@ class MPS:
         self.h = h
         self.eps = eps
         self.J = J
+        self.J2 = J2
         self.charges = charges
         self.site = 1
         self.sites = []
@@ -543,6 +544,9 @@ class MPS:
         elif self.model == "Z2_two_ladder":
             self.mpo_Z2_two_ladder()
 
+        elif self.model == "ANNNI":
+            self.mpo_ANNNI()
+
         elif self.model == "Z2_dual":
             self.Z2.mpo_Z2_ladder_generalized()
             self.w = self.Z2.mpo
@@ -568,6 +572,30 @@ class MPS:
         for _ in range(self.L):
             w = np.array(
                 [[I, -self.J * Z, -self.h * X - self.eps * X], [O, O, Z], [O, O, I]]
+            )
+            w_tot.append(w)
+        self.w = w_tot
+        return self
+    
+    def mpo_ANNNI(self):
+        """
+        mpo_ANNNI
+
+        This function defines the MPO for the 1D Axial Next-Nearest Neighbor Interaction model.
+        It takes the same MPO for all sites.
+
+        """
+        I = identity(2, dtype=complex).toarray()
+        O = csc_array((2, 2), dtype=complex).toarray()
+        X = sparse_pauli_x(n=0, L=1).toarray()
+        Z = sparse_pauli_z(n=0, L=1).toarray()
+        w_tot = []
+        for _ in range(self.L):
+            w = np.array(
+                [[I, Z, O, -self.h * X], 
+                 [O, O, I, -self.J * Z], 
+                 [O, O, O, -self.J2 * Z], 
+                 [O, O, O, I]]
             )
             w_tot.append(w)
         self.w = w_tot
@@ -1395,7 +1423,7 @@ class MPS:
                             self.env_left[-1].shape[2] * self.d * self.env_right[-1].shape[2],
                             ), matvec=self.mv, dtype=np.complex128)
         
-        e, v = eigs(A, k=1, v0=v0)
+        e, v = eigs(A, k=2, v0=v0)
         # e, v = eigsh(H_eff, k=1, which="SA", v0=v0)
         # np.savetxt(
         #     f"/Users/fradm/mps/results/times_data/eigsh_eigensolver_site_{site}_h_{self.h:.2f}",
@@ -1600,6 +1628,7 @@ class MPS:
             entropy = []
             schmidt_vals = []
             for i in range(self.L - 1):
+                print(self.sites[i].shape)
                 v0 = self.sites[i].flatten()
                 # t_start = time.perf_counter()
                 # H = self.H_eff(sites[i])
