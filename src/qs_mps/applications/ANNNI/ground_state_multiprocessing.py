@@ -2,12 +2,12 @@ import concurrent.futures
 import os
 from qs_mps.mps_class import MPS
 from qs_mps.utils import tensor_shapes
+import numpy as np
 
 def ground_state_ANNNI_param(params):
     args_mps = params[0]
     h = params[1][0]
     k = params[1][1]
-    print(h,k, type(h), type(k))
     chain = MPS(
         L=args_mps["L"],
         d=args_mps["d"],
@@ -33,8 +33,8 @@ def ground_state_ANNNI_param(params):
     print(f"Schmidt values in the middle of the chain:\n {schmidt_vals}")
 
     if save:
-        chain.save_sites(args_mps["path"], args_mps["precision"], args_mps["charges_x"], args_mps["charges_y"])
-    return energy, entropy
+        chain.save_sites(args_mps["path"], args_mps["precision"])
+    return energy, entropy, schmidt_vals
 
 
 def ground_state_ANNNI_multpr(args_mps, multpr_param, cpu_percentage=90):
@@ -45,13 +45,22 @@ def ground_state_ANNNI_multpr(args_mps, multpr_param, cpu_percentage=90):
 
     energies = []
     entropies = []
+    precision = args_mps["precision"]
     i = 0
+    j = 0
     for result in results:
-        print(f"energy of h:{multpr_param[i]} is:\n {result[0][-1]}")
+
+        print(f"energy of h:{multpr_param[0][i]:.{precision}f}, k:{multpr_param[1][j]:.{precision}f} is:\n {result[0][-1]}")
+        print(f"Schmidt values in the middle of the chain:\n {result[2]}")
+
         energies.append(result[0])
-        print(f"entropies of h:{multpr_param[i]} is:\n {result[1]}")
         entropies.append(result[1])
-        i += 1
+        if j == (len(multpr_param[1])-1):
+            i += 1
+            j = -1
+        j += 1
+        
+
     return energies, entropies
 
 

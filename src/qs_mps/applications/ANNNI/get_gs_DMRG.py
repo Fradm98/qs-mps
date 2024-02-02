@@ -9,7 +9,6 @@ from qs_mps.applications.ANNNI.ground_state_multiprocessing import ground_state_
 
 parser = argparse.ArgumentParser(prog="gs_search_ANNNI")
 parser.add_argument("L", help="Number of spins", type=int)
-parser.add_argument("d", help="Physical dimension. By default 2", default=2, type=int)
 parser.add_argument(
     "npoints",
     help="Number of points in an interval of transverse field values",
@@ -33,6 +32,7 @@ parser.add_argument(
     type=str,
 )
 parser.add_argument("chis", help="Simulated bond dimensions", nargs="+", type=int)
+parser.add_argument("-d", help="Physical dimension. By default 2", default=2, type=int)
 parser.add_argument(
     "-ty", "--type_shape", help="Type of shape of the bond dimension. Available are: 'trapezoidal', 'pyramidal', 'rectangular'", default="trapezoidal", type=str
 )

@@ -26,6 +26,10 @@ parser.add_argument(
     type=str,
 )
 parser.add_argument("chis", help="Simulated bond dimensions", nargs="+", type=int)
+parser.add_argument("-d", help="Physical dimension. By default 2", default=2, type=int)
+parser.add_argument(
+    "-ty", "--type_shape", help="Type of shape of the bond dimension. Available are: 'trapezoidal', 'pyramidal', 'rectangular'", default="trapezoidal", type=str
+)
 parser.add_argument(
     "-m", "--model", help="Model to simulate", default="Ising", type=str
 )
@@ -76,16 +80,20 @@ args = parser.parse_args()
 interval = np.linspace(args.h_i, args.h_f, args.npoints)
 
 # take the path and precision to save files
+# if we want to save the tensors we save them locally because they occupy a lot of memory
 if args.path == "pc":
-    path_drive = "G:/My Drive/projects/0_ISING"
+    parent_path = "G:/My Drive/projects/0_ISING"
+    path_tensor = "D:/code/projects/0_ISING"
 elif args.path == "mac":
-    path_drive = "/Users/fradm98/Google Drive/My Drive/projects/0_ISING"
+    parent_path = "/Users/fradm98/Google Drive/My Drive/projects/0_ISING"
+    path_tensor = "/Users/fradm98/Desktop/projects/0_ISING"
 elif args.path == "marcos":
-    path_drive = "/Users/fradm/Google Drive/My Drive/projects/0_ISING"
+    parent_path = "/Users/fradm/Google Drive/My Drive/projects/0_ISING"
+    path_tensor = "/Users/fradm/Desktop/projects/0_ISING"
 else:
     raise SyntaxError("Path not valid. Choose among 'pc', 'mac', 'marcos'")
 
-path = f"{path_drive}/results/tensors"
+path = f"{parent_path}/results/tensors"
 num = (args.h_f - args.h_i) / args.npoints
 precision = get_precision(num)
 
@@ -102,7 +110,8 @@ for chi in args.chis:  # L // 2 + 1
         "d": args.dimension,
         "model": args.model,
         "chi": chi,
-        "path": path_drive,
+        "path": path_tensor,
+        "type_shape": args.type_shape,
         "precision": precision,
         "trunc_chi": True,
         "trunc_tol": False,
@@ -113,26 +122,26 @@ for chi in args.chis:  # L // 2 + 1
     }
     if __name__ == "__main__":
         energy_chi, entropy_chi = ground_state_ising(
-            args_mps=args_mps, multpr=True, param=interval
+            args_mps=args_mps, multpr=False, param=interval
         )
 
         if args.bond == False:
             args.where = "all"
 
         save_list_of_lists(
-            f"{path_drive}/results/energy_data/energies_{args.model}_L_{args.L}_h_{args.h_i}-{args.h_f}_delta_{args.npoints}_chi_{chi}",
+            f"{parent_path}/results/energy_data/energies_{args.model}_L_{args.L}_h_{args.h_i}-{args.h_f}_delta_{args.npoints}_chi_{chi}",
             energy_chi,
         )
         save_list_of_lists(
-            f"{path_drive}/results/entropy/{args.where}_bond_entropy_{args.model}_L_{args.L}_h_{args.h_i}-{args.h_f}_delta_{args.npoints}_chi_{chi}",
+            f"{parent_path}/results/entropy/{args.where}_bond_entropy_{args.model}_L_{args.L}_h_{args.h_i}-{args.h_f}_delta_{args.npoints}_chi_{chi}",
             entropy_chi,
         )
         if args.where == "all":
             entropy_mid = access_txt(
-                f"{path_drive}/results/entropy/{args.where}_bond_entropy_{args.model}_L_{args.L}_h_{args.h_i}-{args.h_f}_delta_{args.npoints}_chi_{chi}",
+                f"{parent_path}/results/entropy/{args.where}_bond_entropy_{args.model}_L_{args.L}_h_{args.h_i}-{args.h_f}_delta_{args.npoints}_chi_{chi}",
                 args.L // 2,
             )
             np.savetxt(
-                f"{path_drive}/results/entropy/{args.L // 2}_bond_entropy_{args.model}_L_{args.L}_h_{args.h_i}-{args.h_f}_delta_{args.npoints}_chi_{chi}",
+                f"{parent_path}/results/entropy/{args.L // 2}_bond_entropy_{args.model}_L_{args.L}_h_{args.h_i}-{args.h_f}_delta_{args.npoints}_chi_{chi}",
                 entropy_mid,
             )

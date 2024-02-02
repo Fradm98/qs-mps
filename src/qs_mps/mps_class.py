@@ -872,6 +872,9 @@ class MPS:
         """
         if self.model == "Ising":
             self.order_param_Ising(op=op)
+        
+        elif self.model == "ANNNI":
+            self.order_param_Ising(op=op)
 
         elif self.model == "Z2_two_ladder":
             self.order_param_Z2()
@@ -894,9 +897,10 @@ class MPS:
         """
         I = np.eye(2)
         O = np.zeros((2, 2))
+        op = sparse_pauli_z(n=0, L=1).toarray()
         w_tot = []
         for _ in range(self.L):
-            w_mag = np.array([[I, O, op], [O, O, O], [O, O, I]])
+            w_mag = np.array([[I, op], [O, I]])
             w_tot.append(w_mag)
         self.w = w_tot
         return self
@@ -1423,7 +1427,7 @@ class MPS:
                             self.env_left[-1].shape[2] * self.d * self.env_right[-1].shape[2],
                             ), matvec=self.mv, dtype=np.complex128)
         
-        e, v = eigs(A, k=2, v0=v0)
+        e, v = eigs(A, k=1, v0=v0)
         # e, v = eigsh(H_eff, k=1, which="SA", v0=v0)
         # np.savetxt(
         #     f"/Users/fradm/mps/results/times_data/eigsh_eigensolver_site_{site}_h_{self.h:.2f}",
@@ -1431,7 +1435,7 @@ class MPS:
         # )
         print(f"Time of eigsh during eigensolver for site {site}: {time.perf_counter()-time_eig}")
         e_min = e[0].real
-        eigvec = np.array(v)
+        eigvec = np.array(v[:,0])
 
         self.sites[site - 1] = eigvec.reshape(
             self.env_left[-1].shape[0], self.d, self.env_right[-1].shape[0]
@@ -1628,7 +1632,6 @@ class MPS:
             entropy = []
             schmidt_vals = []
             for i in range(self.L - 1):
-                print(self.sites[i].shape)
                 v0 = self.sites[i].flatten()
                 # t_start = time.perf_counter()
                 # H = self.H_eff(sites[i])
@@ -2579,8 +2582,12 @@ class MPS:
         """
         if "Ising" in self.model:
             self.save_sites_Ising(path=path, precision=precision)
+        elif "ANNNI" in self.model:
+            self.save_sites_ANNNI(path=path, precision=precision)
         elif "Z2" in self.model:
             self.save_sites_Z2(path=path, precision=precision, cx=cx, cy=cy)
+        else:
+            raise ValueError("Choose a correct model")
         return self
     
     def load_sites(self, path: str, precision: int=2, cx: list=None, cy: list=None):
@@ -2596,8 +2603,12 @@ class MPS:
         """
         if "Ising" in self.model:
             self.load_sites_Ising(path=path, precision=precision)
+        elif "ANNNI" in self.model:
+            self.load_sites_ANNNI(path=path, precision=precision)
         elif "Z2" in self.model:
             self.load_sites_Z2(path=path, precision=precision, cx=cx, cy=cy)
+        else:
+            raise ValueError("Choose a correct model")
         return self
 
     def save_sites_Ising(self, path, precision: int=2):
@@ -2605,6 +2616,23 @@ class MPS:
         shapes = tensor_shapes(self.sites)
         np.savetxt(
             f"{path}/results/tensors/shapes_sites_{self.model}_L_{self.L}_chi_{self.chi}_h_{self.h:.{precision}f}",
+            shapes,
+            fmt="%1.i",  # , delimiter=','
+        )
+
+        # flattening of the tensors
+        tensor = [element for site in self.sites for element in site.flatten()]
+        np.savetxt(
+            f"{path}/results/tensors/tensor_sites_{self.model}_L_{self.L}_chi_{self.chi}_h_{self.h:.{precision}f}",
+            tensor,
+        )
+        return self
+    
+    def save_sites_ANNNI(self, path, precision: int=2):
+        # shapes of the tensors
+        shapes = tensor_shapes(self.sites)
+        np.savetxt(
+            f"{path}/results/tensors/shapes_sites_{self.model}_L_{self.L}_chi_{self.chi}_h_{self.h:.{precision}f}_k_{self.J2:.{precision}f}",
             shapes,
             fmt="%1.i",  # , delimiter=','
         )
@@ -2662,6 +2690,35 @@ class MPS:
 
         return self
 
+    def load_sites_ANNNI(self, path, precision: int=2):
+        """
+        load_sites
+
+        This function load the tensors into the sites of the MPS.
+        We fetch a completely flat list, split it to recover the original tensors
+        (but still flat) and reshape each of them accordingly with the saved shapes.
+        To initially split the list in the correct index position refer to the auxiliary
+        function get_labels().
+
+        """
+        # loading of the shapes
+        shapes = np.loadtxt(
+            f"{path}/results/tensors/shapes_sites_{self.model}_L_{self.L}_chi_{self.chi}_h_{self.h:.{precision}f}_k_{self.J2:.{precision}f}"
+        ).astype(int)
+        # loading of the flat tensors
+        filedata = np.loadtxt(
+            f"{path}/results/tensors/tensor_sites_{self.model}_L_{self.L}_chi_{self.chi}_h_{self.h:.{precision}f}_k_{self.J2:.{precision}f}",
+            dtype=complex,
+        )
+        # auxiliary function to get the indices where to split
+        labels = get_labels(shapes)
+        flat_tn = np.array_split(filedata, labels)
+        flat_tn.pop(-1)
+        # reshape the flat tensors and initializing the sites
+        self.sites = [site.reshape(shapes[i]) for i, site in enumerate(flat_tn)]
+
+        return self
+    
     def load_sites_Z2(self, path, precision: int=2, cx: list=None, cy: list=None):
         """
         load_sites

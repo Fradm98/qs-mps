@@ -885,6 +885,7 @@ def plot_results_DMRG(
     n_points: float = 1,
     cmap: str = "viridis",
     precision: int = 2,
+    show: bool = True
 ):
     """
     plot_results_evolution
@@ -948,7 +949,9 @@ def plot_results_DMRG(
 
     if save:
         plt.savefig(f"{path_save}/{fname_save}_marker_{marker}.png")
-    plt.show()
+    if show:
+        plt.show()
+    plt.close()
 
 
 def plot_results_TEBD(

@@ -1,6 +1,6 @@
 import matplotlib.pyplot as plt
 import numpy as np
-from qs_mps.utils import plot_results_evolution, plot_colormaps_evolution
+from qs_mps.utils import plot_results_DMRG, plot_colormaps_evolution
 import argparse
 
 # default parameters of the plot layout
@@ -24,18 +24,21 @@ parser.add_argument(
     "h_f", help="Final value of h (external transverse field)", type=float
 )
 parser.add_argument(
-    "what",
-    help="Results we want to plot. Available are: 'mag_tot', 'mag_z', 'mag_x', 'entropy', 'err_mag_tot', 'err_mag_z', 'err_mag_x', 'err_entropy', 'entropy_tot', 'mag_loc' ",
+    "loc",
+    help="From which computer you want to access the drive. Useful for the path spec. Available are: 'pc', 'mac', 'marcos'",
     type=str,
 )
 parser.add_argument(
-    "loc",
-    help="From which computer you want to access the drive. Useful for the path spec. Available are: 'pc', 'mac', 'marcos'",
+    "what",
+    help="Results we want to plot. Available are: 'mag_tot', 'mag_z', 'mag_x', 'entropy', 'err_mag_tot', 'err_mag_z', 'err_mag_x', 'err_entropy', 'entropy_tot', 'mag_loc' ",
     type=str,
 )
 parser.add_argument("chis", help="Simulated bond dimensions", nargs="+", type=int)
 parser.add_argument(
     "-m", "--model", help="Model to simulate", default="Ising", type=str
+)
+parser.add_argument(
+    "-mo", "--moment", help="Moment degree of the Free energy. E.g. Magnetization -> First Moment, Susceptibility -> Second Moment, etc. Available are 1,2,4", default=1, type=int
 )
 parser.add_argument(
     "-t", "--time", help="Final time of the evolution", default=10, type=float
@@ -101,6 +104,12 @@ parser.add_argument(
     action="store_true",
 )
 parser.add_argument(
+    "-sh",
+    "--show",
+    help="Show the animation. By default False",
+    action="store_true",
+)
+parser.add_argument(
     "-e",
     "--exact",
     help="Exact results to compare the mps ones. If True we compare - be default False",
@@ -116,6 +125,13 @@ elif args.where == -2:
 
 interval = np.linspace(args.h_i, args.h_f, args.npoints).tolist()
 
+# define moment
+if args.moment == 1:
+    moment = "first"
+if args.moment == 2:
+    moment = "second"
+if args.moment == 4:
+    moment = "fourth"
 
 plot_val = [
     "mag_tot",
@@ -139,8 +155,8 @@ else:
     raise SyntaxError("insert a valid location: 'pc', 'mac', 'marcos'")
 
 if args.what == "mag_tot":
-    title = f"Total Magnetization: $L = {args.L}$ ;" + " $h_{ev}=$ " + f"${args.h_ev}$"
-    fname_what = "mag_mps_tot"
+    title = f"Total Magnetization: $L = {args.L}$"
+    fname_what = f"magnetization_{moment}_moment"
     fname_ex_what = "mag_exact_tot"
     path = path_computer + f"results/mag_data"
     path_ex = path_computer + f"results/exact/mag_data"
@@ -245,7 +261,7 @@ if args.what in plot_val:
     fname = f"{fname_what}_{args.model}_L_{args.L}_h_{args.h_i}-{args.h_f}_delta_{args.npoints}"
     fname_ex = f"{fname_ex_what}_{args.model}_L_{args.L}_h_{args.h_i}-{args.h_f}_delta_{args.npoints}"
     fname_save = f"{args.what}_{args.model}_L_{args.L}_h_{args.h_i}-{args.h_f}_delta_{args.npoints}"
-    plot_results_evolution(
+    plot_results_DMRG(
         title,
         for_array=args.chis,
         interval=interval,
@@ -264,6 +280,7 @@ if args.what in plot_val:
         alpha=args.alpha,
         n_points=args.n_points,
         cmap=args.cmap,
+        show=args.show
     )
 
 if args.what in plot_cmap:
