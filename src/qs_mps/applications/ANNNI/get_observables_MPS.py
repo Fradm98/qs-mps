@@ -74,6 +74,7 @@ if args.moment == 4:
 # ---------------------------------------------------------
 for chi in args.chis:
     M = []
+    LM = []
     for h in interval_h:
         for k in interval_k:
             chain_mps = MPS(L=args.L, d=args.d, model=args.model, chi=chi, h=h, J2=k)
@@ -81,19 +82,33 @@ for chi in args.chis:
             chain_mps.load_sites(path=path_tensor, precision=precision)
             
             if args.o == "mag":
-                print(f"Magnetization for h:{h:.{precision}f}")
+                print(f"Magnetization for h:{h:.{precision}f}, k:{k:.{precision}f}")
                 chain_mps.order_param()
                 if args.moment == 1:
-                    M.append(chain_mps.mpo_first_moment().real)
+                    M.append(chain_mps.mpo_first_moment().real/chain_mps.L)
                 elif args.moment == 2:
                     M.append(chain_mps.mpo_second_moment().real/(chain_mps.L**2))
                 elif args.moment == 4:
                     M.append(chain_mps.mpo_fourth_moment().real/(chain_mps.L**4))
+            
+            elif args.o == "loc_mag":
+                print(f"Local magnetization for h:{h:.{precision}f}, k:{k:.{precision}f}")
+                chain_mps.local_param(site=(chain_mps.L // 2))
+                LM.append(chain_mps.mpo_first_moment().real)
             else:
-                raise ValueError("Select a valid observable. Available are 'mag'")
+                raise ValueError("Select a valid observable. Available are 'mag', 'loc_mag'")
 
     if args.o == "mag":
-        np.savetxt(
-                    f"{parent_path}/results/mag_data/magnetization_{moment}_moment_{args.model}_h_{args.h_i}-{args.h_f}_k_{args.k_i}-{args.k_f}_delta_{args.npoints}_chi_{chi}",
+        M = np.array(M)
+        M = np.array_split(M, args.npoints)
+        np.save(
+                    f"{parent_path}/results/mag_data/magnetization_{moment}_moment_{args.model}_L_{args.L}_h_{args.h_i}-{args.h_f}_k_{args.k_i}-{args.k_f}_delta_{args.npoints}_chi_{chi}.npy",
                     M,
+                )
+    elif args.o == "loc_mag":
+        LM = np.array(LM)
+        LM = np.array_split(LM, args.npoints)
+        np.save(
+                    f"{parent_path}/results/mag_data/local_magnetization_{args.model}_L_{args.L}_h_{args.h_i}-{args.h_f}_k_{args.k_i}-{args.k_f}_delta_{args.npoints}_chi_{chi}.npy",
+                    LM,
                 )

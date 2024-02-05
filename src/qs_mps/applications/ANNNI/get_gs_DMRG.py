@@ -91,14 +91,14 @@ interval_k = np.linspace(args.k_i, args.k_f, args.npoints)
 # take the path and precision to save files
 # if we want to save the tensors we save them locally because they occupy a lot of memory
 if args.path == "pc":
-    parent_path = "G:/My Drive/projects/1_Z2"
-    path_tensor = "D:/code/projects/1_Z2"
+    parent_path = "G:/My Drive/projects/2_ANNNI"
+    path_tensor = "D:/code/projects/2_ANNNI"
 elif args.path == "mac":
-    parent_path = "/Users/fradm98/Google Drive/My Drive/projects/1_Z2"
-    path_tensor = "/Users/fradm98/Desktop/projects/1_Z2"
+    parent_path = "/Users/fradm98/Google Drive/My Drive/projects/2_ANNNI"
+    path_tensor = "/Users/fradm98/Desktop/projects/2_ANNNI"
 elif args.path == "marcos":
-    parent_path = "/Users/fradm/Google Drive/My Drive/projects/1_Z2"
-    path_tensor = "/Users/fradm/Desktop/projects/1_Z2"
+    parent_path = "/Users/fradm/Google Drive/My Drive/projects/2_ANNNI"
+    path_tensor = "/Users/fradm/Desktop/projects/2_ANNNI"
 else:
     raise SyntaxError("Path not valid. Choose among 'pc', 'mac', 'marcos'")
 
@@ -121,8 +121,8 @@ for chi in args.chis:  # L // 2 + 1
         "chi": chi,
         "type_shape": args.type_shape,
         "model": args.model,
-        "trunc_tol": True,
-        "trunc_chi": False,
+        "trunc_tol": False,
+        "trunc_chi": True,
         "where": args.where,
         "bond": args.bond,
         "path": path_tensor,
