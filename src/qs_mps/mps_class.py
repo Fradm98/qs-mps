@@ -21,7 +21,7 @@ from qs_mps.TensorMultiplier import TensorMultiplierOperator
 
 class MPS:
     def __init__(
-        self, L, d, model=str, chi=None, w=None, h=None, eps=None, J=None, charges=None
+        self, L, d, model=str, chi=None, w=None, h=None, eps=None, J=None, J2=None, charges=None
     ):
         self.L = L
         self.d = d
@@ -32,6 +32,7 @@ class MPS:
         self.h = h
         self.eps = eps
         self.J = J
+        self.J2 = J2
         self.charges = charges
         self.site = 1
         self.sites = []
@@ -543,6 +544,9 @@ class MPS:
         elif self.model == "Z2_two_ladder":
             self.mpo_Z2_two_ladder()
 
+        elif self.model == "ANNNI":
+            self.mpo_ANNNI()
+
         elif self.model == "Z2_dual":
             self.Z2.mpo_Z2_ladder_generalized()
             self.w = self.Z2.mpo
@@ -568,6 +572,30 @@ class MPS:
         for _ in range(self.L):
             w = np.array(
                 [[I, -self.J * Z, -self.h * X - self.eps * X], [O, O, Z], [O, O, I]]
+            )
+            w_tot.append(w)
+        self.w = w_tot
+        return self
+    
+    def mpo_ANNNI(self):
+        """
+        mpo_ANNNI
+
+        This function defines the MPO for the 1D Axial Next-Nearest Neighbor Interaction model.
+        It takes the same MPO for all sites.
+
+        """
+        I = identity(2, dtype=complex).toarray()
+        O = csc_array((2, 2), dtype=complex).toarray()
+        X = sparse_pauli_x(n=0, L=1).toarray()
+        Z = sparse_pauli_z(n=0, L=1).toarray()
+        w_tot = []
+        for _ in range(self.L):
+            w = np.array(
+                [[I, Z, O, -self.h * X], 
+                 [O, O, I, -self.J * Z], 
+                 [O, O, O, -self.J2 * Z], 
+                 [O, O, O, I]]
             )
             w_tot.append(w)
         self.w = w_tot
@@ -844,6 +872,9 @@ class MPS:
         """
         if self.model == "Ising":
             self.order_param_Ising(op=op)
+        
+        elif self.model == "ANNNI":
+            self.order_param_Ising(op=op)
 
         elif self.model == "Z2_two_ladder":
             self.order_param_Z2()
@@ -866,9 +897,10 @@ class MPS:
         """
         I = np.eye(2)
         O = np.zeros((2, 2))
+        op = sparse_pauli_z(n=0, L=1).toarray()
         w_tot = []
         for _ in range(self.L):
-            w_mag = np.array([[I, O, op], [O, O, O], [O, O, I]])
+            w_mag = np.array([[I, op], [O, I]])
             w_tot.append(w_mag)
         self.w = w_tot
         return self
@@ -1403,7 +1435,7 @@ class MPS:
         # )
         print(f"Time of eigsh during eigensolver for site {site}: {time.perf_counter()-time_eig}")
         e_min = e[0].real
-        eigvec = np.array(v)
+        eigvec = np.array(v[:,0])
 
         self.sites[site - 1] = eigvec.reshape(
             self.env_left[-1].shape[0], self.d, self.env_right[-1].shape[0]
@@ -2550,8 +2582,12 @@ class MPS:
         """
         if "Ising" in self.model:
             self.save_sites_Ising(path=path, precision=precision)
+        elif "ANNNI" in self.model:
+            self.save_sites_ANNNI(path=path, precision=precision)
         elif "Z2" in self.model:
             self.save_sites_Z2(path=path, precision=precision, cx=cx, cy=cy)
+        else:
+            raise ValueError("Choose a correct model")
         return self
     
     def load_sites(self, path: str, precision: int=2, cx: list=None, cy: list=None):
@@ -2567,8 +2603,12 @@ class MPS:
         """
         if "Ising" in self.model:
             self.load_sites_Ising(path=path, precision=precision)
+        elif "ANNNI" in self.model:
+            self.load_sites_ANNNI(path=path, precision=precision)
         elif "Z2" in self.model:
             self.load_sites_Z2(path=path, precision=precision, cx=cx, cy=cy)
+        else:
+            raise ValueError("Choose a correct model")
         return self
 
     def save_sites_Ising(self, path, precision: int=2):
@@ -2576,6 +2616,23 @@ class MPS:
         shapes = tensor_shapes(self.sites)
         np.savetxt(
             f"{path}/results/tensors/shapes_sites_{self.model}_L_{self.L}_chi_{self.chi}_h_{self.h:.{precision}f}",
+            shapes,
+            fmt="%1.i",  # , delimiter=','
+        )
+
+        # flattening of the tensors
+        tensor = [element for site in self.sites for element in site.flatten()]
+        np.savetxt(
+            f"{path}/results/tensors/tensor_sites_{self.model}_L_{self.L}_chi_{self.chi}_h_{self.h:.{precision}f}",
+            tensor,
+        )
+        return self
+    
+    def save_sites_ANNNI(self, path, precision: int=2):
+        # shapes of the tensors
+        shapes = tensor_shapes(self.sites)
+        np.savetxt(
+            f"{path}/results/tensors/shapes_sites_{self.model}_L_{self.L}_chi_{self.chi}_h_{self.h:.{precision}f}_k_{self.J2:.{precision}f}",
             shapes,
             fmt="%1.i",  # , delimiter=','
         )
@@ -2633,6 +2690,35 @@ class MPS:
 
         return self
 
+    def load_sites_ANNNI(self, path, precision: int=2):
+        """
+        load_sites
+
+        This function load the tensors into the sites of the MPS.
+        We fetch a completely flat list, split it to recover the original tensors
+        (but still flat) and reshape each of them accordingly with the saved shapes.
+        To initially split the list in the correct index position refer to the auxiliary
+        function get_labels().
+
+        """
+        # loading of the shapes
+        shapes = np.loadtxt(
+            f"{path}/results/tensors/shapes_sites_{self.model}_L_{self.L}_chi_{self.chi}_h_{self.h:.{precision}f}_k_{self.J2:.{precision}f}"
+        ).astype(int)
+        # loading of the flat tensors
+        filedata = np.loadtxt(
+            f"{path}/results/tensors/tensor_sites_{self.model}_L_{self.L}_chi_{self.chi}_h_{self.h:.{precision}f}_k_{self.J2:.{precision}f}",
+            dtype=complex,
+        )
+        # auxiliary function to get the indices where to split
+        labels = get_labels(shapes)
+        flat_tn = np.array_split(filedata, labels)
+        flat_tn.pop(-1)
+        # reshape the flat tensors and initializing the sites
+        self.sites = [site.reshape(shapes[i]) for i, site in enumerate(flat_tn)]
+
+        return self
+    
     def load_sites_Z2(self, path, precision: int=2, cx: list=None, cy: list=None):
         """
         load_sites

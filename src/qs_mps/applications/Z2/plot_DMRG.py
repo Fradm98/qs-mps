@@ -46,6 +46,9 @@ parser.add_argument(
     "-m", "--model", help="Model to simulate", default="Z2_dual", type=str
 )
 parser.add_argument(
+    "-mo", "--moment", help="Moment of the order parameter. Available are 1,2, and 4. By default 1", default=1, type=int
+)
+parser.add_argument(
     "-t", "--time", help="Final time of the evolution", default=10, type=float
 )
 parser.add_argument(
@@ -143,6 +146,14 @@ else:
         if len(args.charges_x) == i:
             sector = f"{i}_particle(s)_sector"
 
+# define the moment
+if args.moment == 1:
+    moment = "first"
+elif args.moment == 2:
+    moment = "second"
+elif args.moment == 4:
+    moment = "fourth"
+
 
 plot_val = [
     "energy",
@@ -195,8 +206,8 @@ elif args.what == "wilson_loop":
 
 elif args.what == "thooft":
     title = f"'t Hooft {direction} string: lattice = ${args.l}$x${args.L-1}$ ;" + " $\mu^z$ for " + f"L={args.sites[0]}, l={args.ladders[0]}" + " dual"
-    fname_what = f"thooft_string_{args.sites[0]}-{args.ladders[0]}_{direction}"
-    fname_ex_what = f"thooft_string_{args.sites[0]}-{args.ladders[0]}_{direction}"
+    fname_what = f"thooft_string_{moment}_moment_{args.sites[0]}-{args.ladders[0]}_{direction}"
+    fname_ex_what = f"thooft_string_{moment}_moment_{args.sites[0]}-{args.ladders[0]}_{direction}"
     path = path_computer + f"results/thooft"
     path_ex = path_computer + f"results/exact/thooft"
     path_save = path_computer + f"figures/thooft/"
