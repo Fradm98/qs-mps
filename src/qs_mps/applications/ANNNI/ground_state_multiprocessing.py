@@ -75,7 +75,7 @@ def ground_state_ANNNI(args_mps, multpr, param):
         for h in param[0]:
             for k in param[1]:
                 params = [args_mps, [h,k]]
-                energy, entropy = ground_state_ANNNI_param(params=params)
+                energy, entropy, schmidt_vals = ground_state_ANNNI_param(params=params)
                 energies_param.append(energy[-1])
                 entropies_param.append(entropy)
 

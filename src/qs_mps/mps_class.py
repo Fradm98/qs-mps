@@ -880,7 +880,7 @@ class MPS:
             self.order_param_Z2()
 
         elif self.model == "Z2_dual":
-            self.order_param_Z2_dual(site=site, l=l, direction=direction)
+            self.order_param_Z2_dual()
 
         return self
 
@@ -946,7 +946,7 @@ class MPS:
         self.w = w_tot
         return self
 
-    def order_param_Z2_dual(self, site: int, l: int, direction: str):
+    def order_param_Z2_dual(self):
         """
         order_param_Z2_dual
 
@@ -954,14 +954,16 @@ class MPS:
         on the dual lattice. It is equivalent to a 2D transverse field Ising model.
 
         """
-        # self.Z2.thooft(site=site, l=l, direction=direction)
 
         self.Z2.mpo_skeleton(aux_dim=2)
 
         mpo_tot = []
         for mpo_site in range(self.Z2.L-1):
-            for l in range(self.Z2.l):
-                self.Z2.mpo[0,-1] += sparse_pauli_z(n=l, L=self.Z2.l).toarray()
+            if mpo_site == 0 or mpo_site == (self.Z2.L-2):
+                self.Z2.mpo_skeleton(aux_dim=2)
+            else:
+                for l in range(1,self.Z2.l-1):
+                    self.Z2.mpo[0,-1] += sparse_pauli_z(n=l, L=self.Z2.l).toarray()
             mpo_tot.append(self.Z2.mpo)
             self.Z2.mpo_skeleton(aux_dim=2)
                     
@@ -970,7 +972,7 @@ class MPS:
         self.w = self.Z2.mpo
         return self
 
-    def local_param(self, site: None, op: None):
+    def local_param(self, site: None, op: np.ndarray=None):
         """
         local_param
 
@@ -981,6 +983,9 @@ class MPS:
         """
         if self.model == "Ising":
             self.single_operator_Ising(site=site, op=op)
+
+        elif self.model == "ANNNI":
+            self.single_operator_ANNNI(site=site)
 
         elif self.model == "Z2_two_ladder":
             self.sigma_x_Z2_two_ladder()
@@ -1038,7 +1043,7 @@ class MPS:
         self.w = w_tot
         return self
 
-    def single_operator_Ising(self, site, op):
+    def single_operator_Ising(self, site, op: np.ndarray=None):
         """
         single_operator_Ising
 
@@ -1058,6 +1063,31 @@ class MPS:
             else:
                 alpha = 0
             w_mag = np.array([[I, O, alpha * op], [O, O, O], [O, O, I]])
+            w_tot.append(w_mag)
+        self.w = w_tot
+        return self
+    
+    def single_operator_ANNNI(self, site):
+        """
+        single_operator_Ising
+
+        This function computes a local operator (op) for the 1D Ising model
+        on a certain arbitrary site.
+
+        site: int - local site where the operator acts
+        op: np.ndarray - operator acting on the local site
+
+        """
+        I = np.eye(2)
+        O = np.zeros((2, 2))
+        Z = sparse_pauli_z(n=0, L=1).toarray()
+        w_tot = []
+        for i in range(self.L):
+            if i == site - 1:
+                alpha = 1
+            else:
+                alpha = 0
+            w_mag = np.array([[I, alpha * Z], [O, I]])
             w_tot.append(w_mag)
         self.w = w_tot
         return self
@@ -1427,6 +1457,11 @@ class MPS:
                             self.env_left[-1].shape[2] * self.d * self.env_right[-1].shape[2],
                             ), matvec=self.mv, dtype=np.complex128)
         
+        print(f"shape of A: {A.shape}")
+        # if A.shape[0] == 2:
+        #     H = self.H_eff(site=site)
+        #     e, v = eigsh(H, k=1, v0=v0)
+        # else:
         e, v = eigs(A, k=1, v0=v0)
         # e, v = eigsh(H_eff, k=1, which="SA", v0=v0)
         # np.savetxt(
@@ -2640,7 +2675,7 @@ class MPS:
         # flattening of the tensors
         tensor = [element for site in self.sites for element in site.flatten()]
         np.savetxt(
-            f"{path}/results/tensors/tensor_sites_{self.model}_L_{self.L}_chi_{self.chi}_h_{self.h:.{precision}f}",
+            f"{path}/results/tensors/tensor_sites_{self.model}_L_{self.L}_chi_{self.chi}_h_{self.h:.{precision}f}_k_{self.J2:.{precision}f}",
             tensor,
         )
         return self
