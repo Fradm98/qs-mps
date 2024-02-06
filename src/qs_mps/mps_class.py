@@ -594,7 +594,7 @@ class MPS:
             w = np.array(
                 [[I, Z, O, -self.h * X], 
                  [O, O, I, -self.J * Z], 
-                 [O, O, O, -self.J2 * Z], 
+                 [O, O, O, -(self.J2/self.J) * Z], 
                  [O, O, O, I]]
             )
             w_tot.append(w)
@@ -904,7 +904,7 @@ class MPS:
             w_tot.append(w_mag)
         self.w = w_tot
         return self
-
+    
     def order_param_Z2(self):
         """
         order_param_Z2
@@ -1082,12 +1082,12 @@ class MPS:
         O = np.zeros((2, 2))
         Z = sparse_pauli_z(n=0, L=1).toarray()
         w_tot = []
+        w_init = np.array([[I, O], [O, I]])
         for i in range(self.L):
+            w_mag = w_init
             if i == site - 1:
-                alpha = 1
-            else:
-                alpha = 0
-            w_mag = np.array([[I, alpha * Z], [O, I]])
+                w_mag[0,-1] = Z
+        
             w_tot.append(w_mag)
         self.w = w_tot
         return self

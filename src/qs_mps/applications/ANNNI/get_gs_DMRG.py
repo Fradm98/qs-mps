@@ -156,10 +156,10 @@ for chi in args.chis:  # L // 2 + 1
                 energy_chi,
             )
              
-        # save_list_of_lists(
-        #     f"{parent_path}/results/entropy_data/{args.where}_bond_entropy_{args.model}_spin_{args.L}_h_{args.h_i}-{args.h_f}_k_{args.k_i}-{args.k_f}_delta_{args.npoints}_chi_{chi}",
-        #     entropy_chi,
-        # )
+        save_list_of_lists(
+            f"{parent_path}/results/entropy_data/{args.where}_bond_entropy_{args.model}_spin_{args.L}_h_{args.h_i}-{args.h_f}_k_{args.k_i}-{args.k_f}_delta_{args.npoints}_chi_{chi}",
+            entropy_chi,
+        )
         if args.where == "all":
             entropy_mid = access_txt(
                 f"{parent_path}/results/entropy_data/{args.where}_bond_entropy_{args.model}_spin_{args.L}_h_{args.h_i}-{args.h_f}_k_{args.k_i}-{args.k_f}_delta_{args.npoints}_chi_{chi}",
