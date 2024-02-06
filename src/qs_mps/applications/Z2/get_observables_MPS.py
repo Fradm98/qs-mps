@@ -132,7 +132,7 @@ for chi in args.chis:
             print(f"Magnetization for h:{h:.{precision}f}")
             lattice_mps.order_param()
             if args.moment == 1:
-                M.append(lattice_mps.mpo_first_moment().real)
+                M.append(lattice_mps.mpo_first_moment().real/(len(lattice_mps.Z2.latt.plaquettes()) - 2*(args.L-1)-2*(args.l-2)))
             elif args.moment == 2:
                 M.append(lattice_mps.mpo_second_moment().real/((len(lattice_mps.Z2.latt.plaquettes()) - 2*(args.L-1)-2*(args.l-2))**2))
             elif args.moment == 4:
@@ -157,5 +157,5 @@ for chi in args.chis:
     if args.o == "mag":
         np.save(
                     f"{parent_path}/results/mag_data/dual_mag_{moment}_moment_{args.model}_direct_lattice_{args.l}x{args.L-1}_{sector}_{args.charges_x}-{args.charges_y}_h_{args.h_i}-{args.h_f}_delta_{args.npoints}_chi_{chi}.npy",
-                    S,
+                    M,
                 )
