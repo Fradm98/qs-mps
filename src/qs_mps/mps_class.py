@@ -21,7 +21,7 @@ from qs_mps.TensorMultiplier import TensorMultiplierOperator
 
 class MPS:
     def __init__(
-        self, L, d, model=str, chi=None, w=None, h=None, eps=None, J=None, J2=None, charges=None
+        self, L, d, model=str, chi=None, w=None, h=None, eps=None, J=None, k=None, charges=None
     ):
         self.L = L
         self.d = d
@@ -32,7 +32,7 @@ class MPS:
         self.h = h
         self.eps = eps
         self.J = J
-        self.J2 = J2
+        self.k = k # (take positive values for annni model)
         self.charges = charges
         self.site = 1
         self.sites = []
@@ -592,9 +592,9 @@ class MPS:
         w_tot = []
         for _ in range(self.L):
             w = np.array(
-                [[I, Z, O, -self.h * X], 
-                 [O, O, I, -self.J * Z], 
-                 [O, O, O, -(self.J2/self.J) * Z], 
+                [[I, X, O, (-self.h * self.J) * Z], 
+                 [O, O, I, -self.J * X], 
+                 [O, O, O, (self.k * self.J) * X], 
                  [O, O, O, I]]
             )
             w_tot.append(w)
@@ -1451,13 +1451,13 @@ class MPS:
             site. Default Nones
 
         """
-        time_eig = time.perf_counter()
+        # time_eig = time.perf_counter()
         A = TensorMultiplierOperator((
                             self.env_left[-1].shape[0] * self.d * self.env_right[-1].shape[0],
                             self.env_left[-1].shape[2] * self.d * self.env_right[-1].shape[2],
                             ), matvec=self.mv, dtype=np.complex128)
         
-        print(f"shape of A: {A.shape}")
+        # print(f"shape of A: {A.shape}")
         # if A.shape[0] == 2:
         #     H = self.H_eff(site=site)
         #     e, v = eigsh(H, k=1, v0=v0)
@@ -1468,7 +1468,7 @@ class MPS:
         #     f"/Users/fradm/mps/results/times_data/eigsh_eigensolver_site_{site}_h_{self.h:.2f}",
         #     [time.perf_counter() - time_eig],
         # )
-        print(f"Time of eigsh during eigensolver for site {site}: {time.perf_counter()-time_eig}")
+        # print(f"Time of eigsh during eigensolver for site {site}: {time.perf_counter()-time_eig}")
         e_min = e[0].real
         eigvec = np.array(v[:,0])
 
@@ -1662,6 +1662,7 @@ class MPS:
 
         iter = 1
         
+        t_start = time.perf_counter()
         for n in range(n_sweeps):
             print(f"Sweep n: {n}\n")
             entropy = []
@@ -1671,17 +1672,17 @@ class MPS:
                 # t_start = time.perf_counter()
                 # H = self.H_eff(sites[i])
                 # print(f"Time effective Ham: {abs(time.perf_counter()-t_start)}")
-                t_start = time.perf_counter()
+                # t_start = time.perf_counter()
                 self.site = sites[i]
                 energy = self.eigensolver(site=sites[i], v0=v0) # , v0=v0
                 # energy = self.eigensolver(H_eff=H, site=sites[i], v0=v0) # , v0=v0
-                print(f"Time eigensolver: {abs(time.perf_counter()-t_start)}")
+                # print(f"Time eigensolver: {abs(time.perf_counter()-t_start)}")
                 energies.append(energy)
-                t_start = time.perf_counter()
+                # t_start = time.perf_counter()
                 s = self.update_state(
                     sweeps[0], sites[i], trunc_tol, trunc_chi, schmidt_tol
                 )
-                print(f"Time update state: {abs(time.perf_counter()-t_start)}")
+                # print(f"Time update state: {abs(time.perf_counter()-t_start)}")
                 if bond:
                     if sites[i] - 1 == where:
                         entr = von_neumann_entropy(s)
@@ -1692,9 +1693,9 @@ class MPS:
                     entropy.append(entr)
                     schmidt_vals.append(s)
 
-                t_start = time.perf_counter()
+                # t_start = time.perf_counter()
                 self.update_envs(sweeps[0], sites[i])
-                print(f"Time update envs: {abs(time.perf_counter()-t_start)}")
+                # print(f"Time update envs: {abs(time.perf_counter()-t_start)}")
                 iter += 1
 
             # print("reversing the sweep")
@@ -1713,6 +1714,7 @@ class MPS:
                 + f"to an order of {conv_tol} after:\n"
                 + f"{n} sweeps at site {sites[i]}\n"
                 + f"total iterations {iter}"
+                + f"total time: {abs(time.perf_counter()-t_start)}"
             )
             print("##############################")
         else:
@@ -1721,6 +1723,7 @@ class MPS:
                 f"The energy between the two last updated states converged\n"
                 + f"to an order of {energy_dist}\n"
                 + f"instead of the convergence tolerance {conv_tol}"
+                + f"total time: {abs(time.perf_counter()-t_start)}"
             )
             print("##############################")
         return energies, entropy, schmidt_vals
@@ -2667,7 +2670,7 @@ class MPS:
         # shapes of the tensors
         shapes = tensor_shapes(self.sites)
         np.savetxt(
-            f"{path}/results/tensors/shapes_sites_{self.model}_L_{self.L}_chi_{self.chi}_h_{self.h:.{precision}f}_k_{self.J2:.{precision}f}",
+            f"{path}/results/tensors/shapes_sites_{self.model}_L_{self.L}_chi_{self.chi}_h_{self.h:.{precision}f}_k_{self.k:.{precision}f}",
             shapes,
             fmt="%1.i",  # , delimiter=','
         )
@@ -2675,7 +2678,7 @@ class MPS:
         # flattening of the tensors
         tensor = [element for site in self.sites for element in site.flatten()]
         np.savetxt(
-            f"{path}/results/tensors/tensor_sites_{self.model}_L_{self.L}_chi_{self.chi}_h_{self.h:.{precision}f}_k_{self.J2:.{precision}f}",
+            f"{path}/results/tensors/tensor_sites_{self.model}_L_{self.L}_chi_{self.chi}_h_{self.h:.{precision}f}_k_{self.k:.{precision}f}",
             tensor,
         )
         return self
@@ -2738,11 +2741,11 @@ class MPS:
         """
         # loading of the shapes
         shapes = np.loadtxt(
-            f"{path}/results/tensors/shapes_sites_{self.model}_L_{self.L}_chi_{self.chi}_h_{self.h:.{precision}f}_k_{self.J2:.{precision}f}"
+            f"{path}/results/tensors/shapes_sites_{self.model}_L_{self.L}_chi_{self.chi}_h_{self.h:.{precision}f}_k_{self.k:.{precision}f}"
         ).astype(int)
         # loading of the flat tensors
         filedata = np.loadtxt(
-            f"{path}/results/tensors/tensor_sites_{self.model}_L_{self.L}_chi_{self.chi}_h_{self.h:.{precision}f}_k_{self.J2:.{precision}f}",
+            f"{path}/results/tensors/tensor_sites_{self.model}_L_{self.L}_chi_{self.chi}_h_{self.h:.{precision}f}_k_{self.k:.{precision}f}",
             dtype=complex,
         )
         # auxiliary function to get the indices where to split

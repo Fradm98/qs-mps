@@ -14,13 +14,13 @@ def ground_state_ANNNI_param(params):
         model=args_mps["model"],
         chi=args_mps["chi"],
         h=h,
-        J2=k,
+        k=k,
         J=1
     )
     save = args_mps["save"]
     precision = args_mps["precision"]
     chain._random_state(seed=3, chi=args_mps["chi"], type_shape=args_mps["type_shape"])
-    tensor_shapes(chain.sites)
+    # tensor_shapes(chain.sites)
     chain.canonical_form(trunc_chi=True, trunc_tol=False)
     
     energy, entropy, schmidt_vals = chain.DMRG(
@@ -72,11 +72,20 @@ def ground_state_ANNNI(args_mps, multpr, param):
     else:
         energies_param = []
         entropies_param = []
+        schmidt_vals_param = []
         for h in param[0]:
+            energies_h = []
+            entropies_h = []
+            schmidt_vals_h = []
             for k in param[1]:
+                # if h == 0 and k > 0.48:
                 params = [args_mps, [h,k]]
                 energy, entropy, schmidt_vals = ground_state_ANNNI_param(params=params)
-                energies_param.append(energy[-1])
-                entropies_param.append(entropy)
+                energies_h.append(energy[-1])
+                entropies_h.append(entropy)
+                schmidt_vals_h.append(schmidt_vals)
+            energies_param.append(energies_h)
+            entropies_param.append(entropies_h)
+            schmidt_vals_param.append(schmidt_vals_h)
 
-    return energies_param, entropies_param
+    return energies_param, entropies_param, schmidt_vals_param
