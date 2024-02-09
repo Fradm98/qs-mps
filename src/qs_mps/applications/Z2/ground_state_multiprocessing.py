@@ -81,7 +81,7 @@ def ground_state_Z2_param(params):
 
     if save:
         ladder.save_sites(args_mps["path"], args_mps["precision"], args_mps["charges_x"], args_mps["charges_y"])
-    return energy, entropy
+    return energy, entropy, schmidt_vals
 
 
 def ground_state_Z2_multpr(args_mps, multpr_param, cpu_percentage=90):
@@ -110,10 +110,12 @@ def ground_state_Z2(args_mps, multpr, param):
     else:
         energies_param = []
         entropies_param = []
+        schmidt_vals_param = []
         for p in param:
             params = [args_mps, p]
-            energy, entropy = ground_state_Z2_param(params=params)
+            energy, entropy, schmidt_vals = ground_state_Z2_param(params=params)
             energies_param.append(energy[-1])
             entropies_param.append(entropy)
+            schmidt_vals_param.append(schmidt_vals)
 
-    return energies_param, entropies_param
+    return energies_param, entropies_param, schmidt_vals_param

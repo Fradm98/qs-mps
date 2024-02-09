@@ -142,7 +142,7 @@ for chi in args.chis:  # L // 2 + 1
         "charges_y": args.charges_y,
     }
     if __name__ == "__main__":
-        energy_chi, entropy_chi = ground_state_Z2(
+        energy_chi, entropy_chi, schmidt_vals_chi = ground_state_Z2(
             args_mps=args_mps, multpr=args.multpr, param=interval
         )
 
@@ -171,6 +171,10 @@ for chi in args.chis:  # L // 2 + 1
         save_list_of_lists(
             f"{parent_path}/results/entropy_data/{args.where}_bond_entropy_{args.model}_direct_lattice_{args.l}x{args.L-1}_{sector}_{args.charges_x}-{args.charges_y}_h_{args.h_i}-{args.h_f}_delta_{args.npoints}_chi_{chi}",
             entropy_chi,
+        )
+        save_list_of_lists(
+            f"{parent_path}/results/entropy_data/{args.where}_schmidt_vals_{args.model}_direct_lattice_{args.l}x{args.L-1}_{sector}_{args.charges_x}-{args.charges_y}_h_{args.h_i}-{args.h_f}_delta_{args.npoints}_chi_{chi}",
+            schmidt_vals_chi,
         )
         if args.where == "all":
             entropy_mid = access_txt(
