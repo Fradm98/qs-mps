@@ -959,7 +959,7 @@ class MPS:
 
         mpo_tot = []
         for mpo_site in range(self.Z2.L-1):
-            if mpo_site == 0 or mpo_site == (self.Z2.L-2):
+            if mpo_site == 0 or mpo_site == (self.Z2.L-2): # or mpo_site == 1 or mpo_site == (self.Z2.L-3)
                 self.Z2.mpo_skeleton(aux_dim=2)
             else:
                 for l in range(1,self.Z2.l-1):
