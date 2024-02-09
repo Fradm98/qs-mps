@@ -77,7 +77,7 @@ for chi in args.chis:
     LM = []
     for h in interval_h:
         for k in interval_k:
-            chain_mps = MPS(L=args.L, d=args.d, model=args.model, chi=chi, h=h, J2=k)
+            chain_mps = MPS(L=args.L, d=args.d, model=args.model, chi=chi, h=h, k=k)
 
             chain_mps.load_sites(path=path_tensor, precision=precision)
             
