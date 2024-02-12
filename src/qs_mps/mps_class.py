@@ -372,7 +372,7 @@ class MPS:
 
         return self
 
-    def enlarge_chi(self):
+    def enlarge_chi(self, type_shape: str="rectangular", prnt: bool=False):
         """
         enlarge_chi
 
@@ -381,19 +381,27 @@ class MPS:
 
         """
         extended_array = []
-        chi = int(np.log2(self.chi))
-        for i in range(chi):
-            extended_array.append(np.zeros((self.d**i, self.d, self.d ** (i + 1))))
-        for _ in range(self.L - (2 * chi)):
-            extended_array.append(np.zeros((self.d**chi, self.d, self.d**chi)))
-        for i in range(chi):
-            extended_array.append(
-                np.zeros((self.d ** (chi - i), self.d, self.d ** (chi - i - 1)))
-            )
-        print("shapes enlarged tensors:")
-        tensor_shapes(extended_array)
-        print("shapes original tensors:")
-        shapes = tensor_shapes(self.sites)
+        if type_shape == "trapezoidal":
+            chi = int(np.log2(self.chi))
+            for i in range(chi):
+                extended_array.append(np.zeros((self.d**i, self.d, self.d ** (i + 1))))
+            for _ in range(self.L - (2 * chi)):
+                extended_array.append(np.zeros((self.d**chi, self.d, self.d**chi)))
+            for i in range(chi):
+                extended_array.append(
+                    np.zeros((self.d ** (chi - i), self.d, self.d ** (chi - i - 1)))
+                )
+
+        elif type_shape == "rectangular":
+            extended_array.append(np.zeros((1,self.d,self.chi)))
+            for _ in range(self.L-2):
+                extended_array.append(np.zeros((self.chi,self.d,self.chi)))
+            extended_array.append(np.zeros((self.chi,self.d,1)))
+        if prnt:
+            print("shapes enlarged tensors:")
+            tensor_shapes(extended_array)
+            print("shapes original tensors:")
+        shapes = tensor_shapes(self.sites, prnt=prnt)
         for i, shape in enumerate(shapes):
             extended_array[i][: shape[0], : shape[1], : shape[2]] = self.sites[i]
 
@@ -2653,7 +2661,7 @@ class MPS:
         # shapes of the tensors
         shapes = tensor_shapes(self.sites)
         np.savetxt(
-            f"{path}/results/tensors/shapes_sites_{self.model}_L_{self.L}_chi_{self.chi}_h_{self.h:.{precision}f}",
+            f"{path}/results/tensors/shapes_sites_{self.model}_L_{self.L}_chi_{self.chi}_h_{self.h:.{precision}f}_J_{self.J:.{precision}f}",
             shapes,
             fmt="%1.i",  # , delimiter=','
         )
@@ -2661,7 +2669,7 @@ class MPS:
         # flattening of the tensors
         tensor = [element for site in self.sites for element in site.flatten()]
         np.savetxt(
-            f"{path}/results/tensors/tensor_sites_{self.model}_L_{self.L}_chi_{self.chi}_h_{self.h:.{precision}f}",
+            f"{path}/results/tensors/tensor_sites_{self.model}_L_{self.L}_chi_{self.chi}_h_{self.h:.{precision}f}_J_{self.J:.{precision}f}",
             tensor,
         )
         return self
@@ -2712,11 +2720,11 @@ class MPS:
         """
         # loading of the shapes
         shapes = np.loadtxt(
-            f"{path}/results/tensors/shapes_sites_{self.model}_L_{self.L}_chi_{self.chi}_h_{self.h:.{precision}f}"
+            f"{path}/results/tensors/shapes_sites_{self.model}_L_{self.L}_chi_{self.chi}_h_{self.h:.{precision}f}_J_{self.J:.{precision}f}"
         ).astype(int)
         # loading of the flat tensors
         filedata = np.loadtxt(
-            f"{path}/results/tensors/tensor_sites_{self.model}_L_{self.L}_chi_{self.chi}_h_{self.h:.{precision}f}",
+            f"{path}/results/tensors/tensor_sites_{self.model}_L_{self.L}_chi_{self.chi}_h_{self.h:.{precision}f}_J_{self.J:.{precision}f}",
             dtype=complex,
         )
         # auxiliary function to get the indices where to split
