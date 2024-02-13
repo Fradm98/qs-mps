@@ -9,7 +9,6 @@ from qs_mps.applications.Z2.ground_state_multiprocessing import ground_state_Z2
 
 parser = argparse.ArgumentParser(prog="gs_search_Z2")
 parser.add_argument("l", help="Number of ladders in the direct lattice", type=int)
-parser.add_argument("L", help="Number of rungs per ladder", type=int)
 parser.add_argument(
     "npoints",
     help="Number of points in an interval of transverse field values",
@@ -27,6 +26,7 @@ parser.add_argument(
     type=str,
 )
 parser.add_argument("chis", help="Simulated bond dimensions", nargs="+", type=int)
+parser.add_argument("-L", "--Ls", help="Number of rungs per ladder", nargs="+", type=int)
 parser.add_argument("-cx", "--charges_x", help="a list of the first index of the charges", nargs="*", type=int)
 parser.add_argument("-cy", "--charges_y", help="a list of the second index of the charges", nargs="*", type=int)
 parser.add_argument(
@@ -114,74 +114,75 @@ else:
         if len(args.charges_x) == i:
             sector = f"{i}_particle(s)_sector"
 
-# where to look at for the entropy
-if args.where == -1:
-    args.where = args.L // 2
-elif args.where == -2:
-    args.bond = False
 
 # ---------------------------------------------------------
 # DMRG
 # ---------------------------------------------------------
-for chi in args.chis:  # L // 2 + 1
-    args_mps = {
-        "L": args.L,
-        "d": d,
-        "chi": chi,
-        "type_shape": args.type_shape,
-        "model": args.model,
-        "trunc_tol": False,
-        "trunc_chi": True,
-        "where": args.where,
-        "bond": args.bond,
-        "path": path_tensor,
-        "save": args.save,
-        "precision": precision,
-        "sector": sector,
-        "charges_x": args.charges_x,
-        "charges_y": args.charges_y,
-    }
-    if __name__ == "__main__":
-        energy_chi, entropy_chi, schmidt_vals_chi = ground_state_Z2(
-            args_mps=args_mps, multpr=args.multpr, param=interval
-        )
-
-        if args.bond == False:
-            args.where = "all"
-
-        if args.training:
-            save_list_of_lists(
-                f"{parent_path}/results/energy_data/energies_{args.model}_direct_lattice_{args.l}x{args.L-1}_{sector}_{args.charges_x}-{args.charges_y}_h_{args.h_i}-{args.h_f}_delta_{args.npoints}_chi_{chi}",
-                energy_chi,
+for L in args.Ls:
+    # where to look at for the entropy
+    if args.where == -1:
+        args.where = L // 2
+    elif args.where == -2:
+        args.bond = False
+    for chi in args.chis:  # L // 2 + 1
+        args_mps = {
+            "L": L,
+            "d": d,
+            "chi": chi,
+            "type_shape": args.type_shape,
+            "model": args.model,
+            "trunc_tol": False,
+            "trunc_chi": True,
+            "where": args.where,
+            "bond": args.bond,
+            "path": path_tensor,
+            "save": args.save,
+            "precision": precision,
+            "sector": sector,
+            "charges_x": args.charges_x,
+            "charges_y": args.charges_y,
+        }
+        if __name__ == "__main__":
+            energy_chi, entropy_chi, schmidt_vals_chi = ground_state_Z2(
+                args_mps=args_mps, multpr=args.multpr, param=interval
             )
-            energy_gs = access_txt(
-                    f"{parent_path}/results/energy_data/energies_{args.model}_direct_lattice_{args.l}x{args.L-1}_{sector}_{args.charges_x}-{args.charges_y}_h_{args.h_i}-{args.h_f}_delta_{args.npoints}_chi_{chi}",
-                    -1,
+
+            if args.bond == False:
+                args.where = "all"
+
+            if args.training:
+                save_list_of_lists(
+                    f"{parent_path}/results/energy_data/energies_{args.model}_direct_lattice_{args.l}x{L-1}_{sector}_{args.charges_x}-{args.charges_y}_h_{args.h_i}-{args.h_f}_delta_{args.npoints}_chi_{chi}",
+                    energy_chi,
                 )
-            np.savetxt(
-                f"{parent_path}/results/energy_data/energies_{args.model}_direct_lattice_{args.l}x{args.L-1}_{sector}_{args.charges_x}-{args.charges_y}_h_{args.h_i}-{args.h_f}_delta_{args.npoints}_chi_{chi}",
-                energy_gs,
+                energy_gs = access_txt(
+                        f"{parent_path}/results/energy_data/energies_{args.model}_direct_lattice_{args.l}x{L-1}_{sector}_{args.charges_x}-{args.charges_y}_h_{args.h_i}-{args.h_f}_delta_{args.npoints}_chi_{chi}",
+                        -1,
+                    )
+                np.savetxt(
+                    f"{parent_path}/results/energy_data/energies_{args.model}_direct_lattice_{args.l}x{L-1}_{sector}_{args.charges_x}-{args.charges_y}_h_{args.h_i}-{args.h_f}_delta_{args.npoints}_chi_{chi}",
+                    energy_gs,
+                )
+            else:
+                np.savetxt(
+                    f"{parent_path}/results/energy_data/energies_{args.model}_direct_lattice_{args.l}x{L-1}_{sector}_{args.charges_x}-{args.charges_y}_h_{args.h_i}-{args.h_f}_delta_{args.npoints}_chi_{chi}",
+                    energy_chi,
+                )
+                
+            save_list_of_lists(
+                f"{parent_path}/results/entropy_data/{args.where}_bond_entropy_{args.model}_direct_lattice_{args.l}x{L-1}_{sector}_{args.charges_x}-{args.charges_y}_h_{args.h_i}-{args.h_f}_delta_{args.npoints}_chi_{chi}",
+                entropy_chi,
             )
-        else:
-            np.savetxt(
-                f"{parent_path}/results/energy_data/energies_{args.model}_direct_lattice_{args.l}x{args.L-1}_{sector}_{args.charges_x}-{args.charges_y}_h_{args.h_i}-{args.h_f}_delta_{args.npoints}_chi_{chi}",
-                energy_chi,
+            save_list_of_lists(
+                f"{parent_path}/results/entropy_data/{args.where}_schmidt_vals_{args.model}_direct_lattice_{args.l}x{L-1}_{sector}_{args.charges_x}-{args.charges_y}_h_{args.h_i}-{args.h_f}_delta_{args.npoints}_chi_{chi}",
+                schmidt_vals_chi,
             )
-             
-        save_list_of_lists(
-            f"{parent_path}/results/entropy_data/{args.where}_bond_entropy_{args.model}_direct_lattice_{args.l}x{args.L-1}_{sector}_{args.charges_x}-{args.charges_y}_h_{args.h_i}-{args.h_f}_delta_{args.npoints}_chi_{chi}",
-            entropy_chi,
-        )
-        save_list_of_lists(
-            f"{parent_path}/results/entropy_data/{args.where}_schmidt_vals_{args.model}_direct_lattice_{args.l}x{args.L-1}_{sector}_{args.charges_x}-{args.charges_y}_h_{args.h_i}-{args.h_f}_delta_{args.npoints}_chi_{chi}",
-            schmidt_vals_chi,
-        )
-        if args.where == "all":
-            entropy_mid = access_txt(
-                f"{parent_path}/results/entropy_data/{args.where}_bond_entropy_{args.model}_direct_lattice_{args.l}x{args.L-1}_{sector}_{args.charges_x}-{args.charges_y}_h_{args.h_i}-{args.h_f}_delta_{args.npoints}_chi_{chi}",
-                (args.L-1) // 2,
-            )
-            np.savetxt(
-                f"{parent_path}/results/entropy_data/{args.L // 2}_bond_entropy_{args.model}_direct_lattice_{args.l}x{args.L-1}_{sector}_{args.charges_x}-{args.charges_y}_h_{args.h_i}-{args.h_f}_delta_{args.npoints}_chi_{chi}",
-                entropy_mid,
-            )
+            if args.where == "all":
+                entropy_mid = access_txt(
+                    f"{parent_path}/results/entropy_data/{args.where}_bond_entropy_{args.model}_direct_lattice_{args.l}x{L-1}_{sector}_{args.charges_x}-{args.charges_y}_h_{args.h_i}-{args.h_f}_delta_{args.npoints}_chi_{chi}",
+                    (L-1) // 2,
+                )
+                np.savetxt(
+                    f"{parent_path}/results/entropy_data/{args.L // 2}_bond_entropy_{args.model}_direct_lattice_{args.l}x{L-1}_{sector}_{args.charges_x}-{args.charges_y}_h_{args.h_i}-{args.h_f}_delta_{args.npoints}_chi_{chi}",
+                    entropy_mid,
+                )

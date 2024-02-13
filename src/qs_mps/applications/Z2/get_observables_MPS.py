@@ -93,6 +93,7 @@ if args.moment == 2:
 if args.moment == 4:
     moment = "fourth"
 
+
 # ---------------------------------------------------------
 # Observables
 # ---------------------------------------------------------
@@ -111,9 +112,17 @@ for chi in args.chis:
         
         if args.o == "wl":
             print(f"wilson loop for h:{h:.{precision}f}")
-            lattice_mps.Z2.wilson_Z2_dual(mpo_sites=[sites], ls=[ladders]) #list(range(s))
+            lattice_mps.Z2.wilson_Z2_dual(mpo_sites=args.sites, ls=args.ladders) #list(range(s))
             lattice_mps.w = lattice_mps.Z2.mpo.copy()
-            W.append(lattice_mps.mpo_first_moment().real)
+            if args.moment == 1:
+                print(lattice_mps.mpo_first_moment().real)
+                W.append(lattice_mps.mpo_first_moment().real)
+            elif args.moment == 2:
+                print(lattice_mps.mpo_second_moment().real)
+                W.append(lattice_mps.mpo_second_moment().real)
+            elif args.moment == 4:
+                print(lattice_mps.mpo_fourth_moment().real)
+                W.append(lattice_mps.mpo_fourth_moment().real)
 
         elif args.o == "el":
             print(f"electric field for h:{h:.{precision}f}")
@@ -132,18 +141,16 @@ for chi in args.chis:
             print(f"Magnetization for h:{h:.{precision}f}")
             lattice_mps.order_param()
             if args.moment == 1:
-                M.append(lattice_mps.mpo_first_moment().real/(len(lattice_mps.Z2.latt.plaquettes()) - (2 * (args.L-1) + 2 * (args.l-2))))
+                M.append(lattice_mps.mpo_first_moment().real)
             elif args.moment == 2:
-                print(lattice_mps.mpo_second_moment().real)
-                M.append(lattice_mps.mpo_second_moment().real/((len(lattice_mps.Z2.latt.plaquettes()) - (2 * (args.L-1) + 2 * (args.l-2)))**2))
+                M.append(lattice_mps.mpo_second_moment().real)
             elif args.moment == 4:
-                print(lattice_mps.mpo_fourth_moment().real)
-                M.append(lattice_mps.mpo_fourth_moment().real/((len(lattice_mps.Z2.latt.plaquettes()) - (2 * (args.L-1) + 2 * (args.l-2)))**4))
+                M.append(lattice_mps.mpo_fourth_moment().real)
 
 
     if args.o == "wl":
-        np.savetxt(
-                    f"{parent_path}/results/wilson_loops/wilson_loop_{args.model}_direct_lattice_{args.l}x{args.L-1}_h_{args.h_i}-{args.h_f}_delta_{args.npoints}_chi_{chi}",
+        np.save(
+                    f"{parent_path}/results/wilson_loops/wilson_loop_{moment}_moment_{args.model}_direct_lattice_{args.l}x{args.L-1}_h_{args.h_i}-{args.h_f}_delta_{args.npoints}_chi_{chi}.npy",
                     W,
                 )
     if args.o == "el":
