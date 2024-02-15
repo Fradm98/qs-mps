@@ -141,11 +141,12 @@ for chi in args.chis:
             print(f"Magnetization for h:{h:.{precision}f}")
             lattice_mps.order_param()
             if args.moment == 1:
-                M.append(lattice_mps.mpo_first_moment().real)
+                print(lattice_mps.mpo_first_moment().real, (len(lattice_mps.Z2.latt.plaquettes())-(2*(args.L-3)+2*(args.l))))
+                M.append(lattice_mps.mpo_first_moment().real/(len(lattice_mps.Z2.latt.plaquettes())-(2*(args.L-3)+2*(args.l))))
             elif args.moment == 2:
-                M.append(lattice_mps.mpo_second_moment().real)
+                M.append(lattice_mps.mpo_second_moment().real/(len(lattice_mps.Z2.latt.plaquettes())-(2*(args.L-1)+2*(args.l))))
             elif args.moment == 4:
-                M.append(lattice_mps.mpo_fourth_moment().real)
+                M.append(lattice_mps.mpo_fourth_moment().real/(len(lattice_mps.Z2.latt.plaquettes())-(2*(args.L-1)+2*(args.l))))
 
 
     if args.o == "wl":
