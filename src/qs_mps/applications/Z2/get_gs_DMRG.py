@@ -49,7 +49,7 @@ parser.add_argument(
     "-cv",
     "--conv_tol",
     help="Convergence tolerance of the compression algorithm",
-    default=1e-10,
+    default=1e-12,
     type=float,
 )
 parser.add_argument(
@@ -141,6 +141,8 @@ for L in args.Ls:
             "sector": sector,
             "charges_x": args.charges_x,
             "charges_y": args.charges_y,
+            "n_sweeps": args.number_sweeps,
+            "conv_tol": args.conv_tol,
         }
         if __name__ == "__main__":
             energy_chi, entropy_chi, schmidt_vals_chi = ground_state_Z2(

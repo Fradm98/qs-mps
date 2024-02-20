@@ -75,6 +75,8 @@ def ground_state_Z2_param(params):
         trunc_chi=args_mps["trunc_chi"],
         where=args_mps["where"],
         bond=args_mps["bond"],
+        n_sweeps=args_mps["n_sweeps"],
+        conv_tol=args_mps["conv_tol"]
     )
     print(f"energy of h:{param:.{precision}f}, L:{ladder.L} is:\n {energy}")
     print(f"Schmidt values in the middle of the chain:\n {schmidt_vals}")

@@ -1706,14 +1706,14 @@ class MPS:
                 # print(f"Time update envs: {abs(time.perf_counter()-t_start)}")
                 iter += 1
 
-            # print("reversing the sweep")
-            sweeps.reverse()
-            sites.reverse()
-
             if ((n % 2) - 1) == 0:
                 energy_dist = np.abs(energies[-1] - energies[-2])
                 if energy_dist < conv_tol:
                     break
+            
+            # print("reversing the sweep")
+            sweeps.reverse()
+            sites.reverse()
 
         if energy_dist < conv_tol:
             print("##############################")
