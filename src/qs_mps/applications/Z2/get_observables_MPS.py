@@ -114,6 +114,14 @@ for chi in args.chis:
             lattice_mps.Z2.wilson_Z2_dual(mpo_sites=[sites], ls=[ladders]) #list(range(s))
             lattice_mps.w = lattice_mps.Z2.mpo.copy()
             W.append(lattice_mps.mpo_first_moment().real)
+            if args.moment == 1:
+                W.append(lattice_mps.mpo_first_moment().real)
+            elif args.moment == 2:
+                print(lattice_mps.mpo_second_moment().real)
+                W.append(lattice_mps.mpo_second_moment().real)
+            elif args.moment == 4:
+                print(lattice_mps.mpo_fourth_moment().real)
+                W.append(lattice_mps.mpo_fourth_moment().real)
 
         elif args.o == "el":
             print(f"electric field for h:{h:.{precision}f}")
@@ -143,7 +151,7 @@ for chi in args.chis:
 
     if args.o == "wl":
         np.savetxt(
-                    f"{parent_path}/results/wilson_loops/wilson_loop_{args.model}_direct_lattice_{args.l}x{args.L-1}_h_{args.h_i}-{args.h_f}_delta_{args.npoints}_chi_{chi}",
+                    f"{parent_path}/results/wilson_loops/wilson_loop_{moment}_moment_{args.model}_direct_lattice_{args.l}x{args.L-1}_h_{args.h_i}-{args.h_f}_delta_{args.npoints}_chi_{chi}",
                     W,
                 )
     if args.o == "el":
