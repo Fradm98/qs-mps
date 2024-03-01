@@ -1,6 +1,7 @@
 import numpy as np
 from ncon import ncon
-from scipy.sparse.linalg import eigsh
+import scipy
+from scipy.sparse.linalg import eigsh, eigs
 from scipy.sparse import csr_matrix, csr_array, identity
 from scipy.linalg import expm, solve
 from qs_mps.utils import *
@@ -16,11 +17,11 @@ from qs_mps.mpo_class import MPO_ladder
 import matplotlib.pyplot as plt
 import time
 import warnings
-
+from qs_mps.TensorMultiplier import TensorMultiplierOperator
 
 class MPS:
     def __init__(
-        self, L, d, model=str, chi=None, w=None, h=None, eps=None, J=None, charges=None
+        self, L, d, model=str, chi=None, w=None, h=None, eps=None, J=None, k=None, charges=None
     ):
         self.L = L
         self.d = d
@@ -31,7 +32,9 @@ class MPS:
         self.h = h
         self.eps = eps
         self.J = J
+        self.k = k # (take positive values for annni model)
         self.charges = charges
+        self.site = 1
         self.sites = []
         self.bonds = []
         self.ancilla_sites = []
@@ -369,7 +372,7 @@ class MPS:
 
         return self
 
-    def enlarge_chi(self):
+    def enlarge_chi(self, type_shape: str="rectangular", prnt: bool=False):
         """
         enlarge_chi
 
@@ -378,19 +381,27 @@ class MPS:
 
         """
         extended_array = []
-        chi = int(np.log2(self.chi))
-        for i in range(chi):
-            extended_array.append(np.zeros((self.d**i, self.d, self.d ** (i + 1))))
-        for _ in range(self.L - (2 * chi)):
-            extended_array.append(np.zeros((self.d**chi, self.d, self.d**chi)))
-        for i in range(chi):
-            extended_array.append(
-                np.zeros((self.d ** (chi - i), self.d, self.d ** (chi - i - 1)))
-            )
-        print("shapes enlarged tensors:")
-        tensor_shapes(extended_array)
-        print("shapes original tensors:")
-        shapes = tensor_shapes(self.sites)
+        if type_shape == "trapezoidal":
+            chi = int(np.log2(self.chi))
+            for i in range(chi):
+                extended_array.append(np.zeros((self.d**i, self.d, self.d ** (i + 1))))
+            for _ in range(self.L - (2 * chi)):
+                extended_array.append(np.zeros((self.d**chi, self.d, self.d**chi)))
+            for i in range(chi):
+                extended_array.append(
+                    np.zeros((self.d ** (chi - i), self.d, self.d ** (chi - i - 1)))
+                )
+
+        elif type_shape == "rectangular":
+            extended_array.append(np.zeros((1,self.d,self.chi)))
+            for _ in range(self.L-2):
+                extended_array.append(np.zeros((self.chi,self.d,self.chi)))
+            extended_array.append(np.zeros((self.chi,self.d,1)))
+        if prnt:
+            print("shapes enlarged tensors:")
+            tensor_shapes(extended_array)
+            print("shapes original tensors:")
+        shapes = tensor_shapes(self.sites, prnt=prnt)
         for i, shape in enumerate(shapes):
             extended_array[i][: shape[0], : shape[1], : shape[2]] = self.sites[i]
 
@@ -541,6 +552,9 @@ class MPS:
         elif self.model == "Z2_two_ladder":
             self.mpo_Z2_two_ladder()
 
+        elif self.model == "ANNNI":
+            self.mpo_ANNNI()
+
         elif self.model == "Z2_dual":
             self.Z2.mpo_Z2_ladder_generalized()
             self.w = self.Z2.mpo
@@ -566,6 +580,30 @@ class MPS:
         for _ in range(self.L):
             w = np.array(
                 [[I, -self.J * Z, -self.h * X - self.eps * X], [O, O, Z], [O, O, I]]
+            )
+            w_tot.append(w)
+        self.w = w_tot
+        return self
+    
+    def mpo_ANNNI(self):
+        """
+        mpo_ANNNI
+
+        This function defines the MPO for the 1D Axial Next-Nearest Neighbor Interaction model.
+        It takes the same MPO for all sites.
+
+        """
+        I = identity(2, dtype=complex).toarray()
+        O = csc_array((2, 2), dtype=complex).toarray()
+        X = sparse_pauli_x(n=0, L=1).toarray()
+        Z = sparse_pauli_z(n=0, L=1).toarray()
+        w_tot = []
+        for _ in range(self.L):
+            w = np.array(
+                [[I, X, O, (-self.h * self.J) * Z], 
+                 [O, O, I, -self.J * X], 
+                 [O, O, O, (self.k * self.J) * X], 
+                 [O, O, O, I]]
             )
             w_tot.append(w)
         self.w = w_tot
@@ -842,12 +880,15 @@ class MPS:
         """
         if self.model == "Ising":
             self.order_param_Ising(op=op)
+        
+        elif self.model == "ANNNI":
+            self.order_param_Ising(op=op)
 
         elif self.model == "Z2_two_ladder":
             self.order_param_Z2()
 
         elif self.model == "Z2_dual":
-            self.order_param_Z2_dual(site=site, l=l, direction=direction)
+            self.order_param_Z2_dual()
 
         return self
 
@@ -864,13 +905,14 @@ class MPS:
         """
         I = np.eye(2)
         O = np.zeros((2, 2))
+        op = sparse_pauli_z(n=0, L=1).toarray()
         w_tot = []
         for _ in range(self.L):
-            w_mag = np.array([[I, O, op], [O, O, O], [O, O, I]])
+            w_mag = np.array([[I, op], [O, I]])
             w_tot.append(w_mag)
         self.w = w_tot
         return self
-
+    
     def order_param_Z2(self):
         """
         order_param_Z2
@@ -912,7 +954,7 @@ class MPS:
         self.w = w_tot
         return self
 
-    def order_param_Z2_dual(self, site: int, l: int, direction: str):
+    def order_param_Z2_dual(self):
         """
         order_param_Z2_dual
 
@@ -920,14 +962,16 @@ class MPS:
         on the dual lattice. It is equivalent to a 2D transverse field Ising model.
 
         """
-        # self.Z2.thooft(site=site, l=l, direction=direction)
 
         self.Z2.mpo_skeleton(aux_dim=2)
 
         mpo_tot = []
         for mpo_site in range(self.Z2.L-1):
-            for l in range(self.Z2.l):
-                self.Z2.mpo[0,-1] += sparse_pauli_z(n=l, L=self.Z2.l).toarray()
+            if mpo_site == 0 or mpo_site == (self.Z2.L-2): # or mpo_site == 1 or mpo_site == (self.Z2.L-3)
+                self.Z2.mpo_skeleton(aux_dim=2)
+            else:
+                for l in range(1,self.Z2.l-1):
+                    self.Z2.mpo[0,-1] += sparse_pauli_z(n=l, L=self.Z2.l).toarray()
             mpo_tot.append(self.Z2.mpo)
             self.Z2.mpo_skeleton(aux_dim=2)
                     
@@ -936,7 +980,7 @@ class MPS:
         self.w = self.Z2.mpo
         return self
 
-    def local_param(self, site: None, op: None):
+    def local_param(self, site: None, op: np.ndarray=None):
         """
         local_param
 
@@ -947,6 +991,9 @@ class MPS:
         """
         if self.model == "Ising":
             self.single_operator_Ising(site=site, op=op)
+
+        elif self.model == "ANNNI":
+            self.single_operator_ANNNI(site=site)
 
         elif self.model == "Z2_two_ladder":
             self.sigma_x_Z2_two_ladder()
@@ -1004,7 +1051,7 @@ class MPS:
         self.w = w_tot
         return self
 
-    def single_operator_Ising(self, site, op):
+    def single_operator_Ising(self, site, op: np.ndarray=None):
         """
         single_operator_Ising
 
@@ -1024,6 +1071,31 @@ class MPS:
             else:
                 alpha = 0
             w_mag = np.array([[I, O, alpha * op], [O, O, O], [O, O, I]])
+            w_tot.append(w_mag)
+        self.w = w_tot
+        return self
+    
+    def single_operator_ANNNI(self, site):
+        """
+        single_operator_Ising
+
+        This function computes a local operator (op) for the 1D Ising model
+        on a certain arbitrary site.
+
+        site: int - local site where the operator acts
+        op: np.ndarray - operator acting on the local site
+
+        """
+        I = np.eye(2)
+        O = np.zeros((2, 2))
+        Z = sparse_pauli_z(n=0, L=1).toarray()
+        w_tot = []
+        w_init = np.array([[I, O], [O, I]])
+        for i in range(self.L):
+            w_mag = w_init
+            if i == site - 1:
+                w_mag[0,-1] = Z
+        
             w_tot.append(w_mag)
         self.w = w_tot
         return self
@@ -1345,35 +1417,34 @@ class MPS:
         site: int - site to optimize
 
         """
-        # H_eff_time = time.perf_counter()
+        H_eff_time = time.perf_counter()
         H = ncon(
-            [self.env_left[-1], self.w[site - 1], self.env_right[-1]],
+            [self.env_left[-1], self.w[site - 1]],
             [
-                [-1, 1, -4],
-                [1, 2, -2, -5],
-                [-3, 2, -6],
-            ],
+                [-1, 1, -5],
+                [1, -3, -2, -4],
+            ]
         )
-        # np.savetxt(
-        #     f"/Users/fradm/mps/results/times_data/H_eff_contraction_site_{site}_h_{self.h:.2f}",
-        #     [time.perf_counter() - H_eff_time],
-        # )
-        # print(f"Time of H_eff contraction: {time.perf_counter()-H_eff_time}")
+        H = ncon(
+            [H, self.env_right[-1]],
+            [
+                [-1, -2, 1, -5, -4],
+                [-3 , 1, -6]
+            ]
+        )
+        print(f"Time of H_eff contraction: {time.perf_counter()-H_eff_time}")
 
-        # reshape_time = time.perf_counter()
+        reshape_time = time.perf_counter()
         H = H.reshape(
             self.env_left[-1].shape[0] * self.d * self.env_right[-1].shape[0],
             self.env_left[-1].shape[2] * self.d * self.env_right[-1].shape[2],
         )
-        # np.savetxt(
-        #     f"/Users/fradm/mps/results/times_data/H_eff_reshape_site_{site}_h_{self.h:.2f}",
-        #     [time.perf_counter() - reshape_time],
-        # )
-        # print(f"Time of H_eff reshaping: {time.perf_counter()-reshape_time}")
+        print(f"Time of H_eff reshaping: {time.perf_counter()-reshape_time}")
+        print(H.shape)
 
         return H
 
-    def eigensolver(self, H_eff, site, v0=None):
+    def eigensolver(self, site: int=None, v0: np.ndarray=None, H_eff: np.ndarray=None,):
         """
         eigensolver
 
@@ -1389,14 +1460,25 @@ class MPS:
 
         """
         # time_eig = time.perf_counter()
-        e, v = eigsh(H_eff, k=1, which="SA", v0=v0)
+        A = TensorMultiplierOperator((
+                            self.env_left[-1].shape[0] * self.d * self.env_right[-1].shape[0],
+                            self.env_left[-1].shape[2] * self.d * self.env_right[-1].shape[2],
+                            ), matvec=self.mv, dtype=np.complex128)
+        
+        # print(f"shape of A: {A.shape}")
+        # if A.shape[0] == 2:
+        #     H = self.H_eff(site=site)
+        #     e, v = eigsh(H, k=1, v0=v0)
+        # else:
+        e, v = eigs(A, k=1, v0=v0)
+        # e, v = eigsh(H_eff, k=1, which="SA", v0=v0)
         # np.savetxt(
         #     f"/Users/fradm/mps/results/times_data/eigsh_eigensolver_site_{site}_h_{self.h:.2f}",
         #     [time.perf_counter() - time_eig],
         # )
         # print(f"Time of eigsh during eigensolver for site {site}: {time.perf_counter()-time_eig}")
-        e_min = e[0]
-        eigvec = np.array(v)
+        e_min = e[0].real
+        eigvec = np.array(v[:,0])
 
         self.sites[site - 1] = eigvec.reshape(
             self.env_left[-1].shape[0], self.d, self.env_right[-1].shape[0]
@@ -1561,13 +1643,21 @@ class MPS:
 
         return self
 
+    def mv(self, v):
+        v = v.reshape(self.env_left[-1].shape[0], self.d, self.env_right[-1].shape[0])
+        res = ncon([self.env_left[-1],v],[[1,-3,-4],[1,-2,-1]])
+        res = ncon([res, self.w[self.site-1]],[[-1,1,2,-4],[2,-2,1,-3]])
+        res = ncon([res,self.env_right[-1]],[[1,2,-2,-1],[1,2,-3]])
+        res = res.flatten()
+        return res
+
     def DMRG(
         self,
         trunc_tol: bool,
         trunc_chi: bool,
         schmidt_tol: float = 1e-15,
         conv_tol: float = 1e-10,
-        n_sweeps: int = 6,
+        n_sweeps: int = 2,
         bond: bool = True,
         where: int = -1,
     ):
@@ -1580,18 +1670,27 @@ class MPS:
 
         iter = 1
         
+        t_start = time.perf_counter()
         for n in range(n_sweeps):
             print(f"Sweep n: {n}\n")
             entropy = []
             schmidt_vals = []
             for i in range(self.L - 1):
-                # v0 = self.sites[i].flatten()
-                H = self.H_eff(sites[i])
-                energy = self.eigensolver(H_eff=H, site=sites[i]) # , v0=v0
+                v0 = self.sites[i].flatten()
+                # t_start = time.perf_counter()
+                # H = self.H_eff(sites[i])
+                # print(f"Time effective Ham: {abs(time.perf_counter()-t_start)}")
+                # t_start = time.perf_counter()
+                self.site = sites[i]
+                energy = self.eigensolver(site=sites[i], v0=v0) # , v0=v0
+                # energy = self.eigensolver(H_eff=H, site=sites[i], v0=v0) # , v0=v0
+                # print(f"Time eigensolver: {abs(time.perf_counter()-t_start)}")
                 energies.append(energy)
+                # t_start = time.perf_counter()
                 s = self.update_state(
                     sweeps[0], sites[i], trunc_tol, trunc_chi, schmidt_tol
                 )
+                # print(f"Time update state: {abs(time.perf_counter()-t_start)}")
                 if bond:
                     if sites[i] - 1 == where:
                         entr = von_neumann_entropy(s)
@@ -1602,17 +1701,19 @@ class MPS:
                     entropy.append(entr)
                     schmidt_vals.append(s)
 
+                # t_start = time.perf_counter()
                 self.update_envs(sweeps[0], sites[i])
+                # print(f"Time update envs: {abs(time.perf_counter()-t_start)}")
                 iter += 1
-
-            # print("reversing the sweep")
-            sweeps.reverse()
-            sites.reverse()
 
             if ((n % 2) - 1) == 0:
                 energy_dist = np.abs(energies[-1] - energies[-2])
                 if energy_dist < conv_tol:
                     break
+            
+            # print("reversing the sweep")
+            sweeps.reverse()
+            sites.reverse()
 
         if energy_dist < conv_tol:
             print("##############################")
@@ -1620,7 +1721,8 @@ class MPS:
                 f"The energy between the two last updated states converged\n"
                 + f"to an order of {conv_tol} after:\n"
                 + f"{n} sweeps at site {sites[i]}\n"
-                + f"total iterations {iter}"
+                + f"total iterations {iter}\n"
+                + f"total time: {abs(time.perf_counter()-t_start)}"
             )
             print("##############################")
         else:
@@ -1628,7 +1730,8 @@ class MPS:
             print(
                 f"The energy between the two last updated states converged\n"
                 + f"to an order of {energy_dist}\n"
-                + f"instead of the convergence tolerance {conv_tol}"
+                + f"instead of the convergence tolerance {conv_tol}\n"
+                + f"total time: {abs(time.perf_counter()-t_start)}"
             )
             print("##############################")
         return energies, entropy, schmidt_vals
@@ -2525,8 +2628,12 @@ class MPS:
         """
         if "Ising" in self.model:
             self.save_sites_Ising(path=path, precision=precision)
+        elif "ANNNI" in self.model:
+            self.save_sites_ANNNI(path=path, precision=precision)
         elif "Z2" in self.model:
             self.save_sites_Z2(path=path, precision=precision, cx=cx, cy=cy)
+        else:
+            raise ValueError("Choose a correct model")
         return self
     
     def load_sites(self, path: str, precision: int=2, cx: list=None, cy: list=None):
@@ -2542,15 +2649,19 @@ class MPS:
         """
         if "Ising" in self.model:
             self.load_sites_Ising(path=path, precision=precision)
+        elif "ANNNI" in self.model:
+            self.load_sites_ANNNI(path=path, precision=precision)
         elif "Z2" in self.model:
             self.load_sites_Z2(path=path, precision=precision, cx=cx, cy=cy)
+        else:
+            raise ValueError("Choose a correct model")
         return self
 
     def save_sites_Ising(self, path, precision: int=2):
         # shapes of the tensors
         shapes = tensor_shapes(self.sites)
         np.savetxt(
-            f"{path}/results/tensors/shapes_sites_{self.model}_L_{self.L}_chi_{self.chi}_h_{self.h:.{precision}f}",
+            f"{path}/results/tensors/shapes_sites_{self.model}_L_{self.L}_chi_{self.chi}_h_{self.h:.{precision}f}_J_{self.J:.{precision}f}",
             shapes,
             fmt="%1.i",  # , delimiter=','
         )
@@ -2558,7 +2669,24 @@ class MPS:
         # flattening of the tensors
         tensor = [element for site in self.sites for element in site.flatten()]
         np.savetxt(
-            f"{path}/results/tensors/tensor_sites_{self.model}_L_{self.L}_chi_{self.chi}_h_{self.h:.{precision}f}",
+            f"{path}/results/tensors/tensor_sites_{self.model}_L_{self.L}_chi_{self.chi}_h_{self.h:.{precision}f}_J_{self.J:.{precision}f}",
+            tensor,
+        )
+        return self
+    
+    def save_sites_ANNNI(self, path, precision: int=2):
+        # shapes of the tensors
+        shapes = tensor_shapes(self.sites)
+        np.savetxt(
+            f"{path}/results/tensors/shapes_sites_{self.model}_L_{self.L}_chi_{self.chi}_h_{self.h:.{precision}f}_k_{self.k:.{precision}f}",
+            shapes,
+            fmt="%1.i",  # , delimiter=','
+        )
+
+        # flattening of the tensors
+        tensor = [element for site in self.sites for element in site.flatten()]
+        np.savetxt(
+            f"{path}/results/tensors/tensor_sites_{self.model}_L_{self.L}_chi_{self.chi}_h_{self.h:.{precision}f}_k_{self.k:.{precision}f}",
             tensor,
         )
         return self
@@ -2592,11 +2720,11 @@ class MPS:
         """
         # loading of the shapes
         shapes = np.loadtxt(
-            f"{path}/results/tensors/shapes_sites_{self.model}_L_{self.L}_chi_{self.chi}_h_{self.h:.{precision}f}"
+            f"{path}/results/tensors/shapes_sites_{self.model}_L_{self.L}_chi_{self.chi}_h_{self.h:.{precision}f}_J_{self.J:.{precision}f}"
         ).astype(int)
         # loading of the flat tensors
         filedata = np.loadtxt(
-            f"{path}/results/tensors/tensor_sites_{self.model}_L_{self.L}_chi_{self.chi}_h_{self.h:.{precision}f}",
+            f"{path}/results/tensors/tensor_sites_{self.model}_L_{self.L}_chi_{self.chi}_h_{self.h:.{precision}f}_J_{self.J:.{precision}f}",
             dtype=complex,
         )
         # auxiliary function to get the indices where to split
@@ -2608,6 +2736,35 @@ class MPS:
 
         return self
 
+    def load_sites_ANNNI(self, path, precision: int=2):
+        """
+        load_sites
+
+        This function load the tensors into the sites of the MPS.
+        We fetch a completely flat list, split it to recover the original tensors
+        (but still flat) and reshape each of them accordingly with the saved shapes.
+        To initially split the list in the correct index position refer to the auxiliary
+        function get_labels().
+
+        """
+        # loading of the shapes
+        shapes = np.loadtxt(
+            f"{path}/results/tensors/shapes_sites_{self.model}_L_{self.L}_chi_{self.chi}_h_{self.h:.{precision}f}_k_{self.k:.{precision}f}"
+        ).astype(int)
+        # loading of the flat tensors
+        filedata = np.loadtxt(
+            f"{path}/results/tensors/tensor_sites_{self.model}_L_{self.L}_chi_{self.chi}_h_{self.h:.{precision}f}_k_{self.k:.{precision}f}",
+            dtype=complex,
+        )
+        # auxiliary function to get the indices where to split
+        labels = get_labels(shapes)
+        flat_tn = np.array_split(filedata, labels)
+        flat_tn.pop(-1)
+        # reshape the flat tensors and initializing the sites
+        self.sites = [site.reshape(shapes[i]) for i, site in enumerate(flat_tn)]
+
+        return self
+    
     def load_sites_Z2(self, path, precision: int=2, cx: list=None, cy: list=None):
         """
         load_sites

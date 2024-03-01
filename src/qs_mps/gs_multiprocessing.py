@@ -6,6 +6,7 @@ from .mps_class import MPS
 def ground_state_ising_param(params):
     args_mps = params[0]
     param = params[1]
+    precision = args_mps["precision"]
     chain = MPS(
         L=args_mps["L"],
         d=args_mps["d"],
@@ -15,17 +16,21 @@ def ground_state_ising_param(params):
         J=args_mps["J"],
         eps=args_mps["eps"],
     )
-    chain._random_state(seed=7, chi=args_mps["chi"])
+    chain._random_state(seed=7, chi=args_mps["chi"], type_shape=args_mps["type_shape"])
     chain.canonical_form(trunc_chi=False, trunc_tol=True)
 
-    energy, entropy = chain.DMRG(
+    energy, entropy, schmidt_vals = chain.DMRG(
         trunc_tol=args_mps["trunc_tol"],
         trunc_chi=args_mps["trunc_chi"],
         where=args_mps["where"],
         bond=args_mps["bond"],
     )
+
+    print(f"energy of h:{param:.{precision}f} is:\n {energy}")
+    print(f"Schmidt values in the middle of the chain:\n {schmidt_vals}")
+
     chain.save_sites(path=args_mps["path"], precision=args_mps["precision"])
-    return energy, entropy
+    return energy, entropy, schmidt_vals
 
 
 def ground_state_ising_multpr(args_mps, multpr_param, cpu_percentage=90):
@@ -50,10 +55,12 @@ def ground_state_ising(args_mps, multpr, param):
     else:
         energies_param = []
         entropies_param = []
+        schmidt_vals_param = []
         for p in param:
             params = [args_mps, p]
-            energies, entropies = ground_state_ising_param(params=params)
+            energies, entropies, schmidt_vals = ground_state_ising_param(params=params)
             energies_param.append(energies)
             entropies_param.append(entropies)
+            schmidt_vals_param.append(schmidt_vals)
 
-    return energies_param, entropies_param
+    return energies_param, entropies_param, schmidt_vals_param

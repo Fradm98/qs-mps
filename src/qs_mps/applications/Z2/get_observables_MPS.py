@@ -5,7 +5,6 @@ from qs_mps.utils import *
 
 parser = argparse.ArgumentParser(prog="observables_Z2_mps")
 parser.add_argument("l", help="Number of ladders in the direct lattice", type=int)
-parser.add_argument("L", help="Number of rungs per ladder", type=int)
 parser.add_argument(
     "npoints",
     help="Number of points in an interval of transverse field values",
@@ -24,6 +23,7 @@ parser.add_argument(
 )
 parser.add_argument("o", help="Observable we want to compute. Available are 'wl', 'el', 'thooft'", type=str)
 parser.add_argument("chis", help="Simulated bond dimensions", nargs="+", type=int)
+parser.add_argument("-L", "--Ls", help="Number of rungs per ladder", nargs="+", type=int)
 parser.add_argument("-cx", "--charges_x", help="a list of the first index of the charges", nargs="*", type=int)
 parser.add_argument("-cy", "--charges_y", help="a list of the second index of the charges", nargs="*", type=int)
 parser.add_argument("-s", "--sites", help="Number of sites in the wilson loop", nargs="*", type=int)
@@ -75,16 +75,6 @@ if args.direction == "ver":
 elif args.direction == "hor":
     direction = "horizontal"    
 
-# define the sector by looking of the given charges
-if len(args.charges_x) == 0:
-    sector = "vacuum_sector"
-    args.charges_x = None
-    args.charges_y = None
-else:
-    for i in range(1,args.l*args.L):
-        if len(args.charges_x) == i:
-            sector = f"{i}_particle(s)_sector"
-
 # define moment
 if args.moment == 1:
     moment = "first"
@@ -93,49 +83,114 @@ if args.moment == 2:
 if args.moment == 4:
     moment = "fourth"
 
+
 # ---------------------------------------------------------
 # Observables
 # ---------------------------------------------------------
-for chi in args.chis:
-    W = []
-    E = []
-    S = []
-    for h in interval:
-        lattice_mps = MPS(L=args.L, d=d, model=args.model, chi=chi, h=h)
-        lattice_mps.L = lattice_mps.L - 1
+for L in args.Ls:
+    # define the sector by looking of the given charges
+    if len(args.charges_x) == 0:
+        sector = "vacuum_sector"
+        charges_x = None
+        charges_y = None
+    else:
+        sector = f"{len(args.charges_x)}_particle(s)_sector"
 
-        lattice_mps.load_sites(path=path_tensor, precision=precision, cx=args.charges_x, cy=args.charges_y)
-        if sector != "vacuum_sector":
-            lattice_mps.Z2.add_charges(args.charges_x, args.charges_y)
-        
+    for chi in args.chis:
+        W = []
+        E = []
+        S = []
+        M = []
+        for h in interval:
+            lattice_mps = MPS(L=L, d=d, model=args.model, chi=chi, h=h)
+            lattice_mps.L = lattice_mps.L - 1
+
+            lattice_mps.load_sites(path=path_tensor, precision=precision, cx=charges_x, cy=charges_y)
+            if sector != "vacuum_sector":
+                lattice_mps.Z2.add_charges(charges_x, charges_y)
+            
+            if args.o == "wl":
+                print(f"wilson loop for h:{h:.{precision}f}, L:{L}")
+                lattice_mps.Z2.wilson_Z2_dual(mpo_sites=args.sites, ls=args.ladders) #list(range(s))
+                lattice_mps.w = lattice_mps.Z2.mpo.copy()
+                if args.moment == 1:
+                    print(lattice_mps.mpo_first_moment().real)
+                    W.append(lattice_mps.mpo_first_moment().real)
+                elif args.moment == 2:
+                    print(lattice_mps.mpo_second_moment().real)
+                    W.append(lattice_mps.mpo_second_moment().real)
+                elif args.moment == 4:
+                    print(lattice_mps.mpo_fourth_moment().real)
+                    W.append(lattice_mps.mpo_fourth_moment().real)
+
+            elif args.o == "el":
+                print(f"electric field for h:{h:.{precision}f}, L:{L}")
+                E_h = np.zeros((2*args.l+1,2*L-1))
+                E_h[:] = np.nan
+                E_h = lattice_mps.electric_field_Z2(E_h)
+                E.append(E_h)
+            
+            elif args.o == "thooft":
+                print(f"'t Hooft string for h:{h:.{precision}f}, L:{L}")
+                lattice_mps.Z2.thooft(site=args.sites, l=args.ladders, direction=direction)
+                lattice_mps.w = lattice_mps.Z2.mpo.copy()
+                S.append(lattice_mps.mpo_first_moment().real)
+
+            elif args.o == "mag":
+                print(f"Magnetization for h:{h:.{precision}f}, L:{L}")
+                lattice_mps.order_param()
+                if args.moment == 1:
+                    print(lattice_mps.mpo_first_moment().real, (len(lattice_mps.Z2.latt.plaquettes())-(2*(L-3)+2*(args.l))))
+                    M.append(lattice_mps.mpo_first_moment().real/(len(lattice_mps.Z2.latt.plaquettes())-(2*(L-3)+2*(args.l))))
+                elif args.moment == 2:
+                    M.append(lattice_mps.mpo_second_moment().real/(len(lattice_mps.Z2.latt.plaquettes())-(2*(L-3)+2*(args.l)))**2)
+                elif args.moment == 4:
+                    M.append(lattice_mps.mpo_fourth_moment().real/(len(lattice_mps.Z2.latt.plaquettes())-(2*(L-3)+2*(args.l)))**4)
+
+
         if args.o == "wl":
             print(f"wilson loop for h:{h:.{precision}f}")
             lattice_mps.Z2.wilson_Z2_dual(mpo_sites=[sites], ls=[ladders]) #list(range(s))
             lattice_mps.w = lattice_mps.Z2.mpo.copy()
             W.append(lattice_mps.mpo_first_moment().real)
+            if args.moment == 1:
+                W.append(lattice_mps.mpo_first_moment().real)
+            elif args.moment == 2:
+                print(lattice_mps.mpo_second_moment().real)
+                W.append(lattice_mps.mpo_second_moment().real)
+            elif args.moment == 4:
+                print(lattice_mps.mpo_fourth_moment().real)
+                W.append(lattice_mps.mpo_fourth_moment().real)
 
-        if args.o == "el":
+        elif args.o == "el":
             print(f"electric field for h:{h:.{precision}f}")
             E_h = np.zeros((2*args.l+1,2*args.L-1))
             E_h[:] = np.nan
             E_h = lattice_mps.electric_field_Z2(E_h)
             E.append(E_h)
         
-        if args.o == "thooft":
+        elif args.o == "thooft":
             print(f"'t Hooft string for h:{h:.{precision}f}")
             lattice_mps.Z2.thooft(site=args.sites, l=args.ladders, direction=direction)
             lattice_mps.w = lattice_mps.Z2.mpo.copy()
+            S.append(lattice_mps.mpo_first_moment().real)
+
+        elif args.o == "mag":
+            print(f"Magnetization for h:{h:.{precision}f}")
+            lattice_mps.order_param()
             if args.moment == 1:
-                S.append(lattice_mps.mpo_first_moment().real)
+                M.append(lattice_mps.mpo_first_moment().real/(len(lattice_mps.Z2.latt.plaquettes()) - (2 * (args.L-1) + 2 * (args.l-2))))
             elif args.moment == 2:
-                S.append(lattice_mps.mpo_second_moment(site=args.sites, l=args.ladders, direction=direction).real/(len(lattice_mps.Z2.latt.plaquettes())**2))
+                print(lattice_mps.mpo_second_moment().real)
+                M.append(lattice_mps.mpo_second_moment().real/((len(lattice_mps.Z2.latt.plaquettes()) - (2 * (args.L-1) + 2 * (args.l-2)))**2))
             elif args.moment == 4:
-                S.append(lattice_mps.mpo_fourth_moment(site=args.sites, l=args.ladders, direction=direction).real/(len(lattice_mps.Z2.latt.plaquettes())**4))
+                print(lattice_mps.mpo_fourth_moment().real)
+                M.append(lattice_mps.mpo_fourth_moment().real/((len(lattice_mps.Z2.latt.plaquettes()) - (2 * (args.L-1) + 2 * (args.l-2)))**4))
 
 
     if args.o == "wl":
         np.savetxt(
-                    f"{parent_path}/results/wilson_loops/wilson_loop_{args.model}_direct_lattice_{args.l}x{args.L-1}_h_{args.h_i}-{args.h_f}_delta_{args.npoints}_chi_{chi}",
+                    f"{parent_path}/results/wilson_loops/wilson_loop_{moment}_moment_{args.model}_direct_lattice_{args.l}x{args.L-1}_h_{args.h_i}-{args.h_f}_delta_{args.npoints}_chi_{chi}",
                     W,
                 )
     if args.o == "el":
@@ -147,4 +202,9 @@ for chi in args.chis:
         np.save(
                     f"{parent_path}/results/thooft/thooft_string_{moment}_moment_{args.sites[0]}-{args.ladders[0]}_{direction}_{args.model}_direct_lattice_{args.l}x{args.L-1}_{sector}_{args.charges_x}-{args.charges_y}_h_{args.h_i}-{args.h_f}_delta_{args.npoints}_chi_{chi}.npy",
                     S,
+                )
+    if args.o == "mag":
+        np.save(
+                    f"{parent_path}/results/mag_data/dual_mag_{moment}_moment_{args.model}_direct_lattice_{args.l}x{args.L-1}_{sector}_{args.charges_x}-{args.charges_y}_h_{args.h_i}-{args.h_f}_delta_{args.npoints}_chi_{chi}.npy",
+                    M,
                 )
