@@ -25,8 +25,8 @@ parser.add_argument(
     help="Path to the drive depending on the device used. Available are 'pc', 'mac', 'marcos'",
     type=str,
 )
-parser.add_argument("chis", help="Simulated bond dimensions", nargs="+", type=int)
 parser.add_argument("-L", "--Ls", help="Number of rungs per ladder", nargs="+", type=int)
+parser.add_argument("-D", "--chis", help="Simulated bond dimensions", nargs="+", type=int)
 parser.add_argument("-cx", "--charges_x", help="a list of the first index of the charges", nargs="*", type=int)
 parser.add_argument("-cy", "--charges_y", help="a list of the second index of the charges", nargs="*", type=int)
 parser.add_argument(
