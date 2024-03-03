@@ -2320,53 +2320,53 @@ class MPS:
         mag_mps_int_hor = []
         mag_mps_int_ver = []
         entropies = []
-        X = np.array([[0, 1], [1, 0]])
-        Z = np.array([[1, 0], [0, -1]])
+        # X = np.array([[0, 1], [1, 0]])
+        # Z = np.array([[1, 0], [0, -1]])
 
-        if flip:
-            if self.L % 2 == 0:
-                self.sites[self.L // 2] = np.array([[[0], [1]]])
-                self.sites[self.L // 2 - 1] = np.array([[[0], [1]]])
-            else:
-                self.sites[self.L // 2] = np.array([[[0], [1]]])
+        # if flip:
+        #     if self.L % 2 == 0:
+        #         self.sites[self.L // 2] = np.array([[[0], [1]]])
+        #         self.sites[self.L // 2 - 1] = np.array([[[0], [1]]])
+        #     else:
+        #         self.sites[self.L // 2] = np.array([[[0], [1]]])
 
         # enlarging our local tensor to the max bond dimension
         self.enlarge_chi()
 
-        # total
-        self.order_param(op=Z)
-        mag_mps_tot.append(np.real(self.mpo_first_moment()))
-        # local glob Z
-        mag_loc = []
-        for i in range(self.L - 1):
-            for j in range(self.Z2.l):
-                self.local_param(site=i, op=j)
-                mag_loc.append(np.real(self.mpo_first_moment()))
-        mag_mps_loc.append(mag_loc)
-        # zz horizontal
-        mag_int_hor = []
-        for i in range(self.L - 2):
-            for j in range(self.Z2.l):
-                self.Z2.zz_observable_Z2_dual(mpo_site=i, l=j, direction="horizontal")
-                self.w = self.Z2.mpo
-                mag_int_hor.append(np.real(self.mpo_first_moment()))
-        mag_mps_int_hor.append(mag_int_hor)
-        # zz vertical
-        mag_int_ver = []
-        for i in range(self.L - 1):
-            for j in range(self.Z2.l - 1):
-                self.Z2.zz_observable_Z2_dual(mpo_site=i, l=j, direction="vertical")
-                self.w = self.Z2.mpo
-                mag_int_ver.append(np.real(self.mpo_first_moment()))
-        mag_mps_int_ver.append(mag_int_ver)
+        # # total
+        # self.order_param(op=Z)
+        # mag_mps_tot.append(np.real(self.mpo_first_moment()))
+        # # local glob Z
+        # mag_loc = []
+        # for i in range(self.L - 1):
+        #     for j in range(self.Z2.l):
+        #         self.local_param(site=i, op=j)
+        #         mag_loc.append(np.real(self.mpo_first_moment()))
+        # mag_mps_loc.append(mag_loc)
+        # # zz horizontal
+        # mag_int_hor = []
+        # for i in range(self.L - 2):
+        #     for j in range(self.Z2.l):
+        #         self.Z2.zz_observable_Z2_dual(mpo_site=i, l=j, direction="horizontal")
+        #         self.w = self.Z2.mpo
+        #         mag_int_hor.append(np.real(self.mpo_first_moment()))
+        # mag_mps_int_hor.append(mag_int_hor)
+        # # zz vertical
+        # mag_int_ver = []
+        # for i in range(self.L - 1):
+        #     for j in range(self.Z2.l - 1):
+        #         self.Z2.zz_observable_Z2_dual(mpo_site=i, l=j, direction="vertical")
+        #         self.w = self.Z2.mpo
+        #         mag_int_ver.append(np.real(self.mpo_first_moment()))
+        # mag_mps_int_ver.append(mag_int_ver)
 
-        # fidelity
-        if fidelity:
-            psi_exact_0 = sparse_ising_ground_state(L=self.L, h_t=self.h).reshape(
-                2**self.L, 1
-            )
-            psi_new_mpo = mps_to_vector(self.sites)
-            overlap.append(np.abs((psi_new_mpo.T.conjugate() @ psi_exact_0).real))
+        # # fidelity
+        # if fidelity:
+        #     psi_exact_0 = sparse_ising_ground_state(L=self.L, h_t=self.h).reshape(
+        #         2**self.L, 1
+        #     )
+        #     psi_new_mpo = mps_to_vector(self.sites)
+        #     overlap.append(np.abs((psi_new_mpo.T.conjugate() @ psi_exact_0).real))
 
         # initialize ancilla with a state in Right Canonical Form
         self.canonical_form(trunc_chi=True, trunc_tol=False)
@@ -2410,45 +2410,45 @@ class MPS:
             errors.append(error)
             entropies.append(entropy)
 
-            # total
-            self.order_param(op=Z)
-            mag_mps_tot.append(np.real(self.mpo_first_moment()))
-            # local glob Z
-            mag_loc = []
-            for i in range(self.L - 1):
-                for j in range(self.Z2.l):
-                    self.local_param(site=i, op=j)
-                    mag_loc.append(np.real(self.mpo_first_moment()))
-            mag_mps_loc.append(mag_loc)
-            # zz horizontal
-            mag_int_hor = []
-            for i in range(self.L - 2):
-                for j in range(self.Z2.l):
-                    self.Z2.zz_observable_Z2_dual(
-                        mpo_site=i, l=j, direction="horizontal"
-                    )
-                    self.w = self.Z2.mpo
-                    mag_int_hor.append(np.real(self.mpo_first_moment()))
-            mag_mps_int_hor.append(mag_int_hor)
-            # zz vertical
-            mag_int_ver = []
-            for i in range(self.L - 1):
-                for j in range(self.Z2.l - 1):
-                    self.Z2.zz_observable_Z2_dual(mpo_site=i, l=j, direction="vertical")
-                    self.w = self.Z2.mpo
-                    mag_int_ver.append(np.real(self.mpo_first_moment()))
-            mag_mps_int_ver.append(mag_int_ver)
+            # # total
+            # self.order_param(op=Z)
+            # mag_mps_tot.append(np.real(self.mpo_first_moment()))
+            # # local glob Z
+            # mag_loc = []
+            # for i in range(self.L - 1):
+            #     for j in range(self.Z2.l):
+            #         self.local_param(site=i, op=j)
+            #         mag_loc.append(np.real(self.mpo_first_moment()))
+            # mag_mps_loc.append(mag_loc)
+            # # zz horizontal
+            # mag_int_hor = []
+            # for i in range(self.L - 2):
+            #     for j in range(self.Z2.l):
+            #         self.Z2.zz_observable_Z2_dual(
+            #             mpo_site=i, l=j, direction="horizontal"
+            #         )
+            #         self.w = self.Z2.mpo
+            #         mag_int_hor.append(np.real(self.mpo_first_moment()))
+            # mag_mps_int_hor.append(mag_int_hor)
+            # # zz vertical
+            # mag_int_ver = []
+            # for i in range(self.L - 1):
+            #     for j in range(self.Z2.l - 1):
+            #         self.Z2.zz_observable_Z2_dual(mpo_site=i, l=j, direction="vertical")
+            #         self.w = self.Z2.mpo
+            #         mag_int_ver.append(np.real(self.mpo_first_moment()))
+            # mag_mps_int_ver.append(mag_int_ver)
 
-            if fidelity:
-                psi_exact = U_evolution_sparse(
-                    L=self.L,
-                    psi_init=psi_exact_0,
-                    trotter_step=(trott + 1),
-                    delta=delta,
-                    h_t=h_ev,
-                )
-                psi_new_mpo = mps_to_vector(self.sites)
-                overlap.append(np.abs((psi_new_mpo.T.conjugate() @ psi_exact).real))
+            # if fidelity:
+            #     psi_exact = U_evolution_sparse(
+            #         L=self.L,
+            #         psi_init=psi_exact_0,
+            #         trotter_step=(trott + 1),
+            #         delta=delta,
+            #         h_t=h_ev,
+            #     )
+            #     psi_new_mpo = mps_to_vector(self.sites)
+            #     overlap.append(np.abs((psi_new_mpo.T.conjugate() @ psi_exact).real))
         return (
             mag_mps_tot,
             mag_mps_loc,

@@ -84,7 +84,8 @@ args = parser.parse_args()
 d = int(2**(args.l))
 
 # define the interval of equally spaced values of external field
-interval = np.linspace(args.h_i, args.h_f, args.npoints)
+# interval = np.linspace(args.h_i, args.h_f, args.npoints)
+interval = np.logspace(args.h_i, args.h_f, args.npoints)
 
 # take the path and precision to save files
 # if we want to save the tensors we save them locally because they occupy a lot of memory
