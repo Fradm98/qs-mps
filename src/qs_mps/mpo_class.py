@@ -258,53 +258,53 @@ class MPO_ladder:
         e, v = np.linalg.eigh(H)
         return e, v
 
-    def _initialize_finalize_quench_local(self, delta):
+    def _initialize_finalize_quench_local(self, delta, h_ev):
         I = identity(2**self.l, dtype=complex).toarray()
         w_tot = []
         for _ in range(self.L - 1):
             w_init_X = np.array([[I]])
             for l in range(self.l):
                 X_l = sparse_pauli_x(n=l, L=self.l).toarray()
-                w_init_X_l = np.array([[linalg.expm(1j * (1/self.lamb) * delta * X_l)]])
+                w_init_X_l = np.array([[linalg.expm(1j * (1/h_ev) * delta * X_l)]])
                 w_init_X = ncon([w_init_X_l, w_init_X], [[-1, -3, 1, -6], [-2, -4, -5, 1]]).reshape((1,1,w_init_X.shape[2],w_init_X_l.shape[3]))
             w_tot.append(w_init_X)
         self.mpo = w_tot
         return self
 
-    def mpo_Z2_quench_ladder(self, l, delta):
+    def mpo_Z2_quench_ladder(self, l, delta, h_ev):
         I = identity(2**self.l, dtype=complex).toarray()
         Z = sparse_pauli_z(n=l - 1, L=self.l).toarray()
         Z_ll = (
             sparse_pauli_z(n=l - 1, L=self.l) @ sparse_pauli_z(n=l, L=self.l)
         ).toarray()
-        w_int_loc = np.array(linalg.expm(1j * self.lamb * delta / 4 * Z_ll))
+        w_int_loc = np.array(linalg.expm(1j * h_ev * delta / 4 * Z_ll))
 
         if l != 1 and l != self.l:
             Z_ll_prime = (
                 sparse_pauli_z(n=l, L=self.l) @ sparse_pauli_z(n=l + 1, L=self.l)
             ).toarray()
-            w_int_loc_prime = np.array(linalg.expm(1j * self.lamb * delta / 4 * Z_ll_prime))
+            w_int_loc_prime = np.array(linalg.expm(1j * h_ev * delta / 4 * Z_ll_prime))
 
         w_tot = []
         for mpo_site in range(self.L - 1):
             print(f"mpo_site:{mpo_site}, ladder:{l}")
             c_loc = self.charge_coeff_local_Z(n=l, mpo_site=mpo_site)
-            w_loc = np.array(linalg.expm(1j * c_loc * self.lamb * delta / 2 * Z))
+            w_loc = np.array(linalg.expm(1j * c_loc * h_ev * delta / 2 * Z))
 
             c_int = self.charge_coeff_interaction(n=l, mpo_site=mpo_site)
             w_even = np.array(
                 [
                     [
-                        np.sqrt(np.cos(c_int * self.lamb * delta)) * I,
-                        1j * np.sqrt(np.sin(c_int * self.lamb * delta)) * Z,
+                        np.sqrt(np.cos(c_int * h_ev * delta)) * I,
+                        1j * np.sqrt(np.sin(c_int * h_ev * delta)) * Z,
                     ]
                 ]
             )
             w_odd = np.array(
                 [
                     [
-                        np.sqrt(np.cos(c_int * self.lamb * delta)) * I,
-                        np.sqrt(np.sin(c_int * self.lamb * delta)) * Z,
+                        np.sqrt(np.cos(c_int * h_ev * delta)) * I,
+                        np.sqrt(np.sin(c_int * h_ev * delta)) * Z,
                     ]
                 ]
             )
@@ -418,6 +418,63 @@ class MPO_ladder:
         self.mpo = w_tot
         return self
 
+    def mpo_Z2_quench_tot(self, delta, h_ev):
+        I = identity(2**self.l, dtype=complex).toarray()
+
+        w_tot = []
+        for mpo_site in range(self.L - 1):   
+            w_l = np.array([[I]])
+            for l in range(1,self.l+1):
+                Z = sparse_pauli_z(n=l - 1, L=self.l).toarray()
+                c_loc = self.charge_coeff_local_Z(n=l, mpo_site=mpo_site)
+                w_loc = np.array(linalg.expm(1j * c_loc * h_ev * delta * Z))
+
+                c_int = self.charge_coeff_interaction(n=l, mpo_site=mpo_site)
+                w_even = np.array(
+                    [
+                        [
+                            np.sqrt(np.cos(c_int * h_ev * delta)) * I,
+                            1j * np.sign(c_int) * np.sqrt(np.sin(np.abs(c_int) * h_ev * delta)) * Z,
+                        ]
+                    ]
+                )
+                w_odd = np.array(
+                    [
+                        [
+                            np.sqrt(np.cos(c_int * h_ev * delta)) * I,
+                            np.sqrt(np.sin(np.abs(c_int) * h_ev * delta)) * Z,
+                        ]
+                    ]
+                )
+                w_odd = np.swapaxes(w_odd, axis1=0, axis2=1)
+                if mpo_site == 0:
+                    w_l = ncon(
+                        [w_loc, w_even, w_l],
+                        [[-5, 2], [-1, -3, 2, 1], [-2, -4, 1, -6]],
+                    ).reshape((w_l.shape[0]*w_even.shape[0],w_l.shape[1]*w_even.shape[1],w_loc.shape[0],w_l.shape[-1]))
+                elif mpo_site == self.L - 2:
+                    w_l = ncon(
+                        [w_loc,w_odd,w_l],
+                        [[-5, 2], [-1, -3, 2, 1], [-2, -4, 1, -6]],
+                    ).reshape((w_l.shape[0]*w_odd.shape[0],w_l.shape[1]*w_odd.shape[1],w_loc.shape[0],w_l.shape[-1]))
+                else:
+                    w_l = ncon(
+                        [w_loc, w_even, w_odd, w_l],
+                        [[-7, 3], [-1, -4, 3, 2], [-2, -5, 2, 1], [-3, -6, 1, -8]],
+                    ).reshape((w_l.shape[0]*w_odd.shape[0]*w_even.shape[0],w_l.shape[1]*w_odd.shape[1]*w_even.shape[1],w_loc.shape[0],w_l.shape[-1]))
+
+            for l in range(1,self.l):
+                Z_ll = (
+                    sparse_pauli_z(n=l - 1, L=self.l) @ sparse_pauli_z(n=l, L=self.l)
+                ).toarray()
+                w_int_loc = np.array(linalg.expm(1j * h_ev * delta * Z_ll))
+                w_l = ncon([w_int_loc,w_l],[[-3,1],[-1,-2,1,-4]])
+
+            w_tot.append(w_l)
+
+        self.mpo = w_tot
+        return self
+    
     def thooft(self, site: list, l: list, direction: str):
         """
         thooft

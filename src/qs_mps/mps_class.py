@@ -1358,9 +1358,9 @@ class MPS:
                 array = self.ancilla_sites
                 ancilla_array = self.sites
             else:
-                array = self.sites
-                ancilla_array = self.ancilla_sites
-            w = self.w
+                array = self.sites.copy()
+                ancilla_array = self.ancilla_sites.copy()
+            w = self.w.copy()
 
             for i in range(1, site):
                 E_l = ncon([E_l, ancilla_array[i - 1]], [[1, -3, -4], [1, -2, -1]])
@@ -2288,11 +2288,8 @@ class MPS:
         trotter_steps: int,
         delta: float,
         h_ev: float,
-        quench: str,
-        flip: bool,
         n_sweeps: int = 2,
         conv_tol: float = 1e-7,
-        fidelity: bool = False,
         bond: bool = True,
         where: int = -1,
     ):
@@ -2314,147 +2311,109 @@ class MPS:
                 By default True
 
         """
-        overlap = []
-        mag_mps_tot = []
-        mag_mps_loc = []
-        mag_mps_int_hor = []
-        mag_mps_int_ver = []
         entropies = []
-        # X = np.array([[0, 1], [1, 0]])
-        # Z = np.array([[1, 0], [0, -1]])
+        E = []
+        M = []
+        W = []
+        S = []
+        sites = [1,2,3,4]
+        ladders = [2,3]
+        errors = [[0, 0]]
+        entropies = [0]
 
-        # if flip:
-        #     if self.L % 2 == 0:
-        #         self.sites[self.L // 2] = np.array([[[0], [1]]])
-        #         self.sites[self.L // 2 - 1] = np.array([[[0], [1]]])
-        #     else:
-        #         self.sites[self.L // 2] = np.array([[[0], [1]]])
-
-        # enlarging our local tensor to the max bond dimension
         self.enlarge_chi()
 
-        # # total
-        # self.order_param(op=Z)
-        # mag_mps_tot.append(np.real(self.mpo_first_moment()))
-        # # local glob Z
-        # mag_loc = []
-        # for i in range(self.L - 1):
-        #     for j in range(self.Z2.l):
-        #         self.local_param(site=i, op=j)
-        #         mag_loc.append(np.real(self.mpo_first_moment()))
-        # mag_mps_loc.append(mag_loc)
-        # # zz horizontal
-        # mag_int_hor = []
-        # for i in range(self.L - 2):
-        #     for j in range(self.Z2.l):
-        #         self.Z2.zz_observable_Z2_dual(mpo_site=i, l=j, direction="horizontal")
-        #         self.w = self.Z2.mpo
-        #         mag_int_hor.append(np.real(self.mpo_first_moment()))
-        # mag_mps_int_hor.append(mag_int_hor)
-        # # zz vertical
-        # mag_int_ver = []
-        # for i in range(self.L - 1):
-        #     for j in range(self.Z2.l - 1):
-        #         self.Z2.zz_observable_Z2_dual(mpo_site=i, l=j, direction="vertical")
-        #         self.w = self.Z2.mpo
-        #         mag_int_ver.append(np.real(self.mpo_first_moment()))
-        # mag_mps_int_ver.append(mag_int_ver)
+        # electric field
+        E_h = np.zeros((2*self.Z2.l+1,2*self.Z2.L-1))
+        E_h[:] = np.nan
+        E_h = self.electric_field_Z2(E_h)
 
-        # # fidelity
-        # if fidelity:
-        #     psi_exact_0 = sparse_ising_ground_state(L=self.L, h_t=self.h).reshape(
-        #         2**self.L, 1
-        #     )
-        #     psi_new_mpo = mps_to_vector(self.sites)
-        #     overlap.append(np.abs((psi_new_mpo.T.conjugate() @ psi_exact_0).real))
+        # local dual mag
+        self.order_param()
+        mag = self.mpo_first_moment().real/(len(self.Z2.latt.plaquettes()) - (2 * (self.Z2.L-1) + 2 * (self.Z2.l-2)))
+        
+        # # wilson loop
+        # self.Z2.wilson_Z2_dual(mpo_sites=sites, ls=ladders) #list(range(s))
+        # self.w = self.Z2.mpo.copy()
+        # loop = self.mpo_first_moment().real
 
-        # initialize ancilla with a state in Right Canonical Form
-        self.canonical_form(trunc_chi=True, trunc_tol=False)
-        self._compute_norm(site=1)
+        # t'hooft string
+        self.Z2.thooft(site=[2], l=[2], direction="horizontal")
+        self.w = self.Z2.mpo.copy()
+        thooft = self.mpo_first_moment().real
+
+        E.append(E_h)
+        M.append(mag)
+        # W.append(loop)
+        S.append(thooft)
+
         self.ancilla_sites = self.sites.copy()
 
-        errors = [[0, 0]]
+        
 
         for trott in range(trotter_steps):
             print(f"------ Trotter steps: {trott} -------")
 
             # start with the half mu_x on each ladder
-            self.Z2._initialize_finalize_quench_local(delta=delta)
+            self.Z2._initialize_finalize_quench_local(delta=delta, h_ev=h_ev)
             self.w = self.Z2.mpo
             self.mpo_to_mps()
-            for l in range(1, self.Z2.l + 1):
-                # apply repeatedly the mu_z evolution for every ladder
-                self.Z2.mpo_Z2_quench_ladder(l=l, delta=delta)
-                self.w = self.Z2.mpo
 
-                print(f"Bond dim ancilla: {self.ancilla_sites[self.L//2].shape[0]}")
-                print(f"Bond dim site: {self.sites[self.L//2].shape[0]}")
+            self.Z2.mpo_Z2_quench_tot(delta=delta, h_ev=h_ev)
+            self.w = self.Z2.mpo
 
-                # compress the ladder evolution operator
-                error, entropy = self.compression(
-                    trunc_tol=False,
-                    trunc_chi=True,
-                    n_sweeps=n_sweeps,
-                    conv_tol=conv_tol,
-                    bond=bond,
-                    where=where,
-                )
-                self.ancilla_sites = self.sites.copy()
+            print(f"Bond dim ancilla: {self.ancilla_sites[self.L//2].shape[0]}")
+            print(f"Bond dim site: {self.sites[self.L//2].shape[0]}")
+
+            # compress the ladder evolution operator
+            error, entropy = self.compression(
+                trunc_tol=False,
+                trunc_chi=True,
+                n_sweeps=n_sweeps,
+                conv_tol=conv_tol,
+                bond=bond,
+                where=where,
+            )
 
             # finish with the other half mu_x on each ladder
-            self.Z2._initialize_finalize_quench_local(delta=delta)
+            self.Z2._initialize_finalize_quench_local(delta=delta, h_ev=h_ev)
             self.w = self.Z2.mpo
             self.mpo_to_mps()
 
             self.ancilla_sites = self.sites.copy()
+
+            # electric field
+            E_h = np.zeros((2*self.Z2.l+1,2*self.Z2.L-1))
+            E_h[:] = np.nan
+            E_h = self.electric_field_Z2(E_h)
+
+            # local dual mag
+            self.order_param()
+            mag = self.mpo_first_moment().real/(len(self.Z2.latt.plaquettes()) - (2 * (self.Z2.L-1) + 2 * (self.Z2.l-2)))
+            
+            # # wilson loop
+            # self.Z2.wilson_Z2_dual(mpo_sites=sites, ls=ladders) #list(range(s))
+            # self.w = self.Z2.mpo.copy()
+            # loop = self.mpo_first_moment().real
+
+            # t'hooft string
+            self.Z2.thooft(site=[2], l=[2], direction="horizontal")
+            self.w = self.Z2.mpo.copy()
+            thooft = self.mpo_first_moment().real
+
+            E.append(E_h)
+            M.append(mag)
+            # W.append(loop)
+            S.append(thooft)
             errors.append(error)
             entropies.append(entropy)
 
-            # # total
-            # self.order_param(op=Z)
-            # mag_mps_tot.append(np.real(self.mpo_first_moment()))
-            # # local glob Z
-            # mag_loc = []
-            # for i in range(self.L - 1):
-            #     for j in range(self.Z2.l):
-            #         self.local_param(site=i, op=j)
-            #         mag_loc.append(np.real(self.mpo_first_moment()))
-            # mag_mps_loc.append(mag_loc)
-            # # zz horizontal
-            # mag_int_hor = []
-            # for i in range(self.L - 2):
-            #     for j in range(self.Z2.l):
-            #         self.Z2.zz_observable_Z2_dual(
-            #             mpo_site=i, l=j, direction="horizontal"
-            #         )
-            #         self.w = self.Z2.mpo
-            #         mag_int_hor.append(np.real(self.mpo_first_moment()))
-            # mag_mps_int_hor.append(mag_int_hor)
-            # # zz vertical
-            # mag_int_ver = []
-            # for i in range(self.L - 1):
-            #     for j in range(self.Z2.l - 1):
-            #         self.Z2.zz_observable_Z2_dual(mpo_site=i, l=j, direction="vertical")
-            #         self.w = self.Z2.mpo
-            #         mag_int_ver.append(np.real(self.mpo_first_moment()))
-            # mag_mps_int_ver.append(mag_int_ver)
 
-            # if fidelity:
-            #     psi_exact = U_evolution_sparse(
-            #         L=self.L,
-            #         psi_init=psi_exact_0,
-            #         trotter_step=(trott + 1),
-            #         delta=delta,
-            #         h_t=h_ev,
-            #     )
-            #     psi_new_mpo = mps_to_vector(self.sites)
-            #     overlap.append(np.abs((psi_new_mpo.T.conjugate() @ psi_exact).real))
         return (
-            mag_mps_tot,
-            mag_mps_loc,
-            mag_mps_int_hor,
-            mag_mps_int_ver,
-            overlap,
+            E,
+            M,
+            W,
+            S,
             errors,
             entropies,
         )

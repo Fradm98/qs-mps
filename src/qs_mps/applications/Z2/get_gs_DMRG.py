@@ -77,6 +77,13 @@ parser.add_argument(
     help="Save all the energies also the ones during the variational optimization. By default True",
     action="store_false",
 )
+parser.add_argument(
+    "-i",
+    "--interval",
+    help="Type of interval spacing. Available are 'log', 'lin'",
+    default="lin",
+    type=str
+)
 
 args = parser.parse_args()
 
@@ -84,8 +91,10 @@ args = parser.parse_args()
 d = int(2**(args.l))
 
 # define the interval of equally spaced values of external field
-# interval = np.linspace(args.h_i, args.h_f, args.npoints)
-interval = np.logspace(args.h_i, args.h_f, args.npoints)
+if args.interval == "lin":
+    interval = np.linspace(args.h_i, args.h_f, args.npoints)
+elif args.interval == "log":
+    interval = np.logspace(args.h_i, args.h_f, args.npoints)
 
 # take the path and precision to save files
 # if we want to save the tensors we save them locally because they occupy a lot of memory
