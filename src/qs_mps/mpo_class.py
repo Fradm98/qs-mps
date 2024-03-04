@@ -218,6 +218,7 @@ class MPO_ladder:
                 # self.mpo[0,n] = - 1 * sparse_pauli_z(n=n-1, L=self.l).toarray()
                 self.mpo[0, n] = (
                     -self.charge_coeff_interaction(n=n, mpo_site=mpo_site)
+                    * self.lamb
                     * sparse_pauli_z(n=n - 1, L=self.l).toarray()
                 )
 
@@ -227,13 +228,15 @@ class MPO_ladder:
                 # self.mpo[0,n+1] += - 3 * sparse_pauli_z(n=i-1, L=self.l).toarray() - self.lamb * sparse_pauli_x(n=i-1, L=self.l).toarray()
                 self.mpo[0, n + 1] += (
                     -self.charge_coeff_local_Z(n=i, mpo_site=mpo_site)
+                    * self.lamb
                     * sparse_pauli_z(n=i - 1, L=self.l).toarray()
-                    - self.lamb * sparse_pauli_x(n=i - 1, L=self.l).toarray()
+                    - (1/self.lamb) * sparse_pauli_x(n=i - 1, L=self.l).toarray()
                 )
             # vertical Z interaction
             for j in range(self.l - 1):
                 self.mpo[0, n + 1] += -(
-                    sparse_pauli_z(n=j, L=self.l) @ sparse_pauli_z(n=j + 1, L=self.l)
+                    self.lamb
+                    * sparse_pauli_z(n=j, L=self.l) @ sparse_pauli_z(n=j + 1, L=self.l)
                 ).toarray()
 
             # -----------
@@ -259,11 +262,11 @@ class MPO_ladder:
         I = identity(2**self.l, dtype=complex).toarray()
         w_tot = []
         for _ in range(self.L - 1):
-            w_init_X = I
+            w_init_X = np.array([[I]])
             for l in range(self.l):
                 X_l = sparse_pauli_x(n=l, L=self.l).toarray()
-                w_init_X_l = linalg.expm(1j * self.lamb * delta * X_l)
-                w_init_X = ncon([w_init_X_l, w_init_X], [[-1, 1], [1, -2]])
+                w_init_X_l = np.array([[linalg.expm(1j * (1/self.lamb) * delta * X_l)]])
+                w_init_X = ncon([w_init_X_l, w_init_X], [[-1, -3, 1, -6], [-2, -4, -5, 1]]).reshape((1,1,w_init_X.shape[2],w_init_X_l.shape[3]))
             w_tot.append(w_init_X)
         self.mpo = w_tot
         return self
@@ -274,33 +277,34 @@ class MPO_ladder:
         Z_ll = (
             sparse_pauli_z(n=l - 1, L=self.l) @ sparse_pauli_z(n=l, L=self.l)
         ).toarray()
-        w_int_loc = np.array(linalg.expm(1j * delta / 4 * Z_ll))
+        w_int_loc = np.array(linalg.expm(1j * self.lamb * delta / 4 * Z_ll))
 
         if l != 1 and l != self.l:
             Z_ll_prime = (
                 sparse_pauli_z(n=l, L=self.l) @ sparse_pauli_z(n=l + 1, L=self.l)
             ).toarray()
-            w_int_loc_prime = np.array(linalg.expm(1j * delta / 4 * Z_ll_prime))
+            w_int_loc_prime = np.array(linalg.expm(1j * self.lamb * delta / 4 * Z_ll_prime))
 
         w_tot = []
         for mpo_site in range(self.L - 1):
-            c_loc = self.charge_coeff_interaction(n=l - 1, mpo_site=mpo_site)
-            w_loc = np.array(linalg.expm(1j * c_loc * delta / 2 * Z))
+            print(f"mpo_site:{mpo_site}, ladder:{l}")
+            c_loc = self.charge_coeff_local_Z(n=l, mpo_site=mpo_site)
+            w_loc = np.array(linalg.expm(1j * c_loc * self.lamb * delta / 2 * Z))
 
             c_int = self.charge_coeff_interaction(n=l, mpo_site=mpo_site)
             w_even = np.array(
                 [
                     [
-                        np.sqrt(np.cos(c_int * delta)) * I,
-                        1j * np.sqrt(np.sin(c_int * delta)) * Z,
+                        np.sqrt(np.cos(c_int * self.lamb * delta)) * I,
+                        1j * np.sqrt(np.sin(c_int * self.lamb * delta)) * Z,
                     ]
                 ]
             )
             w_odd = np.array(
                 [
                     [
-                        np.sqrt(np.cos(c_int * delta)) * I,
-                        np.sqrt(np.sin(c_int * delta)) * Z,
+                        np.sqrt(np.cos(c_int * self.lamb * delta)) * I,
+                        np.sqrt(np.sin(c_int * self.lamb * delta)) * Z,
                     ]
                 ]
             )
@@ -334,7 +338,7 @@ class MPO_ladder:
                     )
                 w_tot.append(w_in)
 
-            elif mpo_site == self.L - 1:
+            elif mpo_site == self.L - 2:
                 if l != 1 and l != self.l:
                     w_fin = ncon(
                         [
@@ -408,7 +412,7 @@ class MPO_ladder:
                         w_odd.shape[2],
                         w_even.shape[3],
                     )
-            w_tot.append(w)
+                w_tot.append(w)
 
         w_tot.append(w_fin)
         self.mpo = w_tot
