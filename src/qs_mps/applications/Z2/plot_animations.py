@@ -54,7 +54,13 @@ parser.add_argument(
 parser.add_argument(
     "-e",
     "--exact",
-    help="Save the animation. By default False",
+    help="Exact computation. By default False",
+    action="store_true",
+)
+parser.add_argument(
+    "-t",
+    "--time",
+    help="Animation of real time evolution of the observable. By default False",
     action="store_true",
 )
 

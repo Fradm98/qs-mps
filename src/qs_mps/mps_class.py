@@ -546,12 +546,6 @@ class MPS:
         if self.model == "Ising":
             self.mpo_Ising()
 
-        elif self.model == "Z2_one_ladder":
-            self.mpo_Z2_one_ladder()
-
-        elif self.model == "Z2_two_ladder":
-            self.mpo_Z2_two_ladder()
-
         elif self.model == "ANNNI":
             self.mpo_ANNNI()
 
@@ -609,150 +603,30 @@ class MPS:
         self.w = w_tot
         return self
 
-    def mpo_Z2_one_ladder(self):
+    def mpo_Cluster(self):
         """
-        mpo_Z2_one_ladder
+        mpo_Cluster
 
-        This function defines the MPO for the Z2 lattice gauge theory
-        model sitting on one single ladder. It takes a different MPO for
-        the first site and it is the same for the other sites.
+        This function defines the MPO for the 1D Axial Next-Nearest Neighbor Interaction model.
+        It takes the same MPO for all sites.
 
         """
-        I = np.eye(2)
-        O = np.zeros((2, 2))
-        X = np.array([[0, 1], [1, 0]])
-        Z = np.array([[1, 0], [0, -1]])
+        I = identity(2, dtype=complex).toarray()
+        O = csc_array((2, 2), dtype=complex).toarray()
+        X = sparse_pauli_x(n=0, L=1).toarray()
+        Z = sparse_pauli_z(n=0, L=1).toarray()
         w_tot = []
-        for i in range(self.L):
-            if i == 0:
-                theta = 1
-            else:
-                theta = 0
+        for _ in range(self.L):
             w = np.array(
-                [
-                    [I, -self.J * Z, -2 * self.h * theta * X, -self.h * X],
-                    [O, O, O, Z],
-                    [O, O, X, X @ (np.linalg.matrix_power(X, (1 - theta)))],
-                    [O, O, O, I],
-                ]
+                [[I, Z, O, (-self.h / self.J) * X], 
+                 [O, O, X, O], 
+                 [O, O, O, Z], 
+                 [O, O, O, I]]
             )
             w_tot.append(w)
         self.w = w_tot
         return self
 
-    def mpo_Z2_two_ladder(self):
-        """
-        mpo_Z2_two_ladder
-
-        This function defines the MPO for the Z2 lattice gauge theory
-        model sitting on two ladders. It takes a different MPO for the
-        first site and it is the same for the other sites.
-
-        charges: list - list of charges for the Z2 on external vertices.
-                their product must be one.
-                They are ordered from the upper left vertex: 11,21,31,1N,2N,3N
-
-        """
-        charges = self.charges
-        assert np.prod(charges) == 1, "The charges do not multiply to one"
-
-        O_small = np.zeros((2, 2))
-        I_small = np.eye(2)
-        X = np.array([[0, 1], [1, 0]])
-        Z = np.array([[1, 0], [0, -1]])
-        O_ext = np.kron(O_small, O_small)
-        I_ext = np.kron(I_small, I_small)
-        O = O_ext
-        I = I_ext
-        X_1 = np.kron(I_small, X)
-        X_2 = np.kron(X, I_small)
-        X_12 = np.kron(X, X)
-        Z_1 = np.kron(Z, I_small)
-        Z_2 = np.kron(I_small, Z)
-        w_tot = []
-        beta = 0
-        for i in range(self.L):
-            if i == 0:
-                alpha = 1
-            else:
-                alpha = 0
-            if i == (self.L - 1):
-                beta = 1
-            w = np.array(
-                [
-                    [
-                        I,
-                        -1 / self.h * Z_1,
-                        -1 / self.h * Z_2,
-                        -self.h * charges[0] * alpha * X_1,
-                        -self.h * charges[2] * alpha * X_2,
-                        -self.h * charges[1] * alpha * X_12,
-                        -self.h * X_1 - self.h * X_2 - beta * 1 / self.h * (Z_1 + Z_2),
-                    ],
-                    [O, O, O, O, O, O, Z_1],
-                    [O, O, O, O, O, O, Z_2],
-                    [
-                        O,
-                        O,
-                        O,
-                        X_1,
-                        O,
-                        O,
-                        X_1 @ (np.linalg.matrix_power(X_1, (1 - alpha)))
-                        + beta * (1 + charges[3]) * X_1,
-                    ],
-                    [
-                        O,
-                        O,
-                        O,
-                        O,
-                        X_2,
-                        O,
-                        X_2 @ (np.linalg.matrix_power(X_2, (1 - alpha)))
-                        + beta * (1 + charges[5]) * X_2,
-                    ],
-                    [
-                        O,
-                        O,
-                        O,
-                        O,
-                        O,
-                        X_12,
-                        X_12 @ (np.linalg.matrix_power(X_12, (1 - alpha)))
-                        + beta * X_12,
-                    ],
-                    [O, O, O, O, O, O, I],
-                ]
-            )
-            w_tot.append(w)
-        self.w = w_tot
-        return self
-
-    def mpo_Z2_general(self, l: int):
-        """
-        mpo_Z2_general
-
-        This function generates the mpo for the Z2 pure gauge theory for
-        general number of ladders and charges in all the sites. The mpo
-        was given by the dual mapping to the 2D Ising
-
-        l: int - number of ladders in the direct lattice
-
-        """
-        N = self.L + 1
-        O = np.zeros((self.d, self.d))
-        I = np.eye(self.d, self.d)
-        row = [O] * (l + 2)
-        w_edge = np.array(row * (l + 2))
-        w_edge[0, 0] = I
-        w_edge[-1, -1] = I
-        Z = []
-        coeff = []
-        for i in range(l):
-            w_edge[0, i + 1] = -coeff[i] * Z[i]
-        # w_edge = np.array([w_edge for j in range(2+l)])
-
-        pass
 
     def mpo_quench(
         self,
