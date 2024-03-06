@@ -876,6 +876,9 @@ def plot_results_DMRG(
     fname_save: str,
     path_save: str,
     ylabel: str,
+    yscale: str = "linear",
+    delta: float = None,
+    time: bool = False,
     exact: bool = False,
     save: bool = True,
     marker: str = "+",
@@ -884,6 +887,7 @@ def plot_results_DMRG(
     alpha: float = 1,
     n_points: float = 1,
     cmap: str = "viridis",
+    txt: bool = False,
     precision: int = 2,
     show: bool = True
 ):
@@ -903,7 +907,10 @@ def plot_results_DMRG(
     x = interval[::step]
 
     for i, elem in enumerate(for_array):
-        res_mps = np.load(f"{path}/{fname}_chi_{elem}.npy")
+        if txt:
+            res_mps = np.loadtxt(f"{path}/{fname}_chi_{elem}")
+        else:
+            res_mps = np.load(f"{path}/{fname}_chi_{elem}.npy")
         # res_mps = np.loadtxt(f"{path}/{fname}_chi_{elem}")
         # res_mps = access_txt(
         #     f"{path}/all_bond_entropy_Ising_L_51_flip_True_delta_0.01_chi_{elem}_h_ev_1.75", 25
@@ -925,14 +932,24 @@ def plot_results_DMRG(
         
     # labels = interval[:: (len(interval) // 10)],
     # labels = [f"{h:.{precision}f}" for h in labels]
-    labels = interval[:: (len(interval) // 5)]
-    labels = [round(lab, 1) for lab in labels]
+    
 
-    plt.xlabel("plaquette term (h)")
-    # plt.xticks(
-    #     ticks=interval[:: (len(interval) // 5)],
-    #     labels=labels,
-    # )
+    if time:
+        plt.xlabel(f"time $(\\delta t)$")
+        labels = delta * np.asarray(interval[:: (len(interval) // 5)])
+        labels = [round(lab, 1) for lab in labels]
+        plt.xticks(
+            ticks=np.asarray(interval[:: (len(interval) // 5)]),
+            labels=labels,
+        )
+    else:
+        plt.xlabel("plaquette term (h)")
+        labels = np.asarray(interval[:: (len(interval) // 5)])
+        labels = [round(lab, 1) for lab in labels]
+        plt.xticks(
+            ticks=interval[:: (len(interval) // 5)],
+            labels=labels,
+        )
     plt.ylabel(ylabel)
     if exact:
             # res_exact = np.loadtxt(f"{path_ex}/{fname_ex}")
@@ -946,7 +963,7 @@ def plot_results_DMRG(
                 label=f"exact",
             )
     plt.legend()
-
+    plt.yscale(yscale)
     if save:
         plt.savefig(f"{path_save}/{fname_save}_marker_{marker}.png")
     if show:
@@ -1080,7 +1097,7 @@ def plot_colormaps_evolution(
     plt.show()
 
 
-def anim(frames: int, interval: int, data: np.ndarray, params: np.ndarray, show: bool, charges_x: list, charges_y: list, precision: int):
+def anim(frames: int, interval: int, data: np.ndarray, params: np.ndarray, show: bool, charges_x: list, charges_y: list, precision: int, time: bool):
 
     # Create a figure and axis
     fig, ax = plt.subplots()
@@ -1113,7 +1130,7 @@ def anim(frames: int, interval: int, data: np.ndarray, params: np.ndarray, show:
 
     
     # Function to update the colormap in each frame
-    def update(frame, data: np.ndarray, params: np.ndarray, precision: int):
+    def update(frame, data: np.ndarray, params: np.ndarray, precision: int, time: bool):
         # print(frame, type(frame))
         # Generate some example data
         data_frame = data[frame]
@@ -1122,13 +1139,16 @@ def anim(frames: int, interval: int, data: np.ndarray, params: np.ndarray, show:
         # Update the colormap
         im.set_data(data_frame)
         # im.imshow(data_frame, vmin=0, vmax=1, cmap=cmap, interpolation="nearest")
-        title.set_text(f'Magnetic term: {param_frame:.{precision}f}')
+        if time:
+            title.set_text(f'Trotter step: {param_frame:.{precision}f}')
+        else:
+            title.set_text(f'Magnetic term: {param_frame:.{precision}f}')
         # Set colorbar
         # cbar.set(im, ax=ax)
         
 
     # Create the animation
-    animation = FuncAnimation(fig, partial(update, data=data, params=params, precision=precision), frames=frames, interval=interval, repeat=False)
+    animation = FuncAnimation(fig, partial(update, data=data, params=params, precision=precision, time=time), frames=frames, interval=interval, repeat=False)
 
     # Show the animation
     if show:

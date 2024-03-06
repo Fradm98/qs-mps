@@ -10,17 +10,13 @@ plt.rcParams["figure.constrained_layout.use"] = True
 
 parser = argparse.ArgumentParser(prog="plot animations")
 parser.add_argument("l", help="Number of ladders in the direct lattice", type=int)
-parser.add_argument("L", help="Number of rungs per ladder", type=int)
 parser.add_argument(
     "npoints",
-    help="Number of points in an interval of transverse field values",
+    help="Number of points in an interval of transverse field values or number of trotter steps",
     type=int,
 )
 parser.add_argument(
     "h_i", help="Starting value of h (external transverse field on the dual lattice)", type=float
-)
-parser.add_argument(
-    "h_f", help="Final value of h (external transverse field on the dual lattice)", type=float
 )
 parser.add_argument(
     "path",
@@ -28,9 +24,19 @@ parser.add_argument(
     type=str,
 )
 parser.add_argument("o", help="Observable we want to compute. Available are 'wl', 'el'", type=str)
-parser.add_argument("chis", help="Simulated bond dimensions", nargs="+", type=int)
+parser.add_argument("-L", "--Ls", help="Number of rungs per ladder", nargs="+", type=int)
+parser.add_argument("-D", "--chis", help="Simulated bond dimensions", nargs="+", type=int)
 parser.add_argument("-cx", "--charges_x", help="a list of the first index of the charges", nargs="*", type=int)
 parser.add_argument("-cy", "--charges_y", help="a list of the second index of the charges", nargs="*", type=int)
+parser.add_argument(
+    "-f", "--h_f", help="Final value of h (external transverse field on the dual lattice)", type=float
+)
+parser.add_argument(
+    "-d", "--delta", help="Width of each time slice during the time evolution. Should be 'small enough'", type=float
+)
+parser.add_argument(
+    "-ev", "--h_ev", help="Quench value of h (external transverse field on the dual lattice)", type=float
+)
 parser.add_argument("-lx","--sites", help="Number of sites in the wilson loop", type=int)
 parser.add_argument("-ly","--ladders", help="Number of ladders in the wilson loop", type=int)
 parser.add_argument(
@@ -66,12 +72,16 @@ parser.add_argument(
 
 args = parser.parse_args()
 
-# define the interval of equally spaced values of external field
-interval = np.linspace(args.h_i, args.h_f, args.npoints)
+# define the interval of equally spaced values of external field or trotter steps
+if args.time:
+    interval = range(args.npoints)
+    precision = get_precision(args.h_i)
+else:
+    interval = np.linspace(args.h_i, args.h_f, args.npoints)
 
-# define the precision
-num = (args.h_f - args.h_i) / args.npoints
-precision = get_precision(num)
+    # define the precision
+    num = (args.h_f - args.h_i) / args.npoints
+    precision = get_precision(num)
 
 # take the path and precision to save files
 # if we want to save the tensors we save them locally because they occupy a lot of memory
@@ -88,31 +98,38 @@ else:
     raise SyntaxError("Path not valid. Choose among 'pc', 'mac', 'marcos'")
 
 
-# define the sector by looking of the given charges
-if args.charges_x == []:
-    sector = "vacuum_sector"
-    args.charges_x = None
-    args.charges_y = None
-else:
-    for i in range(1,args.l*args.L):
-        if len(args.charges_x) == i:
-            sector = f"{i}_particle(s)_sector"
-
-for chi in args.chis:
-    if args.o == 'el':
-        
-        if args.exact:
-            path_file = f"electric_field_{args.model}_direct_lattice_{args.l-1}x{args.L-1}_{sector}_{args.charges_x}-{args.charges_y}_h_{args.h_i}-{args.h_f}_delta_{args.npoints}"
-            dataname = f"{parent_path}/results/exact/electric_field/{path_file}.npy"
-            savename = f"{parent_path}/figures/exact/animations/animation_{path_file}.mp4"
-        else:
-            path_file = f"electric_field_{args.model}_direct_lattice_{args.l}x{args.L-1}_{sector}_{args.charges_x}-{args.charges_y}_h_{args.h_i}-{args.h_f}_delta_{args.npoints}_chi_{chi}"
-            dataname = f"{parent_path}/results/electric_field/{path_file}.npy"
-            savename = f"{parent_path}/figures/animations/animation_{path_file}.mp4"
-        
-        data = np.load(dataname)
 
 
-    movie = anim(frames=args.npoints, interval=200, data=data, params=interval, show=args.show, charges_x=args.charges_x, charges_y=args.charges_y, precision=precision)
-    if args.save:
-        movie.save(savename)
+for L in args.Ls:
+    # define the sector by looking of the given charges
+    if len(args.charges_x) == 0:
+        sector = "vacuum_sector"
+        charges_x = None
+        charges_y = None
+    else:
+        sector = f"{len(args.charges_x)}_particle(s)_sector"
+        charges_x = args.charges_x
+        charges_y = args.charges_y
+
+    for chi in args.chis:
+        if args.o == 'el':
+            
+            if args.exact:
+                path_file = f"electric_field_{args.model}_direct_lattice_{args.l-1}x{L-1}_{sector}_{args.charges_x}-{args.charges_y}_h_{args.h_i}-{args.h_f}_delta_{args.npoints}"
+                dataname = f"{parent_path}/results/exact/electric_field/{path_file}.npy"
+                savename = f"{parent_path}/figures/exact/animations/animation_{path_file}.mp4"
+            elif args.time:
+                path_file = f"electric_field_{args.model}_direct_lattice_{args.l}x{L-1}_{sector}_{args.charges_x}-{args.charges_y}_h_i_{args.h_i}_h_ev_{args.h_ev}_delta_{args.delta}_trotter_steps_{args.npoints}_chi_{chi}"
+                dataname = f"{parent_path}/results/electric_field/{path_file}.npy"
+                savename = f"{parent_path}/figures/animations/animation_{path_file}.mp4"
+            else:
+                path_file = f"electric_field_{args.model}_direct_lattice_{args.l}x{L-1}_{sector}_{args.charges_x}-{args.charges_y}_h_{args.h_i}-{args.h_f}_delta_{args.npoints}_chi_{chi}"
+                dataname = f"{parent_path}/results/electric_field/{path_file}.npy"
+                savename = f"{parent_path}/figures/animations/animation_{path_file}.mp4"
+            
+            data = np.load(dataname)
+
+
+        movie = anim(frames=args.npoints, interval=200, data=data, params=interval, show=args.show, charges_x=args.charges_x, charges_y=args.charges_y, precision=precision, time=args.time)
+        if args.save:
+            movie.save(savename)

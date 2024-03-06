@@ -74,7 +74,7 @@ parser.add_argument(
 parser.add_argument(
     "-tr",
     "--training",
-    help="Save all the energies also the ones during the variational optimization. By default True",
+    help="Save all the energies during the variational optimization. By default True",
     action="store_false",
 )
 parser.add_argument(

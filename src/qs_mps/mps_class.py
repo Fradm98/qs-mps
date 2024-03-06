@@ -1908,7 +1908,7 @@ class MPS:
                 self.sites[sites[i] - 1] = M
 
                 errs = self.error(site=sites[i], M=M, N_anc=N_anc)
-                errors.append(errs)
+                errors.append(np.abs(errs))
 
                 # s = self.update_state_ev(
                 #     sweeps[0],
@@ -1930,6 +1930,7 @@ class MPS:
                 )
                 if bond:
                     if sites[i] - 1 == where:
+                        s_mid = s
                         entr = von_neumann_entropy(s)
                         entropy.append(entr)
                 else:
@@ -1967,7 +1968,7 @@ class MPS:
                 + f"instead of the convergence tolerance {conv_tol}"
             )
             print("##############################")
-        return errors, entropy
+        return errors, entropy, s_mid
 
     def TEBD_direct(self, trotter_steps, delta, h_ev, J_ev, fidelity=False, trunc=True):
         """
@@ -2290,6 +2291,72 @@ class MPS:
             S,
             errors,
             entropies,
+        )
+    
+    def TEBD_variational_Z2_trotter_step(
+        self,
+        trotter_step: int,
+        delta: float,
+        h_ev: float,
+        n_sweeps: int = 2,
+        conv_tol: float = 1e-7,
+        bond: bool = True,
+        where: int = -1,
+    ):
+        """
+        variational_mps_evolution
+
+        This function computes the magnetization and (on demand) the fidelity
+        of the trotter evolved MPS by the MPO direct application.
+
+        trotter_steps: int - number of times we apply the mpo to the mps
+        delta: float - time interval which defines the evolution per step
+        h_ev: float - value of the external field in the evolving hamiltonian
+        flip: bool - flip the initial state middle qubit
+        quench: str - type of quench we want to execute. Available are 'flip', 'global'
+        fidelity: bool - we can compute the fidelity with the initial state
+                if the chain is small enough. By default False
+        err: bool - computes the distance error between the guess state and an
+                uncompressed state. If True it is used as a convergence criterion.
+                By default True
+
+        """
+
+        print(f"------ Trotter steps: {trotter_step} -------")
+
+        # start with the half mu_x on each ladder
+        self.Z2._initialize_finalize_quench_local(delta=delta, h_ev=h_ev)
+        self.w = self.Z2.mpo
+        self.mpo_to_mps()
+
+        self.Z2.mpo_Z2_quench_tot(delta=delta, h_ev=h_ev)
+        self.w = self.Z2.mpo
+
+        print(f"Bond dim ancilla: {self.ancilla_sites[self.L//2].shape[0]}")
+        print(f"Bond dim site: {self.sites[self.L//2].shape[0]}")
+
+        # compress the ladder evolution operator
+        error, entropy, schmidt_values = self.compression(
+            trunc_tol=False,
+            trunc_chi=True,
+            n_sweeps=n_sweeps,
+            conv_tol=conv_tol,
+            bond=bond,
+            where=where,
+        )
+
+        # finish with the other half mu_x on each ladder
+        self.Z2._initialize_finalize_quench_local(delta=delta, h_ev=h_ev)
+        self.w = self.Z2.mpo
+        self.mpo_to_mps()
+
+        self.ancilla_sites = self.sites.copy()
+
+        return (
+            self,
+            error,
+            entropy,
+            schmidt_values
         )
 
     # -------------------------------------------------
