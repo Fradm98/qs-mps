@@ -30,13 +30,13 @@ parser.add_argument("-D", "--chis", help="Simulated bond dimensions", nargs="+",
 parser.add_argument("-cx", "--charges_x", help="a list of the first index of the charges", nargs="*", type=int)
 parser.add_argument("-cy", "--charges_y", help="a list of the second index of the charges", nargs="*", type=int)
 parser.add_argument(
-    "-ty", "--type_shape", help="Type of shape of the bond dimension. Available are: 'trapezoidal', 'pyramidal', 'rectangular'", default="trapezoidal", type=str
+    "-ty", "--type_shape", help="Type of shape of the bond dimension. Available are: 'trapezoidal', 'pyramidal', 'rectangular'", default="rectangular", type=str
 )
 parser.add_argument(
     "-m", "--model", help="Model to simulate", default="Z2_dual", type=str
 )
 parser.add_argument(
-    "-mu", "--multpr", help="If True computes ground states with multiprocessing. By default True", action="store_false"
+    "-mu", "--multpr", help="If True computes ground states with multiprocessing. By default False", action="store_true"
 )
 parser.add_argument(
     "-s",
@@ -74,8 +74,8 @@ parser.add_argument(
 parser.add_argument(
     "-tr",
     "--training",
-    help="Save all the energies during the variational optimization. By default True",
-    action="store_false",
+    help="Save all the energies during the variational optimization. By default False",
+    action="store_true",
 )
 parser.add_argument(
     "-i",

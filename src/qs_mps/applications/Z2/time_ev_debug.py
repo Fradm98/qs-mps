@@ -64,8 +64,8 @@ parser.add_argument(
 parser.add_argument(
     "-tr",
     "--training",
-    help="Save all the errors during the variational compression. By default True",
-    action="store_false",
+    help="Save all the errors during the variational compression. By default False",
+    action="store_true",
 )
 
 args = parser.parse_args()
@@ -74,7 +74,8 @@ args = parser.parse_args()
 d = int(2**(args.l))
 
 # define the precision to load the mps
-precision = get_precision(args.h_i)
+# precision = get_precision(args.h_i)
+precision = 1
 
 # take the path and precision to save files
 # if we want to save the tensors we save them locally because they occupy a lot of memory
