@@ -75,7 +75,7 @@ d = int(2**(args.l))
 
 # define the precision to load the mps
 # precision = get_precision(args.h_i)
-precision = 1
+precision = 2
 
 # take the path and precision to save files
 # if we want to save the tensors we save them locally because they occupy a lot of memory
@@ -139,6 +139,7 @@ for L in args.Ls:
         E = []
         S = []
         M = []
+        C = []
 
         # initialize the tensor
         lattice_mps = MPS(L=L, d=d, model=args.model, chi=chi, h=args.h_i)
@@ -193,6 +194,12 @@ for L in args.Ls:
             elif args.moment == 4:
                 M.append(lattice_mps.mpo_fourth_moment().real/(len(lattice_mps.Z2.latt.plaquettes())-(2*(L-3)+2*(args.l)))**4)
 
+        if "corr" in args.obs:
+            s = (charges_x[0]+charges_x[1]) //2
+            lad = np.min(charges_y)
+            print(f"connected correlator before trotter - L:{L}, chi:{chi}")
+            corr = lattice_mps.connected_correlator(site=s, lad=lad)
+            C.append(corr)
         # ---------------------------------------------------------
         # Trotter Evolution
         # ---------------------------------------------------------        
@@ -239,6 +246,11 @@ for L in args.Ls:
                 elif args.moment == 4:
                     M.append(lattice_mps.mpo_fourth_moment().real/(len(lattice_mps.Z2.latt.plaquettes())-(2*(L-3)+2*(args.l)))**4)
 
+            if "corr" in args.obs:
+                print(f"connected correlator for trotter step:{t}, L:{L}, chi:{chi}")
+                corr = lattice_mps.connected_correlator(site=s, lad=lad)
+                C.append(corr)
+
             print(f"\nError at trotter step: {t} is: {error}\n")
             errors_tr.append(error)
             errors.append(error[-1])
@@ -264,6 +276,11 @@ for L in args.Ls:
             np.save(
                         f"{parent_path}/results/mag_data/dual_mag_{moment}_moment_{args.model}_direct_lattice_{args.l}x{L-1}_{sector}_{args.charges_x}-{args.charges_y}_h_i_{args.h_i}_h_ev_{args.h_ev}_delta_{args.delta}_trotter_steps_{args.npoints}_chi_{chi}.npy",
                         M,
+                    )
+        if "corr" in args.obs:
+            np.save(
+                        f"{parent_path}/results/mag_data/connected_correlator_s_{s}_l_{lad}_{args.model}_direct_lattice_{args.l}x{L-1}_{sector}_{args.charges_x}-{args.charges_y}_h_i_{args.h_i}_h_ev_{args.h_ev}_delta_{args.delta}_trotter_steps_{args.npoints}_chi_{chi}.npy",
+                        C,
                     )
             
         if args.bond == False:

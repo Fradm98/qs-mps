@@ -93,8 +93,12 @@ d = int(2**(args.l))
 # define the interval of equally spaced values of external field
 if args.interval == "lin":
     interval = np.linspace(args.h_i, args.h_f, args.npoints)
+    num = (interval[-1] - interval[0]) / args.npoints
+    precision = get_precision(num)
 elif args.interval == "log":
     interval = np.logspace(args.h_i, args.h_f, args.npoints)
+    num = (args.h_f - args.h_i) / args.npoints
+    precision = get_precision(num)
 
 # take the path and precision to save files
 # if we want to save the tensors we save them locally because they occupy a lot of memory
@@ -109,9 +113,6 @@ elif args.path == "marcos":
     path_tensor = "/Users/fradm/Desktop/projects/1_Z2"
 else:
     raise SyntaxError("Path not valid. Choose among 'pc', 'mac', 'marcos'")
-
-num = (args.h_f - args.h_i) / args.npoints
-precision = get_precision(num)
 
 
 # ---------------------------------------------------------

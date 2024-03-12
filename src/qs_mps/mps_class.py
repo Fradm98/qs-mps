@@ -758,6 +758,9 @@ class MPS:
         elif self.model == "ANNNI":
             self.order_param_Ising(op=op)
 
+        elif self.model == "Cluster":
+            self.order_param_Ising(op=op)
+
         elif self.model == "Z2_two_ladder":
             self.order_param_Z2()
 
@@ -1049,48 +1052,84 @@ class MPS:
             E[(l*2+1), 2::2] = E_h
         
         return E
+    
+    def corr_test(self, E, mpo_site):
+        """
+        electric_field_Z2
+
+        This function finds the mpo for the electric field in the direct lattice of a Z2 theory.
+        To reconstruct the field in the direct lattices we need functions to compute the 
+        borders and the bulk fields, weighted for the appropriate charges.
+
+        """
+        # let us find the observables for the boudary fields    
+        for l in [0,self.Z2.l-1]:
+            self.Z2.local_observable_Z2_dual(mpo_site=mpo_site, l=l)
+            coeff = self.Z2.charge_coeff_v(mpo_site=mpo_site, l=l)
+            self.w = self.Z2.mpo.copy()
+            E[(l+j)*2,mpo_site*2+1] = coeff * self.mpo_first_moment().real
+            # E[(l+j)*2,mpo_site*2+1] = self.mpo_first_moment().real
+            j = 1
+            
+        # now we can obtain the bulk values given by the zz interactions
+        # vertical
+        for l in range(self.Z2.l-1):
+            E_v = []
+            for mpo_site in range(self.Z2.L-1):
+                self.Z2.zz_observable_Z2_dual(mpo_site=mpo_site, l=l, direction="vertical")
+                self.w = self.Z2.mpo.copy()
+                E_v.append(self.mpo_first_moment().real)
+            E[(l+1)*2, 1::2] = E_v
+        # horizontal
+        for l in range(self.Z2.l):
+            E_h = []
+            for mpo_site in range(self.Z2.L-2):
+                self.Z2.zz_observable_Z2_dual(mpo_site=mpo_site, l=l, direction="horizontal")
+                coeff = self.Z2.charge_coeff_interaction(n=l+1,mpo_site=mpo_site)
+                self.w = self.Z2.mpo.copy()
+                E_h.append(coeff * self.mpo_first_moment().real)
+            E_h.append(E[(l*2+1), -1])
+            E[(l*2+1), 2::2] = E_h
+        
+        return E
 
     def connected_correlator(self, site, lad):
         E_corr = []
+        # find the exp val for the reference link
+        self.Z2.zz_observable_Z2_dual(mpo_site=site, l=lad-1, direction="vertical")
+        self.w = self.Z2.mpo.copy()
+        E_lad = self.mpo_first_moment().real
+        print(f"E_0: {E_lad}")
         for link in range(self.Z2.l+1):
-            if link != lad:
-                if link in [0, self.Z2.l]:
-                    if link == 0:
-                        l = link
-                    elif link == self.Z2.l:
-                        l = link-1
-                    # find the exp val for the reference link
-                    self.Z2.local_observable_Z2_dual(mpo_site=site, l=lad)
-                    # coeff = self.Z2.charge_coeff_v(mpo_site=site, l=lad)
-                    self.w = self.Z2.mpo.copy()
-                    # E_lad = coeff * self.mpo_first_moment().real
-                    E_lad = self.mpo_first_moment().real
-                    
-                    # find the exp val for the link separated by r
-                    self.Z2.local_observable_Z2_dual(mpo_site=site, l=l)
-                    # coeff = self.Z2.charge_coeff_v(mpo_site=site, l=l)
-                    self.w = self.Z2.mpo.copy()
-                    # E_r = coeff * self.mpo_first_moment().real
-                    E_r = self.mpo_first_moment().real
-                else:
-                    l = link - 1
-                    # find the exp val for the reference link
-                    self.Z2.zz_observable_Z2_dual(mpo_site=site, l=lad, direction="vertical")
-                    self.w = self.Z2.mpo.copy()
-                    E_lad = self.mpo_first_moment().real
-
-                    # find the exp val for the link separated by r
-                    self.Z2.zz_observable_Z2_dual(mpo_site=site, l=l, direction="vertical")
-                    self.w = self.Z2.mpo.copy()
-                    E_r = self.mpo_first_moment().real
-
-                # find the exp val of the correlator between reference and r link
-                self.Z2.correlator(site=[site],ladders=[lad,l])
+            # if link != lad:
+            if link in [0, self.Z2.l]:
+                if link == 0:
+                    l = link
+                elif link == self.Z2.l:
+                    l = link - 1                    
+                # find the exp val for the link separated by r
+                self.Z2.local_observable_Z2_dual(mpo_site=site, l=l)
+                coeff = self.Z2.charge_coeff_v(mpo_site=site, l=l)
                 self.w = self.Z2.mpo.copy()
-                E_lad_r = self.mpo_first_moment().real
+                E_r = coeff * self.mpo_first_moment().real
+                print(f"E_r: {E_r}")
+                # E_r = self.mpo_first_moment().real
+            else:
+                l = link - 1
+                # find the exp val for the link separated by r
+                self.Z2.zz_observable_Z2_dual(mpo_site=site, l=l, direction="vertical")
+                self.w = self.Z2.mpo.copy()
+                E_r = self.mpo_first_moment().real
+                print(f"E_r: {E_r}")
 
-                E_corr.append(E_lad_r - E_lad*E_r)
-                print(E_lad_r - E_lad*E_r)
+            # find the exp val of the correlator between reference and r link
+            self.Z2.correlator(site=[site],ladders=[lad,link])
+            self.w = self.Z2.mpo.copy()
+            E_lad_r = self.mpo_first_moment().real
+            print(f"E_0-r: {E_lad_r}")
+
+            E_corr.append(E_lad_r - (E_lad * E_r))
+            print(E_lad_r - (E_lad * E_r))
 
         return E_corr
 
@@ -2595,6 +2634,8 @@ class MPS:
             self.load_sites_Ising(path=path, precision=precision)
         elif "ANNNI" in self.model:
             self.load_sites_ANNNI(path=path, precision=precision)
+        if "Cluster" in self.model:
+            self.load_sites_Ising(path=path, precision=precision)
         elif "Z2" in self.model:
             self.load_sites_Z2(path=path, precision=precision, cx=cx, cy=cy)
         else:

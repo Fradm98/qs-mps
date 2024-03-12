@@ -383,15 +383,21 @@ class MPO_ladder:
 
         site = site[0]
         mpo_tot = []
-        coeff = self.charge_coeff_v(mpo_site=site, l=0)
         
         for mpo_site in range(self.L-1):
             if mpo_site == site:
                 self.mpo[0,-1] = identity(2**self.l, dtype=complex).toarray()
                 for l in ladders:
                     if l == 0 or l == self.l:
+                        if l == 0:
+                            l = l
+                        elif l == self.l:
+                            l = l - 1 
+                        coeff = self.charge_coeff_v(mpo_site=site, l=l)
                         self.mpo[0,-1] = self.mpo[0,-1] @ (coeff * sparse_pauli_z(n=l, L=self.l).toarray())
+                        # self.mpo[0,-1] = self.mpo[0,-1] @ (sparse_pauli_z(n=l, L=self.l).toarray())
                     else:
+                        l = l - 1
                         self.mpo[0,-1] = self.mpo[0,-1] @ sparse_pauli_z(n=l, L=self.l).toarray() @ sparse_pauli_z(n=l+1, L=self.l).toarray()
             mpo_tot.append(self.mpo)
             self.mpo_skeleton(aux_dim=2)
