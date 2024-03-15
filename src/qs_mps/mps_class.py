@@ -1421,7 +1421,6 @@ class MPS:
                             self.env_left[-1].shape[0] * self.d * self.env_right[-1].shape[0],
                             self.env_left[-1].shape[2] * self.d * self.env_right[-1].shape[2],
                             ), matvec=self.mv, dtype=np.complex128)
-        
         # print(f"shape of A: {A.shape}")
         # if A.shape[0] == 2:
         #     H = self.H_eff(site=site)
@@ -1440,7 +1439,6 @@ class MPS:
         self.sites[site - 1] = eigvec.reshape(
             self.env_left[-1].shape[0], self.d, self.env_right[-1].shape[0]
         )
-
         return e_min
 
     def update_state(
@@ -1633,6 +1631,7 @@ class MPS:
             entropy = []
             schmidt_vals = []
             for i in range(self.L - 1):
+                # print(f"Site: {sites[i]}\n")
                 v0 = self.sites[i].flatten()
                 # t_start = time.perf_counter()
                 # H = self.H_eff(sites[i])
