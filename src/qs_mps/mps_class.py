@@ -1,6 +1,5 @@
 import numpy as np
 from ncon import ncon
-import scipy
 from scipy.sparse.linalg import eigsh, eigs
 from scipy.sparse import csr_matrix, csr_array, identity
 from scipy.linalg import expm, solve
@@ -14,9 +13,7 @@ from qs_mps.sparse_hamiltonians_and_operators import (
     sparse_pauli_z
 )
 from qs_mps.mpo_class import MPO_ladder
-import matplotlib.pyplot as plt
 import time
-import warnings
 from qs_mps.TensorMultiplier import TensorMultiplierOperator
 
 class MPS:
