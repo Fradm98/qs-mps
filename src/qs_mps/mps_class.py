@@ -531,7 +531,7 @@ class MPS:
     # -------------------------------------------------
     # Matrix Product Operators, MPOs
     # -------------------------------------------------
-    def mpo(self):
+    def mpo(self, long: str = None, trans: str = None):
         """
         mpo
 
@@ -541,10 +541,13 @@ class MPS:
 
         """
         if self.model == "Ising":
-            self.mpo_Ising()
+            self.mpo_Ising(long=long, trans=trans)
 
         elif self.model == "ANNNI":
-            self.mpo_ANNNI()
+            self.mpo_ANNNI(long=long, trans=trans)
+        
+        elif self.model == "Cluster":
+            self.mpo_Cluster(long=long, trans=trans)
 
         elif self.model == "Z2_dual":
             self.Z2.mpo_Z2_ladder_generalized()
@@ -555,7 +558,7 @@ class MPS:
     # -------------------------------------------------
     # Hamiltonians, time evolution operators
     # -------------------------------------------------
-    def mpo_Ising(self):
+    def mpo_Ising(self, long: str = "Z", trans: str = "X"):
         """
         mpo_Ising
 
@@ -565,59 +568,74 @@ class MPS:
         """
         I = np.eye(2)
         O = np.zeros((2, 2))
-        X = np.array([[0, 1], [1, 0]])
-        Z = np.array([[1, 0], [0, -1]])
+        if long == "Z":
+            long_op = sparse_pauli_z(n=0, L=1).toarray()
+            trans_op = sparse_pauli_x(n=0, L=1).toarray()
+        elif long == "X":
+            long_op = sparse_pauli_x(n=0, L=1).toarray()
+            trans_op = sparse_pauli_z(n=0, L=1).toarray()
+
         w_tot = []
         for _ in range(self.L):
             w = np.array(
-                [[I, -self.J * Z, -self.h * X - self.eps * X], [O, O, Z], [O, O, I]]
+                [[I, -self.J * long_op, -self.h * trans_op - self.eps * (long_op - I)], [O, O, long_op], [O, O, I]]
             )
             w_tot.append(w)
         self.w = w_tot
         return self
     
-    def mpo_ANNNI(self):
+    def mpo_ANNNI(self, long: str = "X", trans: str = "Z"):
         """
         mpo_ANNNI
 
         This function defines the MPO for the 1D Axial Next-Nearest Neighbor Interaction model.
-        It takes the same MPO for all sites.
+        It takes the same MPO for all sites apart from a correction term to break degeneracy.
 
         """
         I = identity(2, dtype=complex).toarray()
         O = csc_array((2, 2), dtype=complex).toarray()
-        X = sparse_pauli_x(n=0, L=1).toarray()
-        Z = sparse_pauli_z(n=0, L=1).toarray()
+        if long == "Z":
+            long_op = sparse_pauli_z(n=0, L=1).toarray()
+            trans_op = sparse_pauli_x(n=0, L=1).toarray()
+        elif long == "X":
+            long_op = sparse_pauli_x(n=0, L=1).toarray()
+            trans_op = sparse_pauli_z(n=0, L=1).toarray()
+
         w_tot = []
-        for _ in range(self.L):
+        for i in range(self.L):
+            c = (1 + (-1)**(i // 2))
             w = np.array(
-                [[I, X, O, (-self.h * self.J) * Z], 
-                 [O, O, I, -self.J * X], 
-                 [O, O, O, (self.k * self.J) * X], 
+                [[I, long_op, O, - (self.h * self.J) * trans_op - (self.eps * self.J * c) * long_op + (2 * self.eps * self.J) * I], 
+                 [O, O, I, - (self.J) * long_op], 
+                 [O, O, O, (self.k * self.J) * long_op], 
                  [O, O, O, I]]
             )
             w_tot.append(w)
         self.w = w_tot
         return self
 
-    def mpo_Cluster(self):
+    def mpo_Cluster(self, long: str = "X", trans: str = "Z"):
         """
         mpo_Cluster
 
-        This function defines the MPO for the 1D Axial Next-Nearest Neighbor Interaction model.
+        This function defines the MPO for the 1D Cluster model.
         It takes the same MPO for all sites.
 
         """
         I = identity(2, dtype=complex).toarray()
         O = csc_array((2, 2), dtype=complex).toarray()
-        X = sparse_pauli_x(n=0, L=1).toarray()
-        Z = sparse_pauli_z(n=0, L=1).toarray()
+        if long == "Z":
+            long_op = sparse_pauli_z(n=0, L=1).toarray()
+            trans_op = sparse_pauli_x(n=0, L=1).toarray()
+        elif long == "X":
+            long_op = sparse_pauli_x(n=0, L=1).toarray()
+            trans_op = sparse_pauli_z(n=0, L=1).toarray()
         w_tot = []
         for _ in range(self.L):
             w = np.array(
-                [[I, Z, O, (-self.h / self.J) * X], 
-                 [O, O, X, O], 
-                 [O, O, O, Z], 
+                [[I, long_op, O, (-self.h / self.J) * trans_op], 
+                 [O, O, trans_op, O], 
+                 [O, O, O, long_op], 
                  [O, O, O, I]]
             )
             w_tot.append(w)
@@ -869,63 +887,12 @@ class MPS:
         elif self.model == "ANNNI":
             self.single_operator_ANNNI(site=site)
 
-        elif self.model == "Z2_two_ladder":
-            self.sigma_x_Z2_two_ladder()
-
         elif self.model == "Z2_dual":
             self.single_operator_Z2_dual(site=site, l=op)
 
         return self
 
-    def sigma_x_Z2_one_ladder(self, site):
-        I = np.eye(2)
-        O = np.zeros((2, 2))
-        X = np.array([[0, 1], [1, 0]])
-        w_tot = []
-        for i in range(self.L):
-            if i == site - 1:
-                alpha = 1
-            else:
-                alpha = 0
-            w_mag = np.array(
-                [[I, O, O, alpha * X], [O, O, O, O], [O, O, O, O], [O, O, O, I]]
-            )
-            w_tot.append(w_mag)
-        self.w = w_tot
-        return self
-
-    def sigma_x_Z2_two_ladder(self, site, ladder):
-        I = np.eye(2)
-        O = np.zeros((2, 2))
-        X = np.array([[0, 1], [1, 0]])
-        if ladder == 1:
-            X = np.kron(X, I)
-        elif ladder == 2:
-            X = np.kron(I, X)
-        I = np.kron(I, I)
-        O = np.kron(O, O)
-        w_tot = []
-        for i in range(self.L):
-            if i == site - 1:
-                alpha = 1
-            else:
-                alpha = 0
-            w_mag = np.array(
-                [
-                    [I, O, O, O, O, O, alpha * X],
-                    [O, O, O, O, O, O, O],
-                    [O, O, O, O, O, O, O],
-                    [O, O, O, O, O, O, O],
-                    [O, O, O, O, O, O, O],
-                    [O, O, O, O, O, O, O],
-                    [O, O, O, O, O, O, I],
-                ]
-            )
-            w_tot.append(w_mag)
-        self.w = w_tot
-        return self
-
-    def single_operator_Ising(self, site, op: np.ndarray=None):
+    def single_operator_Ising(self, site, long: str="X"):
         """
         single_operator_Ising
 
@@ -936,39 +903,46 @@ class MPS:
         op: np.ndarray - operator acting on the local site
 
         """
-        I = np.eye(2)
-        O = np.zeros((2, 2))
-        w_tot = []
-        for i in range(self.L):
-            if i == site - 1:
-                alpha = 1
-            else:
-                alpha = 0
-            w_mag = np.array([[I, O, alpha * op], [O, O, O], [O, O, I]])
-            w_tot.append(w_mag)
-        self.w = w_tot
-        return self
-    
-    def single_operator_ANNNI(self, site):
-        """
-        single_operator_Ising
-
-        This function computes a local operator (op) for the 1D Ising model
-        on a certain arbitrary site.
-
-        site: int - local site where the operator acts
-        op: np.ndarray - operator acting on the local site
-
-        """
-        I = np.eye(2)
-        O = np.zeros((2, 2))
-        Z = sparse_pauli_z(n=0, L=1).toarray()
+        I = identity(2, dtype=complex).toarray()
+        O = csc_array((2, 2), dtype=complex).toarray()
+        if long == "Z":
+            long_op = sparse_pauli_z(n=0, L=1).toarray()
+        elif long == "X":
+            long_op = sparse_pauli_x(n=0, L=1).toarray()
         w_tot = []
         w_init = np.array([[I, O], [O, I]])
         for i in range(self.L):
             w_mag = w_init
             if i == site - 1:
-                w_mag[0,-1] = Z
+                w_mag[0,-1] = long_op
+        
+            w_tot.append(w_mag)
+        self.w = w_tot
+        return self
+    
+    def single_operator_ANNNI(self, site, long: str="X"):
+        """
+        single_operator_Ising
+
+        This function computes a local operator (op) for the 1D Ising model
+        on a certain arbitrary site.
+
+        site: int - local site where the operator acts
+        op: np.ndarray - operator acting on the local site
+
+        """
+        I = identity(2, dtype=complex).toarray()
+        O = csc_array((2, 2), dtype=complex).toarray()
+        if long == "Z":
+            long_op = sparse_pauli_z(n=0, L=1).toarray()
+        elif long == "X":
+            long_op = sparse_pauli_x(n=0, L=1).toarray()
+        w_tot = []
+        w_init = np.array([[I, O], [O, I]])
+        for i in range(self.L):
+            w_mag = w_init
+            if i == site - 1:
+                w_mag[0,-1] = long_op
         
             w_tot.append(w_mag)
         self.w = w_tot
@@ -994,7 +968,7 @@ class MPS:
             self.envs(site=i)
             chain.append(self.braket(site=i))
         self.clear_envs()
-        return chain 
+        return chain
 
     def electric_field_Z2(self, E):
         """
@@ -1049,48 +1023,21 @@ class MPS:
             E[(l*2+1), 2::2] = E_h
         
         return E
-    
-    def corr_test(self, E, mpo_site):
-        """
-        electric_field_Z2
-
-        This function finds the mpo for the electric field in the direct lattice of a Z2 theory.
-        To reconstruct the field in the direct lattices we need functions to compute the 
-        borders and the bulk fields, weighted for the appropriate charges.
-
-        """
-        # let us find the observables for the boudary fields    
-        for l in [0,self.Z2.l-1]:
-            self.Z2.local_observable_Z2_dual(mpo_site=mpo_site, l=l)
-            coeff = self.Z2.charge_coeff_v(mpo_site=mpo_site, l=l)
-            self.w = self.Z2.mpo.copy()
-            E[(l+j)*2,mpo_site*2+1] = coeff * self.mpo_first_moment().real
-            # E[(l+j)*2,mpo_site*2+1] = self.mpo_first_moment().real
-            j = 1
-            
-        # now we can obtain the bulk values given by the zz interactions
-        # vertical
-        for l in range(self.Z2.l-1):
-            E_v = []
-            for mpo_site in range(self.Z2.L-1):
-                self.Z2.zz_observable_Z2_dual(mpo_site=mpo_site, l=l, direction="vertical")
-                self.w = self.Z2.mpo.copy()
-                E_v.append(self.mpo_first_moment().real)
-            E[(l+1)*2, 1::2] = E_v
-        # horizontal
-        for l in range(self.Z2.l):
-            E_h = []
-            for mpo_site in range(self.Z2.L-2):
-                self.Z2.zz_observable_Z2_dual(mpo_site=mpo_site, l=l, direction="horizontal")
-                coeff = self.Z2.charge_coeff_interaction(n=l+1,mpo_site=mpo_site)
-                self.w = self.Z2.mpo.copy()
-                E_h.append(coeff * self.mpo_first_moment().real)
-            E_h.append(E[(l*2+1), -1])
-            E[(l*2+1), 2::2] = E_h
-        
-        return E
 
     def connected_correlator(self, site, lad):
+        """
+        connected_correlator
+
+        This function computes the correlator between a reference link
+        and all the others links in the whole column of our ladder system.
+        The reference link is located at a certain site and ladder.
+        The correlator is connected because we subtract the expecation values
+        of the two links we are referring to. E.g. <E_ref,E_r> - <E_ref><E_r>
+
+        site: int - site we will use for the vertical section of the ladder system
+        lad: int - It refers to the upper link of a ladder we use as reference
+
+        """
         E_corr = []
         # find the exp val for the reference link
         self.Z2.zz_observable_Z2_dual(mpo_site=site, l=lad-1, direction="vertical")
@@ -1129,6 +1076,64 @@ class MPS:
             print(E_lad_r - (E_lad * E_r))
 
         return E_corr
+    
+    def electric_energy_density_Z2(self, site):
+        """
+        electric_energy_density_Z2
+
+        This function computes the electric energy density for the Z2 model
+        in the whole column of our ladder system.
+        The column is located at a certain site.
+        We can have a "connected" energy density if we subtract the expecation values
+        of the plaquettes we are referring to with the expectation values of the vacuum state. 
+        E.g. <q,q'|el_en_density|q,q'> - <0|el_en_density|0> (we do not do that here)
+
+        site: int - site we will use for the vertical section of the ladder system
+        lad: int - It refers to the upper link of a ladder we use as reference
+
+        """
+        E_en_density = []
+        for lad in range(self.Z2.l):
+            if lad in [0, self.Z2.l-1]:
+                if lad == 0:
+                    l = lad
+                    # find the sigma_4^x first
+                    self.Z2.zz_observable_Z2_dual(mpo_site=site, l=l, direction="vertical")
+                    self.w += [self.h / 2 * np.asarray(self.Z2.mpo)].copy()
+                elif lad == self.Z2.l-1:
+                    l = lad    
+                    # find the sigma_2^x last
+                    self.Z2.zz_observable_Z2_dual(mpo_site=site, l=l-1, direction="vertical")
+                    self.w += [self.h / 2 * np.asarray(self.Z2.mpo)].copy()             
+                # find the sigma_2^x first or sigma_4^x last
+                self.Z2.local_observable_Z2_dual(mpo_site=site, l=l)
+                coeff = self.Z2.charge_coeff_v(mpo_site=site, l=l)
+                self.w += [self.h * coeff * np.asarray(self.Z2.mpo)].copy() # times 2 because we do not share this link with any other plaquette
+                
+            else:
+                l = lad - 1
+                # find the sigma_2^x
+                self.Z2.zz_observable_Z2_dual(mpo_site=site, l=l, direction="vertical")
+                self.w += [self.h / 2 * np.asarray(self.Z2.mpo)].copy()
+                # find the sigma_4^x
+                self.Z2.zz_observable_Z2_dual(mpo_site=site, l=l+1, direction="vertical")
+                self.w += [self.h / 2 * np.asarray(self.Z2.mpo)].copy()
+
+
+            # find the sigma_1^x
+            self.Z2.zz_observable_Z2_dual(mpo_site=site, l=lad, direction="horizontal")
+            coeff = self.Z2.charge_coeff_interaction(n=lad+1,mpo_site=site)
+            self.w = [self.h / 2 * coeff * np.asarray(self.Z2.mpo)].copy()
+            # find the sigma_3^x
+            self.Z2.zz_observable_Z2_dual(mpo_site=site+1, l=lad, direction="horizontal")
+            coeff = self.Z2.charge_coeff_interaction(n=lad+1,mpo_site=site+1)
+            self.w = [self.h / 2 * coeff * np.asarray(self.Z2.mpo)].copy()
+            eed = self.mpo_first_moment().real
+            print(f"Electric energy density: {eed}")
+
+            E_en_density.append(eed)
+
+        return E_en_density
 
     # -------------------------------------------------
     # Manipulation of MPOs
@@ -2277,6 +2282,7 @@ class MPS:
 
         self.enlarge_chi()
 
+
         # electric field
         E_h = np.zeros((2*self.Z2.l+1,2*self.Z2.L-1))
         E_h[:] = np.nan
@@ -2286,10 +2292,10 @@ class MPS:
         self.order_param()
         mag = self.mpo_first_moment().real/(len(self.Z2.latt.plaquettes()) - (2 * (self.Z2.L-1) + 2 * (self.Z2.l-2)))
         
-        # # wilson loop
-        # self.Z2.wilson_Z2_dual(mpo_sites=sites, ls=ladders) #list(range(s))
-        # self.w = self.Z2.mpo.copy()
-        # loop = self.mpo_first_moment().real
+        # wilson loop
+        self.Z2.wilson_Z2_dual(mpo_sites=sites, ls=ladders) #list(range(s))
+        self.w = self.Z2.mpo.copy()
+        loop = self.mpo_first_moment().real
 
         # t'hooft string
         self.Z2.thooft(site=[2], l=[2], direction="horizontal")
@@ -2345,10 +2351,10 @@ class MPS:
             self.order_param()
             mag = self.mpo_first_moment().real/(len(self.Z2.latt.plaquettes()) - (2 * (self.Z2.L-1) + 2 * (self.Z2.l-2)))
             
-            # # wilson loop
-            # self.Z2.wilson_Z2_dual(mpo_sites=sites, ls=ladders) #list(range(s))
-            # self.w = self.Z2.mpo.copy()
-            # loop = self.mpo_first_moment().real
+            # wilson loop
+            self.Z2.wilson_Z2_dual(mpo_sites=sites, ls=ladders) #list(range(s))
+            self.w = self.Z2.mpo.copy()
+            loop = self.mpo_first_moment().real
 
             # t'hooft string
             self.Z2.thooft(site=[2], l=[2], direction="horizontal")
@@ -2357,7 +2363,7 @@ class MPS:
 
             E.append(E_h)
             M.append(mag)
-            # W.append(loop)
+            W.append(loop)
             S.append(thooft)
             errors.append(error)
             entropies.append(entropy)
@@ -2480,9 +2486,7 @@ class MPS:
         )
         return sandwich
 
-    def mpo_first_moment(self, site=1, ancilla=False, mixed=False):
-        # self.order_param()
-        # self.sigma_x_Z2(site=site)
+    def mpo_first_moment(self, site: int=1, ancilla: bool=False, mixed: bool=False):
         self.clear_envs()
         self.envs(site, ancilla=ancilla, mixed=mixed)
         sites = self.sites

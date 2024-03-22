@@ -34,7 +34,7 @@ parser.add_argument(
 )
 parser.add_argument("-L", "--Ls", help="Number of rungs per ladder", nargs="+", type=int)
 parser.add_argument("-D", "--chis", help="Simulated bond dimensions", nargs="+", type=int)
-parser.add_argument("-o", "--obs", help="Observable we want to compute. Available are 'wl', 'el', 'thooft', 'mag'", nargs="*", type=str)
+parser.add_argument("-o", "--obs", help="Observable we want to compute. Available are 'wl', 'el', 'thooft', 'mag', 'eed'", nargs="*", type=str)
 parser.add_argument("-cx", "--charges_x", help="a list of the first index of the charges", nargs="*", type=int)
 parser.add_argument("-cy", "--charges_y", help="a list of the second index of the charges", nargs="*", type=int)
 parser.add_argument("-lx", "--sites", help="Number of sites in the wilson loop", nargs="*", type=int)
@@ -136,10 +136,11 @@ for L in args.Ls:
 
     for chi in args.chis:
         W = []
-        E = []
+        El = []
         S = []
         M = []
         C = []
+        Ed = []
 
         # initialize the tensor
         lattice_mps = MPS(L=L, d=d, model=args.model, chi=chi, h=args.h_i)
@@ -176,7 +177,7 @@ for L in args.Ls:
             E_h = np.zeros((2*args.l+1,2*L-1))
             E_h[:] = np.nan
             E_h = lattice_mps.electric_field_Z2(E_h)
-            E.append(E_h)
+            El.append(E_h)
         
         if "thooft" in args.obs:
             print(f"'t Hooft string before trotter - L:{L}, chi:{chi}")
@@ -200,6 +201,13 @@ for L in args.Ls:
             print(f"connected correlator before trotter - L:{L}, chi:{chi}")
             corr = lattice_mps.connected_correlator(site=s, lad=lad)
             C.append(corr)
+        
+        if "eed" in args.obs:
+            s = (charges_x[0]+charges_x[1]) //2
+            print(f"electric energy density before trotter - L:{L}, chi:{chi}")
+            ed = lattice_mps.electric_energy_density_Z2(site=s)
+            Ed.append(ed)
+
         # ---------------------------------------------------------
         # Trotter Evolution
         # ---------------------------------------------------------        
@@ -228,7 +236,7 @@ for L in args.Ls:
                 E_h = np.zeros((2*args.l+1,2*L-1))
                 E_h[:] = np.nan
                 E_h = lattice_mps.electric_field_Z2(E_h)
-                E.append(E_h)
+                El.append(E_h)
             
             if "thooft" in args.obs:
                 print(f"'t Hooft string for trotter step:{t}, L:{L}, chi:{chi}")
@@ -250,6 +258,12 @@ for L in args.Ls:
                 print(f"connected correlator for trotter step:{t}, L:{L}, chi:{chi}")
                 corr = lattice_mps.connected_correlator(site=s, lad=lad)
                 C.append(corr)
+            
+            if "eed" in args.obs:
+                s = (charges_x[0]+charges_x[1]) //2
+                print(f"electric energy density before trotter - L:{L}, chi:{chi}")
+                ed = lattice_mps.electric_energy_density_Z2(site=s)
+                Ed.append(ed)
 
             print(f"\nError at trotter step: {t} is: {error}\n")
             errors_tr.append(error)
@@ -265,7 +279,7 @@ for L in args.Ls:
         if "el" in args.obs:
             np.save(
                         f"{parent_path}/results/electric_field/electric_field_{args.model}_direct_lattice_{args.l}x{L-1}_{sector}_{args.charges_x}-{args.charges_y}_h_i_{args.h_i}_h_ev_{args.h_ev}_delta_{args.delta}_trotter_steps_{args.npoints}_chi_{chi}.npy",
-                        E,
+                        El,
                     )
         if "thooft" in args.obs:
             np.save(
@@ -281,6 +295,11 @@ for L in args.Ls:
             np.save(
                         f"{parent_path}/results/mag_data/connected_correlator_s_{s}_l_{lad}_{args.model}_direct_lattice_{args.l}x{L-1}_{sector}_{args.charges_x}-{args.charges_y}_h_i_{args.h_i}_h_ev_{args.h_ev}_delta_{args.delta}_trotter_steps_{args.npoints}_chi_{chi}.npy",
                         C,
+                    )
+        if "eed" in args.obs:
+            np.save(
+                        f"{parent_path}/results/electric_field/electric_energy_density_s_{s}_{args.model}_direct_lattice_{args.l}x{L-1}_{sector}_{args.charges_x}-{args.charges_y}_h_i_{args.h_i}_h_ev_{args.h_ev}_delta_{args.delta}_trotter_steps_{args.npoints}_chi_{chi}.npy",
+                        Ed,
                     )
             
         if args.bond == False:

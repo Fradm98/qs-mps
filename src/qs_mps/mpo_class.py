@@ -508,7 +508,7 @@ class MPO_ladder:
         self.mpo = mpo_tot
         return self
 
-    def zz_observable_Z2_dual(self, mpo_site, l, direction):
+    def zz_observable_Z2_dual(self, mpo_site: int, l: int, direction: str, aux_dim: int=2):
         """
         zz_observable_Z2_dual
 
@@ -518,7 +518,7 @@ class MPO_ladder:
         back into a local one.
 
         """
-        self.mpo_skeleton(aux_dim=2)
+        self.mpo_skeleton(aux_dim=aux_dim)
 
         mpo_tot = []
         i = 0
@@ -541,7 +541,7 @@ class MPO_ladder:
                     )
 
             mpo_tot.append(self.mpo)
-            self.mpo_skeleton(aux_dim=2)
+            self.mpo_skeleton(aux_dim=aux_dim)
 
         self.mpo = mpo_tot
         return self
