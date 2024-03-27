@@ -113,6 +113,13 @@ parser.add_argument(
     type=str,
 )
 parser.add_argument(
+    "-int",
+    "--interval",
+    help="Type of interval spacing. Available are 'log', 'lin'",
+    default="lin",
+    type=str
+)
+parser.add_argument(
     "-d",
     "--dim",
     help="Dimension to plot, by defalut plots two dimensional plots. If True 3D plots, by default False",
@@ -131,8 +138,17 @@ args = parser.parse_args()
 if args.time:
     interval = range(args.npoints+1)
     precision = get_precision(args.h_i)
+    if args.interval == "lin":
+        xscale = "linear"
+    elif args.interval == "log":
+        xscale = "log"
 else:
-    interval = np.linspace(args.h_i, args.h_f, args.npoints)
+    if args.interval == "lin":
+        interval = np.linspace(args.h_i, args.h_f, args.npoints)
+        xscale = "linear"
+    elif args.interval == "log":
+        interval = np.logspace(args.h_i, args.h_f, args.npoints)
+        xscale = "log"
 
     # define the precision
     num = (args.h_f - args.h_i) / args.npoints
@@ -314,6 +330,7 @@ for L in args.Ls:
             path_save=path_save,
             ylabel=ylabel,
             yscale=yscale,
+            xscale=xscale,
             save=args.save,
             exact=args.exact,
             fname_ex=fname_ex,

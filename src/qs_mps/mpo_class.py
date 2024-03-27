@@ -271,153 +271,6 @@ class MPO_ladder:
         self.mpo = w_tot
         return self
 
-    def mpo_Z2_quench_ladder(self, l, delta, h_ev):
-        I = identity(2**self.l, dtype=complex).toarray()
-        Z = sparse_pauli_z(n=l - 1, L=self.l).toarray()
-        Z_ll = (
-            sparse_pauli_z(n=l - 1, L=self.l) @ sparse_pauli_z(n=l, L=self.l)
-        ).toarray()
-        w_int_loc = np.array(linalg.expm(1j * h_ev * delta / 4 * Z_ll))
-
-        if l != 1 and l != self.l:
-            Z_ll_prime = (
-                sparse_pauli_z(n=l, L=self.l) @ sparse_pauli_z(n=l + 1, L=self.l)
-            ).toarray()
-            w_int_loc_prime = np.array(linalg.expm(1j * h_ev * delta / 4 * Z_ll_prime))
-
-        w_tot = []
-        for mpo_site in range(self.L - 1):
-            print(f"mpo_site:{mpo_site}, ladder:{l}")
-            c_loc = self.charge_coeff_local_Z(n=l, mpo_site=mpo_site)
-            w_loc = np.array(linalg.expm(1j * c_loc * h_ev * delta / 2 * Z))
-
-            c_int = self.charge_coeff_interaction(n=l, mpo_site=mpo_site)
-            w_even = np.array(
-                [
-                    [
-                        np.sqrt(np.cos(c_int * h_ev * delta)) * I,
-                        1j * np.sqrt(np.sin(c_int * h_ev * delta)) * Z,
-                    ]
-                ]
-            )
-            w_odd = np.array(
-                [
-                    [
-                        np.sqrt(np.cos(c_int * h_ev * delta)) * I,
-                        np.sqrt(np.sin(c_int * h_ev * delta)) * Z,
-                    ]
-                ]
-            )
-            w_odd = np.swapaxes(w_odd, axis1=0, axis2=1)
-            if mpo_site == 0:
-                if l != 1 and l != self.l:
-                    w_in = ncon(
-                        [
-                            w_loc,
-                            w_int_loc,
-                            w_int_loc_prime,
-                            w_even,
-                            w_int_loc_prime,
-                            w_int_loc,
-                            w_loc,
-                        ],
-                        [
-                            [-3, 5],
-                            [5, 3],
-                            [3, 1],
-                            [-1, -2, 1, 2],
-                            [2, 4],
-                            [4, 6],
-                            [6, -4],
-                        ],
-                    )
-                else:
-                    w_in = ncon(
-                        [w_loc, w_int_loc, w_even, w_int_loc, w_loc],
-                        [[-3, 3], [3, 1], [-1, -2, 1, 2], [2, 4], [4, -4]],
-                    )
-                w_tot.append(w_in)
-
-            elif mpo_site == self.L - 2:
-                if l != 1 and l != self.l:
-                    w_fin = ncon(
-                        [
-                            w_loc,
-                            w_int_loc,
-                            w_int_loc_prime,
-                            w_odd,
-                            w_int_loc_prime,
-                            w_int_loc,
-                            w_loc,
-                        ],
-                        [
-                            [-3, 5],
-                            [5, 3],
-                            [3, 1],
-                            [-1, -2, 1, 2],
-                            [2, 4],
-                            [4, 6],
-                            [6, -4],
-                        ],
-                    )
-                else:
-                    w_fin = ncon(
-                        [w_loc, w_int_loc, w_odd, w_int_loc, w_loc],
-                        [[-3, 3], [3, 1], [-1, -2, 1, 2], [2, 4], [4, -4]],
-                    )
-
-            else:
-                if l != 1 and l != self.l:
-                    w = ncon(
-                        [
-                            w_loc,
-                            w_int_loc,
-                            w_int_loc_prime,
-                            w_even,
-                            w_odd,
-                            w_int_loc_prime,
-                            w_int_loc,
-                            w_loc,
-                        ],
-                        [
-                            [-5, 8],
-                            [8, 6],
-                            [6, 4],
-                            [-1, -3, 4, 3],
-                            [-2, -4, 3, 5],
-                            [5, 7],
-                            [7, 9],
-                            [9, -6],
-                        ],
-                    ).reshape(
-                        w_odd.shape[0] * w_even.shape[0],
-                        w_odd.shape[1] * w_even.shape[1],
-                        w_odd.shape[2],
-                        w_even.shape[3],
-                    )
-                else:
-                    w = ncon(
-                        [w_loc, w_int_loc, w_even, w_odd, w_int_loc, w_loc],
-                        [
-                            [-5, 6],
-                            [6, 4],
-                            [-1, -3, 4, 3],
-                            [-2, -4, 3, 5],
-                            [5, 7],
-                            [7, -6],
-                        ],
-                    ).reshape(
-                        w_odd.shape[0] * w_even.shape[0],
-                        w_odd.shape[1] * w_even.shape[1],
-                        w_odd.shape[2],
-                        w_even.shape[3],
-                    )
-                w_tot.append(w)
-
-        w_tot.append(w_fin)
-        self.mpo = w_tot
-        return self
-
     def mpo_Z2_quench_tot(self, delta, h_ev):
         I = identity(2**self.l, dtype=complex).toarray()
 
@@ -505,6 +358,47 @@ class MPO_ladder:
         for mpo_site in range(self.L-1):
             if mpo_site == site:
                 self.mpo[0,-1] = coeff * sparse_pauli_z(n=l, L=self.l).toarray()
+            mpo_tot.append(self.mpo)
+            self.mpo_skeleton(aux_dim=2)
+                    
+        self.mpo = mpo_tot
+        return self
+    
+    def correlator(self, site: list, ladders: list):
+        """
+        thooft
+
+        This function finds the 't Hooft string for the Z2 dual lattice.
+        It gives us vertical and horizontal strings from a specific dual lattice
+        site and going, conventionally, up and left, respectively (to vertical and horizontal).
+        
+        site: list - the first element is the mps site of the interested dual lattice site
+        l: list - the first element is the ladder of the interested dual lattice site
+        direction: str - indicates in the direction of the string. We use the convention:
+                hor -> from left to 'site' at a specific 'l'
+                ver -> from up to 'l' at a specific 'site'
+
+        """
+        self.mpo_skeleton(aux_dim=2)
+
+        site = site[0]
+        mpo_tot = []
+        
+        for mpo_site in range(self.L-1):
+            if mpo_site == site:
+                self.mpo[0,-1] = identity(2**self.l, dtype=complex).toarray()
+                for l in ladders:
+                    if l == 0 or l == self.l:
+                        if l == 0:
+                            l = l
+                        elif l == self.l:
+                            l = l - 1 
+                        coeff = self.charge_coeff_v(mpo_site=site, l=l)
+                        self.mpo[0,-1] = self.mpo[0,-1] @ (coeff * sparse_pauli_z(n=l, L=self.l).toarray())
+                        # self.mpo[0,-1] = self.mpo[0,-1] @ (sparse_pauli_z(n=l, L=self.l).toarray())
+                    else:
+                        l = l - 1
+                        self.mpo[0,-1] = self.mpo[0,-1] @ sparse_pauli_z(n=l, L=self.l).toarray() @ sparse_pauli_z(n=l+1, L=self.l).toarray()
             mpo_tot.append(self.mpo)
             self.mpo_skeleton(aux_dim=2)
                     
@@ -601,12 +495,7 @@ class MPO_ladder:
         assert (0 <= mpo_site < self.L-1), "The mpo site is out of bound. Choose it 0 <= site < L-1"
         assert (0 <= l < self.l), "The mpo ladder is out of bound. Choose it 0 <= site < l"
 
-        I = identity(2**self.l, dtype=complex)
-        O = csc_array((2**self.l, 2**self.l), dtype=complex)
-        skeleton = np.array([[O.toarray() for i in range(2)] for j in range(2)])
-        skeleton[0, 0] = I.toarray()
-        skeleton[-1, -1] = I.toarray()
-        self.mpo = skeleton.copy()
+        self.mpo_skeleton(aux_dim=2)
 
         mpo_tot = []
         for site in range(self.L - 1):
@@ -614,12 +503,12 @@ class MPO_ladder:
                 self.mpo[0, -1] = sparse_pauli_z(n=l, L=self.l).toarray()
 
             mpo_tot.append(self.mpo)
-            self.mpo = skeleton.copy()
+            self.mpo_skeleton(aux_dim=2)
 
         self.mpo = mpo_tot
         return self
 
-    def zz_observable_Z2_dual(self, mpo_site, l, direction):
+    def zz_observable_Z2_dual(self, mpo_site: int, l: int, direction: str, aux_dim: int=2):
         """
         zz_observable_Z2_dual
 
@@ -629,12 +518,7 @@ class MPO_ladder:
         back into a local one.
 
         """
-        I = identity(2**self.l, dtype=complex)
-        O = csc_array((2**self.l, 2**self.l), dtype=complex)
-        skeleton = np.array([[O.toarray() for i in range(3)] for j in range(3)])
-        skeleton[0, 0] = I.toarray()
-        skeleton[-1, -1] = I.toarray()
-        self.mpo = skeleton.copy()
+        self.mpo_skeleton(aux_dim=aux_dim)
 
         mpo_tot = []
         i = 0
@@ -657,7 +541,7 @@ class MPO_ladder:
                     )
 
             mpo_tot.append(self.mpo)
-            self.mpo = skeleton.copy()
+            self.mpo_skeleton(aux_dim=aux_dim)
 
         self.mpo = mpo_tot
         return self

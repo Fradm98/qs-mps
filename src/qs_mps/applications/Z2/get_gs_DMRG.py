@@ -30,13 +30,13 @@ parser.add_argument("-D", "--chis", help="Simulated bond dimensions", nargs="+",
 parser.add_argument("-cx", "--charges_x", help="a list of the first index of the charges", nargs="*", type=int)
 parser.add_argument("-cy", "--charges_y", help="a list of the second index of the charges", nargs="*", type=int)
 parser.add_argument(
-    "-ty", "--type_shape", help="Type of shape of the bond dimension. Available are: 'trapezoidal', 'pyramidal', 'rectangular'", default="trapezoidal", type=str
+    "-ty", "--type_shape", help="Type of shape of the bond dimension. Available are: 'trapezoidal', 'pyramidal', 'rectangular'", default="rectangular", type=str
 )
 parser.add_argument(
     "-m", "--model", help="Model to simulate", default="Z2_dual", type=str
 )
 parser.add_argument(
-    "-mu", "--multpr", help="If True computes ground states with multiprocessing. By default True", action="store_false"
+    "-mu", "--multpr", help="If True computes ground states with multiprocessing. By default False", action="store_true"
 )
 parser.add_argument(
     "-s",
@@ -74,8 +74,8 @@ parser.add_argument(
 parser.add_argument(
     "-tr",
     "--training",
-    help="Save all the energies during the variational optimization. By default True",
-    action="store_false",
+    help="Save all the energies during the variational optimization. By default False",
+    action="store_true",
 )
 parser.add_argument(
     "-i",
@@ -93,8 +93,12 @@ d = int(2**(args.l))
 # define the interval of equally spaced values of external field
 if args.interval == "lin":
     interval = np.linspace(args.h_i, args.h_f, args.npoints)
+    num = (interval[-1] - interval[0]) / args.npoints
+    precision = get_precision(num)
 elif args.interval == "log":
     interval = np.logspace(args.h_i, args.h_f, args.npoints)
+    num = (args.h_f - args.h_i) / args.npoints
+    precision = get_precision(num)
 
 # take the path and precision to save files
 # if we want to save the tensors we save them locally because they occupy a lot of memory
@@ -109,9 +113,6 @@ elif args.path == "marcos":
     path_tensor = "/Users/fradm/Desktop/projects/1_Z2"
 else:
     raise SyntaxError("Path not valid. Choose among 'pc', 'mac', 'marcos'")
-
-num = (args.h_f - args.h_i) / args.npoints
-precision = get_precision(num)
 
 
 # ---------------------------------------------------------

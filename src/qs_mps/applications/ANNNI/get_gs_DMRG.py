@@ -1,7 +1,7 @@
 import argparse
 import numpy as np
 from qs_mps.mps_class import MPS
-from qs_mps.utils import get_precision, save_list_of_lists, access_txt
+from qs_mps.utils import get_precision, save_list_of_lists, access_txt, tensor_shapes
 from qs_mps.applications.ANNNI.ground_state_multiprocessing import ground_state_ANNNI
 from scipy.sparse.linalg._eigen.arpack.arpack import ArpackNoConvergence
 
@@ -35,13 +35,13 @@ parser.add_argument("-L", "--Ls", help="Spin chain lengths", nargs="*", type=int
 parser.add_argument("-D", "--chis", help="Simulated bond dimensions", nargs="+", type=int)
 parser.add_argument("-d","--dimension", help="Physical dimension. By default 2", default=2, type=int)
 parser.add_argument(
-    "-ty", "--type_shape", help="Type of shape of the bond dimension. Available are: 'trapezoidal', 'pyramidal', 'rectangular'", default="rectangular", type=str
+    "-ty", "--type_shape", help="Type of shape of the bond dimension. Available are: 'trapezoidal', 'pyramidal', 'rectangular'", default="trapezoidal", type=str
 )
 parser.add_argument(
     "-m", "--model", help="Model to simulate", default="ANNNI", type=str
 )
 parser.add_argument(
-    "-mu", "--multpr", help="If True computes ground states with multiprocessing. By default False", action="store_true"
+    "-mu", "--multpr", help="If True computes ground states with multiprocessing. By default True", action="store_false"
 )
 parser.add_argument(
     "-s",
@@ -122,8 +122,8 @@ for L in args.Ls:
             "chi": chi,
             "type_shape": args.type_shape,
             "model": args.model,
-            "trunc_tol": True,
-            "trunc_chi": False,
+            "trunc_tol": False,
+            "trunc_chi": True,
             "where": args.where,
             "bond": args.bond,
             "path": path_tensor,
@@ -136,6 +136,17 @@ for L in args.Ls:
             entropy_chi = []
             schmidt_vals_chi = []
             for h in interval_h:
+                # init_tensor = MPS(
+                #         L=args_mps["L"],
+                #         d=args_mps["d"],
+                #         model="Ising",
+                #         chi=args_mps["chi"],
+                #         h=h,
+                #         J=1,
+                #         eps=args_mps["eps"],
+                #         )
+                # init_tensor.load_sites(path=path_tensor.rsplit("/", 1)[:-1][0]+"0_ISING", precision=args_mps["precision"])
+                # init = init_tensor.sites.copy()
                 for k in interval_k:
                     precision = args_mps["precision"]
                     chain = MPS(
@@ -148,8 +159,7 @@ for L in args.Ls:
                         J=1,
                         eps=args_mps["eps"],
                     )
-                    chain._random_state(seed=3,type_shape=args.type_shape, chi=chi)
-                    # chain.enlarge_chi(type_shape="rectangular", prnt=False)
+                    chain._random_state(seed=3,type_shape="rectangular", chi=chi)
                     # chain._random_state(seed=7, chi=args_mps["chi"], type_shape=args_mps["type_shape"])
                     chain.canonical_form(trunc_chi=False, trunc_tol=True)
                     # # total

@@ -877,6 +877,7 @@ def plot_results_DMRG(
     path_save: str,
     ylabel: str,
     yscale: str = "linear",
+    xscale: str = "linear",
     delta: float = None,
     time: bool = False,
     exact: bool = False,
@@ -964,6 +965,7 @@ def plot_results_DMRG(
             )
     plt.legend()
     plt.yscale(yscale)
+    plt.xscale(xscale)
     if save:
         plt.savefig(f"{path_save}/{fname_save}_marker_{marker}.png")
     if show:

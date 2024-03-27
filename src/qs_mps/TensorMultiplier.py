@@ -1,4 +1,4 @@
-from pylops import LinearOperator
+from scipy.sparse.linalg import LinearOperator
 import numpy as np
 
 class TensorMultiplierOperator(LinearOperator):

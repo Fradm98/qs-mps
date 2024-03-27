@@ -69,6 +69,13 @@ parser.add_argument(
     help="Animation of real time evolution of the observable. By default False",
     action="store_true",
 )
+parser.add_argument(
+    "-i",
+    "--interval",
+    help="Type of interval spacing. Available are 'log', 'lin'",
+    default="lin",
+    type=str
+)
 
 args = parser.parse_args()
 
@@ -77,7 +84,10 @@ if args.time:
     interval = range(args.npoints)
     precision = get_precision(args.h_i)
 else:
-    interval = np.linspace(args.h_i, args.h_f, args.npoints)
+    if args.interval == "lin":
+        interval = np.linspace(args.h_i, args.h_f, args.npoints)
+    elif args.interval == "log":
+        interval = np.logspace(args.h_i, args.h_f, args.npoints)
 
     # define the precision
     num = (args.h_f - args.h_i) / args.npoints
