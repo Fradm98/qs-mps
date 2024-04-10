@@ -840,9 +840,6 @@ class MPS:
         
         elif self.model == "ANNNI":
             self.order_param_Ising(op=op)
-        
-        elif self.model == "Cluster":
-            self.order_param_Ising(op=op)
 
         elif self.model == "Cluster":
             self.order_param_Ising(op=op)
@@ -868,10 +865,7 @@ class MPS:
         """
         I = np.eye(2)
         O = np.zeros((2, 2))
-        if op == "Z":
-            op = sparse_pauli_z(n=0, L=1).toarray()
-        elif op == "X":
-            op = sparse_pauli_x(n=0, L=1).toarray()
+        op = sparse_pauli_z(n=0, L=1).toarray()
         w_tot = []
         for _ in range(self.L):
             w_mag = np.array([[I, op], [O, I]])
@@ -2694,8 +2688,6 @@ class MPS:
         """
         if "Ising" in self.model:
             self.save_sites_Ising(path=path, precision=precision)
-        elif "Cluster" in self.model:
-            self.save_sites_Ising(path=path, precision=precision)
         elif "ANNNI" in self.model:
             self.save_sites_ANNNI(path=path, precision=precision)
         elif "Z2" in self.model:
@@ -2716,8 +2708,6 @@ class MPS:
 
         """
         if "Ising" in self.model:
-            self.load_sites_Ising(path=path, precision=precision)
-        elif "Cluster" in self.model:
             self.load_sites_Ising(path=path, precision=precision)
         elif "ANNNI" in self.model:
             self.load_sites_ANNNI(path=path, precision=precision)

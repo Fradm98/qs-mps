@@ -35,13 +35,13 @@ parser.add_argument("-L", "--Ls", help="Spin chain lengths", nargs="*", type=int
 parser.add_argument("-D", "--chis", help="Simulated bond dimensions", nargs="+", type=int)
 parser.add_argument("-d","--dimension", help="Physical dimension. By default 2", default=2, type=int)
 parser.add_argument(
-    "-ty", "--type_shape", help="Type of shape of the bond dimension. Available are: 'trapezoidal', 'pyramidal', 'rectangular'", default="trapezoidal", type=str
+    "-ty", "--type_shape", help="Type of shape of the bond dimension. Available are: 'trapezoidal', 'pyramidal', 'rectangular'", default="rectangular", type=str
 )
 parser.add_argument(
     "-m", "--model", help="Model to simulate", default="ANNNI", type=str
 )
 parser.add_argument(
-    "-mu", "--multpr", help="If True computes ground states with multiprocessing. By default True", action="store_false"
+    "-mu", "--multpr", help="If True computes ground states with multiprocessing. By default False", action="store_true"
 )
 parser.add_argument(
     "-s",
@@ -168,23 +168,23 @@ for L in args.Ls:
                     # if mag < 0:
                     #     chain.flipping_all()
 
-                    # try:
-                    energy, entropy, schmidt_vals = chain.DMRG(
-                        trunc_tol=args_mps["trunc_tol"],
-                        trunc_chi=args_mps["trunc_chi"],
-                        where=args_mps["where"],
-                        bond=args_mps["bond"],
-                    )
+                    try:
+                        energy, entropy, schmidt_vals = chain.DMRG(
+                            trunc_tol=args_mps["trunc_tol"],
+                            trunc_chi=args_mps["trunc_chi"],
+                            where=args_mps["where"],
+                            bond=args_mps["bond"],
+                        )
 
-                    print(f"energy of h:{h:.{precision}f}, k:{k:.{precision}f} is:\n {energy}")
-                    print(f"Schmidt values in the middle of the chain:\n {schmidt_vals}")
+                        print(f"energy of h:{h:.{precision}f}, k:{k:.{precision}f} is:\n {energy}")
+                        print(f"Schmidt values in the middle of the chain:\n {schmidt_vals}")
 
-                    chain.save_sites(path=args_mps["path"], precision=args_mps["precision"])
+                        chain.save_sites(path=args_mps["path"], precision=args_mps["precision"])
                         
-                    # except ArpackNoConvergence:
-                    #     energy = np.nan
-                    #     entropy = np.nan
-                    #     schmidt_vals = np.nan
+                    except ArpackNoConvergence:
+                        energy = np.nan
+                        entropy = np.nan
+                        schmidt_vals = np.nan
                         
                     energy_chi.append(energy)
                     entropy_chi.append(entropy)
