@@ -97,6 +97,10 @@ elif args.interval == "log":
     num = (interval[-1]-interval[0]) / args.npoints
     precision = get_precision(num)
 
+interval_J = interval
+interval_h = interval.tolist().copy()
+interval_h.reverse()
+
 # take the path and precision to save files
 # if we want to save the tensors we save them locally because they occupy a lot of memory
 if args.path == "pc":
@@ -140,10 +144,21 @@ for L in args.Ls:
             "n_sweeps": args.number_sweeps,
             "conv_tol": args.conv_tol,
         }
-        if __name__ == "__main__":
-            energy_chi, entropy_chi, schmidt_vals_chi = ground_state_Cluster(
-                args_mps=args_mps, multpr=args.multpr, param=interval
-            )
+        up = np.array([[[1],[0]]])
+        init_tensor = [up for _ in range(L)]
+        for J in interval_J:
+            for h in interval_h:
+                print(f"J: {J}, h: {h}")
+                chain = MPS(L=L, d=d, chi=chi, model=args.model, eps=1e-5, h=h, J=J)
+                chain.sites = init_tensor.copy()
+                chain.enlarge_chi()
+                energy_chi, entropy_chi, schmidt_vals_chi = chain.DMRG(trunc_tol=False, trunc_chi=True, where=L//2)
+                chain.save_sites(path=path_tensor, precision=precision)
+                if h == interval_h[0]:
+                    init_tensor_J = chain.sites.copy()
+                init_tensor = chain.sites.copy()
+            
+            init_tensor = init_tensor_J.copy()
 
             if args.bond == False:
                 args.where = "all"

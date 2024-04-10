@@ -1,8 +1,13 @@
 import numpy as np
-from ncon import ncon
-from scipy.sparse.linalg import eigsh, eigs
+
 from scipy.sparse import csr_matrix, csr_array, identity
 from scipy.linalg import expm, solve
+import scipy.linalg as la
+import scipy.sparse.linalg as spla
+
+from ncon import ncon
+
+import time 
 from qs_mps.utils import *
 from qs_mps.checks import check_matrix
 from qs_mps.sparse_hamiltonians_and_operators import (
@@ -13,7 +18,6 @@ from qs_mps.sparse_hamiltonians_and_operators import (
     sparse_pauli_z
 )
 from qs_mps.mpo_class import MPO_ladder
-import time
 from qs_mps.TensorMultiplier import TensorMultiplierOperator
 
 class MPS:
@@ -178,7 +182,7 @@ class MPS:
             regularized_matrix = scaled_matrix + lambda_ * np.eye(
                 scaled_matrix.shape[0], scaled_matrix.shape[1]
             )
-            u, s, v = np.linalg.svd(
+            u, s, v = la.svd(
                 regularized_matrix,
                 full_matrices=False,
             )
@@ -190,11 +194,11 @@ class MPS:
                     u = u[:, :, : self.chi]
                     s = s[: self.chi]
                     v = v[: self.chi, :]
-                    s = s / np.linalg.norm(s)
+                    s = s / la.norm(s)
             if trunc_tol:
                 condition = s >= schmidt_tol
                 s_trunc = np.extract(condition, s)
-                s = s_trunc / np.linalg.norm(s_trunc)
+                s = s_trunc / la.norm(s_trunc)
                 u = u[:, :, : len(s)]
                 v = v[: len(s), :]
 
@@ -249,7 +253,7 @@ class MPS:
             regularized_matrix = scaled_matrix + lambda_ * np.eye(
                 scaled_matrix.shape[0], scaled_matrix.shape[1]
             )
-            u, s, v = np.linalg.svd(
+            u, s, v = la.svd(
                 regularized_matrix,
                 full_matrices=False,
             )
@@ -261,11 +265,11 @@ class MPS:
                     v = v[: self.chi, :, :]
                     s = s[: self.chi]
                     u = u[:, : self.chi]
-                    s = s / np.linalg.norm(s)
+                    s = s / la.norm(s)
             if trunc_tol:
                 condition = s >= schmidt_tol
                 s_trunc = np.extract(condition, s)
-                s = s_trunc / np.linalg.norm(s_trunc)
+                s = s_trunc / la.norm(s_trunc)
                 v = v[: len(s), :, :]
                 bonds.append(s)
                 u = u[:, : len(s)]
@@ -506,7 +510,7 @@ class MPS:
             env_l = ncon([env_l, kets[i], bras[i]], [label_env, label_ket, label_bra])
         # right env:
         env_r = env
-        for i in range(self.L - 1, sites[-1], -1):
+        for i in range(self.L - 1, sites[-1]-1, -1):
             label_ket = [-1, 3, 1]
             label_bra = [-2, 3, 2]
             env_r = ncon([env_r, kets[i], bras[i]], [label_env, label_ket, label_bra])
@@ -523,10 +527,55 @@ class MPS:
             ]
             label_env = up + down + mid_up + mid_down
             idx += 1
-
         mps_dm = ncon([env_l, env_r], [label_env, [1, 2]])
 
         return mps_dm
+
+    def vector_to_mps(self, vec: np.ndarray, trunc_chi: bool=True, trunc_tol: bool=False, chi: int=1, schmidt_tol: float=1e-15):
+        """
+        vector_to_mps
+
+        We decompose the vector with successive svd starting from the right towards the left,
+        hence a left sweep. The final tensors will be in Right Canonical Form (RCF)
+        
+        vec: np.ndarray - vector we want to transform in a MPS
+
+        """
+        vec_legs = int(np.log2(len(vec)))
+        sites = []
+        bonds = []
+        alpha = 1
+        for i in range(vec_legs):
+            matrix = vec.reshape((2**(vec_legs-(i+1)),2*alpha))
+            u,s,v = la.svd(matrix, full_matrices=False)
+            bond_r = v.shape[1] // 2
+            v = truncation(v, threshold=1e-15)
+            s = truncation(s, threshold=1e-15)
+            u = truncation(u, threshold=1e-15)
+            v = v.reshape((v.shape[0], 2, bond_r))
+            if trunc_chi:
+                if v.shape[0] > chi:
+                    v = v[: chi, :, :]
+                    s = s[: chi]
+                    u = u[:, : chi]
+                    s = s / la.norm(s)
+            if trunc_tol:
+                condition = s >= schmidt_tol
+                s_trunc = np.extract(condition, s)
+                s = s_trunc / la.norm(s_trunc)
+                v = v[: len(s), :, :]
+                u = u[:, : len(s)]
+
+            sites.append(v)
+            bonds.append(s)
+            vec = u @ np.diag(s)
+            alpha = vec.shape[1]
+        
+        sites.reverse()
+        bonds.reverse()
+        self.sites = sites.copy()
+        self.bonds = bonds.copy()
+        return self
 
     # -------------------------------------------------
     # Matrix Product Operators, MPOs
@@ -544,7 +593,7 @@ class MPS:
             self.mpo_Ising(long=long, trans=trans)
 
         elif self.model == "ANNNI":
-            self.mpo_ANNNI(long=long, trans=trans)
+            self.mpo_ANNNI(long=long, trans=trans, deg_method=2)
         
         elif self.model == "Cluster":
             self.mpo_Cluster(long=long, trans=trans)
@@ -576,15 +625,19 @@ class MPS:
             trans_op = sparse_pauli_z(n=0, L=1).toarray()
 
         w_tot = []
-        for _ in range(self.L):
+        for i in range(self.L):
+            if i == 0 or i == 1:
+                c = 1
+            else:
+                c = 0
             w = np.array(
-                [[I, -self.J * long_op, -self.h * trans_op - self.eps * (long_op - I)], [O, O, long_op], [O, O, I]]
+                [[I, -self.J * long_op, -self.h * trans_op - self.eps * c * (long_op - I)], [O, O, long_op], [O, O, I]]
             )
             w_tot.append(w)
         self.w = w_tot
         return self
     
-    def mpo_ANNNI(self, long: str = "X", trans: str = "Z"):
+    def mpo_ANNNI(self, long: str = "X", trans: str = "Z", deg_method: int = 2):
         """
         mpo_ANNNI
 
@@ -603,9 +656,18 @@ class MPS:
 
         w_tot = []
         for i in range(self.L):
-            c = (1 + (-1)**(i // 2))
+            if deg_method == 1:
+                if i == 0 or i == 1:
+                    c = 1
+                else:
+                    c = 0
+                c_i = c
+            elif deg_method == 2:
+                c = (1 + (-1)**(i // 2))
+                c_i = 1
+
             w = np.array(
-                [[I, long_op, O, - (self.h * self.J) * trans_op - (self.eps * self.J * c) * long_op + (2 * self.eps * self.J) * I], 
+                [[I, long_op, O, - (self.h * self.J) * trans_op - (self.eps * self.J * c) * long_op + (self.eps * self.J * c_i) * I], 
                  [O, O, I, - (self.J) * long_op], 
                  [O, O, O, (self.k * self.J) * long_op], 
                  [O, O, O, I]]
@@ -614,7 +676,7 @@ class MPS:
         self.w = w_tot
         return self
 
-    def mpo_Cluster(self, long: str = "X", trans: str = "Z"):
+    def mpo_Cluster(self, long: str = "X", trans: str = "Z", eps: float=1e-5):
         """
         mpo_Cluster
 
@@ -631,11 +693,17 @@ class MPS:
             long_op = sparse_pauli_x(n=0, L=1).toarray()
             trans_op = sparse_pauli_z(n=0, L=1).toarray()
         w_tot = []
-        for _ in range(self.L):
+
+        for i in range(self.L):
+            if i == 0:
+                c = -eps
+            else:
+                c = 0
+
             w = np.array(
-                [[I, long_op, O, (-self.h / self.J) * trans_op], 
-                 [O, O, trans_op, O], 
-                 [O, O, O, long_op], 
+                [[I, long_op, O, -self.h * trans_op + c * long_op],
+                 [O, O, trans_op, O],
+                 [O, O, O, -self.J * long_op],
                  [O, O, O, I]]
             )
             w_tot.append(w)
@@ -843,7 +911,7 @@ class MPS:
                         O,
                         O,
                         beta * X,
-                        gamma * X @ (np.linalg.matrix_power(X, (1 - alpha))),
+                        gamma * X @ (la.matrix_power(X, (1 - alpha))),
                     ],
                     [O, O, O, I],
                 ]
@@ -1382,7 +1450,7 @@ class MPS:
         site: int - site to optimize
 
         """
-        H_eff_time = time.perf_counter()
+        # H_eff_time = time.perf_counter()
         H = ncon(
             [self.env_left[-1], self.w[site - 1]],
             [
@@ -1397,15 +1465,15 @@ class MPS:
                 [-3 , 1, -6]
             ]
         )
-        print(f"Time of H_eff contraction: {time.perf_counter()-H_eff_time}")
+        # print(f"Time of H_eff contraction: {time.perf_counter()-H_eff_time}")
 
-        reshape_time = time.perf_counter()
+        # reshape_time = time.perf_counter()
         H = H.reshape(
             self.env_left[-1].shape[0] * self.d * self.env_right[-1].shape[0],
             self.env_left[-1].shape[2] * self.d * self.env_right[-1].shape[2],
         )
-        print(f"Time of H_eff reshaping: {time.perf_counter()-reshape_time}")
-        print(H.shape)
+        # print(f"Time of H_eff reshaping: {time.perf_counter()-reshape_time}")
+        # print(H.shape)
 
         return H
 
@@ -1430,11 +1498,13 @@ class MPS:
                             self.env_left[-1].shape[2] * self.d * self.env_right[-1].shape[2],
                             ), matvec=self.mv, dtype=np.complex128)
         # print(f"shape of A: {A.shape}")
-        # if A.shape[0] == 2:
-        #     H = self.H_eff(site=site)
-        #     e, v = eigsh(H, k=1, v0=v0)
-        # else:
-        e, v = eigs(A, k=1, v0=v0)
+        if A.shape[0] == 2:
+            H = self.H_eff(site=self.site)
+            e, v = la.eigh(H)
+        else:
+            v0 = self.sites[self.site - 1]
+            # print(f"v0 at site {self.site - 1} has shape: {v0.shape}")
+            e, v = spla.eigsh(A, k=1, v0=v0, which='SA')
         # e, v = eigsh(H_eff, k=1, which="SA", v0=v0)
         # np.savetxt(
         #     f"/Users/fradm/mps/results/times_data/eigsh_eigensolver_site_{site}_h_{self.h:.2f}",
@@ -1444,7 +1514,7 @@ class MPS:
         e_min = e[0].real
         eigvec = np.array(v[:,0])
 
-        self.sites[site - 1] = eigvec.reshape(
+        self.sites[self.site - 1] = eigvec.reshape(
             self.env_left[-1].shape[0], self.d, self.env_right[-1].shape[0]
         )
         return e_min
@@ -1477,18 +1547,18 @@ class MPS:
             m = self.sites[site - 1].reshape(
                 self.env_left[-1].shape[2] * self.d, self.env_right[-1].shape[2]
             )
-            u, s, v = np.linalg.svd(m, full_matrices=False)
+            u, s, v = la.svd(m, full_matrices=False)
             if trunc_tol:
                 condition = s >= schmidt_tol
                 s_trunc = np.extract(condition, s)
-                s = s_trunc / np.linalg.norm(s_trunc)
+                s = s_trunc / la.norm(s_trunc)
                 bond_l = u.shape[0] // self.d
                 u = u.reshape(bond_l, self.d, u.shape[1])
                 u = u[:, :, : len(s)]
                 v = v[: len(s), :]
             elif trunc_chi:
                 s_trunc = s[: self.chi]
-                s = s_trunc / np.linalg.norm(s_trunc)
+                s = s_trunc / la.norm(s_trunc)
                 bond_l = u.shape[0] // self.d
                 u = u.reshape(bond_l, self.d, u.shape[1])
                 u = u[:, :, : len(s)]
@@ -1513,18 +1583,18 @@ class MPS:
             m = self.sites[site - 1].reshape(
                 self.env_left[-1].shape[2], self.d * self.env_right[-1].shape[2]
             )
-            u, s, v = np.linalg.svd(m, full_matrices=False)
+            u, s, v = la.svd(m, full_matrices=False)
             if trunc_tol:
                 condition = s >= schmidt_tol
                 s_trunc = np.extract(condition, s)
-                s = s_trunc / np.linalg.norm(s_trunc)
+                s = s_trunc / la.norm(s_trunc)
                 bond_r = v.shape[1] // self.d
                 v = v.reshape(v.shape[0], self.d, bond_r)
                 v = v[: len(s), :, :]
                 u = u[:, : len(s)]
             elif trunc_chi:
                 s_trunc = s[: self.chi]
-                s = s_trunc / np.linalg.norm(s_trunc)
+                s = s_trunc / la.norm(s_trunc)
                 bond_r = v.shape[1] // self.d
                 v = v.reshape(v.shape[0], self.d, bond_r)
                 v = v[: len(s), :, :]
@@ -1618,6 +1688,8 @@ class MPS:
         self,
         trunc_tol: bool,
         trunc_chi: bool,
+        long: str="X",
+        trans: str="Z",
         schmidt_tol: float = 1e-15,
         conv_tol: float = 1e-10,
         n_sweeps: int = 2,
@@ -1628,11 +1700,12 @@ class MPS:
         sweeps = ["right", "left"]
         sites = np.arange(1, self.L + 1).tolist()
 
-        self.mpo()
+        self.mpo(long=long, trans=trans)
         self.envs()
 
         iter = 1
-        
+        H = None
+
         t_start = time.perf_counter()
         for n in range(n_sweeps):
             print(f"Sweep n: {n}\n")
@@ -1640,13 +1713,14 @@ class MPS:
             schmidt_vals = []
             for i in range(self.L - 1):
                 # print(f"Site: {sites[i]}\n")
-                v0 = self.sites[i].flatten()
                 # t_start = time.perf_counter()
-                # H = self.H_eff(sites[i])
+                if trunc_tol == True:
+                    H = self.H_eff(sites[i])
                 # print(f"Time effective Ham: {abs(time.perf_counter()-t_start)}")
                 # t_start = time.perf_counter()
+                v0 = self.sites[i].flatten()
                 self.site = sites[i]
-                energy = self.eigensolver(site=sites[i], v0=v0) # , v0=v0
+                energy = self.eigensolver(site=sites[i], v0=v0, H_eff=H) # , v0=v0
                 # energy = self.eigensolver(H_eff=H, site=sites[i], v0=v0) # , v0=v0
                 # print(f"Time eigensolver: {abs(time.perf_counter()-t_start)}")
                 energies.append(energy)
@@ -1804,12 +1878,12 @@ class MPS:
             m = self.sites[site - 1].reshape(
                 self.sites[site - 1].shape[0] * self.d, self.sites[site - 1].shape[2]
             )
-            u, s, v = np.linalg.svd(m, full_matrices=False)
+            u, s, v = la.svd(m, full_matrices=False)
 
             if trunc_tol:
                 condition = s >= schmidt_tol
                 s_trunc = np.extract(condition, s)
-                s = s_trunc / np.linalg.norm(s_trunc)
+                s = s_trunc / la.norm(s_trunc)
                 bond_l = u.shape[0] // self.d
                 u = u.reshape(bond_l, self.d, u.shape[1])
                 u = u[:, :, : len(s)]
@@ -1823,7 +1897,7 @@ class MPS:
                     # )
             elif trunc_chi:
                 s_trunc = s[: self.chi]
-                s = s / np.linalg.norm(s_trunc)
+                s = s / la.norm(s_trunc)
                 bond_l = u.shape[0] // self.d
                 u = u.reshape(bond_l, self.d, u.shape[1])
                 u = u[:, :, : len(s)]
@@ -1857,12 +1931,12 @@ class MPS:
             m = self.sites[site - 1].reshape(
                 self.sites[site - 1].shape[0], self.d * self.sites[site - 1].shape[2]
             )
-            u, s, v = np.linalg.svd(m, full_matrices=False)
+            u, s, v = la.svd(m, full_matrices=False)
 
             if trunc_tol:
                 condition = s >= schmidt_tol
                 s_trunc = np.extract(condition, s)
-                s = s_trunc / np.linalg.norm(s_trunc)
+                s = s_trunc / la.norm(s_trunc)
                 bond_r = v.shape[1] // self.d
                 v = v.reshape(v.shape[0], self.d, bond_r)
                 v = v[: len(s), :, :]
@@ -1876,7 +1950,7 @@ class MPS:
                     # )
             elif trunc_chi:
                 s_trunc = s[: self.chi]
-                s = s / np.linalg.norm(s_trunc)
+                s = s / la.norm(s_trunc)
                 # print(f"Schmidt Values:\n{s}")
                 bond_r = v.shape[1] // self.d
                 v = v.reshape(v.shape[0], self.d, bond_r)
