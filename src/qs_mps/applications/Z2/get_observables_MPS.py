@@ -53,8 +53,11 @@ d = int(2**(args.l))
 # define the interval of equally spaced values of external field
 if args.interval == "lin":
     interval = np.linspace(args.h_i, args.h_f, args.npoints)
+    num = (interval[-1] - interval[0]) / args.npoints
+    precision = get_precision(num)
 elif args.interval == "log":
     interval = np.logspace(args.h_i, args.h_f, args.npoints)
+    precision = 2
 
 # take the path and precision to save files
 # if we want to save the tensors we save them locally because they occupy a lot of memory
@@ -70,14 +73,6 @@ elif args.path == "marcos":
 else:
     raise SyntaxError("Path not valid. Choose among 'pc', 'mac', 'marcos'")
 
-num = (args.h_f - args.h_i) / args.npoints
-precision = get_precision(num)
-
-# # for the wilson loop
-# if args.sites == 1:
-#     sites = 0
-# if args.ladders == 1:
-#     ladders = 1
 
 # define the direction
 if args.direction == "ver":
@@ -113,6 +108,7 @@ for L in args.Ls:
         E = []
         S = []
         M = []
+        C = []
         for h in interval:
             lattice_mps = MPS(L=L, d=d, model=args.model, chi=chi, h=h)
             lattice_mps.L = lattice_mps.L - 1
@@ -159,6 +155,10 @@ for L in args.Ls:
                 elif args.moment == 4:
                     M.append(lattice_mps.mpo_fourth_moment().real/(len(lattice_mps.Z2.latt.plaquettes())-(2*(L-3)+2*(args.l)))**4)
 
+            elif args.obs == "corr":
+                print(f"Correlator for h:{h:.{precision}f}, L:{L}")
+                c = lattice_mps.connected_correlator(site=args.sites[0], lad=args.ladders[0])
+                C.append(c)
 
 
     if args.obs == "wl":
@@ -180,4 +180,10 @@ for L in args.Ls:
         np.save(
                     f"{parent_path}/results/mag_data/dual_mag_{moment}_moment_{args.model}_direct_lattice_{args.l}x{L-1}_{sector}_{args.charges_x}-{args.charges_y}_h_{args.h_i}-{args.h_f}_delta_{args.npoints}_chi_{chi}.npy",
                     M,
+                )
+    if args.obs == "corr":
+        C = np.array_split(C, args.npoints)
+        np.save(
+                    f"{parent_path}/results/mag_data/connected_correlator_s_{args.sites[0]}_l_{args.ladders[0]}_{args.model}_direct_lattice_{args.l}x{L-1}_{sector}_{args.charges_x}-{args.charges_y}_h_{args.h_i}-{args.h_f}_delta_{args.npoints}_chi_{chi}.npy",
+                    C,
                 )

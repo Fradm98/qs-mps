@@ -97,8 +97,7 @@ if args.interval == "lin":
     precision = get_precision(num)
 elif args.interval == "log":
     interval = np.logspace(args.h_i, args.h_f, args.npoints)
-    num = (args.h_f - args.h_i) / args.npoints
-    precision = get_precision(num)
+    precision = np.max(np.abs(args.h_f),np.abs(args.h_i))
 
 # take the path and precision to save files
 # if we want to save the tensors we save them locally because they occupy a lot of memory
