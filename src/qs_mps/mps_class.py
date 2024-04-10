@@ -1099,35 +1099,38 @@ class MPS:
                     l = lad
                     # find the sigma_4^x first
                     self.Z2.zz_observable_Z2_dual(mpo_site=site, l=l, direction="vertical")
-                    self.w += [self.h / 2 * np.asarray(self.Z2.mpo)].copy()
+                    self.w += [(self.h / 2) * mpo for mpo in self.Z2.mpo].copy()
                 elif lad == self.Z2.l-1:
                     l = lad    
                     # find the sigma_2^x last
                     self.Z2.zz_observable_Z2_dual(mpo_site=site, l=l-1, direction="vertical")
-                    self.w += [self.h / 2 * np.asarray(self.Z2.mpo)].copy()             
+                    self.w += [(self.h / 2) * mpo for mpo in self.Z2.mpo].copy()
                 # find the sigma_2^x first or sigma_4^x last
                 self.Z2.local_observable_Z2_dual(mpo_site=site, l=l)
                 coeff = self.Z2.charge_coeff_v(mpo_site=site, l=l)
-                self.w += [self.h * coeff * np.asarray(self.Z2.mpo)].copy() # times 2 because we do not share this link with any other plaquette
+                self.w += [(self.h * coeff) * mpo for mpo in self.Z2.mpo].copy() # times 2 because we do not share this link with any other plaquette
                 
             else:
                 l = lad - 1
                 # find the sigma_2^x
                 self.Z2.zz_observable_Z2_dual(mpo_site=site, l=l, direction="vertical")
-                self.w += [self.h / 2 * np.asarray(self.Z2.mpo)].copy()
+                self.w += [(self.h / 2) * mpo for mpo in self.Z2.mpo].copy()
                 # find the sigma_4^x
                 self.Z2.zz_observable_Z2_dual(mpo_site=site, l=l+1, direction="vertical")
-                self.w += [self.h / 2 * np.asarray(self.Z2.mpo)].copy()
+                self.w += [(self.h / 2) * mpo for mpo in self.Z2.mpo].copy()
 
 
             # find the sigma_1^x
             self.Z2.zz_observable_Z2_dual(mpo_site=site, l=lad, direction="horizontal")
             coeff = self.Z2.charge_coeff_interaction(n=lad+1,mpo_site=site)
-            self.w = [self.h / 2 * coeff * np.asarray(self.Z2.mpo)].copy()
+            self.w += [(self.h / 2) * coeff * mpo for mpo in self.Z2.mpo].copy()
             # find the sigma_3^x
             self.Z2.zz_observable_Z2_dual(mpo_site=site+1, l=lad, direction="horizontal")
             coeff = self.Z2.charge_coeff_interaction(n=lad+1,mpo_site=site+1)
-            self.w = [self.h / 2 * coeff * np.asarray(self.Z2.mpo)].copy()
+            self.w += [(self.h / 2) * coeff * mpo for mpo in self.Z2.mpo].copy()
+            mpo_split = np.array_split(np.asarray(self.w), self.L)
+            mpo_summed = np.sum(mpo_split, axis=1)
+            self.w = mpo_summed
             eed = self.mpo_first_moment().real
             print(f"Electric energy density: {eed}")
 
