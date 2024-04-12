@@ -135,7 +135,7 @@ for L in args.Ls:
             energy_chi = []
             entropy_chi = []
             schmidt_vals_chi = []
-            for h in interval_h:
+            for k in interval_k:
                 # init_tensor = MPS(
                 #         L=args_mps["L"],
                 #         d=args_mps["d"],
@@ -147,7 +147,7 @@ for L in args.Ls:
                 #         )
                 # init_tensor.load_sites(path=path_tensor.rsplit("/", 1)[:-1][0]+"0_ISING", precision=args_mps["precision"])
                 # init = init_tensor.sites.copy()
-                for k in interval_k:
+                for h in interval_h:
                     precision = args_mps["precision"]
                     chain = MPS(
                         L=args_mps["L"],

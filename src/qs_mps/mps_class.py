@@ -515,18 +515,18 @@ class MPS:
             label_bra = [-2, 3, 2]
             env_r = ncon([env_r, kets[i], bras[i]], [label_env, label_ket, label_bra])
         # central env
-        idx = 0
-        for i in range(sites[0] - 1, sites[-1]):
+        # idx = 0
+        for i in range(len(sites)):
             label_ket = [1, -1 - i, -len(sites) * 100]
             label_bra = [2, -len(sites) - 1 - i, -len(sites) * 100 - 1]
-            env_l = ncon([env_l, kets[i], bras[i]], [label_env, label_ket, label_bra])
-            up = [int(-elem) for elem in np.linspace(1, idx + 1, idx + 1)]
+            env_l = ncon([env_l, kets[sites[i]-1], bras[sites[i]-1]], [label_env, label_ket, label_bra])
+            up = [int(-elem) for elem in np.linspace(1, i + 1, i + 1)]
             down = [
                 int(-elem)
-                for elem in np.linspace(len(sites) + 1, len(sites) + 1 + idx, idx + 1)
+                for elem in np.linspace(len(sites) + 1, len(sites) + 1 + i, i + 1)
             ]
             label_env = up + down + mid_up + mid_down
-            idx += 1
+            # idx += 1
         mps_dm = ncon([env_l, env_r], [label_env, [1, 2]])
 
         return mps_dm
@@ -2688,6 +2688,8 @@ class MPS:
         """
         if "Ising" in self.model:
             self.save_sites_Ising(path=path, precision=precision)
+        elif "Cluster" in self.model:
+            self.save_sites_Ising(path=path, precision=precision)
         elif "ANNNI" in self.model:
             self.save_sites_ANNNI(path=path, precision=precision)
         elif "Z2" in self.model:
@@ -2721,7 +2723,7 @@ class MPS:
 
     def save_sites_Ising(self, path, precision: int=2):
         # shapes of the tensors
-        shapes = tensor_shapes(self.sites)
+        shapes = tensor_shapes(self.sites, False)
         np.savetxt(
             f"{path}/results/tensors/shapes_sites_{self.model}_L_{self.L}_chi_{self.chi}_h_{self.h:.{precision}f}_J_{self.J:.{precision}f}",
             shapes,

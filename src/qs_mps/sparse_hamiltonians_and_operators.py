@@ -216,7 +216,7 @@ def sparse_ANNNI_hamiltonian(J: float, h_t: float, h_ll: float, L: int, eps: flo
             if deg_method == 0:
                 hamiltonian_deg = 0
             elif deg_method == 1:
-                hamiltonian_deg = sparse_pauli_x(n=0,L=L) + sparse_pauli_x(n=1,L=L) -  2 * identity(2**L)
+                hamiltonian_deg = sparse_pauli_x(n=0,L=L) - identity(2**L)
             elif deg_method == 2:
                 for n in range(L):
                     hamiltonian_deg += (1 + (-1)**(n//2)) * sparse_pauli_x(n=n,L=L) -  2 * identity(2**L)
@@ -250,9 +250,10 @@ def sparse_cluster_hamiltonian(J: float, h_t: float, L: int, eps: float=1e-5, lo
                 n_pauli_z = sparse_pauli_z(n, L)
                 hamiltonian_t += n_pauli_z
         if eps != 0:
-            n_row_indices, n_col_indices = sparse_non_diag_paulis_indices(0, L)
-            n_pauli_x = sparse_pauli_x(0, L, n_row_indices, n_col_indices)
-            hamiltonian_deg += n_pauli_x
+            for n in range(L):
+                n_row_indices, n_col_indices = sparse_non_diag_paulis_indices(n, L)
+                n_pauli_x = sparse_pauli_x(n, L, n_row_indices, n_col_indices)
+                hamiltonian_deg += n_pauli_x
             
         # Interaction
         for n in range(L - 2):
