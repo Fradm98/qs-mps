@@ -2713,7 +2713,7 @@ class MPS:
             self.load_sites_Ising(path=path, precision=precision)
         elif "ANNNI" in self.model:
             self.load_sites_ANNNI(path=path, precision=precision)
-        if "Cluster" in self.model:
+        elif "Cluster" in self.model:
             self.load_sites_Ising(path=path, precision=precision)
         elif "Z2" in self.model:
             self.load_sites_Z2(path=path, precision=precision, cx=cx, cy=cy)

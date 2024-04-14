@@ -103,9 +103,9 @@ for L in args.Ls:
     for chi in args.chis:  # L // 2 + 1
         print(f"L:{L}, chi:{chi}")
         rdms_chi = []
-        for hx in interval_x:
-            rdms_J = []
-            for hy in interval_y:
+        for hy in interval_y:
+            rdms_y = []
+            for hx in interval_x:
                 print(f"for hx:{hx:.{precision}f}, hy:{hy:.{precision}f}")
                 if args.model == "Ising" or args.model == "Cluster":
                     chain = MPS(L=L, d=d, chi=chi, model=args.model, eps=args.eps, h=hx, J=hy)
@@ -114,8 +114,10 @@ for L in args.Ls:
                 
                 chain.load_sites(path=path_tensor, precision=precision)
                 rdm = chain.reduced_density_matrix(sites)
-                rdms_J.append(rdm)
-            rdms_chi.append(rdms_J)
+                rdms_y.append(rdm)
+            rdms_chi.append(rdms_y)
         
-        
-        np.save(f"{path_rdms}/results/data/{args.which}_sites-rdms_{args.model}_L_{L}_hx_{args.hx_i}-{args.hx_f}_hy_{args.hy_i}-{args.hy_f}_delta_{args.npoints}_degeneracy_method_{args.deg}_eps_{args.eps}_guess_path_chi_{chi}.npy", rdms_chi)
+        if args.model == "ANNNI":
+            rdms_chi = np.asarray(rdms_chi).reshape((len(interval_x),len(interval_y),d**args.which,d**args.which))
+            rdms_chi = rdms_chi[::-1]
+        np.save(f"{path_rdms}/results/data/{args.which}_sites-rdms_dmrg_{args.model}_L_{L}_hx_{args.hx_i}-{args.hx_f}_hy_{args.hy_i}-{args.hy_f}_delta_{args.npoints}_degeneracy_method_{args.deg}_eps_{args.eps}_guess_path_chi_{chi}.npy", rdms_chi)

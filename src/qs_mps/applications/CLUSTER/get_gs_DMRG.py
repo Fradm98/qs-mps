@@ -127,22 +127,6 @@ for L in args.Ls:
     elif args.where == -2:
         args.bond = False
     for chi in args.chis:  # L // 2 + 1
-        args_mps = {
-            "L": L,
-            "d": d,
-            "chi": chi,
-            "type_shape": args.type_shape,
-            "model": args.model,
-            "trunc_tol": False,
-            "trunc_chi": True,
-            "where": args.where,
-            "bond": args.bond,
-            "path": path_tensor,
-            "save": args.save,
-            "precision": precision,
-            "n_sweeps": args.number_sweeps,
-            "conv_tol": args.conv_tol,
-        }
         up = np.array([[[1],[0]]])
         init_tensor = [up for _ in range(L)]
 
@@ -186,21 +170,17 @@ for L in args.Ls:
             args.where = "all"
 
         if args.training:
-            save_list_of_lists(
+            np.save(
                 f"{parent_path}/results/energy_data/energies_{args.model}_L_{L}_h_{args.h_i}-{args.h_f}_delta_{args.npoints}_chi_{chi}",
                 energy_chi,
             )
-            energy_gs = access_txt(
-                    f"{parent_path}/results/energy_data/energies_{args.model}_L_{L}_h_{args.h_i}-{args.h_f}_delta_{args.npoints}_chi_{chi}",
-                    -1,
-                )
-            np.savetxt(
-                f"{parent_path}/results/energy_data/energies_{args.model}_L_{L}_h_{args.h_i}-{args.h_f}_delta_{args.npoints}_chi_{chi}",
-                energy_gs,
-            )
+            for i in range(len(interval_J)):
+                for j in range(len(interval_h)):
+                    np.save(f"{parent_path}/results/energy_data/energy_{args.model}_L_{L}_h_{args.h_i}-{args.h_f}_delta_{args.npoints}_chi_{chi}", energy_chi[i][j][-1])
+
         else:
-            np.savetxt(
-                f"{parent_path}/results/energy_data/energies_{args.model}_L_{L}_h_{args.h_i}-{args.h_f}_delta_{args.npoints}_chi_{chi}",
+            np.save(
+                f"{parent_path}/results/energy_data/energy_{args.model}_L_{L}_h_{args.h_i}-{args.h_f}_delta_{args.npoints}_chi_{chi}",
                 energy_chi,
             )
             
