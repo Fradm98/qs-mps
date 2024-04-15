@@ -1,7 +1,7 @@
 import argparse
 import numpy as np
 from qs_mps.mps_class import MPS
-from qs_mps.utils import get_precision, save_list_of_lists, access_txt, tensor_shapes
+from qs_mps.utils import get_precision, save_list_of_lists, access_txt, swap_columns, swap_rows
 from qs_mps.applications.ANNNI.ground_state_multiprocessing import ground_state_ANNNI
 from scipy.sparse.linalg._eigen.arpack.arpack import ArpackNoConvergence
 
@@ -170,8 +170,6 @@ for L in args.Ls:
             init_tensor = init_tensor_k.copy()
 
             # energy_k.reverse()
-            # entropy_k.reverse()
-            # schmidt_vals_k.reverse()
             energy_chi.append(energy_k)
             entropy_chi.append(entropy_k)
             schmidt_vals_chi.append(schmidt_vals_k)
@@ -180,6 +178,10 @@ for L in args.Ls:
             args.where = "all"
 
         if args.training:
+            energy_chi = swap_rows(np.asarray(energy_chi))
+            # energy_chi = np.swapaxes(swap_columns(np.asarray(energy_chi)), axis1=0, axis2=1)
+            # energy_chi = np.swapaxes(np.asarray(energy_chi), axis1=0, axis2=1)
+
             np.save(
                 f"{parent_path}/results/energy_data/energies_{args.model}_L_{L}_k_{args.hx_i}-{args.hx_f}_h_{args.hy_i}-{args.hy_f}_delta_{args.npoints}_chi_{chi}",
                 energy_chi,
@@ -193,15 +195,18 @@ for L in args.Ls:
             np.save(f"{parent_path}/results/energy_data/energy_{args.model}_L_{L}_k_{args.hx_i}-{args.hx_f}_h_{args.hy_i}-{args.hy_f}_delta_{args.npoints}_chi_{chi}", energy_min)
                     
         else:
+            energy_chi = np.swapaxes(swap_columns(np.asarray(energy_chi)), axis1=0, axis2=1)
             np.save(
                 f"{parent_path}/results/energy_data/energy_{args.model}_L_{L}_k_{args.hx_i}-{args.hx_f}_h_{args.hy_i}-{args.hy_f}_delta_{args.npoints}_chi_{chi}",
                 energy_chi,
             )
-            
+        
+        entropy_chi = np.swapaxes(swap_columns(np.asarray(entropy_chi), tensor=False), axis1=0, axis2=1)
         save_list_of_lists(
             f"{parent_path}/results/entropy_data/{args.where}_bond_entropy_{args.model}_L_{L}_k_{args.hx_i}-{args.hx_f}_h_{args.hy_i}-{args.hy_f}_delta_{args.npoints}_chi_{chi}",
             entropy_chi,
         )
+        schmidt_vals_chi = np.swapaxes(swap_columns(np.asarray(schmidt_vals_chi)), axis1=0, axis2=1)
         save_list_of_lists(
             f"{parent_path}/results/entropy_data/{args.where}_schmidt_vals_{args.model}_L_{L}_k_{args.hx_i}-{args.hx_f}_h_{args.hy_i}-{args.hy_f}_delta_{args.npoints}_chi_{chi}",
             schmidt_vals_chi,

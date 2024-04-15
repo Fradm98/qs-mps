@@ -14,9 +14,9 @@ import time
 L = 5
 l = 2
 d = int(2**l)
-chi = 4  # this is interpreted as d**(int(log2(chi))) --> e.g. chi=8 == 4**3=64
-type_shape = "trapezoidal"
-array = np.linspace(0, 10, 100)
+chi = 16  # this is interpreted as d**(int(log2(chi))) --> e.g. chi=8 == 4**3=64
+type_shape = "rectangular"
+array = np.linspace(0.001, 10, 100)
 hs = [h for h in array]
 model = "Z2_dual"
 path = "/Users/fradm98/Desktop/projects/1_Z2"
@@ -36,9 +36,17 @@ if __name__ == "__main__":
         "trunc_chi": True,
         "where": L // 2,
         "path": path,
+        "save": True,
+        "precision": 2,
+        "sector": "vacuum_sector",
+        "bond": True,
+        "n_sweeps": 2,
+        "conv_tol": 1e-10,
+        "charges_x": None,
+        "charges_y": None,
     }
 
-    energies_h, entropy_h = ground_state_Z2(
+    energies_h, entropy_h, schmidt_vals = ground_state_Z2(
         args_mps=args_mps, multpr=multpr, param=param
     )
 
@@ -59,7 +67,7 @@ for s in range(L-1):
     W = []
     W_exact = []
     for h in hs:
-        # print(f"h: {h}")
+        print(f"h: {h}")
         ladder = MPS(L=L, d=d, model=model, h=h, eps=0, J=1, chi=chi)
         ladder.L = ladder.L - 1
 

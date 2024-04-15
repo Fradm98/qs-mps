@@ -509,6 +509,27 @@ def mpo_to_matrix(mpo):
     matrix = ncon([env, v_r.T], [label_env, mid]).reshape((d**L, d**L))
     return matrix
 
+def swap_columns(matrix, tensor: bool=True):
+    n = len(matrix)
+    for i in range(n // 2):
+        col_to_swap = n - 1 - i
+        if tensor:
+            matrix[i, :, :], matrix[col_to_swap, :, :] = matrix[col_to_swap, :, :], matrix[i, :, :].copy()
+        else:
+            for row in matrix:
+                row[i], row[col_to_swap] = row[col_to_swap], row[i]
+    return matrix
+
+def swap_rows(matrix, tensor: bool=True):
+    n = len(matrix)
+    for i in range(n // 2):
+        row_to_swap = n - 1 - i
+        if tensor:
+            matrix[:, i, :], matrix[:, row_to_swap, :] = matrix[:, row_to_swap, :], matrix[:, i, :].copy()
+        else:
+            for row in matrix:
+                row[i], row[row_to_swap] = row[row_to_swap], row[i]
+    return matrix   
 
 # ---------------------------------------------------------------------------------------
 # ---------------------------------------------------------------------------------------

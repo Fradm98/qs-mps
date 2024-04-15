@@ -1742,7 +1742,7 @@ class MPS:
                 iter += 1
 
             if ((n % 2) - 1) == 0:
-                energy_dist = np.abs(energies[-1] - energies[-2])
+                energy_dist = np.abs(energies[-1] - energies[-2])/energies[-1]
                 if energy_dist < conv_tol:
                     break
             

@@ -1,7 +1,7 @@
 import argparse
 import numpy as np
 from qs_mps.mps_class import MPS
-from qs_mps.utils import get_precision, save_list_of_lists, access_txt
+from qs_mps.utils import get_precision, save_list_of_lists, access_txt, swap_rows
 
 # DENSITY MATRIX RENORMALIZATION GROUP to find ground states of the Cluster Theory 
 # changing the transverse field parameters
@@ -13,10 +13,16 @@ parser.add_argument(
     type=int,
 )
 parser.add_argument(
-    "h_i", help="Starting value of h (external transverse field)", type=float
+    "hx_i", help="Starting value of h (external transverse field)", type=float
 )
 parser.add_argument(
-    "h_f", help="Final value of h (external transverse field)", type=float
+    "hx_f", help="Final value of h (external transverse field)", type=float
+)
+parser.add_argument(
+    "hy_i", help="Starting value of h (external transverse field)", type=float
+)
+parser.add_argument(
+    "hy_f", help="Final value of h (external transverse field)", type=float
 )
 parser.add_argument(
     "path",
@@ -88,11 +94,11 @@ d = int(2)
 
 # define the interval of equally spaced values of external field
 if args.interval == "lin":
-    interval = np.linspace(args.h_i, args.h_f, args.npoints)
-    num = (args.h_f - args.h_i) / args.npoints
+    interval = np.linspace(args.hx_i, args.hx_f, args.npoints)
+    num = (args.hx_f - args.hx_i) / args.npoints
     precision = get_precision(num)
 elif args.interval == "log":
-    interval = np.logspace(args.h_i, args.h_f, args.npoints)
+    interval = np.logspace(args.hx_i, args.hx_f, args.npoints)
     num = (interval[-1]-interval[0]) / args.npoints
     precision = get_precision(num)
 
@@ -159,9 +165,9 @@ for L in args.Ls:
             
             init_tensor = init_tensor_J.copy()
 
-            energy_J.reverse()
-            entropy_J.reverse()
-            schmidt_vals_J.reverse()
+            # energy_J.reverse()
+            # entropy_J.reverse()
+            # schmidt_vals_J.reverse()
             energy_chi.append(energy_J)
             entropy_chi.append(entropy_J)
             schmidt_vals_chi.append(schmidt_vals_J)
@@ -170,34 +176,35 @@ for L in args.Ls:
             args.where = "all"
 
         if args.training:
+            energy_chi = np.swapaxes(swap_rows(np.asarray(energy_chi)), axis1=0, axis2=1)
             np.save(
-                f"{parent_path}/results/energy_data/energies_{args.model}_L_{L}_h_{args.h_i}-{args.h_f}_delta_{args.npoints}_chi_{chi}",
+                f"{parent_path}/results/energy_data/energies_{args.model}_L_{L}_h_{args.hx_i}-{args.hx_f}_J_{args.hy_i}-{args.hy_f}_delta_{args.npoints}_chi_{chi}",
                 energy_chi,
             )
             for i in range(len(interval_J)):
                 for j in range(len(interval_h)):
-                    np.save(f"{parent_path}/results/energy_data/energy_{args.model}_L_{L}_h_{args.h_i}-{args.h_f}_delta_{args.npoints}_chi_{chi}", energy_chi[i][j][-1])
+                    np.save(f"{parent_path}/results/energy_data/energy_{args.model}_L_{L}_h_{args.hx_i}-{args.hx_f}_J_{args.hy_i}-{args.hy_f}_delta_{args.npoints}_chi_{chi}", energy_chi[i][j][-1])
 
         else:
             np.save(
-                f"{parent_path}/results/energy_data/energy_{args.model}_L_{L}_h_{args.h_i}-{args.h_f}_delta_{args.npoints}_chi_{chi}",
+                f"{parent_path}/results/energy_data/energy_{args.model}_L_{L}_h_{args.hx_i}-{args.hx_f}_J_{args.hy_i}-{args.hy_f}_delta_{args.npoints}_chi_{chi}",
                 energy_chi,
             )
             
         save_list_of_lists(
-            f"{parent_path}/results/entropy_data/{args.where}_bond_entropy_{args.model}_L_{L}_h_{args.h_i}-{args.h_f}_delta_{args.npoints}_chi_{chi}",
+            f"{parent_path}/results/entropy_data/{args.where}_bond_entropy_{args.model}_L_{L}_h_{args.hx_i}-{args.hx_f}_J_{args.hy_i}-{args.hy_f}_delta_{args.npoints}_chi_{chi}",
             entropy_chi,
         )
         save_list_of_lists(
-            f"{parent_path}/results/entropy_data/{args.where}_schmidt_vals_{args.model}_L_{L}_h_{args.h_i}-{args.h_f}_delta_{args.npoints}_chi_{chi}",
+            f"{parent_path}/results/entropy_data/{args.where}_schmidt_vals_{args.model}_L_{L}_h_{args.hx_i}-{args.hx_f}_J_{args.hy_i}-{args.hy_f}_delta_{args.npoints}_chi_{chi}",
             schmidt_vals_chi,
         )
         if args.where == "all":
             entropy_mid = access_txt(
-                f"{parent_path}/results/entropy_data/{args.where}_bond_entropy_{args.model}_L_{L}_h_{args.h_i}-{args.h_f}_delta_{args.npoints}_chi_{chi}",
+                f"{parent_path}/results/entropy_data/{args.where}_bond_entropy_{args.model}_L_{L}_h_{args.hx_i}-{args.hx_f}_J_{args.hy_i}-{args.hy_f}_delta_{args.npoints}_chi_{chi}",
                 (L-1) // 2,
             )
             np.savetxt(
-                f"{parent_path}/results/entropy_data/{args.L // 2}_bond_entropy_{args.model}_L_{L}_h_{args.h_i}-{args.h_f}_delta_{args.npoints}_chi_{chi}",
+                f"{parent_path}/results/entropy_data/{args.L // 2}_bond_entropy_{args.model}_L_{L}_h_{args.hx_i}-{args.hx_f}_J_{args.hy_i}-{args.hy_f}_delta_{args.npoints}_chi_{chi}",
                 entropy_mid,
             )
