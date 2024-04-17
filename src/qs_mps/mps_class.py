@@ -15,6 +15,7 @@ from qs_mps.sparse_hamiltonians_and_operators import (
     sparse_ising_ground_state,
     U_evolution_sparse,
     sparse_pauli_x,
+    sparse_pauli_y,
     sparse_pauli_z
 )
 from qs_mps.mpo_class import MPO_ladder
@@ -22,7 +23,7 @@ from qs_mps.TensorMultiplier import TensorMultiplierOperator
 
 class MPS:
     def __init__(
-        self, L, d, model=str, chi=None, w=None, h=None, eps=None, J=None, k=None, charges=None
+        self, L, d, model=str, chi=None, w=None, h=None, lx=None, ly=None, eps=None, J=None, k=None, charges=None
     ):
         self.L = L
         self.d = d
@@ -31,6 +32,8 @@ class MPS:
         self.w = w
         self.w_dag = w
         self.h = h
+        self.lx = lx
+        self.ly = ly
         self.eps = eps
         self.J = J
         self.k = k # (take positive values for annni model)
@@ -580,7 +583,7 @@ class MPS:
     # -------------------------------------------------
     # Matrix Product Operators, MPOs
     # -------------------------------------------------
-    def mpo(self, long: str = None, trans: str = None):
+    def mpo(self, long: str="X", trans: str="Z"):
         """
         mpo
 
@@ -590,13 +593,16 @@ class MPS:
 
         """
         if self.model == "Ising":
-            self.mpo_Ising(long=long, trans=trans)
+            self.mpo_Ising(long=long)
 
         elif self.model == "ANNNI":
-            self.mpo_ANNNI(long=long, trans=trans, deg_method=2)
+            self.mpo_ANNNI(long=long, deg_method=1)
         
         elif self.model == "Cluster":
-            self.mpo_Cluster(long=long, trans=trans)
+            self.mpo_Cluster(long=long)
+        
+        elif self.model == "Cluster-XY":
+            self.mpo_Cluster_xy(long=long)
 
         elif self.model == "Z2_dual":
             self.Z2.mpo_Z2_ladder_generalized()
@@ -710,7 +716,78 @@ class MPS:
         self.w = w_tot
         return self
 
+    def mpo_Cluster_xy(self, long: str="X", eps: float=1e-5):
+        """
+        mpo_Cluster
 
+        This function defines the MPO for the 1D Cluster model.
+        It takes the same MPO for all sites.
+
+        """
+        I = identity(2, dtype=complex).toarray()
+        O = csc_array((2, 2), dtype=complex).toarray()
+        Y = sparse_pauli_y(n=0, L=1).toarray()
+        if long == "Z":
+            long_op = sparse_pauli_z(n=0, L=1).toarray()
+            trans_op = sparse_pauli_x(n=0, L=1).toarray()
+        elif long == "X":
+            long_op = sparse_pauli_x(n=0, L=1).toarray()
+            trans_op = sparse_pauli_z(n=0, L=1).toarray()
+        w_tot = []
+
+        for i in range(self.L):
+            if i == 0:
+                c = -eps
+            else:
+                c = 0
+
+            w = np.array(
+                [[I, long_op, O, Y, -self.h * trans_op + c * long_op],
+                 [O, O, trans_op, O, self.lx * long_op],
+                 [O, O, O, O, -self.J * long_op],
+                 [O, O, O, O, self.ly * Y],
+                 [O, O, O, O, I]]
+            )
+            w_tot.append(w)
+        self.w = w_tot
+        return self
+    
+    def mpo_xxz(self, long: str="X", eps: float=1e-5):
+        """
+        mpo_Cluster
+
+        This function defines the MPO for the 1D Cluster model.
+        It takes the same MPO for all sites.
+
+        """
+        I = identity(2, dtype=complex).toarray()
+        O = csc_array((2, 2), dtype=complex).toarray()
+        Y = sparse_pauli_y(n=0, L=1).toarray()
+        if long == "Z":
+            long_op = sparse_pauli_z(n=0, L=1).toarray()
+            trans_op = sparse_pauli_x(n=0, L=1).toarray()
+        elif long == "X":
+            long_op = sparse_pauli_x(n=0, L=1).toarray()
+            trans_op = sparse_pauli_z(n=0, L=1).toarray()
+        w_tot = []
+
+        for i in range(self.L):
+            if i == 0:
+                c = -eps
+            else:
+                c = 0
+
+            w = np.array(
+                [[I, long_op, Y, trans_op, -self.h * trans_op + c * long_op],
+                 [O, O, O, O, -self.J * long_op],
+                 [O, O, O, O, -self.J * Y],
+                 [O, O, O, O, -self.J * self.k * trans_op],
+                 [O, O, O, O, I]]
+            )
+            w_tot.append(w)
+        self.w = w_tot
+        return self
+    
     def mpo_quench(
         self,
         quench: str,
@@ -2686,11 +2763,15 @@ class MPS:
 
         precision: int - indicates the precision of the variable h
         """
-        if "Ising" in self.model:
+        if "Ising" == self.model:
             self.save_sites_Ising(path=path, precision=precision)
-        elif "Cluster" in self.model:
+        elif "Cluster" == self.model:
+            print("CLUSTER HEREEE\n")
             self.save_sites_Ising(path=path, precision=precision)
-        elif "ANNNI" in self.model:
+        elif "Cluster-XY" == self.model:
+            print("here")
+            self.save_sites_Cluster_xy(path=path, precision=precision)
+        elif "ANNNI" == self.model:
             self.save_sites_ANNNI(path=path, precision=precision)
         elif "Z2" in self.model:
             self.save_sites_Z2(path=path, precision=precision, cx=cx, cy=cy)
@@ -2709,12 +2790,14 @@ class MPS:
         function get_labels().
 
         """
-        if "Ising" in self.model:
+        if "Ising" == self.model:
             self.load_sites_Ising(path=path, precision=precision)
-        elif "ANNNI" in self.model:
+        elif "ANNNI" == self.model:
             self.load_sites_ANNNI(path=path, precision=precision)
-        elif "Cluster" in self.model:
+        elif "Cluster" == self.model:
             self.load_sites_Ising(path=path, precision=precision)
+        elif "Cluster-XY" == self.model:
+            self.load_sites_Cluster_xy(path=path, precision=precision)
         elif "Z2" in self.model:
             self.load_sites_Z2(path=path, precision=precision, cx=cx, cy=cy)
         else:
@@ -2738,9 +2821,26 @@ class MPS:
         )
         return self
     
+    def save_sites_Cluster_xy(self, path, precision: int=2):
+        # shapes of the tensors
+        shapes = tensor_shapes(self.sites, False)
+        np.savetxt(
+            f"{path}/results/tensors/shapes_sites_{self.model}_L_{self.L}_chi_{self.chi}_h_{self.h:.{precision}f}_lx_{self.lx:.{precision}f}_ly_{self.ly:.{precision}f}_J_{self.J:.{precision}f}",
+            shapes,
+            fmt="%1.i",  # , delimiter=','
+        )
+
+        # flattening of the tensors
+        tensor = [element for site in self.sites for element in site.flatten()]
+        np.savetxt(
+            f"{path}/results/tensors/tensor_sites_{self.model}_L_{self.L}_chi_{self.chi}_h_{self.h:.{precision}f}_lx_{self.lx:.{precision}f}_ly_{self.ly:.{precision}f}_J_{self.J:.{precision}f}",
+            tensor,
+        )
+        return self
+    
     def save_sites_ANNNI(self, path, precision: int=2):
         # shapes of the tensors
-        shapes = tensor_shapes(self.sites)
+        shapes = tensor_shapes(self.sites, False)
         np.savetxt(
             f"{path}/results/tensors/shapes_sites_{self.model}_L_{self.L}_chi_{self.chi}_h_{self.h:.{precision}f}_k_{self.k:.{precision}f}",
             shapes,
@@ -2800,6 +2900,35 @@ class MPS:
 
         return self
 
+    def load_sites_Cluster_xy(self, path, precision: int=2):
+        """
+        load_sites
+
+        This function load the tensors into the sites of the MPS.
+        We fetch a completely flat list, split it to recover the original tensors
+        (but still flat) and reshape each of them accordingly with the saved shapes.
+        To initially split the list in the correct index position refer to the auxiliary
+        function get_labels().
+
+        """
+        # loading of the shapes
+        shapes = np.loadtxt(
+            f"{path}/results/tensors/shapes_sites_{self.model}_L_{self.L}_chi_{self.chi}_h_{self.h:.{precision}f}_lx_{self.lx:.{precision}f}_ly_{self.ly:.{precision}f}_J_{self.J:.{precision}f}"
+        ).astype(int)
+        # loading of the flat tensors
+        filedata = np.loadtxt(
+            f"{path}/results/tensors/tensor_sites_{self.model}_L_{self.L}_chi_{self.chi}_h_{self.h:.{precision}f}_lx_{self.lx:.{precision}f}_ly_{self.ly:.{precision}f}_J_{self.J:.{precision}f}",
+            dtype=complex,
+        )
+        # auxiliary function to get the indices where to split
+        labels = get_labels(shapes)
+        flat_tn = np.array_split(filedata, labels)
+        flat_tn.pop(-1)
+        # reshape the flat tensors and initializing the sites
+        self.sites = [site.reshape(shapes[i]) for i, site in enumerate(flat_tn)]
+
+        return self
+    
     def load_sites_ANNNI(self, path, precision: int=2):
         """
         load_sites

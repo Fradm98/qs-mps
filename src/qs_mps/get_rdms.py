@@ -74,10 +74,10 @@ elif args.model == "Z2":
 elif args.model == "ANNNI":
     model_path = "2_ANNNI"
 
-elif args.model == "Cluster":
+elif args.model == "Cluster" or args.model == "Cluster-XY":
     model_path = "3_CLUSTER"
 else:
-    raise SyntaxError("Model not valid. Choose among 'Ising', 'Z2', 'ANNNI', 'Cluster'")
+    raise SyntaxError("Model not valid. Choose among 'Ising', 'Z2', 'ANNNI', 'Cluster', 'Cluster-XY'")
 # take the path and precision to save files
 # if we want to save the tensors we save them locally because they occupy a lot of memory
 if args.path == "pc":
@@ -111,7 +111,8 @@ for L in args.Ls:
                     chain = MPS(L=L, d=d, chi=chi, model=args.model, eps=args.eps, h=hx, J=hy)
                 elif args.model == "ANNNI":
                     chain = MPS(L=L, d=d, chi=chi, model=args.model, eps=args.eps, k=hx, h=hy, J=1)
-                
+                elif args.model == "Cluster-XY":
+                    chain = MPS(L=L, d=d, chi=chi, model=args.model, eps=args.eps, lx=0, ly=hy, h=hx, J=1)
                 chain.load_sites(path=path_tensor, precision=precision)
                 rdm = chain.reduced_density_matrix(sites)
                 rdms_y.append(rdm)

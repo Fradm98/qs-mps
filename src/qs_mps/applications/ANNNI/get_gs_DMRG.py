@@ -148,7 +148,7 @@ for L in args.Ls:
             entropy_k = []
             schmidt_vals_k = []
             for h in interval_h:
-                chain = MPS(L=L, d=d, chi=chi, model=args.model, eps=1e-5, h=h, J=1, k=k)
+                chain = MPS(L=L, d=d, chi=chi, model=args.model, eps=1, h=h, J=1, k=k)
                 chain.sites = init_tensor.copy()
                 chain.enlarge_chi()
                 energy, entropy, schmidt_vals = chain.DMRG(trunc_tol=False, trunc_chi=True, where=L//2)

@@ -266,6 +266,56 @@ def sparse_cluster_hamiltonian(J: float, h_t: float, L: int, eps: float=1e-5, lo
 
     return -J * hamiltonian_int - h_t * hamiltonian_t - eps * hamiltonian_deg
 
+# -----------------------------------------------
+# Sparse Cluster-XY Hamiltonian
+# -----------------------------------------------
+def sparse_cluster_xy_hamiltonian(J: float, h_t: float, h_x: float, h_y: float, L: int, eps: float=1e-5, long: str="X"):
+    """
+    Returns a sparse representation of the Hamiltonian of the 1D Cluster-XY model in a chain of length L
+    with open boundary conditions
+    J < 0: Antiferromagnetic case (Unique ground state of total angular momentum S=0)
+    J > 0: Ferromagnetic case (L+1-fold degeneracy of the ground state of angular momentum L/2) -> Dicke states for even L
+    """
+    hamiltonian_t = csc_array((2**L, 2**L), dtype=complex)
+    hamiltonian_x = csc_array((2**L, 2**L), dtype=complex)
+    hamiltonian_y = csc_array((2**L, 2**L), dtype=complex)
+    hamiltonian_deg = csc_array((2**L, 2**L), dtype=complex)
+    hamiltonian_int = csc_array((2**L, 2**L), dtype=complex)
+    
+    if long == "X":
+    # First sum over the terms containing sigma_x, sigma_y because the non-zero element indices are the same
+    # so that this improves performance
+        if h_t != 0:
+            for n in range(L):
+                n_pauli_z = sparse_pauli_z(n, L)
+                hamiltonian_t += n_pauli_z
+        if h_x != 0:
+            for n in range(L-1):
+                n_row_indices, n_col_indices = sparse_non_diag_paulis_indices(n, L)
+                n_pauli_x = sparse_pauli_x(n, L, n_row_indices, n_col_indices)
+                hamiltonian_x += n_pauli_x
+        if h_y != 0:
+            for n in range(L-1):
+                n_row_indices, n_col_indices = sparse_non_diag_paulis_indices(n, L)
+                n_pauli_y = sparse_pauli_y(n, L, n_row_indices, n_col_indices)
+                hamiltonian_y += n_pauli_y
+        if eps != 0:
+            for n in range(L):
+                n_row_indices, n_col_indices = sparse_non_diag_paulis_indices(n, L)
+                n_pauli_x = sparse_pauli_x(n, L, n_row_indices, n_col_indices)
+                hamiltonian_deg += n_pauli_x
+            
+        # Interaction
+        for n in range(L - 2):
+            n_row_indices, n_col_indices = sparse_non_diag_paulis_indices(n, L)
+            np2_row_indices, np2_col_indices = sparse_non_diag_paulis_indices(n+2, L)
+            n_pauli_x = sparse_pauli_x(n, L, n_row_indices, n_col_indices)
+            np1_pauli_z = sparse_pauli_z(n + 1, L)
+            np2_pauli_x = sparse_pauli_x(n + 2, L, np2_row_indices, np2_col_indices)
+            hamiltonian_int += n_pauli_x @ np1_pauli_z @ np2_pauli_x
+
+    return -J * hamiltonian_int - h_t * hamiltonian_t - eps * hamiltonian_deg + h_x * hamiltonian_x + h_y * hamiltonian_y
+
 # ---------------------------------------------------------------------------------------
 # Diagonalization
 # ---------------------------------------------------------------------------------------
