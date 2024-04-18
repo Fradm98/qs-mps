@@ -1827,6 +1827,7 @@ class MPS:
             sweeps.reverse()
             sites.reverse()
 
+        t_dmrg = abs(time.perf_counter()-t_start)
         if energy_dist < conv_tol:
             print("##############################")
             print(
@@ -1834,7 +1835,7 @@ class MPS:
                 + f"to an order of {conv_tol} after:\n"
                 + f"{n} sweeps at site {sites[i]}\n"
                 + f"total iterations {iter}\n"
-                + f"total time: {abs(time.perf_counter()-t_start)}"
+                + f"total time: {t_dmrg}"
             )
             print("##############################")
         else:
@@ -1843,10 +1844,10 @@ class MPS:
                 f"The energy between the two last updated states converged\n"
                 + f"to an order of {energy_dist}\n"
                 + f"instead of the convergence tolerance {conv_tol}\n"
-                + f"total time: {abs(time.perf_counter()-t_start)}"
+                + f"total time: {t_dmrg}"
             )
             print("##############################")
-        return energies, entropy, schmidt_vals
+        return energies, entropy, schmidt_vals, t_dmrg
 
     def environments_ev(self, site):
         a = np.array([1])

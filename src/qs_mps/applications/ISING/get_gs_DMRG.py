@@ -1,8 +1,18 @@
 import argparse
 import numpy as np
 from qs_mps.mps_class import MPS
-from qs_mps.utils import get_precision, save_list_of_lists, access_txt
+from qs_mps.utils import get_precision, save_list_of_lists, access_txt, swap_rows
 from qs_mps.gs_multiprocessing import ground_state_ising
+
+import signal
+import time
+
+# Define a function to handle the timeout
+def timeout_handler(signum, frame):
+    raise TimeoutError("Algorithm took too long to execute")
+
+# Set the signal handler
+signal.signal(signal.SIGALRM, timeout_handler)
 
 # DENSITY MATRIX RENORMALIZATION GROUP to find ground states of the 
 # 1D Ising Transverse Field model changing the transverse field parameters
@@ -66,11 +76,19 @@ parser.add_argument(
     default=-1,
     type=int,
 )
+parser.add_argument(
+    "-tr",
+    "--training",
+    help="Save all the energies during the variational optimization. By default True",
+    action="store_false",
+)
 
 args = parser.parse_args()
 
 # define the interval of equally spaced values of external field
-interval = np.linspace(args.h_i, args.h_f, args.npoints)
+interval_hx = np.linspace(args.h_i, args.h_f, args.npoints).tolist()
+interval_hy = np.linspace(args.h_i, args.h_f, args.npoints)
+interval_hx.reverse()
 
 # take the path and precision to save files
 # if we want to save the tensors we save them locally because they occupy a lot of memory
@@ -90,7 +108,6 @@ path = f"{parent_path}/results/tensors"
 num = (args.h_f - args.h_i) / args.npoints
 precision = get_precision(num)
 
-Z = np.array([[1, 0], [0, -1]])
 
 # ---------------------------------------------------------
 # DMRG
@@ -101,98 +118,143 @@ for L in args.Ls:
     elif args.where == -2:
         args.bond = False
     for chi in args.chis:  # L // 2 + 1
-        args_mps = {
-            "L": L,
-            "d": args.dimension,
-            "model": args.model,
-            "chi": chi,
-            "path": path_tensor,
-            "type_shape": args.type_shape,
-            "precision": precision,
-            "trunc_chi": True,
-            "trunc_tol": False,
-            "where": args.where,
-            "bond": args.bond,
-            "J": 1,
-            "eps": 0,
-        }
-        if __name__ == "__main__":
-            
-            
-            energy_chi = []
-            entropy_chi = []
-            schmidt_vals_chi = []
-            for J in interval:
-                init_state = np.zeros((1, 2, 1))
-                init_state[0, 0, 0] = 1
-                init_tensor = [init_state for _ in range(L)]
-                for h in interval:
-                    precision = args_mps["precision"]
-                    chain = MPS(
-                        L=args_mps["L"],
-                        d=args_mps["d"],
-                        model=args_mps["model"],
-                        chi=args_mps["chi"],
-                        h=h,
-                        J=J,
-                        eps=args_mps["eps"],
-                    )
-                    chain.sites = init_tensor
+        init_state = np.zeros((1, 2, 1))
+        init_state[0, 0, 0] = 1
+        init_tensor = [init_state for _ in range(L)]
+        energy_chi = []
+        entropy_chi = []
+        schmidt_vals_chi = []
+        time_chi = []
+        for J in interval_hy:
+            energy_J = []
+            entropy_J = []
+            schmidt_vals_J = []
+            t_slice = []
+            new_timeout_secs = 5
+            for h in interval_hx:
+                chain = MPS(
+                    L=L,
+                    d=2,
+                    model="Ising",
+                    chi=chi,
+                    h=h,
+                    J=J,
+                    eps=1e-5,
+                )
+                chain.sites = init_tensor.copy()
+                if h == interval_hx[0]:
+                    init_tensor = [init_state for _ in range(L)]
+                    chain.sites = init_tensor.copy()
                     chain.enlarge_chi(type_shape="rectangular", prnt=False)
-                    # chain._random_state(seed=7, chi=args_mps["chi"], type_shape=args_mps["type_shape"])
                     chain.canonical_form(trunc_chi=False, trunc_tol=True)
-                    # total
-                    chain.order_param(op=Z)
-                    mag = np.real(chain.mpo_first_moment())
-                    if mag < 0:
-                        chain.flipping_all()
 
-                    energy, entropy, schmidt_vals = chain.DMRG(
-                        trunc_tol=args_mps["trunc_tol"],
-                        trunc_chi=args_mps["trunc_chi"],
-                        where=args_mps["where"],
-                        bond=args_mps["bond"],
+
+
+
+
+                # Set the timeout period (in seconds)
+                timeout_secs = new_timeout_secs # You can change this value according to your requirement
+
+                # Set the alarm
+                signal.alarm(int(timeout_secs+1))
+                print(f"New timeout seconds: {int(timeout_secs+1)}")
+                try:
+                    # Call your algorithm function with the initial parameter
+                    print("Running with guess state:")
+                    energy, entropy, schmidt_vals, t_dmrg = chain.DMRG(
+                        trunc_tol=False,
+                        trunc_chi=True,
+                        where=args.where,
+                        bond=args.bond,
                     )
+                except TimeoutError as e:
+                    print(e)
+                    # Modify the parameter and call the algorithm again
+                    chain._random_state(seed=7, type_shape="rectangular", chi=chi)
+                    chain.canonical_form()
+                    print("Running with random state:")
+                    energy, entropy, schmidt_vals, t_dmrg = chain.DMRG(
+                        trunc_tol=False,
+                        trunc_chi=True,
+                        where=args.where,
+                        bond=args.bond,
+                    )
+                else:
+                    # Cancel the alarm if the algorithm finishes before the timeout
+                    signal.alarm(0)
 
-                    print(f"energy of h:{h:.{precision}f}, J:{J:.{precision}f} is:\n {energy}")
-                    print(f"Schmidt values in the middle of the chain:\n {schmidt_vals}")
+                t_slice.append(t_dmrg)
+                t_mean = np.mean(t_slice)
+                t_std = np.std(t_slice)
+                new_timeout_secs = t_mean + 3*t_std
+                
+                print(f"energy of h:{h:.{precision}f}, J:{J:.{precision}f} is:\n {energy}")
+                print(f"Schmidt values in the middle of the chain:\n {schmidt_vals}")
 
-                    chain.save_sites(path=args_mps["path"], precision=args_mps["precision"])
-                    energy_chi.append(energy)
-                    entropy_chi.append(entropy)
-                    schmidt_vals_chi.append(schmidt_vals)
+                chain.save_sites(path=path_tensor, precision=precision)
+                if args.training:
+                    energy_J.append(energy)
+                else:
+                    energy_J.append(energy[-1])
+                entropy_J.append(entropy)
+                schmidt_vals_J.append(schmidt_vals)
 
-            # energy_chi, entropy_chi, schmidt_vals_chi = ground_state_ising(
-            #     args_mps=args_mps, multpr=False, param=interval
-            # )
+                if h == interval_hx[0]:
+                    init_tensor_J = chain.sites.copy()
+                init_tensor = chain.sites.copy()
+            
+            init_tensor = init_tensor_J.copy()
 
-            if args.bond == False:
-                args.where = "all"
+            time_chi.append(t_slice)
+            energy_chi.append(energy_J)
+            entropy_chi.append(entropy_J)
+            schmidt_vals_chi.append(schmidt_vals_J)
+        # energy_chi, entropy_chi, schmidt_vals_chi = ground_state_ising(
+        #     args_mps=args_mps, multpr=False, param=interval
+        # )
 
+        if args.bond == False:
+            args.where = "all"
+
+        
+        if args.training:
+            energy_chi = np.swapaxes(swap_rows(np.asarray(energy_chi)), axis1=0, axis2=1)
+            np.save(
+                f"{parent_path}/results/energy_data/energies_{args.model}_L_{L}_h_{args.h_i}-{args.h_f}_J_{args.h_i}-{args.h_f}_delta_{args.npoints}_chi_{chi}",
+                energy_chi,
+            )
+            energy_min = []
+            for i in range(len(interval_hx)):
+                energy_min_i = []
+                for j in range(len(interval_hy)):
+                    energy_min_i.append(energy_chi[i][j][-1])
+                energy_min.append(energy_min_i)
+            np.save(f"{parent_path}/results/energy_data/energy_{args.model}_L_{L}_h_{args.h_i}-{args.h_f}_J_{args.h_i}-{args.h_f}_delta_{args.npoints}_chi_{chi}", energy_min)
+        else:
             energy_chi = np.array(energy_chi)
             energy_chi = np.array_split(energy_chi, args.npoints)
             save_list_of_lists(
                 f"{parent_path}/results/energy_data/energies_{args.model}_L_{L}_h_{args.h_i}-{args.h_f}_delta_{args.npoints}_chi_{chi}",
                 energy_chi,
             )
-            entropy_chi = np.array(entropy_chi)
-            entropy_chi = np.array_split(entropy_chi, args.npoints)
-            save_list_of_lists(
+        entropy_chi = np.array(entropy_chi)
+        entropy_chi = np.array_split(entropy_chi, args.npoints)
+        save_list_of_lists(
+            f"{parent_path}/results/entropy/{args.where}_bond_entropy_{args.model}_L_{L}_h_{args.h_i}-{args.h_f}_delta_{args.npoints}_chi_{chi}",
+            entropy_chi,
+        )
+        schmidt_vals_chi = np.array(schmidt_vals_chi)
+        schmidt_vals_chi = np.array_split(schmidt_vals_chi, args.npoints)
+        save_list_of_lists(
+            f"{parent_path}/results/entropy/{args.where}_schmidt_values_{args.model}_L_{L}_h_{args.h_i}-{args.h_f}_delta_{args.npoints}_chi_{chi}",
+            schmidt_vals_chi,
+        )
+        if args.where == "all":
+            entropy_mid = access_txt(
                 f"{parent_path}/results/entropy/{args.where}_bond_entropy_{args.model}_L_{L}_h_{args.h_i}-{args.h_f}_delta_{args.npoints}_chi_{chi}",
-                entropy_chi,
+                L // 2,
             )
-            schmidt_vals_chi = np.array(schmidt_vals_chi)
-            schmidt_vals_chi = np.array_split(schmidt_vals_chi, args.npoints)
-            save_list_of_lists(
-                f"{parent_path}/results/entropy/{args.where}_schmidt_values_{args.model}_L_{L}_h_{args.h_i}-{args.h_f}_delta_{args.npoints}_chi_{chi}",
-                schmidt_vals_chi,
+            np.savetxt(
+                f"{parent_path}/results/entropy/{L // 2}_bond_entropy_{args.model}_L_{L}_h_{args.h_i}-{args.h_f}_delta_{args.npoints}_chi_{chi}",
+                entropy_mid,
             )
-            if args.where == "all":
-                entropy_mid = access_txt(
-                    f"{parent_path}/results/entropy/{args.where}_bond_entropy_{args.model}_L_{L}_h_{args.h_i}-{args.h_f}_delta_{args.npoints}_chi_{chi}",
-                    L // 2,
-                )
-                np.savetxt(
-                    f"{parent_path}/results/entropy/{L // 2}_bond_entropy_{args.model}_L_{L}_h_{args.h_i}-{args.h_f}_delta_{args.npoints}_chi_{chi}",
-                    entropy_mid,
-                )
