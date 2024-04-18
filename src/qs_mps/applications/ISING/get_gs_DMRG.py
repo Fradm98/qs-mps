@@ -118,9 +118,9 @@ for L in args.Ls:
     elif args.where == -2:
         args.bond = False
     for chi in args.chis:  # L // 2 + 1
-        init_state = np.zeros((1, 2, 1))
-        init_state[0, 0, 0] = 1
-        init_tensor = [init_state for _ in range(L)]
+        # init_state = np.zeros((1, 2, 1))
+        # init_state[0, 0, 0] = 1
+        # init_tensor = [init_state for _ in range(L)]
         energy_chi = []
         entropy_chi = []
         schmidt_vals_chi = []
@@ -140,17 +140,15 @@ for L in args.Ls:
                     h=h,
                     J=J,
                     eps=1e-5,
-                )
-                chain.sites = init_tensor.copy()
+                )                
                 if h == interval_hx[0]:
-                    init_tensor = [init_state for _ in range(L)]
-                    chain.sites = init_tensor.copy()
-                    chain.enlarge_chi(type_shape="rectangular", prnt=False)
+                    # init_tensor = [init_state for _ in range(L)]
+                    # chain.sites = init_tensor.copy()
+                    # chain.enlarge_chi(type_shape="rectangular", prnt=False)
+                    chain._random_state(3, chi=chi)
                     chain.canonical_form(trunc_chi=False, trunc_tol=True)
-
-
-
-
+                else:
+                    chain.sites = init_tensor.copy()
 
                 # Set the timeout period (in seconds)
                 timeout_secs = new_timeout_secs # You can change this value according to your requirement
