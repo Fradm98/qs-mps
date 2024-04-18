@@ -608,6 +608,9 @@ class MPS:
             self.Z2.mpo_Z2_ladder_generalized()
             self.w = self.Z2.mpo
 
+        elif self.model == "XXZ":
+            self.mpo_xxz(long=long)
+
         return self
 
     # -------------------------------------------------
@@ -2776,6 +2779,8 @@ class MPS:
             self.save_sites_ANNNI(path=path, precision=precision)
         elif "Z2" in self.model:
             self.save_sites_Z2(path=path, precision=precision, cx=cx, cy=cy)
+        elif "XXZ" in self.model:
+            self.save_sites_XXZ(path=path, precision=precision)
         else:
             raise ValueError("Choose a correct model")
         return self
@@ -2801,6 +2806,8 @@ class MPS:
             self.load_sites_Cluster_xy(path=path, precision=precision)
         elif "Z2" in self.model:
             self.load_sites_Z2(path=path, precision=precision, cx=cx, cy=cy)
+        elif "XXZ" in self.model:
+            self.load_sites_XXZ(path=path, precision=precision)
         else:
             raise ValueError("Choose a correct model")
         return self
@@ -2871,6 +2878,23 @@ class MPS:
             f"{path}/results/tensors/tensor_sites_{self.model}_direct_lattice_{self.Z2.l}x{self.Z2.L-1}_{cx}-{cy}_chi_{self.chi}_h_{self.h:.{precision}f}",
             tensor,
         )
+
+    def save_sites_XXZ(self, path, precision: int=2):
+        # shapes of the tensors
+        shapes = tensor_shapes(self.sites, False)
+        np.savetxt(
+            f"{path}/results/tensors/shapes_sites_{self.model}_L_{self.L}_chi_{self.chi}_d_{self.k:.{precision}f}_h_{self.h:.{precision}f}",
+            shapes,
+            fmt="%1.i",  # , delimiter=','
+        )
+
+        # flattening of the tensors
+        tensor = [element for site in self.sites for element in site.flatten()]
+        np.savetxt(
+            f"{path}/results/tensors/tensor_sites_{self.model}_L_{self.L}_chi_{self.chi}_d_{self.k:.{precision}f}_h_{self.h:.{precision}f}",
+            tensor,
+        )
+        return self
 
     def load_sites_Ising(self, path, precision: int=2):
         """
@@ -2989,7 +3013,35 @@ class MPS:
 
         return self
 
+    def load_sites_XXZ(self, path, precision: int=2):
+        """
+        load_sites
 
+        This function load the tensors into the sites of the MPS.
+        We fetch a completely flat list, split it to recover the original tensors
+        (but still flat) and reshape each of them accordingly with the saved shapes.
+        To initially split the list in the correct index position refer to the auxiliary
+        function get_labels().
+
+        """
+        # loading of the shapes
+        shapes = np.loadtxt(
+            f"{path}/results/tensors/shapes_sites_{self.model}_L_{self.L}_chi_{self.chi}_d_{self.k:.{precision}f}_h_{self.h:.{precision}f}"
+        ).astype(int)
+        # loading of the flat tensors
+        filedata = np.loadtxt(
+            f"{path}/results/tensors/tensor_sites_{self.model}_L_{self.L}_chi_{self.chi}_d_{self.k:.{precision}f}_h_{self.h:.{precision}f}",
+            dtype=complex,
+        )
+        # auxiliary function to get the indices where to split
+        labels = get_labels(shapes)
+        flat_tn = np.array_split(filedata, labels)
+        flat_tn.pop(-1)
+        # reshape the flat tensors and initializing the sites
+        self.sites = [site.reshape(shapes[i]) for i, site in enumerate(flat_tn)]
+
+        return self
+    
     def save_sites_old(self, path, precision=2):
         """
         save_sites
