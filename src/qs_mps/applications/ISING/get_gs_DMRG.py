@@ -125,13 +125,14 @@ for L in args.Ls:
         entropy_chi = []
         schmidt_vals_chi = []
         time_chi = []
-        for J in interval_hy:
+        exceptions_chi = np.zeros((len(interval_hy),len(interval_hx)))
+        for idx0, J in enumerate(interval_hy):
             energy_J = []
             entropy_J = []
             schmidt_vals_J = []
             t_slice = []
             new_timeout_secs = 5
-            for h in interval_hx:
+            for idx1, h in enumerate(interval_hx):
                 chain = MPS(
                     L=L,
                     d=2,
@@ -177,6 +178,7 @@ for L in args.Ls:
                         where=args.where,
                         bond=args.bond,
                     )
+                    exceptions_chi[idx0,idx1] = 1
                 else:
                     # Cancel the alarm if the algorithm finishes before the timeout
                     signal.alarm(0)
@@ -214,7 +216,8 @@ for L in args.Ls:
         if args.bond == False:
             args.where = "all"
 
-        
+        np.save(f"{parent_path}/results/energy_data/", exceptions_chi)
+
         if args.training:
             energy_chi = np.swapaxes(swap_rows(np.asarray(energy_chi)), axis1=0, axis2=1)
             np.save(
