@@ -29,7 +29,7 @@ parser.add_argument(
 parser.add_argument("-L", "--Ls", help="Number of sites in the chain", nargs="+", type=int)
 parser.add_argument("-D", "--chis", help="Simulated bond dimensions", nargs="+", type=int)
 parser.add_argument(
-    "-m", "--model", help="Model to simulate, available are 'Ising', 'Z2', 'ANNNI', 'Cluster'. By default Cluster", default="Cluster", type=str
+    "-m", "--model", help="Model to simulate, available are 'Ising', 'Z2', 'ANNNI', 'Cluster', 'XXZ'. By default Cluster", default="Cluster", type=str
 )
 parser.add_argument(
     "-e", "--eps", help="Weight to the degeneracy breaking term", default=1e-5, type=float
@@ -76,8 +76,11 @@ elif args.model == "ANNNI":
 
 elif args.model == "Cluster" or args.model == "Cluster-XY":
     model_path = "3_CLUSTER"
+
+elif args.model == "XXZ":
+    model_path = "4_XXZ"
 else:
-    raise SyntaxError("Model not valid. Choose among 'Ising', 'Z2', 'ANNNI', 'Cluster', 'Cluster-XY'")
+    raise SyntaxError("Model not valid. Choose among 'Ising', 'Z2', 'ANNNI', 'Cluster', 'Cluster-XY', 'XXZ'")
 # take the path and precision to save files
 # if we want to save the tensors we save them locally because they occupy a lot of memory
 if args.path == "pc":
@@ -109,7 +112,7 @@ for L in args.Ls:
                 print(f"for hx:{hx:.{precision}f}, hy:{hy:.{precision}f}")
                 if args.model == "Ising" or args.model == "Cluster":
                     chain = MPS(L=L, d=d, chi=chi, model=args.model, eps=args.eps, h=hx, J=hy)
-                elif args.model == "ANNNI":
+                elif args.model == "ANNNI" or args.model == "XXZ":
                     chain = MPS(L=L, d=d, chi=chi, model=args.model, eps=args.eps, k=hx, h=hy, J=1)
                 elif args.model == "Cluster-XY":
                     chain = MPS(L=L, d=d, chi=chi, model=args.model, eps=args.eps, lx=0, ly=hy, h=hx, J=1)
@@ -118,7 +121,7 @@ for L in args.Ls:
                 rdms_y.append(rdm)
             rdms_chi.append(rdms_y)
         
-        if args.model == "ANNNI":
-            rdms_chi = np.asarray(rdms_chi).reshape((len(interval_x),len(interval_y),d**args.which,d**args.which))
-            rdms_chi = rdms_chi[::-1]
-        np.save(f"{path_rdms}/results/data/{args.which}_sites-rdms_dmrg_{args.model}_L_{L}_hx_{args.hx_i}-{args.hx_f}_hy_{args.hy_i}-{args.hy_f}_delta_{args.npoints}_degeneracy_method_{args.deg}_eps_{args.eps}_guess_path_chi_{chi}.npy", rdms_chi)
+        
+        rdms_chi = np.asarray(rdms_chi).reshape((len(interval_x),len(interval_y),d**args.which,d**args.which))
+        rdms_chi = rdms_chi[::-1]
+        np.save(f"{parent_path}/results/rdms_data/{args.which}_sites-rdms_dmrg_{args.model}_L_{L}_hx_{args.hx_i}-{args.hx_f}_hy_{args.hy_i}-{args.hy_f}_delta_{args.npoints}_degeneracy_method_{args.deg}_eps_{args.eps}_guess_path_chi_{chi}.npy", rdms_chi)
