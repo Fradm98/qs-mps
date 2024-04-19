@@ -69,8 +69,8 @@ def ground_state_Z2_param(params):
     ladder._random_state(seed=3, chi=args_mps["chi"], type_shape=args_mps["type_shape"])
     tensor_shapes(ladder.sites)
     ladder.canonical_form(trunc_chi=True, trunc_tol=False)
-    
-    energy, entropy, schmidt_vals = ladder.DMRG(
+
+    energy, entropy, schmidt_vals, t_dmrg = ladder.DMRG(
         trunc_tol=args_mps["trunc_tol"],
         trunc_chi=args_mps["trunc_chi"],
         where=args_mps["where"],
@@ -78,12 +78,16 @@ def ground_state_Z2_param(params):
         n_sweeps=args_mps["n_sweeps"],
         conv_tol=args_mps["conv_tol"]
     )
+
     print(f"energy of h:{param:.{precision}f}, L:{ladder.L} is:\n {energy}")
     print(f"Schmidt values in the middle of the chain:\n {schmidt_vals}")
+    
+    if not args_mps["training"]:
+        energy = energy[-1]
 
     if save:
         ladder.save_sites(args_mps["path"], args_mps["precision"], args_mps["charges_x"], args_mps["charges_y"])
-    return energy, entropy, schmidt_vals
+    return energy, entropy, schmidt_vals, t_dmrg
 
 
 def ground_state_Z2_multpr(args_mps, multpr_param, cpu_percentage=90):
@@ -113,11 +117,13 @@ def ground_state_Z2(args_mps, multpr, param):
         energies_param = []
         entropies_param = []
         schmidt_vals_param = []
+        time_param = []
         for p in param:
             params = [args_mps, p]
-            energy, entropy, schmidt_vals = ground_state_Z2_param(params=params)
+            energy, entropy, schmidt_vals, t_dmrg = ground_state_Z2_param(params=params)
             energies_param.append(energy[-1])
             entropies_param.append(entropy)
             schmidt_vals_param.append(schmidt_vals)
+            time_param.append(t_dmrg)
 
-    return energies_param, entropies_param, schmidt_vals_param
+    return energies_param, entropies_param, schmidt_vals_param, time_param

@@ -84,7 +84,7 @@ dof_direct = (2*args.l*args.L - args.l - args.L)
 c = (1/np.sqrt(2))**dof_direct
 
 print("finding guess for the sparse computation...")
-v0 = [c]*(2**dof_direct)
+v0 = np.full(2**dof_direct, c)
 v0 = np.array(v0, dtype=complex)
 print(v0)
 

@@ -97,7 +97,7 @@ if args.interval == "lin":
     precision = get_precision(num)
 elif args.interval == "log":
     interval = np.logspace(args.h_i, args.h_f, args.npoints)
-    precision = np.max(np.abs(args.h_f),np.abs(args.h_i))
+    precision = int(np.max([np.abs(args.h_f),np.abs(args.h_i)]))
 
 # take the path and precision to save files
 # if we want to save the tensors we save them locally because they occupy a lot of memory
@@ -152,34 +152,43 @@ for L in args.Ls:
             "charges_y": charges_y,
             "n_sweeps": args.number_sweeps,
             "conv_tol": args.conv_tol,
+            "training": args.training,
         }
         if __name__ == "__main__":
-            energy_chi, entropy_chi, schmidt_vals_chi = ground_state_Z2(
+            energy_chi, entropy_chi, schmidt_vals_chi, t_chi = ground_state_Z2(
                 args_mps=args_mps, multpr=args.multpr, param=interval
             )
 
+            t_final = np.sum(t_chi)
+            if t_final < 60:
+                t_unit = "sec(s)"
+            elif t_final > 60 and t_final < 3600:
+                t_unit = "min(s)"
+                t_final = t_final/60
+            elif t_final > 3600:
+                t_unit = "hour(s)"
+                t_final = t_final/3600
+
+            print(f"time of the whole search for chi={chi} is: {t_final} {t_unit}")
             if args.bond == False:
                 args.where = "all"
 
             if args.training:
-                save_list_of_lists(
+                energy_chi = np.asarray(energy_chi).reshape((len(interval),1))
+                print(energy_chi.shape)
+                np.save(
                     f"{parent_path}/results/energy_data/energies_{args.model}_direct_lattice_{args.l}x{L-1}_{sector}_{charges_x}-{charges_y}_h_{args.h_i}-{args.h_f}_delta_{args.npoints}_chi_{chi}",
                     energy_chi,
                 )
-                energy_gs = access_txt(
-                        f"{parent_path}/results/energy_data/energies_{args.model}_direct_lattice_{args.l}x{L-1}_{sector}_{charges_x}-{charges_y}_h_{args.h_i}-{args.h_f}_delta_{args.npoints}_chi_{chi}",
-                        -1,
-                    )
-                np.savetxt(
-                    f"{parent_path}/results/energy_data/energies_{args.model}_direct_lattice_{args.l}x{L-1}_{sector}_{charges_x}-{charges_y}_h_{args.h_i}-{args.h_f}_delta_{args.npoints}_chi_{chi}",
-                    energy_gs,
-                )
+                for i in range(len(interval)):
+                    np.save(f"{parent_path}/results/energy_data/energy_{args.model}_direct_lattice_{args.l}x{L-1}_{sector}_{charges_x}-{charges_y}_h_{args.h_i}-{args.h_f}_delta_{args.npoints}_chi_{chi}", energy_chi[i,-1])
+
             else:
-                np.savetxt(
-                    f"{parent_path}/results/energy_data/energies_{args.model}_direct_lattice_{args.l}x{L-1}_{sector}_{charges_x}-{charges_y}_h_{args.h_i}-{args.h_f}_delta_{args.npoints}_chi_{chi}",
+                np.save(
+                    f"{parent_path}/results/energy_data/energy_{args.model}_direct_lattice_{args.l}x{L-1}_{sector}_{charges_x}-{charges_y}_h_{args.h_i}-{args.h_f}_delta_{args.npoints}_chi_{chi}",
                     energy_chi,
                 )
-                
+
             save_list_of_lists(
                 f"{parent_path}/results/entropy_data/{args.where}_bond_entropy_{args.model}_direct_lattice_{args.l}x{L-1}_{sector}_{charges_x}-{charges_y}_h_{args.h_i}-{args.h_f}_delta_{args.npoints}_chi_{chi}",
                 entropy_chi,
