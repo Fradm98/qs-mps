@@ -121,7 +121,7 @@ def ground_state_Z2(args_mps, multpr, param):
         for p in param:
             params = [args_mps, p]
             energy, entropy, schmidt_vals, t_dmrg = ground_state_Z2_param(params=params)
-            energies_param.append(energy[-1])
+            energies_param.append(energy)
             entropies_param.append(entropy)
             schmidt_vals_param.append(schmidt_vals)
             time_param.append(t_dmrg)
