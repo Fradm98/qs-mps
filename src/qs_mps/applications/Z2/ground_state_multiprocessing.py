@@ -3,6 +3,14 @@ import os
 from qs_mps.mps_class import MPS
 from qs_mps.applications.Z2.exact_hamiltonian import H_Z2_gauss
 from qs_mps.utils import tensor_shapes
+import signal
+
+# Define a function to handle the timeout
+def timeout_handler(signum, frame):
+    raise TimeoutError("Algorithm took too long to execute")
+
+# Set the signal handler
+signal.signal(signal.SIGALRM, timeout_handler)
 
 def ground_state_Z2_exact_param(params):
     args_lattice = params[0]
@@ -66,9 +74,13 @@ def ground_state_Z2_param(params):
         if args_mps["sector"] != "vacuum_sector":
             ladder.Z2.add_charges(rows=args_mps["charges_x"], columns=args_mps["charges_y"])
             print(ladder.Z2.charges)
-    ladder._random_state(seed=3, chi=args_mps["chi"], type_shape=args_mps["type_shape"])
-    tensor_shapes(ladder.sites)
-    ladder.canonical_form(trunc_chi=True, trunc_tol=False)
+    if args_mps["guess"] == []:
+        ladder._random_state(seed=3, chi=args_mps["chi"], type_shape=args_mps["type_shape"])
+        tensor_shapes(ladder.sites)
+        ladder.canonical_form(trunc_chi=True, trunc_tol=False)
+    else:
+        ladder.sites = args_mps["guess"].copy()
+        ladder.enlarge_chi()
 
     energy, entropy, schmidt_vals, t_dmrg = ladder.DMRG(
         trunc_tol=args_mps["trunc_tol"],
@@ -87,6 +99,7 @@ def ground_state_Z2_param(params):
 
     if save:
         ladder.save_sites(args_mps["path"], args_mps["precision"], args_mps["charges_x"], args_mps["charges_y"])
+    args_mps["guess"] = ladder.sites.copy()
     return energy, entropy, schmidt_vals, t_dmrg
 
 
@@ -118,9 +131,23 @@ def ground_state_Z2(args_mps, multpr, param):
         entropies_param = []
         schmidt_vals_param = []
         time_param = []
+        new_timeout_secs = 5
         for p in param:
             params = [args_mps, p]
-            energy, entropy, schmidt_vals, t_dmrg = ground_state_Z2_param(params=params)
+            # Set the timeout period (in seconds)
+            timeout_secs = new_timeout_secs # You can change this value according to your requirement
+            # Set the alarm
+            signal.alarm(int(timeout_secs+1))
+            print(f"New timeout seconds: {int(timeout_secs+1)}")
+            try:
+                print("Running with guess state:")
+                energy, entropy, schmidt_vals, t_dmrg = ground_state_Z2_param(params=params)
+
+            except TimeoutError as e:
+                    print(e)
+                    args_mps["guess"] = []
+                    print("Running with random state:")
+                    energy, entropy, schmidt_vals, t_dmrg = ground_state_Z2_param(params=params)
             energies_param.append(energy)
             entropies_param.append(entropy)
             schmidt_vals_param.append(schmidt_vals)

@@ -127,12 +127,17 @@ for L in args.Ls:
         sector = f"{len(args.charges_x)}_particle(s)_sector"
         charges_x = args.charges_x
         charges_y = args.charges_y
-
     # where to look at for the entropy
     if args.where == -1:
         args.where = L // 2
     elif args.where == -2:
         args.bond = False
+
+    # init_state = np.zeros((d))
+    # init_state[0] = 1
+    # init_state = init_state.reshape((1,d,1))
+    # init_tensor = [init_state for _ in range(L-1)]
+    init_tensor = []
     for chi in args.chis:  # L // 2 + 1
         args_mps = {
             "L": L,
@@ -153,6 +158,7 @@ for L in args.Ls:
             "n_sweeps": args.number_sweeps,
             "conv_tol": args.conv_tol,
             "training": args.training,
+            "guess": init_tensor,
         }
         if __name__ == "__main__":
             energy_chi, entropy_chi, schmidt_vals_chi, t_chi = ground_state_Z2(
