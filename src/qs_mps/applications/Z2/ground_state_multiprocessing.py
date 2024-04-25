@@ -4,6 +4,7 @@ from qs_mps.mps_class import MPS
 from qs_mps.applications.Z2.exact_hamiltonian import H_Z2_gauss
 from qs_mps.utils import tensor_shapes
 import signal
+import numpy as np
 
 # Define a function to handle the timeout
 def timeout_handler(signum, frame):
@@ -144,10 +145,18 @@ def ground_state_Z2(args_mps, multpr, param):
                 energy, entropy, schmidt_vals, t_dmrg = ground_state_Z2_param(params=params)
 
             except TimeoutError as e:
-                    print(e)
-                    args_mps["guess"] = []
-                    print("Running with random state:")
-                    energy, entropy, schmidt_vals, t_dmrg = ground_state_Z2_param(params=params)
+                print(e)
+                args_mps["guess"] = []
+                print("Running with random state:")
+                energy, entropy, schmidt_vals, t_dmrg = ground_state_Z2_param(params=params)
+            else:
+                # Cancel the alarm if the algorithm finishes before the timeout
+                signal.alarm(0)
+
+            time_param.append(t_dmrg)
+            t_mean = np.mean(time_param)
+            t_std = np.std(time_param)
+            new_timeout_secs = t_mean + 3*t_std
             energies_param.append(energy)
             entropies_param.append(entropy)
             schmidt_vals_param.append(schmidt_vals)
