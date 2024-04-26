@@ -870,7 +870,7 @@ def plot_side_by_side(
 # ---------------------------------------------------------------------------------------
 # Create Sequential Colors
 # ---------------------------------------------------------------------------------------
-def create_sequential_colors(num_colors, colormap_name):
+def create_sequential_colors(num_colors, colormap_name: str='viridis'):
     """
     create_sequential_colors
 

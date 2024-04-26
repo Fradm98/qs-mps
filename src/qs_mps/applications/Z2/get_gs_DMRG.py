@@ -42,7 +42,7 @@ parser.add_argument(
     "-s",
     "--number_sweeps",
     help="Number of sweeps during the compression algorithm for each trotter step",
-    default=8,
+    default=10,
     type=int,
 )
 parser.add_argument(
@@ -74,8 +74,8 @@ parser.add_argument(
 parser.add_argument(
     "-tr",
     "--training",
-    help="Save all the energies during the variational optimization. By default False",
-    action="store_true",
+    help="Save all the energies during the variational optimization. By default True",
+    action="store_false",
 )
 parser.add_argument(
     "-i",
