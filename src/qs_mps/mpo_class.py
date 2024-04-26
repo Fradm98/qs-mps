@@ -336,8 +336,8 @@ class MPO_ladder:
         It gives us vertical and horizontal strings from a specific dual lattice
         site and going, conventionally, up and left, respectively (to vertical and horizontal).
         
-        site: list - the first element is the mps site of the interested dual lattice site
-        l: list - the first element is the ladder of the interested dual lattice site
+        site: list - the first element is the mps site of the interested dual lattice site, starts from 0
+        l: list - the first element is the ladder of the interested dual lattice site, starts from 0
         direction: str - indicates in the direction of the string. We use the convention:
                 hor -> from left to 'site' at a specific 'l'
                 ver -> from up to 'l' at a specific 'site'
