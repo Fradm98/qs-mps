@@ -44,7 +44,7 @@ parser.add_argument(
     "-s",
     "--number_sweeps",
     help="Number of sweeps during the compression algorithm for each trotter step",
-    default=8,
+    default=10,
     type=int,
 )
 parser.add_argument(
@@ -76,8 +76,8 @@ parser.add_argument(
 parser.add_argument(
     "-tr",
     "--training",
-    help="Save all the energies during the variational optimization. By default False",
-    action="store_true",
+    help="Save all the energies during the variational optimization. By default True",
+    action="store_false",
 )
 parser.add_argument(
     "-i",
@@ -132,6 +132,7 @@ for L in args.Ls:
         args.where = L // 2
     elif args.where == -2:
         args.bond = False
+    t_chi = []
     for chi in args.chis:  # L // 2 + 1
         up = np.array([[[1],[0]]])
         init_tensor = [up for _ in range(L)]
@@ -147,11 +148,12 @@ for L in args.Ls:
                 chain = MPS(L=L, d=d, chi=chi, model=args.model, eps=1e-5, h=h, J=J)
                 chain.sites = init_tensor.copy()
                 chain.enlarge_chi()
-                energy, entropy, schmidt_vals = chain.DMRG(trunc_tol=False, trunc_chi=True, where=L//2)
+                energy, entropy, schmidt_vals, t_dmrg = chain.DMRG(trunc_tol=False, trunc_chi=True, where=L//2)
                 print(f"energy of h:{h:.{precision}f}, J:{J:.{precision}f} is:\n {energy}")
                 print(f"Schmidt values in the middle of the chain:\n {schmidt_vals}")
                 print(f"Entropy: {entropy}")
                 
+                t_chi.append(t_dmrg)
                 if args.training:
                     energy_J.append(energy)
                 else:
@@ -172,6 +174,18 @@ for L in args.Ls:
             entropy_chi.append(entropy_J)
             schmidt_vals_chi.append(schmidt_vals_J)
 
+        t_final = np.sum(t_chi)
+        if t_final < 60:
+            t_unit = "sec(s)"
+        elif t_final > 60 and t_final < 3600:
+            t_unit = "min(s)"
+            t_final = t_final/60
+        elif t_final > 3600:
+            t_unit = "hour(s)"
+            t_final = t_final/3600
+
+        print(f"time of the whole search for chi={chi} is: {t_final} {t_unit}")
+        
         if args.bond == False:
             args.where = "all"
 

@@ -153,7 +153,6 @@ def save_list_of_lists(file_path, list):
     """
     with open(file_path, "w") as file:
         for sublist in list:
-            print(sublist)
             line = " ".join(repr(item) for item in sublist)
             file.write(line + "\n")
 

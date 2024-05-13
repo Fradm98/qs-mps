@@ -2770,10 +2770,8 @@ class MPS:
         if "Ising" == self.model:
             self.save_sites_Ising(path=path, precision=precision)
         elif "Cluster" == self.model:
-            print("CLUSTER HEREEE\n")
             self.save_sites_Ising(path=path, precision=precision)
         elif "Cluster-XY" == self.model:
-            print("here")
             self.save_sites_Cluster_xy(path=path, precision=precision)
         elif "ANNNI" == self.model:
             self.save_sites_ANNNI(path=path, precision=precision)
