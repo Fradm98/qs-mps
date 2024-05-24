@@ -162,8 +162,8 @@ for L in args.Ls:
 
 
         if args.obs == "wl":
-            np.savetxt(
-                        f"{parent_path}/results/wilson_loops/wilson_loop_{moment}_moment_{args.sites}-{args.ladders}_{args.model}_direct_lattice_{args.l}x{L-1}_h_{args.h_i}-{args.h_f}_delta_{args.npoints}_chi_{chi}",
+            np.save(
+                        f"{parent_path}/results/wilson_loops/wilson_loop_{moment}_moment_{args.sites}-{args.ladders}_{args.model}_direct_lattice_{args.l}x{L-1}_{sector}_{charges_x}-{charges_y}_h_{args.h_i}-{args.h_f}_delta_{args.npoints}_chi_{chi}.npy",
                         W,
                     )
         if args.obs == "el":
