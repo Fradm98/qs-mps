@@ -480,7 +480,7 @@ class MPO_ladder:
         # compute the string
         pauli = identity(n=2**dim, dtype=complex)
         for n in string:
-            pauli = pauli @ sigma(n=n - 1, L=dim)
+            pauli = pauli @ sigma(n=n, L=dim)
 
         return pauli.toarray()
 
