@@ -122,13 +122,13 @@ for L in args.Ls:
                 lattice_mps.Z2.wilson_Z2_dual(mpo_sites=args.sites, ls=args.ladders) #list(range(s))
                 lattice_mps.w = lattice_mps.Z2.mpo.copy()
                 if args.moment == 1:
-                    print(lattice_mps.mpo_first_moment().real)
+                    # print(lattice_mps.mpo_first_moment().real)
                     W.append(lattice_mps.mpo_first_moment().real)
                 elif args.moment == 2:
-                    print(lattice_mps.mpo_second_moment().real)
+                    # print(lattice_mps.mpo_second_moment().real)
                     W.append(lattice_mps.mpo_second_moment().real)
                 elif args.moment == 4:
-                    print(lattice_mps.mpo_fourth_moment().real)
+                    # print(lattice_mps.mpo_fourth_moment().real)
                     W.append(lattice_mps.mpo_fourth_moment().real)
 
             elif args.obs == "el":
