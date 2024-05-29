@@ -148,7 +148,7 @@ for L in args.Ls:
                 print(f"Magnetization for h:{h:.{precision}f}, direct lattice lxL:{args.l}x{L-1}, chi:{chi}")
                 lattice_mps.order_param()
                 if args.moment == 1:
-                    print(lattice_mps.mpo_first_moment().real, (len(lattice_mps.Z2.latt.plaquettes())-(2*(L-3)+2*(args.l))))
+                    #  print(lattice_mps.mpo_first_moment().real, (len(lattice_mps.Z2.latt.plaquettes())-(2*(L-3)+2*(args.l))))
                     M.append(lattice_mps.mpo_first_moment().real/(len(lattice_mps.Z2.latt.plaquettes())-(2*(L-3)+2*(args.l))))
                 elif args.moment == 2:
                     M.append(lattice_mps.mpo_second_moment().real/(len(lattice_mps.Z2.latt.plaquettes())-(2*(L-3)+2*(args.l)))**2)
