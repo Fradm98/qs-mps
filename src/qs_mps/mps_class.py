@@ -1799,7 +1799,7 @@ class MPS:
                 # print(f"Time effective Ham: {abs(time.perf_counter()-t_start)}")
                 # t_start = time.perf_counter()
                 self.site = sites[i]
-                energy = self.eigensolver(site=sites[i], v0=v0, H_eff=H) # , v0=v0
+                energy = self.eigensolver(v0=v0, H_eff=H) # , v0=v0
                 # energy = self.eigensolver(H_eff=H, site=sites[i], v0=v0) # , v0=v0
                 # print(f"Time eigensolver: {abs(time.perf_counter()-t_start)}")
                 energies.append(energy)
