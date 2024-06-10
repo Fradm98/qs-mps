@@ -1554,7 +1554,7 @@ class MPS:
 
         return H
 
-    def eigensolver(self, site: int=None, v0: np.ndarray=None, H_eff: np.ndarray=None,):
+    def eigensolver(self, v0:np.ndarray=None, H_eff: np.ndarray=None):
         """
         eigensolver
 
@@ -1570,19 +1570,21 @@ class MPS:
 
         """
         # time_eig = time.perf_counter()
-        A = TensorMultiplierOperator((
-                            self.env_left[-1].shape[0] * self.d * self.env_right[-1].shape[0],
-                            self.env_left[-1].shape[2] * self.d * self.env_right[-1].shape[2],
-                            ), matvec=self.mv, dtype=np.complex128)
-        # print(f"shape of A: {A.shape}")
-        if A.shape[0] == 2:
-            H = self.H_eff(site=self.site)
-            e, v = la.eigh(H)
+        if type(H_eff) == type(None):
+            A = TensorMultiplierOperator((
+                                self.env_left[-1].shape[0] * self.d * self.env_right[-1].shape[0],
+                                self.env_left[-1].shape[2] * self.d * self.env_right[-1].shape[2],
+                                ), matvec=self.mv, dtype=np.complex128)
+            # print(f"shape of A: {A.shape}")
+            if A.shape[0] == 2:
+                H = self.H_eff(site=self.site)
+                e, v = la.eigh(H)
+            else:
+                v0 = self.sites[self.site - 1]
+                # print(f"v0 at site {self.site - 1} has shape: {v0.shape}")
+                e, v = spla.eigsh(A, k=1, v0=v0, which='SA')
         else:
-            v0 = self.sites[self.site - 1]
-            # print(f"v0 at site {self.site - 1} has shape: {v0.shape}")
-            e, v = spla.eigsh(A, k=1, v0=v0, which='SA')
-        # e, v = eigsh(H_eff, k=1, which="SA", v0=v0)
+            e, v = spla.eigsh(H_eff, k=1, which="SA", v0=v0)
         # np.savetxt(
         #     f"/Users/fradm/mps/results/times_data/eigsh_eigensolver_site_{site}_h_{self.h:.2f}",
         #     [time.perf_counter() - time_eig],
@@ -1782,6 +1784,7 @@ class MPS:
 
         iter = 1
         H = None
+        v0 = None
 
         t_start = time.perf_counter()
         for n in range(n_sweeps):
@@ -1795,7 +1798,6 @@ class MPS:
                     H = self.H_eff(sites[i])
                 # print(f"Time effective Ham: {abs(time.perf_counter()-t_start)}")
                 # t_start = time.perf_counter()
-                v0 = self.sites[i].flatten()
                 self.site = sites[i]
                 energy = self.eigensolver(site=sites[i], v0=v0, H_eff=H) # , v0=v0
                 # energy = self.eigensolver(H_eff=H, site=sites[i], v0=v0) # , v0=v0
@@ -3094,6 +3096,47 @@ class MPS:
 
         return self
     
+
+def guess_state(L):
+    """
+    guess_state
+
+    This function gives you a product state tensor of all up spins
+    for a chain of length L
+    
+    """
+    up = np.array([[[1],[0]]])
+    init_tensor = [up for _ in range(L)]
+    return init_tensor
+
+L = 12
+d = 2
+model = "ANNNI"
+chi = 64
+h = 1.5
+
+
+chain = MPS(L=L, d=2, chi=chi, model=model, eps=1, h=1.5, J=1, k=0.1)
+init_tensor = guess_state(L)
+try:
+    print("try with guess state...")
+    if h == 1.5:
+        init_tensor = guess_state(L)
+        chain.sites = init_tensor.copy()
+        chain.enlarge_chi()
+    else:
+        chain.sites = init_tensor.copy()
+    timer = time.monotonic()
+    energy, entropy, schmidt_vals = chain.DMRG(trunc_tol=False, trunc_chi=True, where=L//2)
+    timer = time.monotonic() - timer
+except:
+    print("try with random state...")
+    timer = time.monotonic()
+    chain._random_state(seed=3, chi=chi, type_shape="rectangular")
+    chain.canonical_form()
+    len(chain.sites)
+    energy, entropy, schmidt_vals = chain.DMRG(trunc_tol=False, trunc_chi=True, where=L//2)
+    timer = time.monotonic() - timer
 
 # L = 6
 # l = 5
