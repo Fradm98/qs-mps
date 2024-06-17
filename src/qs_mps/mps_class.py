@@ -1296,7 +1296,7 @@ class MPS:
             # eed = self.mpo_first_moment().real
             eed -= self.mpo_first_moment().real
 
-            print(f"Electric energy density: {eed}")
+            # print(f"Electric energy density: {eed}")
 
             E_en_density.append(eed)
 
