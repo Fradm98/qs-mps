@@ -1191,7 +1191,7 @@ class MPS:
         self.Z2.zz_observable_Z2_dual(mpo_site=site, l=lad-1, direction="vertical")
         self.w = self.Z2.mpo.copy()
         E_lad = self.mpo_first_moment().real
-        print(f"E_0: {E_lad}")
+        # print(f"E_0: {E_lad}")
         for link in range(self.Z2.l+1):
             # if link != lad:
             if link in [0, self.Z2.l]:
@@ -1204,7 +1204,7 @@ class MPS:
                 coeff = self.Z2.charge_coeff_v(mpo_site=site, l=l)
                 self.w = self.Z2.mpo.copy()
                 E_r = coeff * self.mpo_first_moment().real
-                print(f"E_r: {E_r}")
+                # print(f"E_r: {E_r}")
                 # E_r = self.mpo_first_moment().real
             else:
                 l = link - 1
@@ -1212,16 +1212,16 @@ class MPS:
                 self.Z2.zz_observable_Z2_dual(mpo_site=site, l=l, direction="vertical")
                 self.w = self.Z2.mpo.copy()
                 E_r = self.mpo_first_moment().real
-                print(f"E_r: {E_r}")
+                # print(f"E_r: {E_r}")
 
             # find the exp val of the correlator between reference and r link
             self.Z2.correlator(site=[site],ladders=[lad,link])
             self.w = self.Z2.mpo.copy()
             E_lad_r = self.mpo_first_moment().real
-            print(f"E_0-r: {E_lad_r}")
+            # print(f"E_0-r: {E_lad_r}")
 
             E_corr.append(E_lad_r - (E_lad * E_r))
-            print(E_lad_r - (E_lad * E_r))
+            # print(E_lad_r - (E_lad * E_r))
 
         return E_corr
     
