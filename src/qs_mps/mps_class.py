@@ -1554,7 +1554,7 @@ class MPS:
 
         return H
 
-    def eigensolver(self, site: int=None, v0: np.ndarray=None, H_eff: np.ndarray=None,):
+    def eigensolver(self, v0:np.ndarray=None, H_eff: np.ndarray=None):
         """
         eigensolver
 
@@ -1570,19 +1570,21 @@ class MPS:
 
         """
         # time_eig = time.perf_counter()
-        A = TensorMultiplierOperator((
-                            self.env_left[-1].shape[0] * self.d * self.env_right[-1].shape[0],
-                            self.env_left[-1].shape[2] * self.d * self.env_right[-1].shape[2],
-                            ), matvec=self.mv, dtype=np.complex128)
-        # print(f"shape of A: {A.shape}")
-        if A.shape[0] == 2:
-            H = self.H_eff(site=self.site)
-            e, v = la.eigh(H)
+        if type(H_eff) == type(None):
+            A = TensorMultiplierOperator((
+                                self.env_left[-1].shape[0] * self.d * self.env_right[-1].shape[0],
+                                self.env_left[-1].shape[2] * self.d * self.env_right[-1].shape[2],
+                                ), matvec=self.mv, dtype=np.complex128)
+            # print(f"shape of A: {A.shape}")
+            if A.shape[0] == 2:
+                H = self.H_eff(site=self.site)
+                e, v = la.eigh(H)
+            else:
+                v0 = self.sites[self.site - 1]
+                # print(f"v0 at site {self.site - 1} has shape: {v0.shape}")
+                e, v = spla.eigsh(A, k=1, v0=v0, which='SA')
         else:
-            v0 = self.sites[self.site - 1]
-            # print(f"v0 at site {self.site - 1} has shape: {v0.shape}")
-            e, v = spla.eigsh(A, k=1, v0=v0, which='SA')
-        # e, v = eigsh(H_eff, k=1, which="SA", v0=v0)
+            e, v = spla.eigsh(H_eff, k=1, which="SA", v0=v0)
         # np.savetxt(
         #     f"/Users/fradm/mps/results/times_data/eigsh_eigensolver_site_{site}_h_{self.h:.2f}",
         #     [time.perf_counter() - time_eig],
@@ -1782,6 +1784,7 @@ class MPS:
 
         iter = 1
         H = None
+        v0 = None
 
         t_start = time.perf_counter()
         for n in range(n_sweeps):
@@ -1795,9 +1798,8 @@ class MPS:
                     H = self.H_eff(sites[i])
                 # print(f"Time effective Ham: {abs(time.perf_counter()-t_start)}")
                 # t_start = time.perf_counter()
-                v0 = self.sites[i].flatten()
                 self.site = sites[i]
-                energy = self.eigensolver(site=sites[i], v0=v0, H_eff=H) # , v0=v0
+                energy = self.eigensolver(v0=v0, H_eff=H) # , v0=v0
                 # energy = self.eigensolver(H_eff=H, site=sites[i], v0=v0) # , v0=v0
                 # print(f"Time eigensolver: {abs(time.perf_counter()-t_start)}")
                 energies.append(energy)
@@ -3093,31 +3095,3 @@ class MPS:
         self.sites = [site.reshape(shapes[i]) for i, site in enumerate(flat_tn)]
 
         return self
-    
-
-# L = 6
-# l = 5
-# d = 2**l
-# model = "Z2_dual"
-# chi = 64
-# h_i = 0
-# h_f = 10
-# npoints = 20
-# hs = np.linspace(h_i,h_f,npoints)
-# charges_x = None
-# charges_y = None
-# num = (h_f - h_i) / npoints
-# precision = get_precision(num)
-# path_tensor = "/Users/fradm/Desktop/projects/1_Z2"
-# path_tensor = "D:/code/projects/1_Z2"
-# sites = [1]
-# ladders = [1]
-# direction = "horizontal"
-
-# S = []
-# for h in hs:
-#     lattice_mps = MPS(L=L, d=d, model=model, chi=chi, h=h)
-#     lattice_mps.L = lattice_mps.L - 1
-
-#     lattice_mps.load_sites(path=path_tensor, precision=precision, cx=charges_x, cy=charges_y)
-#     S.append(lattice_mps.mpo_second_moment(site=sites, l=ladders, direction=direction).real/(len(lattice_mps.Z2.latt.plaquettes())**2))
