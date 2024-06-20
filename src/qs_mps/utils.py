@@ -4,6 +4,7 @@ from scipy.sparse.linalg import expm, eigsh, expm_multiply, svds
 from scipy.sparse import csr_matrix, csc_matrix, csc_array, kron as spkron
 import os
 from ncon import ncon
+import matplotlib as mpl
 import matplotlib.pyplot as plt
 from matplotlib import gridspec
 from matplotlib.patches import Ellipse
@@ -879,7 +880,7 @@ def create_sequential_colors(num_colors, colormap_name: str='viridis'):
     colormap_name: string - colormap name we want to use
 
     """
-    colormap = plt.cm.get_cmap(colormap_name)
+    colormap = mpl.colormaps[colormap_name]
     colormap_values = np.linspace(0, 1, num_colors)
     colors = [colormap(value) for value in colormap_values]
     return colors
