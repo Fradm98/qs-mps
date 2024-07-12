@@ -138,11 +138,22 @@ for L in args.Ls:
     # init_state = init_state.reshape((1,d,1))
     # init_tensor = [init_state for _ in range(L-1)]
     init_tensor = []
-    for chi in args.chis:  # L // 2 + 1
+    energy_tot, entropy_tot, schmidt_vals_tot, t_tot = [], [], [], []
+    for h in interval:
+        lattice_mps = MPS(L=L, d=d, model=args.model, chi=args.chis[0], h=h)
+        lattice_mps.L = lattice_mps.L - 1
+        lattice_mps.load_sites(path=path_tensor, precision=precision, cx=charges_x, cy=charges_y)
+        if sector != "vacuum_sector":
+            lattice_mps.Z2.add_charges(charges_x, charges_y)
+        
+        lattice_mps.chi = args.chis[-1]
+        lattice_mps.enlarge_chi()
+        init_tensor = lattice_mps.sites.copy()
+
         args_mps = {
             "L": L,
             "d": d,
-            "chi": chi,
+            "chi": args.chis[-1],
             "type_shape": args.type_shape,
             "model": args.model,
             "trunc_tol": False,
@@ -161,13 +172,12 @@ for L in args.Ls:
             "guess": init_tensor,
         }
         
-
         if __name__ == "__main__":
-            energy_chi, entropy_chi, schmidt_vals_chi, t_chi = ground_state_Z2(
-                args_mps=args_mps, multpr=args.multpr, param=interval
+            energy_h, entropy_h, schmidt_vals_h, t_h = ground_state_Z2(
+                args_mps=args_mps, multpr=args.multpr, param=[h]
             )
 
-            t_final = np.sum(t_chi)
+            t_final = np.sum(t_h)
             if t_final < 60:
                 t_unit = "sec(s)"
             elif t_final > 60 and t_final < 3600:
@@ -177,47 +187,67 @@ for L in args.Ls:
                 t_unit = "hour(s)"
                 t_final = t_final/3600
 
-            print(f"time of the whole search for chi={chi} is: {t_final} {t_unit}")
+            print(f"time of the whole search for h={h:.{precision}f} is: {t_final} {t_unit}")
             if args.bond == False:
                 args.where = "all"
 
-            if args.training:
-                energy_chi = np.asarray(energy_chi)
-                energy_chi = energy_chi.reshape((len(interval),len(energy_chi[0])))
-                print(energy_chi.shape)
-                np.save(
-                    f"{parent_path}/results/energy_data/energies_{args.model}_direct_lattice_{args.l}x{L-1}_{sector}_{charges_x}-{charges_y}_h_{args.h_i}-{args.h_f}_delta_{args.npoints}_chi_{chi}",
-                    energy_chi,
-                )
-                energy_last = []
-                for i in range(len(interval)):
-                    energy_last.append(energy_chi[i,-1])
-                np.save(f"{parent_path}/results/energy_data/energy_{args.model}_direct_lattice_{args.l}x{L-1}_{sector}_{charges_x}-{charges_y}_h_{args.h_i}-{args.h_f}_delta_{args.npoints}_chi_{chi}", energy_last)
+        energy_tot.append(energy_h)
+        entropy_tot.append(entropy_h)
+        schmidt_vals_tot.append(schmidt_vals_h)
+        t_tot.append(t_h)
 
-            else:
-                np.save(
-                    f"{parent_path}/results/energy_data/energy_{args.model}_direct_lattice_{args.l}x{L-1}_{sector}_{charges_x}-{charges_y}_h_{args.h_i}-{args.h_f}_delta_{args.npoints}_chi_{chi}",
-                    energy_chi,
-                )
+    t_final = np.sum(t_tot)
+    if t_final < 60:
+        t_unit = "sec(s)"
+    elif t_final > 60 and t_final < 3600:
+        t_unit = "min(s)"
+        t_final = t_final/60
+    elif t_final > 3600:
+        t_unit = "hour(s)"
+        t_final = t_final/3600
 
-            save_list_of_lists(
-                f"{parent_path}/results/entropy_data/{args.where}_bond_entropy_{args.model}_direct_lattice_{args.l}x{L-1}_{sector}_{charges_x}-{charges_y}_h_{args.h_i}-{args.h_f}_delta_{args.npoints}_chi_{chi}",
-                entropy_chi,
-            )
-            # save_list_of_lists(
-            #     f"{parent_path}/results/entropy_data/{args.where}_schmidt_vals_{args.model}_direct_lattice_{args.l}x{L-1}_{sector}_{charges_x}-{charges_y}_h_{args.h_i}-{args.h_f}_delta_{args.npoints}_chi_{chi}",
-            #     schmidt_vals_chi,
-            # )
-            np.save(
-                f"{parent_path}/results/entropy_data/{args.where}_schmidt_vals_{args.model}_direct_lattice_{args.l}x{L-1}_{sector}_{charges_x}-{charges_y}_h_{args.h_i}-{args.h_f}_delta_{args.npoints}_chi_{chi}.npy",
-                schmidt_vals_chi,
-            )
-            if args.where == "all":
-                entropy_mid = access_txt(
-                    f"{parent_path}/results/entropy_data/{args.where}_bond_entropy_{args.model}_direct_lattice_{args.l}x{L-1}_{sector}_{charges_x}-{charges_y}_h_{args.h_i}-{args.h_f}_delta_{args.npoints}_chi_{chi}",
-                    (L-1) // 2,
-                )
-                np.savetxt(
-                    f"{parent_path}/results/entropy_data/{args.L // 2}_bond_entropy_{args.model}_direct_lattice_{args.l}x{L-1}_{sector}_{charges_x}-{charges_y}_h_{args.h_i}-{args.h_f}_delta_{args.npoints}_chi_{chi}",
-                    entropy_mid,
-                )
+    print(f"time of the whole search for chi={args.chis[-1]} is: {t_final} {t_unit}")
+
+    if args.training:
+        energy_tot = np.asarray(energy_tot)
+        print(energy_tot.shape)
+        energy_tot = energy_tot.reshape((len(interval),len(energy_h)))
+        print(energy_tot.shape)
+        np.save(
+            f"{parent_path}/results/energy_data/energies_{args.model}_direct_lattice_{args.l}x{L-1}_{sector}_{charges_x}-{charges_y}_h_{args.h_i}-{args.h_f}_delta_{args.npoints}_chi_{args.chis[-1]}.npy",
+            energy_tot,
+        )
+        energy_last = []
+        for i in range(len(interval)):
+            energy_last.append(energy_tot[i,-1])
+        np.save(f"{parent_path}/results/energy_data/energy_{args.model}_direct_lattice_{args.l}x{L-1}_{sector}_{charges_x}-{charges_y}_h_{args.h_i}-{args.h_f}_delta_{args.npoints}_chi_{args.chis[-1]}.npy", energy_last)
+
+    else:
+        np.save(
+            f"{parent_path}/results/energy_data/energy_{args.model}_direct_lattice_{args.l}x{L-1}_{sector}_{charges_x}-{charges_y}_h_{args.h_i}-{args.h_f}_delta_{args.npoints}_chi_{args.chis[-1]}.npy",
+            energy_tot,
+        )
+
+    save_list_of_lists(
+        f"{parent_path}/results/entropy_data/{args.where}_bond_entropy_{args.model}_direct_lattice_{args.l}x{L-1}_{sector}_{charges_x}-{charges_y}_h_{args.h_i}-{args.h_f}_delta_{args.npoints}_chi_{args.chis[-1]}",
+        entropy_tot,
+    )
+    # save_list_of_lists(
+    #     f"{parent_path}/results/entropy_data/{args.where}_schmidt_vals_{args.model}_direct_lattice_{args.l}x{L-1}_{sector}_{charges_x}-{charges_y}_h_{args.h_i}-{args.h_f}_delta_{args.npoints}_chi_{args.chis[-1]}",
+    #     schmidt_vals_h,
+    # )
+    np.save(
+        f"{parent_path}/results/entropy_data/{args.where}_schmidt_vals_{args.model}_direct_lattice_{args.l}x{L-1}_{sector}_{charges_x}-{charges_y}_h_{args.h_i}-{args.h_f}_delta_{args.npoints}_chi_{args.chis[-1]}.npy",
+        schmidt_vals_tot,
+    )
+    if args.where == "all":
+        entropy_mid = access_txt(
+            f"{parent_path}/results/entropy_data/{args.where}_bond_entropy_{args.model}_direct_lattice_{args.l}x{L-1}_{sector}_{charges_x}-{charges_y}_h_{args.h_i}-{args.h_f}_delta_{args.npoints}_chi_{args.chis[-1]}",
+            (L-1) // 2,
+        )
+        np.savetxt(
+            f"{parent_path}/results/entropy_data/{args.L // 2}_bond_entropy_{args.model}_direct_lattice_{args.l}x{L-1}_{sector}_{charges_x}-{charges_y}_h_{args.h_i}-{args.h_f}_delta_{args.npoints}_chi_{args.chis[-1]}",
+            entropy_mid,
+        )
+
+
