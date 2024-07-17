@@ -503,10 +503,10 @@ def mpo_to_matrix(mpo):
         down = [int(-elem) for elem in np.linspace(L + 1, L + 1 + i, i + 1)]
         label_env = up + down + mid
 
-    v_r = np.zeros(mpo[0].shape[0])
+    v_r = np.zeros(mpo[-1].shape[0])
     v_r[-1] = 1
-    d = mpo[0].shape[2]
-    matrix = ncon([env, v_r.T], [label_env, mid]).reshape((d**L, d**L))
+    d_prod = np.prod([mpo[i].shape[2] for i in range(L)])
+    matrix = ncon([env, v_r.T], [label_env, mid]).reshape((d_prod, d_prod))
     return matrix
 
 def swap_columns(matrix, tensor: bool=True):
