@@ -47,6 +47,7 @@ class MPS:
         self.env_right = []
         self.env_left_sm = []
         self.env_right_sm = []
+        self.bc = "obc"
         self.Z2 = MPO_ladder(
             L=self.L, l=int(np.log2(self.d)), model=self.model, lamb=self.h
         )
@@ -604,9 +605,14 @@ class MPS:
         elif self.model == "Cluster-XY":
             self.mpo_Cluster_xy(long=long)
 
-        elif self.model == "Z2_dual":
+        elif self.model == "Z2_dual" and self.bc == "obc":
             self.Z2.mpo_Z2_ladder_generalized()
             self.w = self.Z2.mpo
+        
+        elif self.model == "Z2_dual" and self.bc == "pbc":
+            self.Z2.mpo_Z2_ladder_generalized_pbc()
+            self.w = self.Z2.mpo
+
 
         elif self.model == "XXZ":
             self.mpo_xxz(long=long)

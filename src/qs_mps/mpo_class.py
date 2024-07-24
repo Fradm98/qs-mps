@@ -252,6 +252,47 @@ class MPO_ladder:
         self.mpo = mpo_list
         return mpo_list
 
+    def mpo_Z2_ladder_generalized_pbc(self):
+        # degrees of freedom
+        dof = self.l*self.L + 1
+
+        prod_charges = np.prod(self.charges, axis=1).tolist()
+
+        # initialize
+        self.mpo_skeleton(self.l)
+        mpo_list = []
+        for mpo_site in range(self.L):
+            # first row, for the zz horizontal interactions
+            for n in range(self.l):
+                self.mpo[0, n+1] = sparse_pauli_z(n=n, L=self.l).toarray()
+            # last column, for the zz horizontal interactions
+            for n in range(self.l):
+                self.mpo[n+1, -1] = - self.lamb * sparse_pauli_z(n=n, L=self.l).toarray()
+            # first row last column, for the "local" zz vertical interaction
+            for n in range(self.l):
+                coeff = np.prod(self.charges[(n+1)%self.l,:mpo_site+1])
+                self.mpo[0,-1] += - self.lamb * coeff * (sparse_pauli_z(n=n, L=self.l).toarray() @ sparse_pauli_z(n=(n+1)%self.l, L=self.l).toarray())
+            # first row last column, for the local z vertical terms on the left boundary
+            if mpo_site == 0:
+                for n in range(self.l):
+                    self.mpo[0,-1] += - self.lamb * sparse_pauli_z(n=n, L=self.l).toarray()
+            # first row last column, for the local x plaquette terms
+            for n in range(self.l):
+                self.mpo[0,-1] += - 1/self.lamb * sparse_pauli_x(n=n, L=self.l).toarray()
+        
+            mpo_list.append(self.mpo)
+            self.mpo_skeleton(self.l)
+
+        # last column, add the extra degree of freedom with depends on the charges
+        self.mpo_skeleton(1, aux_dim=(self.l+2))
+        for n in range(self.l):
+            coeff = np.prod(prod_charges[:n+1])
+            self.mpo[n+1, -1] = - self.lamb * coeff * sparse_pauli_z(n=0, L=1).toarray()
+        mpo_list.append(self.mpo)
+
+        self.mpo = mpo_list
+        return mpo_list
+
     def diagonalize(self):
         self.mpo_Z2_ladder_generalized()
         H = mpo_to_matrix(self.mpo)
