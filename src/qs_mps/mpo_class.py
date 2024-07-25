@@ -7,14 +7,15 @@ import numpy as np
 
 
 class MPO_ladder:
-    def __init__(self, l, L, model=str, lamb=None):
+    def __init__(self, l, L, model=str, lamb=None, bc="obc"):
         self.L = L
         self.l = l
         self.model = model
-        self.charges = np.ones((l + 1, L))
+        self.bc = bc
+        self.charges = np.ones((l + 1, self.L))
         self.lamb = lamb
         self.mpo = []
-        self.latt = self.latt = Lattice((self.L, self.l + 1), (False, False))
+        self.latt = Lattice((self.L, self.l + 1), (False, False))
         self.dof = self.l * (self.L - 1)
         self.sector = self._define_sector()
 
@@ -254,12 +255,13 @@ class MPO_ladder:
 
     def mpo_Z2_ladder_generalized_pbc(self):
         # degrees of freedom
+        self.L = self.L - 1
         dof = self.l*self.L + 1
 
         prod_charges = np.prod(self.charges, axis=1).tolist()
 
         # initialize
-        self.mpo_skeleton(self.l)
+        self.mpo_skeleton()
         mpo_list = []
         for mpo_site in range(self.L):
             # first row, for the zz horizontal interactions
@@ -281,13 +283,17 @@ class MPO_ladder:
                 self.mpo[0,-1] += - 1/self.lamb * sparse_pauli_x(n=n, L=self.l).toarray()
         
             mpo_list.append(self.mpo)
-            self.mpo_skeleton(self.l)
+            self.mpo_skeleton()
 
         # last column, add the extra degree of freedom with depends on the charges
-        self.mpo_skeleton(1, aux_dim=(self.l+2))
+        l_aux = self.l
+        self.l = 1
+        self.mpo_skeleton(aux_dim=(l_aux+2))
+        self.l = l_aux
         for n in range(self.l):
             coeff = np.prod(prod_charges[:n+1])
             self.mpo[n+1, -1] = - self.lamb * coeff * sparse_pauli_z(n=0, L=1).toarray()
+        self.mpo = self.mpo[:,-1].reshape((self.l+2,1,2,2))
         mpo_list.append(self.mpo)
 
         self.mpo = mpo_list

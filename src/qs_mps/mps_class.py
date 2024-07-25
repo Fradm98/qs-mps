@@ -23,7 +23,7 @@ from qs_mps.TensorMultiplier import TensorMultiplierOperator
 
 class MPS:
     def __init__(
-        self, L, d, model=str, chi=None, w=None, h=None, lx=None, ly=None, eps=None, J=None, k=None, charges=None
+        self, L, d, model=str, chi=None, w=None, h=None, lx=None, ly=None, eps=None, J=None, k=None, charges=None, bc="obc"
     ):
         self.L = L
         self.d = d
@@ -47,9 +47,9 @@ class MPS:
         self.env_right = []
         self.env_left_sm = []
         self.env_right_sm = []
-        self.bc = "obc"
+        self.bc = bc
         self.Z2 = MPO_ladder(
-            L=self.L, l=int(np.log2(self.d)), model=self.model, lamb=self.h
+            L=self.L, l=int(np.log2(self.d)), model=self.model, lamb=self.h, bc=self.bc
         )
 
     # -------------------------------------------------
@@ -1405,10 +1405,11 @@ class MPS:
 
         """
         a = np.array([1])
-        D = self.w[0].shape[0]
-        v_l = np.zeros(D)
+        D_l = self.w[0].shape[0]
+        D_r = self.w[-1].shape[1]
+        v_l = np.zeros(D_l)
         v_l[0] = 1
-        v_r = np.zeros(D)
+        v_r = np.zeros(D_r)
         v_r[-1] = 1
         aux = self.sites[0].shape[0]
         l = np.zeros(aux)
@@ -1568,8 +1569,8 @@ class MPS:
 
         # reshape_time = time.perf_counter()
         H = H.reshape(
-            self.env_left[-1].shape[0] * self.d * self.env_right[-1].shape[0],
-            self.env_left[-1].shape[2] * self.d * self.env_right[-1].shape[2],
+            self.env_left[-1].shape[0] * self.sites[site - 1].shape[1] * self.env_right[-1].shape[0],
+            self.env_left[-1].shape[2] * self.sites[site - 1].shape[1] * self.env_right[-1].shape[2],
         )
         # print(f"Time of H_eff reshaping: {time.perf_counter()-reshape_time}")
         # print(H.shape)
@@ -1594,8 +1595,8 @@ class MPS:
         # time_eig = time.perf_counter()
         if type(H_eff) == type(None):
             A = TensorMultiplierOperator((
-                                self.env_left[-1].shape[0] * self.d * self.env_right[-1].shape[0],
-                                self.env_left[-1].shape[2] * self.d * self.env_right[-1].shape[2],
+                                self.env_left[-1].shape[0] * self.sites[self.site - 1].shape[1] * self.env_right[-1].shape[0],
+                                self.env_left[-1].shape[2] * self.sites[self.site - 1].shape[1] * self.env_right[-1].shape[2],
                                 ), matvec=self.mv, dtype=np.complex128)
             # print(f"shape of A: {A.shape}")
             if A.shape[0] == 2:
@@ -1616,7 +1617,7 @@ class MPS:
         eigvec = np.array(v[:,0])
 
         self.sites[self.site - 1] = eigvec.reshape(
-            self.env_left[-1].shape[0], self.d, self.env_right[-1].shape[0]
+            self.env_left[-1].shape[0], self.sites[self.site - 1].shape[1], self.env_right[-1].shape[0]
         )
         return e_min
 
@@ -1646,27 +1647,27 @@ class MPS:
         if sweep == "right":
             # we want to write M (left,d,right) in LFC -> (left*d,right)
             m = self.sites[site - 1].reshape(
-                self.env_left[-1].shape[2] * self.d, self.env_right[-1].shape[2]
+                self.env_left[-1].shape[2] * self.sites[self.site - 1].shape[1], self.env_right[-1].shape[2]
             )
             u, s, v = la.svd(m, full_matrices=False)
             if trunc_tol:
                 condition = s >= schmidt_tol
                 s_trunc = np.extract(condition, s)
                 s = s_trunc / la.norm(s_trunc)
-                bond_l = u.shape[0] // self.d
-                u = u.reshape(bond_l, self.d, u.shape[1])
+                bond_l = u.shape[0] // self.sites[self.site - 1].shape[1]
+                u = u.reshape(bond_l, self.sites[self.site - 1].shape[1], u.shape[1])
                 u = u[:, :, : len(s)]
                 v = v[: len(s), :]
             elif trunc_chi:
                 s_trunc = s[: self.chi]
                 s = s_trunc / la.norm(s_trunc)
-                bond_l = u.shape[0] // self.d
-                u = u.reshape(bond_l, self.d, u.shape[1])
+                bond_l = u.shape[0] // self.sites[self.site - 1].shape[1]
+                u = u.reshape(bond_l, self.sites[self.site - 1].shape[1], u.shape[1])
                 u = u[:, :, : len(s)]
                 v = v[: len(s), :]
             else:
                 u = u.reshape(
-                    self.env_left[-1].shape[2], self.d, self.env_right[-1].shape[2]
+                    self.env_left[-1].shape[2], self.sites[self.site - 1].shape[1], self.env_right[-1].shape[2]
                 )
             next_site = ncon(
                 [np.diag(s), v, self.sites[site]],
@@ -1682,27 +1683,27 @@ class MPS:
         elif sweep == "left":
             # we want to write M (left,d,right) in RFC -> (left,d*right)
             m = self.sites[site - 1].reshape(
-                self.env_left[-1].shape[2], self.d * self.env_right[-1].shape[2]
+                self.env_left[-1].shape[2], self.sites[self.site - 1].shape[1] * self.env_right[-1].shape[2]
             )
             u, s, v = la.svd(m, full_matrices=False)
             if trunc_tol:
                 condition = s >= schmidt_tol
                 s_trunc = np.extract(condition, s)
                 s = s_trunc / la.norm(s_trunc)
-                bond_r = v.shape[1] // self.d
-                v = v.reshape(v.shape[0], self.d, bond_r)
+                bond_r = v.shape[1] // self.sites[self.site - 1].shape[1]
+                v = v.reshape(v.shape[0], self.sites[self.site - 1].shape[1], bond_r)
                 v = v[: len(s), :, :]
                 u = u[:, : len(s)]
             elif trunc_chi:
                 s_trunc = s[: self.chi]
                 s = s_trunc / la.norm(s_trunc)
-                bond_r = v.shape[1] // self.d
-                v = v.reshape(v.shape[0], self.d, bond_r)
+                bond_r = v.shape[1] // self.sites[self.site - 1].shape[1]
+                v = v.reshape(v.shape[0], self.sites[self.site - 1].shape[1], bond_r)
                 v = v[: len(s), :, :]
                 u = u[:, : len(s)]
             else:
                 v = v.reshape(
-                    self.env_left[-1].shape[2], self.d, self.env_right[-1].shape[2]
+                    self.env_left[-1].shape[2], self.sites[self.site - 1].shape[1], self.env_right[-1].shape[2]
                 )
             next_site = ncon(
                 [self.sites[site - 2], u, np.diag(s)],
@@ -1778,7 +1779,7 @@ class MPS:
         return self
 
     def mv(self, v):
-        v = v.reshape(self.env_left[-1].shape[0], self.d, self.env_right[-1].shape[0])
+        v = v.reshape(self.env_left[-1].shape[0], self.sites[self.site - 1].shape[1], self.env_right[-1].shape[0])
         res = ncon([self.env_left[-1],v],[[1,-3,-4],[1,-2,-1]])
         res = ncon([res, self.w[self.site-1]],[[-1,1,2,-4],[2,-2,1,-3]])
         res = ncon([res,self.env_right[-1]],[[1,2,-2,-1],[1,2,-3]])
@@ -1799,6 +1800,11 @@ class MPS:
     ):
         energies = []
         sweeps = ["right", "left"]
+        # if self.bc == "pbc":
+        #     sites = np.arange(1, self.L + 1).tolist()
+        # else:
+        #     sites = np.arange(1, self.L + 1).tolist()
+        
         sites = np.arange(1, self.L + 1).tolist()
 
         self.mpo(long=long, trans=trans)
@@ -1808,6 +1814,8 @@ class MPS:
         H = None
         v0 = None
 
+        # if self.bc == "pbc":
+        #     self.L = self.L - 1
         t_start = time.perf_counter()
         for n in range(n_sweeps):
             print(f"Sweep n: {n}\n")
