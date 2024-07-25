@@ -85,6 +85,14 @@ parser.add_argument(
     type=str
 )
 
+parser.add_argument(
+    "-bc",
+    "--boundcond",
+    help="Type of boundary conditions. Available are 'obc', 'pbc'",
+    default="obc",
+    type=str
+)
+
 args = parser.parse_args()
 
 # define the physical dimension
@@ -159,6 +167,7 @@ for L in args.Ls:
             "conv_tol": args.conv_tol,
             "training": args.training,
             "guess": init_tensor,
+            "bc": args.boundcond,
         }
         
 

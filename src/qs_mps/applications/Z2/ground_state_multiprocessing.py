@@ -66,6 +66,7 @@ def ground_state_Z2_param(params):
         d=args_mps["d"],
         model=args_mps["model"],
         chi=args_mps["chi"],
+        bc=args_mps["bc"],
         h=param,
     )
     save = args_mps["save"]
@@ -79,6 +80,12 @@ def ground_state_Z2_param(params):
         ladder._random_state(seed=3, chi=args_mps["chi"], type_shape=args_mps["type_shape"])
         tensor_shapes(ladder.sites)
         ladder.canonical_form(trunc_chi=True, trunc_tol=False)
+        if ladder.bc == "pbc":
+            a = np.zeros((1,2))
+            a[0,0] = 1
+            extra_ancillary_site = a.reshape((1,2,1))
+            ladder.sites.append(extra_ancillary_site)
+            ladder.L = len(ladder.sites)
     else:
         ladder.sites = args_mps["guess"].copy()
         ladder.enlarge_chi()
@@ -100,7 +107,7 @@ def ground_state_Z2_param(params):
 
     if save:
         ladder.save_sites(args_mps["path"], args_mps["precision"], args_mps["charges_x"], args_mps["charges_y"])
-    args_mps["guess"] = ladder.sites.copy()
+    # args_mps["guess"] = ladder.sites.copy()
     return energy, entropy, schmidt_vals, t_dmrg
 
 
