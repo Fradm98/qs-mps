@@ -84,7 +84,6 @@ parser.add_argument(
     default="lin",
     type=str
 )
-
 parser.add_argument(
     "-bc",
     "--boundcond",

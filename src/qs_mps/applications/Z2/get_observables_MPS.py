@@ -44,6 +44,13 @@ parser.add_argument(
     default="lin",
     type=str
 )
+parser.add_argument(
+    "-bc",
+    "--boundcond",
+    help="Type of boundary conditions. Available are 'obc', 'pbc'",
+    default="obc",
+    type=str
+)
 
 args = parser.parse_args()
 
@@ -111,13 +118,13 @@ for L in args.Ls:
         M = []
         C = []
         for h in interval:
-            lattice_mps = MPS(L=L, d=d, model=args.model, chi=chi, h=h)
+            lattice_mps = MPS(L=L, d=d, model=args.model, chi=chi, h=h, bc=args.boundcond)
             lattice_mps.L = lattice_mps.L - 1
 
             lattice_mps.load_sites(path=path_tensor, precision=precision, cx=charges_x, cy=charges_y)
             if sector != "vacuum_sector":
                 lattice_mps.Z2.add_charges(charges_x, charges_y)
-            
+
             if "wl" in args.obs:
                 print(f"wilson loop for h:{h:.{precision}f}, direct lattice lxL:{args.l}x{L-1}, chi:{chi}")
                 lattice_mps.Z2.wilson_Z2_dual(mpo_sites=args.sites, ls=args.ladders) #list(range(s))
