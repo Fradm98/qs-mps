@@ -108,6 +108,7 @@ def ground_state_Z2_param(params):
     if save:
         ladder.sites.pop()
         ladder.L = len(ladder.sites)
+        ladder.Z2.L += 1
         print(ladder.L, ladder.Z2.L-1)
         ladder.save_sites(args_mps["path"], args_mps["precision"], args_mps["charges_x"], args_mps["charges_y"])
     # args_mps["guess"] = ladder.sites.copy()
