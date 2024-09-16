@@ -15,7 +15,7 @@ class MPO_ladder:
         self.charges = np.ones((l + 1, self.L))
         self.lamb = lamb
         self.mpo = []
-        self.latt = Lattice((self.L, self.l + 1), (False, False))
+        self.latt = Lattice((self.L + 1, self.l + 1), (False, False))
         self.dof = self.l * (self.L - 1)
         self.sector = self._define_sector()
 
@@ -200,6 +200,106 @@ class MPO_ladder:
             coeff = 1
         return coeff
     
+
+    ##########################################
+    # Terms of the Hamiltonian
+    ##########################################
+    def coeff_vertical(self, file, column, from_zero: bool=True):
+        """
+        """
+        if from_zero:
+            column = column - 1
+            file = file - 1
+        
+        if column < self.L:
+            coeff = 1
+        else:
+            prod_charges = np.prod(self.charges, axis=1).tolist()
+            coeff = prod_charges[:(file+1)]
+        return coeff
+    
+    def mpo_Z2_vertical_edges_obc(self, side: str, file: int, column: int, from_zero: bool=True):
+        """
+        mpo_Z2_vertical_left_edge
+
+        This function takes into account the vertical left edge in obc and pbc
+        of the Z2 LGT hamiltonian in the direct formalism but expressed in the dual
+        form which is the one used then by the mps. The difficulty of this mapping is
+        that we need to use the mpo sites to represent something that lies on the links.
+
+        side: str - edge side. Could be left or right
+        file: int - number of ladders, it goes from 1 to l
+        column: int - number of plaquettes in a ladder, it goes from 1 to L
+        from_zero: bool - decide if you want to start to count the file and column from 1 or 0. By default True
+        """
+        if side == "left":
+            column = 1
+            mpo_site = 0
+        elif side == "right":
+            column = self.L+1
+            mpo_site = self.L - 1
+
+
+        if from_zero:
+            column = column - 1
+            file = file - 1
+
+        self.mpo_skeleton(aux_dim=2)
+        mpo_list = []
+        for site in range(self.L):
+            if site == mpo_site:
+                self.mpo[0,1] = - self.lamb * self.coeff_vertical(file, column, from_zero=False) * sparse_pauli_z(n=file, L=self.l).toarray()
+            mpo_list.append(self.mpo)
+            self.mpo_skeleton()
+
+        self.mpo = mpo_list
+        return mpo_list
+    
+    def mpo_Z2_vertical_edges_pbc(self, side: str, file: int, column: int, from_zero: bool=True):
+        """
+        mpo_Z2_vertical_left_edge
+
+        This function takes into account the vertical left edge in obc and pbc
+        of the Z2 LGT hamiltonian in the direct formalism but expressed in the dual
+        form which is the one used then by the mps. The difficulty of this mapping is
+        that we need to use the mpo sites to represent something that lies on the links.
+
+        side: str - edge side. Could be left or right
+        file: int - number of ladders, it goes from 1 to l
+        column: int - number of plaquettes in a ladder, it goes from 1 to L
+        from_zero: bool - decide if you want to start to count the file and column from 1 or 0. By default True
+        """
+        if side == "left":
+            column = 1
+            mpo_site = 0
+        elif side == "right":
+            column = self.L+1
+            mpo_site = self.L - 1
+
+
+        if from_zero:
+            column = column - 1
+            file = file - 1
+
+        self.mpo_skeleton(aux_dim=2)
+        mpo_list = []
+        for site in range(self.L+1):
+            if site == mpo_site:
+                self.mpo[0,1] = - self.lamb * self.coeff_vertical(file, column, from_zero=False) * sparse_pauli_z(n=file, L=self.l).toarray()
+            if (site-1) == mpo_site:
+                l_aux = self.l
+                self.l = 1
+                self.mpo_skeleton(aux_dim=(l_aux+2))
+                self.l = l_aux
+                self.mpo[1,1] = sparse_pauli_z(n=0, L=1).toarray()
+            mpo_list.append(self.mpo)
+            self.mpo_skeleton()
+
+        self.mpo = mpo_list
+        return mpo_list
+    
+
+
     def mpo_Z2_ladder_generalized(self):
         """
         mpo_Z2_ladder_generalized
@@ -285,7 +385,7 @@ class MPO_ladder:
             mpo_list.append(self.mpo)
             self.mpo_skeleton()
 
-        # last column, add the extra degree of freedom with depends on the charges
+        # last column, add the extra degree of freedom which depends on the charges
         l_aux = self.l
         self.l = 1
         self.mpo_skeleton(aux_dim=(l_aux+2))
