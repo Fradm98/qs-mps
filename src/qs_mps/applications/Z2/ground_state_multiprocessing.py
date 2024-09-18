@@ -72,7 +72,7 @@ def ground_state_Z2_param(params):
     save = args_mps["save"]
     precision = args_mps["precision"]
     if ladder.model == "Z2_dual":
-        ladder.L = ladder.L - 1
+        # ladder.L = ladder.L - 1
         if args_mps["sector"] != "vacuum_sector":
             ladder.Z2.add_charges(rows=args_mps["charges_x"], columns=args_mps["charges_y"])
             print(ladder.Z2.charges)
@@ -106,10 +106,9 @@ def ground_state_Z2_param(params):
         energy = energy[-1]
 
     if save:
-        ladder.sites.pop()
+        if ladder.bc == "pbc":
+            ladder.sites.pop()
         ladder.L = len(ladder.sites)
-        ladder.Z2.L += 1
-        print(ladder.L, ladder.Z2.L-1)
         ladder.save_sites(args_mps["path"], args_mps["precision"], args_mps["charges_x"], args_mps["charges_y"])
     # args_mps["guess"] = ladder.sites.copy()
     return energy, entropy, schmidt_vals, t_dmrg

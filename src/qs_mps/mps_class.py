@@ -605,6 +605,10 @@ class MPS:
         elif self.model == "Cluster-XY":
             self.mpo_Cluster_xy(long=long)
 
+        elif self.model == "Z2_dual":
+            self.Z2.mpo_Z2_ladder_generalized()
+            self.w = self.Z2.mpo
+
         elif self.model == "Z2_dual" and self.bc == "obc":
             self.Z2.mpo_Z2_ladder_generalized()
             self.w = self.Z2.mpo
@@ -612,7 +616,6 @@ class MPS:
         elif self.model == "Z2_dual" and self.bc == "pbc":
             self.Z2.mpo_Z2_ladder_generalized_pbc()
             self.w = self.Z2.mpo
-
 
         elif self.model == "XXZ":
             self.mpo_xxz(long=long)
@@ -1135,19 +1138,34 @@ class MPS:
         """
         # let us find the observables for the boudary fields
         i = 0
-        for mpo_site in range(self.Z2.L-1):
+        for mpo_site in range(self.Z2.L):
             j = 0
-            if mpo_site == 0 or mpo_site == (self.Z2.L-2):
+            if mpo_site == 0:
                 E_v = []
                 for l in range(self.Z2.l):
                     self.Z2.local_observable_Z2_dual(mpo_site=mpo_site, l=l)
-                    coeff = self.Z2.charge_coeff_v_edge(mpo_site=mpo_site+i, l=l)
+                    coeff = 1
                     self.w = self.Z2.mpo.copy()
                     E_v.append(coeff * self.mpo_first_moment().real)
                     # E_v.append(self.mpo_first_moment().real)
                 E[1::2, (mpo_site+i)*2] = E_v
                 i = 1
-            
+            if mpo_site == (self.Z2.L-1):
+                E_v = []
+                if self.bc == "obc":
+                    for l in range(self.Z2.l):
+                        self.Z2.local_observable_Z2_dual(mpo_site=mpo_site, l=l)
+                        coeff = np.prod(np.prod(self.charges, axis=1).tolist()[:l+1])
+                        self.w = self.Z2.mpo.copy()
+                        E_v.append(coeff * self.mpo_first_moment().real)
+                        # E_v.append(self.mpo_first_moment().real)
+                    E[1::2, (mpo_site+i)*2] = E_v
+                elif self.bc == "pbc":
+                    for l in range(self.Z2.l):
+                        self.Z2.mpo_Z2_vertical_right_edges_pbc(file=l)
+                        self.w = self.Z2.mpo.copy()
+                        E_v.append(self.mpo_first_moment().real)
+
             for l in [0,self.Z2.l-1]:
                 self.Z2.local_observable_Z2_dual(mpo_site=mpo_site, l=l)
                 coeff = self.Z2.charge_coeff_v(mpo_site=mpo_site, l=l)
@@ -1168,7 +1186,7 @@ class MPS:
         # horizontal
         for l in range(self.Z2.l):
             E_h = []
-            for mpo_site in range(self.Z2.L-2):
+            for mpo_site in range(self.Z2.L-1):
                 self.Z2.zz_observable_Z2_dual(mpo_site=mpo_site, l=l, direction="horizontal")
                 coeff = self.Z2.charge_coeff_interaction(n=l+1,mpo_site=mpo_site)
                 self.w = self.Z2.mpo.copy()
@@ -1805,7 +1823,7 @@ class MPS:
         # else:
         #     sites = np.arange(1, self.L + 1).tolist()
         
-        sites = np.arange(1, self.L + 1).tolist()
+        sites = np.arange(1, self.L+1).tolist()
 
         self.mpo(long=long, trans=trans)
         self.envs()
@@ -2897,7 +2915,7 @@ class MPS:
         # shapes of the tensors
         shapes = tensor_shapes(self.sites)
         np.savetxt(
-            f"{path}/results/tensors/shapes_sites_{self.model}_direct_lattice_{self.Z2.l}x{self.Z2.L-1}_bc_{self.bc}_{cx}-{cy}_chi_{self.chi}_h_{self.h:.{precision}f}",
+            f"{path}/results/tensors/shapes_sites_{self.model}_direct_lattice_{self.Z2.l}x{self.Z2.L}_bc_{self.bc}_{cx}-{cy}_chi_{self.chi}_h_{self.h:.{precision}f}",
             shapes,
             fmt="%1.i",  # , delimiter=','
         )
@@ -2905,7 +2923,7 @@ class MPS:
         # flattening of the tensors
         tensor = [element for site in self.sites for element in site.flatten()]
         np.savetxt(
-            f"{path}/results/tensors/tensor_sites_{self.model}_direct_lattice_{self.Z2.l}x{self.Z2.L-1}_bc_{self.bc}_{cx}-{cy}_chi_{self.chi}_h_{self.h:.{precision}f}",
+            f"{path}/results/tensors/tensor_sites_{self.model}_direct_lattice_{self.Z2.l}x{self.Z2.L}_bc_{self.bc}_{cx}-{cy}_chi_{self.chi}_h_{self.h:.{precision}f}",
             tensor,
         )
 
@@ -3026,12 +3044,12 @@ class MPS:
         """
         # loading of the shapes
         shapes = np.loadtxt(
-            f"{path}/results/tensors/shapes_sites_{self.model}_direct_lattice_{self.Z2.l}x{self.Z2.L-1}_bc_{self.bc}_{cx}-{cy}_chi_{self.chi}_h_{self.h:.{precision}f}",
+            f"{path}/results/tensors/shapes_sites_{self.model}_direct_lattice_{self.Z2.l}x{self.Z2.L}_bc_{self.bc}_{cx}-{cy}_chi_{self.chi}_h_{self.h:.{precision}f}",
 
         ).astype(int)
         # loading of the flat tensors
         filedata = np.loadtxt(
-            f"{path}/results/tensors/tensor_sites_{self.model}_direct_lattice_{self.Z2.l}x{self.Z2.L-1}_bc_{self.bc}_{cx}-{cy}_chi_{self.chi}_h_{self.h:.{precision}f}",
+            f"{path}/results/tensors/tensor_sites_{self.model}_direct_lattice_{self.Z2.l}x{self.Z2.L}_bc_{self.bc}_{cx}-{cy}_chi_{self.chi}_h_{self.h:.{precision}f}",
             dtype=complex,
         )
         # auxiliary function to get the indices where to split

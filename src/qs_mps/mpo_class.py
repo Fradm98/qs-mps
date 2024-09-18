@@ -12,12 +12,34 @@ class MPO_ladder:
         self.l = l
         self.model = model
         self.bc = bc
-        self.charges = np.ones((l + 1, self.L))
+        self.charges = self._define_charges()
         self.lamb = lamb
         self.mpo = []
         self.latt = Lattice((self.L + 1, self.l + 1), (False, False))
-        self.dof = self.l * (self.L - 1)
+        self.dof_dir = None
+        self.dof_dual = None
         self.sector = self._define_sector()
+
+    def _define_charges(self):
+        if self.bc == "obc":
+            charges = np.ones((self.l + 1, self.L + 1))
+        elif self.bc == "pbc":
+            charges = np.ones((self.l, self.L + 1))
+        return charges
+    
+    def _define_dof_dir(self):
+        if self.bc == "obc":
+            self.dof_dir = 2 * self.l * self.L + self.l + self.L
+        elif self.bc == "pbc":
+            self.dof_dir = 2 * self.l * self.L + self.l
+        return self
+    
+    def _define_dof_dual(self):
+        if self.bc == "obc":
+            self.dof_dual = self.l * self.L
+        elif self.bc == "pbc":
+            self.dof_dual = self.l * self.L + 1
+        return self
 
     def charge_constraint(self):
         """
@@ -52,7 +74,7 @@ class MPO_ladder:
             self.charges[j, i] = -1
         # impose the constraint
         self.charge_constraint()
-        self.charges = np.flip(self.charges, axis=1)
+        # self.charges = np.flip(self.charges, axis=1)
         return self
 
     def _define_sector(self):
@@ -316,8 +338,8 @@ class MPO_ladder:
         return mpo_list
 
     def mpo_Z2_ladder_generalized_pbc(self):
-        # degrees of freedom
-        self.L = self.L - 1
+        # # degrees of freedom
+        # self.L = self.L - 1
         dof = self.l*self.L + 1
 
         prod_charges = np.prod(self.charges, axis=1).tolist()
@@ -656,6 +678,28 @@ class MPO_ladder:
 
         return pauli.toarray()
 
+    def mpo_Z2_vertical_right_edges_pbc(self, file):
+        mpo_list = []
+        self.mpo_skeleton()
+        for c in range(self.L):
+            if c == self.L-1:
+                self.mpo[0, file+1] = sparse_pauli_z(n=file, L=self.l).toarray()
+            mpo_list.append(self.mpo)
+            self.mpo_skeleton()
+            
+        l_aux = self.l
+        self.l = 1
+        self.mpo_skeleton(aux_dim=(l_aux+2))
+        self.l = l_aux
+        for f in range(self.l):
+            coeff = np.prod(np.prod(self.charges, axis=1).tolist()[:f+1])
+            self.mpo[f+1, -1] = - self.lamb * coeff * sparse_pauli_z(n=0, L=1).toarray()
+        self.mpo = self.mpo[:,-1].reshape((self.l+2,1,2,2))
+        mpo_list.append(self.mpo)
+        
+        self.mpo = mpo_list
+        return mpo_list
+
     def local_observable_Z2_dual(self, mpo_site, l):
         """
         local_observable_Z2_dual
@@ -664,13 +708,13 @@ class MPO_ladder:
         dual lattice of the Z2 theory.
 
         """
-        assert (0 <= mpo_site < self.L-1), "The mpo site is out of bound. Choose it 0 <= site < L-1"
+        assert (0 <= mpo_site < self.L), "The mpo site is out of bound. Choose it 0 <= site < L-1"
         assert (0 <= l < self.l), "The mpo ladder is out of bound. Choose it 0 <= site < l"
 
         self.mpo_skeleton(aux_dim=2)
 
         mpo_tot = []
-        for site in range(self.L - 1):
+        for site in range(self.L):
             if mpo_site == site:
                 self.mpo[0, -1] = sparse_pauli_z(n=l, L=self.l).toarray()
 
@@ -695,9 +739,9 @@ class MPO_ladder:
         mpo_tot = []
         i = 0
 
-        for site in range(self.L - 1):
+        for site in range(self.L):
             if direction == "horizontal":
-                assert (0 <= mpo_site < self.L-2), "The mpo site is out of bound. Choose it 0 <= site < L-2"
+                assert (0 <= mpo_site < self.L-1), "The mpo site is out of bound. Choose it 0 <= site < L-2"
                 if (mpo_site+i) == site:
                     if i == 0:
                         self.mpo[0, 1] = sparse_pauli_z(n=l, L=self.l).toarray()

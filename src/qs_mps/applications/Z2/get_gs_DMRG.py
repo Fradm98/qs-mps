@@ -61,7 +61,7 @@ parser.add_argument(
 parser.add_argument(
     "-w",
     "--where",
-    help="Bond where we want to observe the Schmidt values, should be between 1 and (L-1)",
+    help="Bond where we want to observe the Schmidt values, should be between 1 and (L)",
     default=-1,
     type=int,
 )
@@ -143,7 +143,7 @@ for L in args.Ls:
     # init_state = np.zeros((d))
     # init_state[0] = 1
     # init_state = init_state.reshape((1,d,1))
-    # init_tensor = [init_state for _ in range(L-1)]
+    # init_tensor = [init_state for _ in range(L)]
     init_tensor = []
     for chi in args.chis:  # L // 2 + 1
         args_mps = {
@@ -194,38 +194,38 @@ for L in args.Ls:
                 energy_chi = energy_chi.reshape((len(interval),len(energy_chi[0])))
                 print(energy_chi.shape)
                 np.save(
-                    f"{parent_path}/results/energy_data/energies_{args.model}_direct_lattice_{args.l}x{L-1}_{sector}_{charges_x}-{charges_y}_h_{args.h_i}-{args.h_f}_delta_{args.npoints}_chi_{chi}",
+                    f"{parent_path}/results/energy_data/energies_{args.model}_direct_lattice_{args.l}x{L}_{sector}_{charges_x}-{charges_y}_h_{args.h_i}-{args.h_f}_delta_{args.npoints}_chi_{chi}",
                     energy_chi,
                 )
                 energy_last = []
                 for i in range(len(interval)):
                     energy_last.append(energy_chi[i,-1])
-                np.save(f"{parent_path}/results/energy_data/energy_{args.model}_direct_lattice_{args.l}x{L-1}_{sector}_{charges_x}-{charges_y}_h_{args.h_i}-{args.h_f}_delta_{args.npoints}_chi_{chi}", energy_last)
+                np.save(f"{parent_path}/results/energy_data/energy_{args.model}_direct_lattice_{args.l}x{L}_{sector}_{charges_x}-{charges_y}_h_{args.h_i}-{args.h_f}_delta_{args.npoints}_chi_{chi}", energy_last)
 
             else:
                 np.save(
-                    f"{parent_path}/results/energy_data/energy_{args.model}_direct_lattice_{args.l}x{L-1}_{sector}_{charges_x}-{charges_y}_h_{args.h_i}-{args.h_f}_delta_{args.npoints}_chi_{chi}",
+                    f"{parent_path}/results/energy_data/energy_{args.model}_direct_lattice_{args.l}x{L}_{sector}_{charges_x}-{charges_y}_h_{args.h_i}-{args.h_f}_delta_{args.npoints}_chi_{chi}",
                     energy_chi,
                 )
 
             save_list_of_lists(
-                f"{parent_path}/results/entropy_data/{args.where}_bond_entropy_{args.model}_direct_lattice_{args.l}x{L-1}_{sector}_{charges_x}-{charges_y}_h_{args.h_i}-{args.h_f}_delta_{args.npoints}_chi_{chi}",
+                f"{parent_path}/results/entropy_data/{args.where}_bond_entropy_{args.model}_direct_lattice_{args.l}x{L}_{sector}_{charges_x}-{charges_y}_h_{args.h_i}-{args.h_f}_delta_{args.npoints}_chi_{chi}",
                 entropy_chi,
             )
             # save_list_of_lists(
-            #     f"{parent_path}/results/entropy_data/{args.where}_schmidt_vals_{args.model}_direct_lattice_{args.l}x{L-1}_{sector}_{charges_x}-{charges_y}_h_{args.h_i}-{args.h_f}_delta_{args.npoints}_chi_{chi}",
+            #     f"{parent_path}/results/entropy_data/{args.where}_schmidt_vals_{args.model}_direct_lattice_{args.l}x{L}_{sector}_{charges_x}-{charges_y}_h_{args.h_i}-{args.h_f}_delta_{args.npoints}_chi_{chi}",
             #     schmidt_vals_chi,
             # )
             np.save(
-                f"{parent_path}/results/entropy_data/{args.where}_schmidt_vals_{args.model}_direct_lattice_{args.l}x{L-1}_{sector}_{charges_x}-{charges_y}_h_{args.h_i}-{args.h_f}_delta_{args.npoints}_chi_{chi}.npy",
+                f"{parent_path}/results/entropy_data/{args.where}_schmidt_vals_{args.model}_direct_lattice_{args.l}x{L}_{sector}_{charges_x}-{charges_y}_h_{args.h_i}-{args.h_f}_delta_{args.npoints}_chi_{chi}.npy",
                 schmidt_vals_chi,
             )
             if args.where == "all":
                 entropy_mid = access_txt(
-                    f"{parent_path}/results/entropy_data/{args.where}_bond_entropy_{args.model}_direct_lattice_{args.l}x{L-1}_{sector}_{charges_x}-{charges_y}_h_{args.h_i}-{args.h_f}_delta_{args.npoints}_chi_{chi}",
-                    (L-1) // 2,
+                    f"{parent_path}/results/entropy_data/{args.where}_bond_entropy_{args.model}_direct_lattice_{args.l}x{L}_{sector}_{charges_x}-{charges_y}_h_{args.h_i}-{args.h_f}_delta_{args.npoints}_chi_{chi}",
+                    (L) // 2,
                 )
                 np.savetxt(
-                    f"{parent_path}/results/entropy_data/{args.L // 2}_bond_entropy_{args.model}_direct_lattice_{args.l}x{L-1}_{sector}_{charges_x}-{charges_y}_h_{args.h_i}-{args.h_f}_delta_{args.npoints}_chi_{chi}",
+                    f"{parent_path}/results/entropy_data/{args.L // 2}_bond_entropy_{args.model}_direct_lattice_{args.l}x{L}_{sector}_{charges_x}-{charges_y}_h_{args.h_i}-{args.h_f}_delta_{args.npoints}_chi_{chi}",
                     entropy_mid,
                 )

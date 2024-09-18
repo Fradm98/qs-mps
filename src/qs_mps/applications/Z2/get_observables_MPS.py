@@ -119,14 +119,20 @@ for L in args.Ls:
         C = []
         for h in interval:
             lattice_mps = MPS(L=L, d=d, model=args.model, chi=chi, h=h, bc=args.boundcond)
-            lattice_mps.L = lattice_mps.L - 1
 
             lattice_mps.load_sites(path=path_tensor, precision=precision, cx=charges_x, cy=charges_y)
             if sector != "vacuum_sector":
                 lattice_mps.Z2.add_charges(charges_x, charges_y)
+            
+            if lattice_mps.bc == "pbc":
+                a = np.zeros((1,2))
+                a[0,0] = 1
+                extra_ancillary_site = a.reshape((1,2,1))
+                lattice_mps.sites.append(extra_ancillary_site)
+                lattice_mps.L = len(lattice_mps.sites)
 
             if "wl" in args.obs:
-                print(f"wilson loop for h:{h:.{precision}f}, direct lattice lxL:{args.l}x{L-1}, chi:{chi}")
+                print(f"wilson loop for h:{h:.{precision}f}, direct lattice lxL:{args.l}x{L}, chi:{chi}")
                 lattice_mps.Z2.wilson_Z2_dual(mpo_sites=args.sites, ls=args.ladders) #list(range(s))
                 lattice_mps.w = lattice_mps.Z2.mpo.copy()
                 if args.moment == 1:
@@ -160,8 +166,8 @@ for L in args.Ls:
                 W_av.append(wav)
 
             if "el" in args.obs:
-                print(f"electric field for h:{h:.{precision}f}, direct lattice lxL:{args.l}x{L-1}, chi:{chi}")
-                E_h = np.zeros((2*args.l+1,2*L-1))
+                print(f"electric field for h:{h:.{precision}f}, direct lattice lxL:{args.l}x{L}, chi:{chi}")
+                E_h = np.zeros((2*args.l+1,2*L+1))
                 E_h[:] = np.nan
                 E_h = lattice_mps.electric_field_Z2(E_h)
                 E.append(E_h)
