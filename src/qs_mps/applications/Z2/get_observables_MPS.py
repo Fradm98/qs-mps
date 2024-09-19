@@ -197,32 +197,32 @@ for L in args.Ls:
 
         if "wl" in args.obs:
             np.save(
-                        f"{parent_path}/results/wilson_loops/wilson_loop_{moment}_moment_{args.sites}-{args.ladders}_{args.model}_direct_lattice_{args.l}x{L}_bc_{args.boundcond}_{sector}_{charges_x}-{charges_y}_h_{args.h_i}-{args.h_f}_delta_{args.npoints}_chi_{chi}.npy",
+                        f"{parent_path}/results/wilson_loops/wilson_loop_{moment}_moment_{args.sites}-{args.ladders}_{args.model}_direct_lattice_{args.l}x{L}_{sector}_bc_{args.boundcond}_{charges_x}-{charges_y}_h_{args.h_i}-{args.h_f}_delta_{args.npoints}_chi_{chi}.npy",
                         W,
                     )
         if "wl_av" in args.obs:
             np.save(
-                        f"{parent_path}/results/wilson_loops/wilson_loop_average_{moment}_moment_{args.model}_direct_lattice_{args.l}x{L}_bc_{args.boundcond}_{sector}_{charges_x}-{charges_y}_h_{args.h_i}-{args.h_f}_delta_{args.npoints}_chi_{chi}.npy",
+                        f"{parent_path}/results/wilson_loops/wilson_loop_average_{moment}_moment_{args.model}_direct_lattice_{args.l}x{L}_{sector}_bc_{args.boundcond}_{charges_x}-{charges_y}_h_{args.h_i}-{args.h_f}_delta_{args.npoints}_chi_{chi}.npy",
                         W_av,
                     )
         if "el" in args.obs:
             np.save(
-                        f"{parent_path}/results/electric_field/electric_field_{args.model}_direct_lattice_{args.l}x{L}_bc_{args.boundcond}_{sector}_{charges_x}-{charges_y}_h_{args.h_i}-{args.h_f}_delta_{args.npoints}_chi_{chi}.npy",
+                        f"{parent_path}/results/electric_field/electric_field_{args.model}_direct_lattice_{args.l}x{L}_{sector}_bc_{args.boundcond}_{charges_x}-{charges_y}_h_{args.h_i}-{args.h_f}_delta_{args.npoints}_chi_{chi}.npy",
                         E,
                     )
         if "thooft" in args.obs:
             np.save(
-                        f"{parent_path}/results/thooft/thooft_string_{moment}_moment_{args.sites[0]}-{args.ladders[0]}_{direction}_{args.model}_direct_lattice_{args.l}x{L}_bc_{args.boundcond}_{sector}_{charges_x}-{charges_y}_h_{args.h_i}-{args.h_f}_delta_{args.npoints}_chi_{chi}.npy",
+                        f"{parent_path}/results/thooft/thooft_string_{moment}_moment_{args.sites[0]}-{args.ladders[0]}_{direction}_{args.model}_direct_lattice_{args.l}x{L}_{sector}_bc_{args.boundcond}_{charges_x}-{charges_y}_h_{args.h_i}-{args.h_f}_delta_{args.npoints}_chi_{chi}.npy",
                         S,
                     )
         if "mag" in args.obs:
             np.save(
-                        f"{parent_path}/results/mag_data/dual_mag_{moment}_moment_{args.model}_direct_lattice_{args.l}x{L}_bc_{args.boundcond}_{sector}_{charges_x}-{charges_y}_h_{args.h_i}-{args.h_f}_delta_{args.npoints}_chi_{chi}.npy",
+                        f"{parent_path}/results/mag_data/dual_mag_{moment}_moment_{args.model}_direct_lattice_{args.l}x{L}_{sector}_bc_{args.boundcond}_{charges_x}-{charges_y}_h_{args.h_i}-{args.h_f}_delta_{args.npoints}_chi_{chi}.npy",
                         M,
                     )
         if "corr" in args.obs:
             C = np.array_split(C, args.npoints)
             np.save(
-                        f"{parent_path}/results/mag_data/connected_correlator_s_{args.sites[0]}_l_{args.ladders[0]}_{args.model}_direct_lattice_{args.l}x{L}_bc_{args.boundcond}_{sector}_{charges_x}-{charges_y}_h_{args.h_i}-{args.h_f}_delta_{args.npoints}_chi_{chi}.npy",
+                        f"{parent_path}/results/mag_data/connected_correlator_s_{args.sites[0]}_l_{args.ladders[0]}_{args.model}_direct_lattice_{args.l}x{L}_{sector}_bc_{args.boundcond}_{charges_x}-{charges_y}_h_{args.h_i}-{args.h_f}_delta_{args.npoints}_chi_{chi}.npy",
                         C,
                     )
