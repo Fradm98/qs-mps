@@ -522,6 +522,41 @@ class MPO_ladder:
         self.mpo = w_tot
         return self
     
+    # def thooft(self, site: list, l: list, direction: str):
+    #     """
+    #     thooft
+
+    #     This function finds the 't Hooft string for the Z2 dual lattice.
+    #     It gives us vertical and horizontal strings from a specific dual lattice
+    #     site and going, conventionally, up and left, respectively (to vertical and horizontal).
+        
+    #     site: list - the first element is the mps site of the interested dual lattice site, starts from 0
+    #     l: list - the first element is the ladder of the interested dual lattice site, starts from 0
+    #     direction: str - indicates in the direction of the string. We use the convention:
+    #             hor -> from left to 'site' at a specific 'l'
+    #             ver -> from up to 'l' at a specific 'site'
+
+    #     """
+    #     self.mpo_skeleton(aux_dim=2)
+
+    #     site = site[0]
+    #     l = l[0]
+    #     mpo_tot = []
+    #     if direction == "vertical": # depends on the bounday conditions
+    #         coeff = self.charge_coeff_v(mpo_site=site, l=0)
+    #     if direction == "horizontal": # no charges
+    #         coeff = self.charge_coeff_v_edge(mpo_site=site, l=l)
+    #         for mpo_site in range(site):
+    #             coeff = coeff * self.charge_coeff_interaction(n=l+1, mpo_site=mpo_site)
+
+    #     for mpo_site in range(self.L-1):
+    #         if mpo_site == site:
+    #             self.mpo[0,-1] = coeff * sparse_pauli_z(n=l, L=self.l).toarray()
+    #         mpo_tot.append(self.mpo)
+    #         self.mpo_skeleton(aux_dim=2)
+                    
+    #     self.mpo = mpo_tot
+    #     return self
     def thooft(self, site: list, l: list, direction: str):
         """
         thooft
@@ -542,14 +577,12 @@ class MPO_ladder:
         site = site[0]
         l = l[0]
         mpo_tot = []
-        if direction == "vertical":
+        if direction == "vertical": # depends on the bounday conditions
             coeff = self.charge_coeff_v(mpo_site=site, l=0)
-        if direction == "horizontal":
-            coeff = self.charge_coeff_v_edge(mpo_site=site, l=l)
-            for mpo_site in range(site):
-                coeff = coeff * self.charge_coeff_interaction(n=l+1, mpo_site=mpo_site)
-
-        for mpo_site in range(self.L-1):
+        if direction == "horizontal": # no charges
+            coeff = 1
+                
+        for mpo_site in range(self.L):
             if mpo_site == site:
                 self.mpo[0,-1] = coeff * sparse_pauli_z(n=l, L=self.l).toarray()
             mpo_tot.append(self.mpo)
