@@ -161,28 +161,20 @@ class MPO_ladder:
         """
         assert 1 <= n <= self.l, "Select a value of n within (1,l)"
 
-        if mpo_site == 0 or mpo_site == (self.L):
+        if mpo_site == 0 or mpo_site == (self.L - 1):
             if mpo_site == 0:
                 col = mpo_site
-                if n == 1:
-                    alpha = 1
-                    n = n - 1
-                elif n == self.l:
-                    alpha = 1
-                    n = n
-                else:
-                    alpha = 0
-            elif mpo_site == (self.L):
+            elif mpo_site == (self.L - 1):
                 col = mpo_site + 1
-                if n == 1:
-                    alpha = 1
-                    n = n - 1
-                elif n == self.l:
-                    alpha = 1
-                    n = n
-                else:
-                    alpha = 0
-                    
+            
+            if n == 1:
+                alpha = 1
+                n = n - 1
+            elif n == self.l:
+                alpha = 1
+                n = n
+            else:
+                alpha = 0                    
 
             c_n_j = (1 + self.charges[n, col]) ** (alpha) * np.prod(
                 self.charges[n:, col]
@@ -331,8 +323,8 @@ class MPO_ladder:
 
         """
         if self.bc == "obc":
-            mpo_list = self.mpo_Z2_ladder_generalized_obc_old()
-            # mpo_list = self.mpo_Z2_ladder_generalized_obc()
+            # mpo_list = self.mpo_Z2_ladder_generalized_obc_old()
+            mpo_list = self.mpo_Z2_ladder_generalized_obc()
         elif self.bc == "pbc":
             mpo_list = self.mpo_Z2_ladder_generalized_pbc()
         self.mpo = mpo_list
@@ -413,7 +405,7 @@ class MPO_ladder:
             ## Horizontal Bottom ----------------------------------------------
             # first row last column, for the local z horizontal bottom
             coeff = np.prod(self.charges[-1,:c+1])
-            self.mpo[0,-1] = - self.lamb * coeff * sparse_pauli_z(n=f+1, L=self.l).toarray()
+            self.mpo[0,-1] += - self.lamb * coeff * sparse_pauli_z(n=f+1, L=self.l).toarray()
 
             ## Vertical Left ----------------------------------------------
             # first row last column, for the local z vertical terms on the left boundary
