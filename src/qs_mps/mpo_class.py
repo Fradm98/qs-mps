@@ -142,10 +142,10 @@ class MPO_ladder:
         """
         assert 1 <= n <= self.l, "Select a value of n within (1,l)"
         assert (
-            0 <= mpo_site <= (self.L - 2)
+            0 <= mpo_site <= (self.L - 1)
         ), "Select a value of charge column within (0,L-2)"
 
-        if mpo_site == (self.L - 2):
+        if mpo_site == (self.L - 1):
             c_n_j = 1
         else:
             c_n_j = np.prod(self.charges[n:, mpo_site + 1])
@@ -161,7 +161,7 @@ class MPO_ladder:
         """
         assert 1 <= n <= self.l, "Select a value of n within (1,l)"
 
-        if mpo_site == 0 or mpo_site == (self.L - 2):
+        if mpo_site == 0 or mpo_site == (self.L):
             if mpo_site == 0:
                 col = mpo_site
                 if n == 1:
@@ -172,7 +172,7 @@ class MPO_ladder:
                     n = n
                 else:
                     alpha = 0
-            elif mpo_site == (self.L - 2):
+            elif mpo_site == (self.L):
                 col = mpo_site + 1
                 if n == 1:
                     alpha = 1
@@ -331,7 +331,8 @@ class MPO_ladder:
 
         """
         if self.bc == "obc":
-            mpo_list = self.mpo_Z2_ladder_generalized_obc()
+            mpo_list = self.mpo_Z2_ladder_generalized_obc_old()
+            # mpo_list = self.mpo_Z2_ladder_generalized_obc()
         elif self.bc == "pbc":
             mpo_list = self.mpo_Z2_ladder_generalized_pbc()
         self.mpo = mpo_list
@@ -446,6 +447,59 @@ class MPO_ladder:
         self.mpo = mpo_list
         return mpo_list
 
+    def mpo_Z2_ladder_generalized_obc_old(self):
+        """
+        mpo_Z2_ladder_generalized
+
+        This function computes the hamiltonian MPO for the Z2
+        gauge pure theory for general number of ladders and charge configuration.
+
+        """
+        self.mpo_skeleton()
+        mpo_list = []
+        for mpo_site in range(self.L):
+            # -----------
+            # first row
+            # -----------
+            # interaction terms (from column 2 to l+1)
+            for n in range(1, self.l + 1):
+                # self.mpo[0,n] = - 1 * sparse_pauli_z(n=n-1, L=self.l).toarray()
+                self.mpo[0, n] = (
+                    -self.charge_coeff_interaction(n=n, mpo_site=mpo_site)
+                    * self.lamb
+                    * sparse_pauli_z(n=n - 1, L=self.l).toarray()
+                )
+
+            # local terms (column l+2)
+            # local Z and local X
+            for i in range(1, self.l + 1):
+                # self.mpo[0,n+1] += - 3 * sparse_pauli_z(n=i-1, L=self.l).toarray() - self.lamb * sparse_pauli_x(n=i-1, L=self.l).toarray()
+                self.mpo[0, n + 1] += (
+                    -self.charge_coeff_local_Z(n=i, mpo_site=mpo_site)
+                    * self.lamb
+                    * sparse_pauli_z(n=i - 1, L=self.l).toarray()
+                    - (1/self.lamb) * sparse_pauli_x(n=i - 1, L=self.l).toarray()
+                )
+            # vertical Z interaction
+            for j in range(self.l - 1):
+                self.mpo[0, n + 1] += -(
+                    self.lamb
+                    * sparse_pauli_z(n=j, L=self.l) @ sparse_pauli_z(n=j + 1, L=self.l)
+                ).toarray()
+
+            # -----------
+            # last column
+            # -----------
+            # positive terms to complete the interaction between nearest neighbor sites (from row 2 to l+1)
+            for n in range(1, self.l + 1):
+                self.mpo[n, -1] = sparse_pauli_z(n=n - 1, L=self.l).toarray()
+
+            mpo_list.append(self.mpo)
+            self.mpo_skeleton()
+
+        self.mpo = mpo_list
+        return mpo_list
+    
     def diagonalize(self):
         self.mpo_Z2_ladder_generalized()
         H = mpo_to_matrix(self.mpo)
