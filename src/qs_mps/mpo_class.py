@@ -394,7 +394,7 @@ class MPO_ladder:
             ## Horizontal Up ----------------------------------------------
             # first row last column, for the local z horizontal up
             coeff = np.prod(self.charges[0,:c+1])
-            self.mpo[0,-1] = - self.lamb * coeff * sparse_pauli_z(n=0, L=self.l).toarray()
+            self.mpo[0,-1] += - self.lamb * coeff * sparse_pauli_z(n=0, L=self.l).toarray()
             
             ## Horizontal Bulk ----------------------------------------------
             for f in range(self.l-1):
