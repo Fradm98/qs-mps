@@ -21,7 +21,7 @@ parser.add_argument(
     help="Path to the drive depending on the device used. Available are 'pc', 'mac', 'marcos'",
     type=str,
 )
-parser.add_argument("-o", "--obs", help="Observable we want to compute. Available are 'wl', 'wl_av', 'el', 'thooft', 'mag', 'corr'", nargs="+", type=str)
+parser.add_argument("-o", "--obs", help="Observable we want to compute. Available are 'wl', 'wl_av', 'el', 'thooft', 'mag', 'corr', 'en'", nargs="+", type=str)
 parser.add_argument("-L", "--Ls", help="Number of rungs per ladder", nargs="+", type=int)
 parser.add_argument("-D", "--chis", help="Simulated bond dimensions", nargs="+", type=int)
 parser.add_argument("-cx", "--charges_x", help="a list of the first index of the charges", nargs="*", type=int)
@@ -114,6 +114,7 @@ for L in args.Ls:
         W = []
         W_av = []
         E = []
+        En = []
         S = []
         M = []
         C = []
@@ -194,6 +195,11 @@ for L in args.Ls:
                 c = lattice_mps.connected_correlator(site=args.sites[0], lad=args.ladders[0])
                 C.append(c)
 
+            if "en" in args.obs:
+                print(f"Ground state energy for h:{h:.{precision}f}, direct lattice lxL:{args.l}x{L}, bc: {args.boundcond}, chi:{chi}")
+                lattice_mps.Z2.mpo_Z2_ladder_generalized_obc_old()
+                lattice_mps.w = lattice_mps.Z2.mpo.copy()
+                En.append(lattice_mps.mpo_first_moment().real)
 
         if "wl" in args.obs:
             np.save(
@@ -225,4 +231,9 @@ for L in args.Ls:
             np.save(
                         f"{parent_path}/results/mag_data/connected_correlator_s_{args.sites[0]}_l_{args.ladders[0]}_{args.model}_direct_lattice_{args.l}x{L}_{sector}_bc_{args.boundcond}_{charges_x}-{charges_y}_h_{args.h_i}-{args.h_f}_delta_{args.npoints}_chi_{chi}.npy",
                         C,
+                    )
+        if "en" in args.obs:
+            np.save(
+                        f"{parent_path}/results/energy_data/energy_obs_{args.model}_direct_lattice_{args.l}x{L}_{sector}_bc_{args.boundcond}_{charges_x}-{charges_y}_h_{args.h_i}-{args.h_f}_delta_{args.npoints}_chi_{chi}.npy",
+                        En,
                     )
