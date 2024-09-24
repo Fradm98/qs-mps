@@ -44,7 +44,7 @@ class H_Z2_gauss:
             ), "Do not choose the last charge! We use it for Gauss Law constraint"
             self.charges[j, i] = -1
 
-        self.charges = np.flip(self.charges, axis=0)
+        # self.charges = np.flip(self.charges, axis=0)
         return self
 
     def _define_sector(self):
@@ -101,7 +101,7 @@ class H_Z2_gauss:
             G += (g - self.charges[site[1], site[0]] * I) @ (
                 g - self.charges[site[1], site[0]] * I
             )
-        return - (self.J * loc) - (self.lamb * plaq) + (self.U * G)
+        return - (self.lamb * loc) - (1/self.lamb * plaq) + (self.U * G)
 
     def diagonalize(self, v0: np.ndarray=None, sparse: bool=True, save: bool=True, path: str=None, precision: int=2, spectrum: str="gs", cx: list=None, cy: list=None):
         H = self.hamiltonian()

@@ -132,6 +132,7 @@ for h in interval:
     if len(args.charges_x) > 0:
         Z2.add_charges(rows=args.charges_x, columns=args.charges_y)
         Z2._define_sector()
+        print(Z2.charges)
     e, v = Z2.diagonalize(v0=v0, sparse=args.sparse, save=args.save, path=path_eigvec, cx=args.charges_x, cy=args.charges_y, precision=precision) # , path=args.path, precision=precision, spectrum=spectrum, cx=args.charges_x, cy=args.charges_y
     energy.append(e[0])
     v0 = v[:,0]
@@ -155,6 +156,6 @@ if spectrum == "all":
         energy_gs,
     )
 else:
-    np.savetxt(f"{parent_path}/results/exact/energy_data/energies_{args.model}_direct_lattice_{args.l-1}x{args.L-1}_{sector}_{args.charges_x}-{args.charges_y}_h_{args.h_i}-{args.h_f}_delta_{args.npoints}",
+    np.savetxt(f"{parent_path}/results/exact/energy_data/energy_{args.model}_direct_lattice_{args.l-1}x{args.L-1}_{sector}_{args.charges_x}-{args.charges_y}_h_{args.h_i}-{args.h_f}_delta_{args.npoints}",
         energy,
     )

@@ -609,14 +609,6 @@ class MPS:
             self.Z2.mpo_Z2_ladder_generalized()
             self.w = self.Z2.mpo
 
-        elif self.model == "Z2_dual" and self.bc == "obc":
-            self.Z2.mpo_Z2_ladder_generalized()
-            self.w = self.Z2.mpo
-        
-        elif self.model == "Z2_dual" and self.bc == "pbc":
-            self.Z2.mpo_Z2_ladder_generalized_pbc()
-            self.w = self.Z2.mpo
-
         elif self.model == "XXZ":
             self.mpo_xxz(long=long)
 

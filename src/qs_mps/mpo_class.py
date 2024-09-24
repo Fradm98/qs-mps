@@ -385,8 +385,6 @@ class MPO_ladder:
         # degrees of freedom
         dof = self.l*self.L
 
-        prod_charges = np.prod(self.charges, axis=1).tolist()
-
         # initialize
         self.mpo_skeleton()
         mpo_list = []
@@ -431,7 +429,7 @@ class MPO_ladder:
             # first row last column, for the local z vertical right
             if c == (self.L-1):
                 for f in range(self.l):
-                    coeff = np.prod(prod_charges[:f+1])
+                    coeff = np.prod(self.charges[:f+1,:self.L+1])
                     self.mpo[0, -1] += - self.lamb * coeff * sparse_pauli_z(n=f, L=self.l).toarray()
 
             mpo_list.append(self.mpo)
