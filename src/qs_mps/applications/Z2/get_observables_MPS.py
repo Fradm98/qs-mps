@@ -197,7 +197,7 @@ for L in args.Ls:
 
             if "en" in args.obs:
                 print(f"Ground state energy for h:{h:.{precision}f}, direct lattice lxL:{args.l}x{L}, bc: {args.boundcond}, chi:{chi}")
-                lattice_mps.Z2.mpo_Z2_ladder_generalized_obc_old()
+                lattice_mps.Z2.mpo_Z2_ladder_generalized_obc()
                 lattice_mps.w = lattice_mps.Z2.mpo.copy()
                 En.append(lattice_mps.mpo_first_moment().real)
 
