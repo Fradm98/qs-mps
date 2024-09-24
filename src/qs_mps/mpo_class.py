@@ -402,10 +402,11 @@ class MPO_ladder:
                 coeff = np.prod(self.charges[f+1,:c+1])
                 self.mpo[0,-1] += - self.lamb * coeff * (sparse_pauli_z(n=f, L=self.l).toarray() @ sparse_pauli_z(n=f+1, L=self.l).toarray())
 
+            f += 1
             ## Horizontal Bottom ----------------------------------------------
             # first row last column, for the local z horizontal bottom
-            coeff = np.prod(self.charges[-1,:c+1])
-            self.mpo[0,-1] += - self.lamb * coeff * sparse_pauli_z(n=f+1, L=self.l).toarray()
+            coeff = np.prod(self.charges[f+1,:c+1])
+            self.mpo[0,-1] += - self.lamb * coeff * sparse_pauli_z(n=f, L=self.l).toarray()
 
             ## Vertical Left ----------------------------------------------
             # first row last column, for the local z vertical terms on the left boundary
