@@ -197,7 +197,7 @@ for L in args.Ls:
 
             if "en" in args.obs:
                 print(f"Ground state energy for h:{h:.{precision}f}, direct lattice lxL:{args.l}x{L}, bc: {args.boundcond}, chi:{chi}")
-                lattice_mps.Z2.mpo_Z2_ladder_generalized_obc()
+                lattice_mps.Z2.mpo_Z2_ladder_generalized_obc_old()
                 lattice_mps.w = lattice_mps.Z2.mpo.copy()
                 En.append(lattice_mps.mpo_first_moment().real)
 
@@ -234,6 +234,6 @@ for L in args.Ls:
                     )
         if "en" in args.obs:
             np.save(
-                        f"{parent_path}/results/energy_data/energy_obs_new_{args.model}_direct_lattice_{args.l}x{L}_{sector}_bc_{args.boundcond}_{charges_x}-{charges_y}_h_{args.h_i}-{args.h_f}_delta_{args.npoints}_chi_{chi}.npy",
+                        f"{parent_path}/results/energy_data/energy_obs_old_{args.model}_direct_lattice_{args.l}x{L}_{sector}_bc_{args.boundcond}_{charges_x}-{charges_y}_h_{args.h_i}-{args.h_f}_delta_{args.npoints}_chi_{chi}.npy",
                         En,
                     )

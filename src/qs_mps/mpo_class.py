@@ -323,8 +323,8 @@ class MPO_ladder:
 
         """
         if self.bc == "obc":
-            # mpo_list = self.mpo_Z2_ladder_generalized_obc_old()
-            mpo_list = self.mpo_Z2_ladder_generalized_obc()
+            # mpo_list = self.mpo_Z2_ladder_generalized_obc_cc_v()
+            mpo_list = self.mpo_Z2_ladder_generalized_obc_cc_h()
         elif self.bc == "pbc":
             mpo_list = self.mpo_Z2_ladder_generalized_pbc()
         self.mpo = mpo_list
@@ -381,7 +381,7 @@ class MPO_ladder:
         self.mpo = mpo_list
         return mpo_list
     
-    def mpo_Z2_ladder_generalized_obc(self):
+    def mpo_Z2_ladder_generalized_obc_cc_h(self):
         # degrees of freedom
         dof = self.l*self.L
 
@@ -438,7 +438,7 @@ class MPO_ladder:
         self.mpo = mpo_list
         return mpo_list
 
-    def mpo_Z2_ladder_generalized_obc_old(self):
+    def mpo_Z2_ladder_generalized_obc_cc_v(self):
         """
         mpo_Z2_ladder_generalized
 

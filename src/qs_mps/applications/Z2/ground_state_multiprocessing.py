@@ -72,7 +72,6 @@ def ground_state_Z2_param(params):
     save = args_mps["save"]
     precision = args_mps["precision"]
     if ladder.model == "Z2_dual":
-        # ladder.L = ladder.L - 1
         if args_mps["sector"] != "vacuum_sector":
             ladder.Z2.add_charges(rows=args_mps["charges_x"], columns=args_mps["charges_y"])
             print(ladder.Z2.charges)
