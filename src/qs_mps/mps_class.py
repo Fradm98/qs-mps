@@ -2908,7 +2908,7 @@ class MPS:
         # shapes of the tensors
         shapes = tensor_shapes(self.sites)
         np.savetxt(
-            f"{path}/results/tensors/shapes_sites_old_{self.model}_direct_lattice_{self.Z2.l}x{self.Z2.L}_bc_{self.bc}_{cx}-{cy}_chi_{self.chi}_h_{self.h:.{precision}f}",
+            f"{path}/results/tensors/shapes_sites_{self.model}_direct_lattice_{self.Z2.l}x{self.Z2.L}_bc_{self.bc}_{cx}-{cy}_chi_{self.chi}_h_{self.h:.{precision}f}",
             shapes,
             fmt="%1.i",  # , delimiter=','
         )
@@ -2916,7 +2916,7 @@ class MPS:
         # flattening of the tensors
         tensor = [element for site in self.sites for element in site.flatten()]
         np.savetxt(
-            f"{path}/results/tensors/tensor_sites_old_{self.model}_direct_lattice_{self.Z2.l}x{self.Z2.L}_bc_{self.bc}_{cx}-{cy}_chi_{self.chi}_h_{self.h:.{precision}f}",
+            f"{path}/results/tensors/tensor_sites_{self.model}_direct_lattice_{self.Z2.l}x{self.Z2.L}_bc_{self.bc}_{cx}-{cy}_chi_{self.chi}_h_{self.h:.{precision}f}",
             tensor,
         )
 
@@ -3037,12 +3037,12 @@ class MPS:
         """
         # loading of the shapes
         shapes = np.loadtxt(
-            f"{path}/results/tensors/shapes_sites_new_{self.model}_direct_lattice_{self.Z2.l}x{self.Z2.L}_bc_{self.bc}_{cx}-{cy}_chi_{self.chi}_h_{self.h:.{precision}f}",
+            f"{path}/results/tensors/shapes_sites_{self.model}_direct_lattice_{self.Z2.l}x{self.Z2.L}_bc_{self.bc}_{cx}-{cy}_chi_{self.chi}_h_{self.h:.{precision}f}",
 
         ).astype(int)
         # loading of the flat tensors
         filedata = np.loadtxt(
-            f"{path}/results/tensors/tensor_sites_new_{self.model}_direct_lattice_{self.Z2.l}x{self.Z2.L}_bc_{self.bc}_{cx}-{cy}_chi_{self.chi}_h_{self.h:.{precision}f}",
+            f"{path}/results/tensors/tensor_sites_{self.model}_direct_lattice_{self.Z2.l}x{self.Z2.L}_bc_{self.bc}_{cx}-{cy}_chi_{self.chi}_h_{self.h:.{precision}f}",
             dtype=complex,
         )
         # auxiliary function to get the indices where to split
