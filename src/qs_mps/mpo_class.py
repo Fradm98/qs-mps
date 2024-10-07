@@ -492,7 +492,7 @@ class MPO_ladder:
         return mpo_list
     
 
-    def mpo_Z2_plaquette_total_energy_density(self, site: int, ladder: int):
+    def mpo_Z2_plaquette_total_energy_density(self, site: int, ladder: int, cc: str="h"):
         """
         mpo_Z2_plaquette_total_energy_density
 
@@ -517,6 +517,7 @@ class MPO_ladder:
 
         site: int - column we are interested in computing the energy density
         ladder: int - row we are interested in computing the energy density
+        cc: str - charge convention used to compute the MPS
         
         """
         self.mpo_skeleton(aux_dim=3)
@@ -531,11 +532,18 @@ class MPO_ladder:
                 # prepare the ZZ interaction for the link 3
                 self.mpo[0,1] = sparse_pauli_z(n=ladder, L=self.l).toarray()
                 # finish the ZZ interaction for the link 1
-                self.mpo[1,-1] = - (1/2) * self.lamb * sparse_pauli_z(n=ladder, L=self.l).toarray() # link 1 is shared between two plaquettes
+                if cc == "h":
+                    coeff = 1
+                elif cc == "v":
+                    coeff = self.charge_coeff_interaction(n=ladder+1,mpo_site=c)
+                self.mpo[1,-1] = - (1/2) * self.lamb * coeff * sparse_pauli_z(n=ladder, L=self.l).toarray() # link 1 is shared between two plaquettes
                 
                 if ladder == 0:
                     # local Z interaction for boundary link 2
-                    coeff = np.prod(self.charges[ladder,:c+1])
+                    if cc == "h":
+                        coeff = np.prod(self.charges[ladder,:c+1])
+                    elif cc == "v":
+                        coeff = self.charge_coeff_v(mpo_site=c, l=ladder)
                     self.mpo[0,-1] += - self.lamb * coeff * sparse_pauli_z(n=ladder, L=self.l).toarray() # link 2 boundary is just in one plaquette
                     # "local" ZZ interaction for bulk link 4
                     coeff = np.prod(self.charges[ladder+1,:c+1])
@@ -554,7 +562,10 @@ class MPO_ladder:
                     coeff = np.prod(self.charges[ladder,:c+1])
                     self.mpo[0,-1] += - (1/2) * self.lamb * coeff * sparse_pauli_z(n=ladder-1, L=self.l).toarray() @ sparse_pauli_z(n=ladder, L=self.l).toarray() # link 2 is shared between two plaquettes
                     # local Z interaction for boundary link 4
-                    coeff = np.prod(self.charges[ladder+1,:c+1])
+                    if cc == "h":
+                        coeff = np.prod(self.charges[ladder+1,:c+1])
+                    elif cc == "v":
+                        coeff = self.charge_coeff_v(mpo_site=c, l=ladder)
                     self.mpo[0,-1] += - self.lamb * coeff * sparse_pauli_z(n=ladder, L=self.l).toarray() # link 4 boundary is just in one plaquette
             
                 ### magnetic term ###
@@ -562,14 +573,18 @@ class MPO_ladder:
 
             if c == site+1:
                 # finish the ZZ interaction for the link 3
-                self.mpo[1,-1] = - (1/2) * self.lamb * sparse_pauli_z(n=ladder, L=self.l).toarray() # link 3 is shared between two plaquettes
+                if cc == "h":
+                    coeff = 1
+                elif cc == "v":
+                    coeff = self.charge_coeff_interaction(n=ladder+1,mpo_site=c)
+                self.mpo[1,-1] = - (1/2) * self.lamb * coeff * sparse_pauli_z(n=ladder, L=self.l).toarray() # link 3 is shared between two plaquettes
             
             mpo_list.append(self.mpo)
             self.mpo_skeleton(aux_dim=3)
         self.mpo = mpo_list
         return mpo_list
 
-    def mpo_Z2_plaquette_electric_energy_density(self, site: int, ladder: int):
+    def mpo_Z2_plaquette_electric_energy_density(self, site: int, ladder: int, cc: str="h"):
         """
         mpo_Z2_plaquette_electric_energy_density
 
@@ -591,6 +606,7 @@ class MPO_ladder:
 
         site: int - column we are interested in computing the energy density
         ladder: int - row we are interested in computing the energy density
+        cc: str - charge convention used to compute the MPS
         
         """
         self.mpo_skeleton(aux_dim=3)
@@ -605,11 +621,18 @@ class MPO_ladder:
                 # prepare the ZZ interaction for the link 3
                 self.mpo[0,1] = sparse_pauli_z(n=ladder, L=self.l).toarray()
                 # finish the ZZ interaction for the link 1
-                self.mpo[1,-1] = - (1/2) * self.lamb * sparse_pauli_z(n=ladder, L=self.l).toarray() # link 1 is shared between two plaquettes
+                if cc == "h":
+                    coeff = 1
+                elif cc == "v":
+                    coeff = self.charge_coeff_interaction(n=ladder+1,mpo_site=c)
+                self.mpo[1,-1] = - (1/2) * self.lamb * coeff * sparse_pauli_z(n=ladder, L=self.l).toarray() # link 1 is shared between two plaquettes
                 
                 if ladder == 0:
                     # local Z interaction for boundary link 2
-                    coeff = np.prod(self.charges[ladder,:c+1])
+                    if cc == "h":
+                        coeff = np.prod(self.charges[ladder,:c+1])
+                    elif cc == "v":
+                        coeff = self.charge_coeff_v(mpo_site=c, l=ladder)
                     self.mpo[0,-1] += - self.lamb * coeff * sparse_pauli_z(n=ladder, L=self.l).toarray() # link 2 boundary is just in one plaquette
                     # "local" ZZ interaction for bulk link 4
                     coeff = np.prod(self.charges[ladder+1,:c+1])
@@ -628,12 +651,19 @@ class MPO_ladder:
                     coeff = np.prod(self.charges[ladder,:c+1])
                     self.mpo[0,-1] += - (1/2) * self.lamb * coeff * sparse_pauli_z(n=ladder-1, L=self.l).toarray() @ sparse_pauli_z(n=ladder, L=self.l).toarray() # link 2 is shared between two plaquettes
                     # local Z interaction for boundary link 4
-                    coeff = np.prod(self.charges[ladder+1,:c+1])
+                    if cc == "h":
+                        coeff = np.prod(self.charges[ladder+1,:c+1])
+                    elif cc == "v":
+                        coeff = self.charge_coeff_v(mpo_site=c, l=ladder)
                     self.mpo[0,-1] += - self.lamb * coeff * sparse_pauli_z(n=ladder, L=self.l).toarray() # link 4 boundary is just in one plaquette
             
             if c == site+1:
                 # finish the ZZ interaction for the link 3
-                self.mpo[1,-1] = - (1/2) * self.lamb * sparse_pauli_z(n=ladder, L=self.l).toarray() # link 3 is shared between two plaquettes
+                if cc == "h":
+                    coeff = 1
+                elif cc == "v":
+                    coeff = self.charge_coeff_interaction(n=ladder+1,mpo_site=c)
+                self.mpo[1,-1] = - (1/2) * self.lamb * coeff * sparse_pauli_z(n=ladder, L=self.l).toarray() # link 3 is shared between two plaquettes
             
             mpo_list.append(self.mpo)
             self.mpo_skeleton(aux_dim=3)
