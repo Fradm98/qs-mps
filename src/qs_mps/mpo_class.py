@@ -491,6 +491,188 @@ class MPO_ladder:
         self.mpo = mpo_list
         return mpo_list
     
+
+    def mpo_Z2_plaquette_total_energy_density(self, site: int, ladder: int):
+        """
+        mpo_Z2_plaquette_total_energy_density
+
+        This function computes the total energy density of a plaquette at
+        an arbitrary site and ladder. In the direct hamiltonian we have two main
+        contributions - electring and magnetic. The electric hamiltonian
+        contributes with four terms. The latters are expressed in the dual formalism
+        with ZZ interaction terms or local Z terms according to which link we are
+        computing. Boundary conditions also affect the duality. The magnetic
+        hamiltonian contributes with the product of four terms which in the dual form 
+        is simply a local X term without any charge coefficient.
+        We enumerate the links starting from the vertical left (1) and proceed clockwise:
+
+        _ | _ _ 2 _ _ | _ 
+          |           |
+          |           |
+          1           3
+          |           |
+          |           |
+        _ | _ _ 4 _ _ | _
+          |           |
+
+        site: int - column we are interested in computing the energy density
+        ladder: int - row we are interested in computing the energy density
+        
+        """
+        self.mpo_skeleton(aux_dim=3)
+        mpo_list = []
+        for c in range(self.L):
+            
+            if c == site-1:
+                # prepare the ZZ interaction for the link 1
+                self.mpo[0,1] = sparse_pauli_z(n=ladder, L=self.l).toarray()
+            
+            if c == site:
+                # prepare the ZZ interaction for the link 3
+                self.mpo[0,1] = sparse_pauli_z(n=ladder, L=self.l).toarray()
+                # finish the ZZ interaction for the link 1
+                self.mpo[1,-1] = - (1/2) * self.lamb * sparse_pauli_z(n=ladder, L=self.l).toarray() # link 1 is shared between two plaquettes
+                
+                if ladder == 0:
+                    # local Z interaction for boundary link 2
+                    coeff = np.prod(self.charges[0,:c+1])
+                    self.mpo[0,-1] += - self.lamb * coeff * sparse_pauli_z(n=ladder, L=self.l).toarray() # link 2 boundary is just in one plaquette
+                    # "local" ZZ interaction for bulk link 4
+                    coeff = np.prod(self.charges[ladder+1,:c+1])
+                    self.mpo[0,-1] += - self.lamb * coeff * sparse_pauli_z(n=ladder, L=self.l).toarray() @ sparse_pauli_z(n=ladder+1, L=self.l).toarray() # link 4 is shared between two plaquettes
+                
+                elif ladder in range(1,self.l-1):
+                    # "local" ZZ interaction for bulk link 2
+                    coeff = np.prod(self.charges[ladder,:c+1])
+                    self.mpo[0,-1] += - self.lamb * coeff * sparse_pauli_z(n=ladder-1, L=self.l).toarray() @ sparse_pauli_z(n=ladder, L=self.l).toarray() # link 2 is shared between two plaquettes
+                    # "local" ZZ interaction for bulk link 4
+                    coeff = np.prod(self.charges[ladder+1,:c+1])
+                    self.mpo[0,-1] += - self.lamb * coeff * sparse_pauli_z(n=ladder, L=self.l).toarray() @ sparse_pauli_z(n=ladder+1, L=self.l).toarray() # link 4 is shared between two plaquettes
+                
+                elif ladder == self.l-1:
+                    # "local" ZZ interaction for bulk link 2
+                    coeff = np.prod(self.charges[ladder-1,:c+1])
+                    self.mpo[0,-1] += - self.lamb * coeff * sparse_pauli_z(n=ladder-1, L=self.l).toarray() @ sparse_pauli_z(n=ladder, L=self.l).toarray() # link 2 is shared between two plaquettes
+                    # local Z interaction for boundary link 4
+                    coeff = np.prod(self.charges[ladder,:c+1])
+                    self.mpo[0,-1] += - self.lamb * coeff * sparse_pauli_z(n=ladder, L=self.l).toarray() # link 4 boundary is just in one plaquette
+
+                ### magnetic term ###
+                self.mpo[0,-1] += - 1/self.lamb * sparse_pauli_x(n=ladder, L=self.l).toarray()
+
+            if c == site+1:
+                # finish the ZZ interaction for the link 3
+                self.mpo[1,-1] = - (1/2) * self.lamb * sparse_pauli_z(n=ladder, L=self.l).toarray() # link 3 is shared between two plaquettes
+            mpo_list.append(self.mpo)
+            self.mpo_skeleton(aux_dim=3)
+        self.mpo = mpo_list
+        return mpo_list
+
+    def mpo_Z2_plaquette_electric_energy_density(self, site: int, ladder: int):
+        """
+        mpo_Z2_plaquette_electric_energy_density
+
+        This function computes the electric energy density of a plaquette at
+        an arbitrary site and ladder. In the direct hamiltonian we have four terms
+        to take into account. The latters are expressed in the dual formalism
+        with ZZ interaction terms or local Z terms according to which link we are
+        computing. Boundary conditions also affect the duality. We enumerate the links
+        starting from the vertical left (1) and proceed clockwise:
+
+        _ | _ _ 2 _ _ | _ 
+          |           |
+          |           |
+          1           3
+          |           |
+          |           |
+        _ | _ _ 4 _ _ | _
+          |           |
+
+        site: int - column we are interested in computing the energy density
+        ladder: int - row we are interested in computing the energy density
+        
+        """
+        self.mpo_skeleton(aux_dim=3)
+        mpo_list = []
+        for c in range(self.L):
+            
+            if c == site-1:
+                # prepare the ZZ interaction for the link 1
+                self.mpo[0,1] = sparse_pauli_z(n=ladder, L=self.l).toarray()
+            
+            if c == site:
+                # prepare the ZZ interaction for the link 3
+                self.mpo[0,1] = sparse_pauli_z(n=ladder, L=self.l).toarray()
+                # finish the ZZ interaction for the link 1
+                self.mpo[1,-1] = - (1/2) * self.lamb * sparse_pauli_z(n=ladder, L=self.l).toarray() # link 1 is shared between two plaquettes
+                
+                if ladder == 0:
+                    # local Z interaction for boundary link 2
+                    coeff = np.prod(self.charges[0,:c+1])
+                    self.mpo[0,-1] += - self.lamb * coeff * sparse_pauli_z(n=ladder, L=self.l).toarray() # link 2 boundary is just in one plaquette
+                    # "local" ZZ interaction for bulk link 4
+                    coeff = np.prod(self.charges[ladder+1,:c+1])
+                    self.mpo[0,-1] += - self.lamb * coeff * sparse_pauli_z(n=ladder, L=self.l).toarray() @ sparse_pauli_z(n=ladder+1, L=self.l).toarray() # link 4 is shared between two plaquettes
+                
+                elif ladder in range(1,self.l-1):
+                    # "local" ZZ interaction for bulk link 2
+                    coeff = np.prod(self.charges[ladder,:c+1])
+                    self.mpo[0,-1] += - self.lamb * coeff * sparse_pauli_z(n=ladder-1, L=self.l).toarray() @ sparse_pauli_z(n=ladder, L=self.l).toarray() # link 2 is shared between two plaquettes
+                    # "local" ZZ interaction for bulk link 4
+                    coeff = np.prod(self.charges[ladder+1,:c+1])
+                    self.mpo[0,-1] += - self.lamb * coeff * sparse_pauli_z(n=ladder, L=self.l).toarray() @ sparse_pauli_z(n=ladder+1, L=self.l).toarray() # link 4 is shared between two plaquettes
+                
+                elif ladder == self.l-1:
+                    # "local" ZZ interaction for bulk link 2
+                    coeff = np.prod(self.charges[ladder-1,:c+1])
+                    self.mpo[0,-1] += - self.lamb * coeff * sparse_pauli_z(n=ladder-1, L=self.l).toarray() @ sparse_pauli_z(n=ladder, L=self.l).toarray() # link 2 is shared between two plaquettes
+                    # local Z interaction for boundary link 4
+                    coeff = np.prod(self.charges[ladder,:c+1])
+                    self.mpo[0,-1] += - self.lamb * coeff * sparse_pauli_z(n=ladder, L=self.l).toarray() # link 4 boundary is just in one plaquette
+            
+            if c == site+1:
+                # finish the ZZ interaction for the link 3
+                self.mpo[1,-1] = - (1/2) * self.lamb * sparse_pauli_z(n=ladder, L=self.l).toarray() # link 3 is shared between two plaquettes
+            mpo_list.append(self.mpo)
+            self.mpo_skeleton(aux_dim=3)
+        self.mpo = mpo_list
+        return mpo_list
+
+    def mpo_Z2_plaquette_magnetic_energy_density(self, site: int, ladder: int):
+        """
+        mpo_Z2_plaquette_magnetic_energy_density
+
+        This function computes the magnetic energy density of a plaquette at
+        an arbitrary site and ladder. In the direct hamiltonian we have four terms
+        to take into account. The product of this four originates the magnetic term
+        which in the dual form is simply a local X term without any charge coefficient.
+        We enumerate the links starting from the vertical left (1) and 
+        proceed clockwise:
+
+        _ | _ _ 2 _ _ | _ 
+          |           |
+          |           |
+          1           3
+          |           |
+          |           |
+        _ | _ _ 4 _ _ | _
+          |           |
+          
+        site: int - column we are interested in computing the energy density
+        ladder: int - row we are interested in computing the energy density
+
+        """
+        self.mpo_skeleton(aux_dim=2)
+        mpo_list = []
+        for c in range(self.L):
+            if c == site:
+                self.mpo[0,-1] += - 1/self.lamb * sparse_pauli_x(n=ladder, L=self.l).toarray()
+            mpo_list.append(self.mpo)
+            self.mpo_skeleton(aux_dim=2)
+        self.mpo = mpo_list
+        return mpo_list
+
+
     def diagonalize(self):
         self.mpo_Z2_ladder_generalized()
         H = mpo_to_matrix(self.mpo)
