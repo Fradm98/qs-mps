@@ -125,12 +125,12 @@ for L in args.Ls:
             if sector != "vacuum_sector":
                 lattice_mps.Z2.add_charges(charges_x, charges_y)
             
-            if lattice_mps.bc == "pbc":
-                a = np.zeros((1,2))
-                a[0,0] = 1
-                extra_ancillary_site = a.reshape((1,2,1))
-                lattice_mps.sites.append(extra_ancillary_site)
-                lattice_mps.L = len(lattice_mps.sites)
+            # if lattice_mps.bc == "pbc":
+            #     a = np.zeros((1,2))
+            #     a[0,0] = 1
+            #     extra_ancillary_site = a.reshape((1,2,1))
+            #     lattice_mps.sites.append(extra_ancillary_site)
+            #     lattice_mps.L = len(lattice_mps.sites)
 
             if "wl" in args.obs:
                 print(f"wilson loop for h:{h:.{precision}f}, direct lattice lxL:{args.l}x{L}, bc: {args.boundcond}, chi:{chi}")

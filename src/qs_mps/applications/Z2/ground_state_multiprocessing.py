@@ -100,6 +100,17 @@ def ground_state_Z2_param(params):
 
     print(f"energy of h:{param:.{precision}f}, L:{ladder.L} is:\n {energy}")
     print(f"Schmidt values in the middle of the chain:\n {schmidt_vals}")
+    t_final = np.sum(t_dmrg)
+    if t_final < 60:
+        t_unit = "sec(s)"
+    elif t_final > 60 and t_final < 3600:
+        t_unit = "min(s)"
+        t_final = t_final/60
+    elif t_final > 3600:
+        t_unit = "hour(s)"
+        t_final = t_final/3600
+
+    print(f"time of the whole search for h={param:.{precision}f} is: {t_final} {t_unit}")
     
     if not args_mps["training"]:
         energy = energy[-1]
