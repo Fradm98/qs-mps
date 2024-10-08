@@ -1318,6 +1318,66 @@ class MPS:
 
         return E_en_density
 
+    def mpo_Z2_column_total_energy_density(self, site: int, cc: str="h"):
+        """
+        mpo_Z2_column_total_energy_density
+
+        This function computes the total energy density for all
+        the plaquettes in an arbitrary site. It returns the individual
+        plaquette energy densities in a list.
+
+        site: int - column we are interested in computing the energy density
+        cc: str - charge convention used to compute the MPS
+
+        """
+        tot_ed = []
+        for ladder in range(self.Z2.l):
+            self.Z2.mpo_Z2_plaquette_total_energy_density(site=site, ladder=ladder, cc=cc)
+            self.w = self.Z2.mpo.copy()
+            tot_ed.append(self.mpo_first_moment().real) # energy density for plaquette
+        
+        return tot_ed
+    
+    def mpo_Z2_column_electric_energy_density(self, site: int, cc: str="h"):
+        """
+        mpo_Z2_column_electric_energy_density
+
+        This function computes the electric energy density for all
+        the plaquettes in an arbitrary site. It returns the individual
+        plaquette energy densities in a list.
+
+        site: int - column we are interested in computing the energy density
+        cc: str - charge convention used to compute the MPS
+
+        """
+        tot_ed = []
+        for ladder in range(self.Z2.l):
+            self.Z2.mpo_Z2_plaquette_electric_energy_density(site=site, ladder=ladder)
+            self.w = self.Z2.mpo.copy()
+            tot_ed.append(self.mpo_first_moment().real) # energy density for plaquette
+        
+        return tot_ed
+    
+    def mpo_Z2_column_magnetic_energy_density(self, site: int, cc: str="h"):
+        """
+        mpo_Z2_column_magnetic_energy_density
+
+        This function computes the magnetic energy density for all
+        the plaquettes in an arbitrary site. It returns the individual
+        plaquette energy densities in a list.
+
+        site: int - column we are interested in computing the energy density
+        cc: str - charge convention used to compute the MPS
+        
+        """
+        tot_ed = []
+        for ladder in range(self.Z2.l):
+            self.Z2.mpo_Z2_plaquette_magnetic_energy_density(site=site, ladder=ladder)
+            self.w = self.Z2.mpo.copy()
+            tot_ed.append(self.mpo_first_moment().real) # energy density for plaquette
+        
+        return tot_ed
+    
     # -------------------------------------------------
     # Manipulation of MPOs
     # -------------------------------------------------
