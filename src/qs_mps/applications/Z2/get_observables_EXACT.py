@@ -47,14 +47,17 @@ interval = np.linspace(args.h_i, args.h_f, args.npoints)
 # take the path and precision to save files
 # if we want to save the tensors we save them locally because they occupy a lot of memory
 if args.path == "pc":
-    parent_path = "G:/My Drive/projects/1_Z2"
+    parent_path = f"C:/Users/HP/Desktop/projects/1_Z2"
+    # parent_path = "G:/My Drive/projects/1_Z2"
     path_eigvec = "D:/code/projects/1_Z2"
 elif args.path == "mac":
-    parent_path = "/Users/fradm98/Google Drive/My Drive/projects/1_Z2"
+    # parent_path = "/Users/fradm98/Google Drive/My Drive/projects/1_Z2"
     path_eigvec = "/Users/fradm98/Desktop/projects/1_Z2"
+    parent_path = path_eigvec
 elif args.path == "marcos":
-    parent_path = "/Users/fradm/Google Drive/My Drive/projects/1_Z2"
+    # parent_path = "/Users/fradm/Google Drive/My Drive/projects/1_Z2"
     path_eigvec = "/Users/fradm/Desktop/projects/1_Z2"
+    parent_path = path_eigvec
 else:
     raise SyntaxError("Path not valid. Choose among 'pc', 'mac', 'marcos'")
 

@@ -180,12 +180,18 @@ plot_val = [
 ]
 plot_cmap = ["energy_tr", "error_tr", "entropy_tot"]
 
-if args.loc == "pc":
-    parent_path = "G:/My Drive/projects/1_Z2/"
-elif args.loc == "mac":
-    parent_path = "/Users/fradm98/Google Drive/My Drive/projects/1_Z2/"
-elif args.loc == "marcos":
-    parent_path = "/Users/fradm/Google Drive/My Drive/projects/1_Z2/"
+if args.path == "pc":
+    parent_path = f"C:/Users/HP/Desktop/projects/1_Z2"
+    # parent_path = "G:/My Drive/projects/1_Z2"
+    path_tensor = "D:/code/projects/1_Z2"
+elif args.path == "mac":
+    # parent_path = "/Users/fradm98/Google Drive/My Drive/projects/1_Z2"
+    path_tensor = "/Users/fradm98/Desktop/projects/1_Z2"
+    parent_path = path_tensor
+elif args.path == "marcos":
+    # parent_path = "/Users/fradm/Google Drive/My Drive/projects/1_Z2"
+    path_tensor = "/Users/fradm/Desktop/projects/1_Z2"
+    parent_path = path_tensor
 else:
     raise SyntaxError("insert a valid location: 'pc', 'mac', 'marcos'")
 
