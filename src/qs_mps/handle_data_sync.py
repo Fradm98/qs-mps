@@ -21,24 +21,30 @@ def get_remote_files(client, remote_dir):
     for line in stdout:
         parts = line.strip().split()
         
+        
         # Skip lines that don't correspond to files
         if len(parts) < 9 or parts[0][0] == 'd':
             continue  # Ignore directories and malformed lines
-        
-        # Extract the filename and modification time
-        filename = ' '.join(parts[8:])  # Join any spaces in the filename
-        date_str = ' '.join(parts[5:8])  # Join the date components
-        current_year = datetime.now().year
-        date_str += f" {current_year}"
-        # Parse the date string to a timestamp
-        try:
-            timestamp = int(datetime.strptime(date_str, '%b %d %H:%M %Y').timestamp())
-        except ValueError as e:
-            print(f"Error parsing date: {date_str}. {e}")
-            continue  # Skip files with parsing issues
+        else:
+            # Extract the filename and modification time
+            filename = ' '.join(parts[8:])  # Join any spaces in the filename
+            
+            # Parse the date string to a timestamp
+            # Determine if the date has a time or just a year
+            if ':' in parts[7]:  # If there's a colon, the format is like 'Sep 19 11:54'
+                date_str = f"{parts[5]} {parts[6]} {parts[7]} {datetime.now().year}"
+                date_format = '%b %d %H:%M %Y'
+            else:  # Otherwise, it's in the 'Dec 18 2023' format
+                date_str = f"{parts[5]} {parts[6]} {parts[7]}"
+                date_format = '%b %d %Y'
+            try:
+                timestamp = int(datetime.strptime(date_str, date_format).timestamp())
+            except ValueError as e:
+                print(f"Error parsing date: {date_str}. {e}")
+                continue  # Skip files with parsing issues
 
-        # Add the full path and timestamp to the dictionary
-        files[f"{remote_dir}/{filename}"] = timestamp
+            # Add the full path and timestamp to the dictionary
+            files[f"{remote_dir}/{filename}"] = timestamp
     
     return files
 
@@ -46,6 +52,9 @@ def get_remote_files(client, remote_dir):
 def sync_files(server, max_attempts=3):
     print(f"Syncing files from {server['hostname']}...")
     client = paramiko.SSHClient()
+    client.load_system_host_keys()
+    client.set_missing_host_key_policy(paramiko.AutoAddPolicy())
+
     for attempt in range(max_attempts):
         try:
             client.connect(
@@ -67,6 +76,7 @@ def sync_files(server, max_attempts=3):
 
     # SCP transfer
     with SCPClient(client.get_transport(), socket_timeout=180) as scp:
+        files_modified = 0
         for remote_file, remote_timestamp in remote_files.items():
             local_file = f"{local_results_dir}/{os.path.basename(remote_file)}"
 
@@ -76,19 +86,25 @@ def sync_files(server, max_attempts=3):
 
                 # Compare timestamps
                 if remote_timestamp <= local_timestamp:
-                    print(f"File is up-to-date: {local_file}. Skipping.")
                     continue  # Skip copying if local file is newer or equal
                 else:
-                    print(f"Local file is older: {local_file}. Copying the newer remote file")
+                    print(f"Local file is older: {os.path.basename(remote_file)}. Copying the newer remote file")
                     scp.get(remote_file, local_file)
+                    files_modified += 1
             else:
                 print(f"Local file does not exist. Copying the remote file")
                 try:
                     # Replace backslashes with forward slashes for the remote path
                     scp.get(remote_file, local_results_dir)
-                    print(f"Copied: {local_file}")
+                    files_modified += 1
+                    print(f"Copied: {os.path.basename(remote_file)}")
                 except SCPException as e:
                     print(f"Error copying file: {e}")
+            
+        if files_modified == 0:
+            print(f"All files are up-to-date")
+        else:
+            print(f"{files_modified} files have been modified and/or added")
 
     client.close()
 
