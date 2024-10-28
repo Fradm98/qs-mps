@@ -1,5 +1,6 @@
 import argparse
 import numpy as np
+import datetime as dt
 from qs_mps.mps_class import MPS
 from qs_mps.utils import get_precision, save_list_of_lists, access_txt
 from qs_mps.applications.Z2.ground_state_multiprocessing import ground_state_Z2
@@ -179,16 +180,17 @@ for L in args.Ls:
             )
 
             t_final = np.sum(t_chi)
-            if t_final < 60:
-                t_unit = "sec(s)"
-            elif t_final > 60 and t_final < 3600:
-                t_unit = "min(s)"
-                t_final = t_final/60
-            elif t_final > 3600:
-                t_unit = "hour(s)"
-                t_final = t_final/3600
+            t_final_gen = dt.timedelta(seconds=t_final)
+            # if t_final < 60:
+            #     t_unit = "sec(s)"
+            # elif t_final > 60 and t_final < 3600:
+            #     t_unit = "min(s)"
+            #     t_final = t_final/60
+            # elif t_final > 3600:
+            #     t_unit = "hour(s)"
+            #     t_final = t_final/3600
 
-            print(f"time of the whole search for chi={chi} is: {t_final} {t_unit}")
+            print(f"time of the whole search for chi={chi} is: {t_final_gen}")
             if args.bond == False:
                 args.where = "all"
 

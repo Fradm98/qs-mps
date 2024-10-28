@@ -1,4 +1,5 @@
 import numpy as np
+import h5py
 
 from scipy.sparse import csr_matrix, csr_array, identity
 from scipy.linalg import expm, solve
@@ -2966,19 +2967,33 @@ class MPS:
     
     def save_sites_Z2(self, path, precision: int=2, cx: list=None, cy: list=None):
         # shapes of the tensors
-        shapes = tensor_shapes(self.sites)
-        np.savetxt(
-            f"{path}/results/tensors/shapes_sites_{self.model}_direct_lattice_{self.Z2.l}x{self.Z2.L}_bc_{self.bc}_{cx}-{cy}_chi_{self.chi}_h_{self.h:.{precision}f}",
-            shapes,
-            fmt="%1.i",  # , delimiter=','
-        )
+        # shapes = tensor_shapes(self.sites)
+        # np.savetxt(
+        #     f"{path}/results/tensors/shapes_sites_{self.model}_direct_lattice_{self.Z2.l}x{self.Z2.L}_bc_{self.bc}_{cx}-{cy}_chi_{self.chi}_h_{self.h:.{precision}f}",
+        #     shapes,
+        #     fmt="%1.i",  # , delimiter=','
+        # )
 
-        # flattening of the tensors
-        tensor = [element for site in self.sites for element in site.flatten()]
-        np.savetxt(
-            f"{path}/results/tensors/tensor_sites_{self.model}_direct_lattice_{self.Z2.l}x{self.Z2.L}_bc_{self.bc}_{cx}-{cy}_chi_{self.chi}_h_{self.h:.{precision}f}",
-            tensor,
-        )
+        # # flattening of the tensors
+        # tensor = [element for site in self.sites for element in site.flatten()]
+        # np.savetxt(
+        #     f"{path}/results/tensors/tensor_sites_{self.model}_direct_lattice_{self.Z2.l}x{self.Z2.L}_bc_{self.bc}_{cx}-{cy}_chi_{self.chi}_h_{self.h:.{precision}f}",
+        #     tensor,
+        # )
+        
+        metadata = dict(model=self.model, bc=self.bc, l=self.Z2.l, L=self.Z2.L, chi=self.chi, h=self.h, sector=self.Z2.sector)
+        filename = f"/results/tensors/tensor_sites_{self.model}_direct_lattice_{self.Z2.l}x{self.Z2.L}_bc_{self.bc}_{self.Z2.sector}_{cx}-{cy}_chi_{self.chi}_h_{self.h:.{precision}f}"
+        with h5py.File(f"{path}{filename}.h5", "w") as f:
+            # Save scalar metadata as file attributes
+            for key, value in metadata.items():
+                f.attrs[key] = value  # This is good for small, scalar data like strings or numbers
+
+            # Create a group for the tensors
+            tensors_group = f.create_group("tensors")
+            
+            # Store each tensor as a separate dataset within the group
+            for i, tensor in enumerate(self.sites):
+                tensors_group.create_dataset(f"tensor_{i}", data=tensor, compression="gzip")
 
     def save_sites_XXZ(self, path, precision: int=2):
         # shapes of the tensors
@@ -3095,22 +3110,31 @@ class MPS:
         function get_labels().
 
         """
-        # loading of the shapes
-        shapes = np.loadtxt(
-            f"{path}/results/tensors/shapes_sites_{self.model}_direct_lattice_{self.Z2.l}x{self.Z2.L}_bc_{self.bc}_{cx}-{cy}_chi_{self.chi}_h_{self.h:.{precision}f}",
+        # # loading of the shapes
+        # shapes = np.loadtxt(
+        #     f"{path}/results/tensors/shapes_sites_{self.model}_direct_lattice_{self.Z2.l}x{self.Z2.L}_bc_{self.bc}_{cx}-{cy}_chi_{self.chi}_h_{self.h:.{precision}f}",
 
-        ).astype(int)
-        # loading of the flat tensors
-        filedata = np.loadtxt(
-            f"{path}/results/tensors/tensor_sites_{self.model}_direct_lattice_{self.Z2.l}x{self.Z2.L}_bc_{self.bc}_{cx}-{cy}_chi_{self.chi}_h_{self.h:.{precision}f}",
-            dtype=complex,
-        )
-        # auxiliary function to get the indices where to split
-        labels = get_labels(shapes)
-        flat_tn = np.array_split(filedata, labels)
-        flat_tn.pop(-1)
-        # reshape the flat tensors and initializing the sites
-        self.sites = [site.reshape(shapes[i]) for i, site in enumerate(flat_tn)]
+        # ).astype(int)
+        # # loading of the flat tensors
+        # filedata = np.loadtxt(
+        #     f"{path}/results/tensors/tensor_sites_{self.model}_direct_lattice_{self.Z2.l}x{self.Z2.L}_bc_{self.bc}_{cx}-{cy}_chi_{self.chi}_h_{self.h:.{precision}f}",
+        #     dtype=complex,
+        # )
+        # # auxiliary function to get the indices where to split
+        # labels = get_labels(shapes)
+        # flat_tn = np.array_split(filedata, labels)
+        # flat_tn.pop(-1)
+        # # reshape the flat tensors and initializing the sites
+        # self.sites = [site.reshape(shapes[i]) for i, site in enumerate(flat_tn)]
+
+        filename = f"/results/tensors/tensor_sites_{self.model}_direct_lattice_{self.Z2.l}x{self.Z2.L}_bc_{self.bc}_{self.Z2.sector}_{cx}-{cy}_chi_{self.chi}_h_{self.h:.{precision}f}"
+        with h5py.File(f"{path}{filename}.h5", "r") as f:
+            # Load metadata
+            metadata = {key: f.attrs[key] for key in f.attrs}
+            print("Metadata:", metadata)
+            
+            # Load tensors
+            self.sites = [f["tensors"][f"tensor_{i}"][:] for i in range(self.Z2.L)]
 
         return self
 
