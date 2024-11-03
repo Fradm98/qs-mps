@@ -3,16 +3,24 @@ import os
 from scp import SCPClient, SCPException
 from datetime import datetime
 
+device = "pc"
+observable = "energy_data"
+if device == "pc":
+    key_filename = "C:/Users/HP/.ssh/id_rsa_marcos"
+    local_results_dir = f"C:/Users/HP/Desktop/projects/1_Z2/results/{observable}"
+elif device == "mac":
+    key_filename = "/Users/fradm98/.ssh/id_rsa_marcos"
+    local_results_dir = f"/Users/fradm98/Desktop/projects/1_Z2/results/{observable}"
+
 # List of server information
 servers = [
-    {"hostname": "158.227.6.203", "username": "fradm", "key_filename": "C:/Users/HP/.ssh/id_rsa_marcos"},
-    {"hostname": "158.227.46.38", "username": "fradm", "key_filename": "C:/Users/HP/.ssh/id_rsa_marcos"},
-    {"hostname": "158.227.47.136", "username": "fradm", "key_filename": "C:/Users/HP/.ssh/id_rsa_marcos"},
+    {"hostname": "158.227.6.203", "username": "fradm", "key_filename": key_filename},
+    {"hostname": "158.227.46.38", "username": "fradm", "key_filename": key_filename},
+    {"hostname": "158.227.47.136", "username": "fradm", "key_filename": key_filename},
 ]
 
 # Local and remote result directories
-local_results_dir = "C:/Users/HP/Desktop/projects/1_Z2/results/energy_data"
-remote_results_dir = "/Users/fradm/Desktop/projects/1_Z2/results/energy_data"
+remote_results_dir = f"/Users/fradm/Desktop/projects/1_Z2/results/{observable}"
 
 def get_remote_files(client, remote_dir):
     stdin, stdout, stderr = client.exec_command(f"ls -l {remote_dir}")
