@@ -87,6 +87,8 @@ class MPO_ladder:
             sector = "vacuum_sector"
         else:
             sector = f"{particles}_particle(s)_sector"
+        
+        self.sector = sector
         return sector
     
     def mpo_skeleton(self, aux_dim: int=None):
