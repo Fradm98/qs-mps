@@ -2986,11 +2986,9 @@ class MPS:
 
         metadata = dict(model=self.model, l=self.Z2.l, L=self.Z2.L, bc=self.bc, sector=self.Z2.sector, cx=cx, cy=cy, chi=self.chi, h=self.h)
         filename = f"/results/tensors/tensor_sites_{self.model}_direct_lattice_{self.Z2.l}x{self.Z2.L}_bc_{self.bc}_{self.Z2.sector}_{cx}-{cy}_chi_{self.chi}_h_{self.h:.{precision}f}"
-        print(metadata)
         with h5py.File(f"{path}{filename}.h5", "w") as f:
             # Save scalar metadata as file attributes
             for key, value in metadata.items():
-                print(f"{key}: {value}")
                 f.attrs[key] = value  # This is good for small, scalar data like strings or numbers
 
             # Create a group for the tensors
