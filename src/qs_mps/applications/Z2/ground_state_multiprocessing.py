@@ -1,5 +1,6 @@
 import concurrent.futures
 import os
+import datetime as dt
 from qs_mps.mps_class import MPS
 from qs_mps.applications.Z2.exact_hamiltonian import H_Z2_gauss
 from qs_mps.utils import tensor_shapes
@@ -74,7 +75,8 @@ def ground_state_Z2_param(params):
     if ladder.model == "Z2_dual":
         if args_mps["sector"] != "vacuum_sector":
             ladder.Z2.add_charges(rows=args_mps["charges_x"], columns=args_mps["charges_y"])
-            print(ladder.Z2.charges)
+            ladder.Z2._define_sector()
+            print(ladder.Z2.charges, ladder.Z2.sector)
     if args_mps["guess"] == []:
         ladder._random_state(seed=3, chi=args_mps["chi"], type_shape=args_mps["type_shape"])
         tensor_shapes(ladder.sites)
@@ -101,16 +103,17 @@ def ground_state_Z2_param(params):
     print(f"energy of h:{param:.{precision}f}, L:{ladder.L} is:\n {energy}")
     print(f"Schmidt values in the middle of the chain:\n {schmidt_vals}")
     t_final = np.sum(t_dmrg)
-    if t_final < 60:
-        t_unit = "sec(s)"
-    elif t_final > 60 and t_final < 3600:
-        t_unit = "min(s)"
-        t_final = t_final/60
-    elif t_final > 3600:
-        t_unit = "hour(s)"
-        t_final = t_final/3600
+    t_final_gen = dt.timedelta(seconds=t_final)
+    # if t_final < 60:
+    #     t_unit = "sec(s)"
+    # elif t_final > 60 and t_final < 3600:
+    #     t_unit = "min(s)"
+    #     t_final = t_final/60
+    # elif t_final > 3600:
+    #     t_unit = "hour(s)"
+    #     t_final = t_final/3600
 
-    print(f"time of the whole search for h={param:.{precision}f} is: {t_final} {t_unit}")
+    print(f"time of the whole search for h={param:.{precision}f} is: {t_final_gen}")
     
     if not args_mps["training"]:
         energy = energy[-1]
@@ -180,6 +183,5 @@ def ground_state_Z2(args_mps, multpr, param):
             energies_param.append(energy)
             entropies_param.append(entropy)
             schmidt_vals_param.append(schmidt_vals)
-            time_param.append(t_dmrg)
 
     return energies_param, entropies_param, schmidt_vals_param, time_param
