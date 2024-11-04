@@ -2966,7 +2966,7 @@ class MPS:
         )
         return self
     
-    def save_sites_Z2(self, path, precision: int=2, cx: list=None, cy: list=None):
+    def save_sites_Z2(self, path, precision: int=2, cx: list=np.nan, cy: list=np.nan):
         # shapes of the tensors
         # shapes = tensor_shapes(self.sites)
         # np.savetxt(
