@@ -2989,6 +2989,7 @@ class MPS:
         with h5py.File(f"{path}{filename}.h5", "w") as f:
             # Save scalar metadata as file attributes
             for key, value in metadata.items():
+                print(f"key: {key}, value: {value}")
                 f.attrs[key] = value  # This is good for small, scalar data like strings or numbers
 
             # Create a group for the tensors
