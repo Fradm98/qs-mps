@@ -2984,7 +2984,7 @@ class MPS:
         
         t_start = time.perf_counter()
 
-        metadata = dict(model=self.model, l=self.Z2.l, L=self.Z2.L, bc=self.bc, sector=self.Z2.sector, cx=cx, cy=cy, chi=self.chi, h=self.h)
+        metadata = dict(model=self.model, l=self.Z2.l, L=self.Z2.L, bc=self.bc, sector=self.Z2.sector, ccx=cx, ccy=cy, chi=self.chi, h=self.h)
         filename = f"/results/tensors/tensor_sites_{self.model}_direct_lattice_{self.Z2.l}x{self.Z2.L}_bc_{self.bc}_{self.Z2.sector}_{cx}-{cy}_chi_{self.chi}_h_{self.h:.{precision}f}"
         print(metadata)
         with h5py.File(f"{path}{filename}.h5", "w") as f:
