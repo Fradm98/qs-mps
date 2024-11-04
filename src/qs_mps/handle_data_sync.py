@@ -3,25 +3,44 @@ import os
 from scp import SCPClient, SCPException
 from datetime import datetime
 
-device = "pc"
+device = "marcos2"
 observable = "energy_data"
+
+# List of server information
+all_servers = [
+    {"hostname": "158.227.6.203", "username": "fradm", "key_filename": None},
+    {"hostname": "158.227.46.38", "username": "fradm", "key_filename": None},
+    {"hostname": "158.227.47.136", "username": "fradm", "key_filename": None},
+]
+
+# Local and remote result directories
+remote_results_dir = f"/Users/fradm/Desktop/projects/1_Z2/results/{observable}"
+
 if device == "pc":
     key_filename = "C:/Users/HP/.ssh/id_rsa_marcos"
     local_results_dir = f"C:/Users/HP/Desktop/projects/1_Z2/results/{observable}"
 elif device == "mac":
     key_filename = "/Users/fradm98/.ssh/id_rsa_marcos"
     local_results_dir = f"/Users/fradm98/Desktop/projects/1_Z2/results/{observable}"
+elif device == "marcos1":
+    key_filename = "/Users/fradm/.ssh/id_rsa_marcos1"
+    local_results_dir = remote_results_dir
+    all_servers.pop(0)
+elif device == "marcos2":
+    key_filename = "/Users/fradm/.ssh/id_rsa_marcos2"
+    local_results_dir = remote_results_dir
+    all_servers.pop(1)
+elif device == "marcos3":
+    key_filename = "/Users/fradm/.ssh/id_rsa_marcos3"
+    local_results_dir = remote_results_dir
+    all_servers.pop(2)
 
-# List of server information
-servers = [
-    {"hostname": "158.227.6.203", "username": "fradm", "key_filename": key_filename},
-    {"hostname": "158.227.46.38", "username": "fradm", "key_filename": key_filename},
-    {"hostname": "158.227.47.136", "username": "fradm", "key_filename": key_filename},
-]
+servers = []
+for server in all_servers:
+    server["key_filename"] = key_filename
+    servers.append(server)
 
-# Local and remote result directories
-remote_results_dir = f"/Users/fradm/Desktop/projects/1_Z2/results/{observable}"
-
+    
 def get_remote_files(client, remote_dir):
     stdin, stdout, stderr = client.exec_command(f"ls -l {remote_dir}")
     files = {}
