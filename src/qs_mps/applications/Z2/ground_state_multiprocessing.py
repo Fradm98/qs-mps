@@ -1,5 +1,6 @@
 import concurrent.futures
 import os
+import datetime as dt
 from qs_mps.mps_class import MPS
 from qs_mps.applications.Z2.exact_hamiltonian import H_Z2_gauss
 from qs_mps.utils import tensor_shapes
@@ -76,7 +77,8 @@ def ground_state_Z2_param(params):
     if ladder.model == "Z2_dual":
         if args_mps["sector"] != "vacuum_sector":
             ladder.Z2.add_charges(rows=args_mps["charges_x"], columns=args_mps["charges_y"])
-            print(ladder.Z2.charges)
+            ladder.Z2._define_sector()
+            print(ladder.Z2.charges, ladder.Z2.sector)
     if args_mps["guess"] == []:
         ladder._random_state(seed=3, chi=args_mps["chi"], type_shape=args_mps["type_shape"])
         tensor_shapes(ladder.sites)
@@ -103,16 +105,17 @@ def ground_state_Z2_param(params):
     print(f"energy of h:{param:.{precision}f}, L:{ladder.L} is:\n {energy}")
     print(f"Schmidt values in the middle of the chain:\n {schmidt_vals}")
     t_final = np.sum(t_dmrg)
-    if t_final < 60:
-        t_unit = "sec(s)"
-    elif t_final > 60 and t_final < 3600:
-        t_unit = "min(s)"
-        t_final = t_final/60
-    elif t_final > 3600:
-        t_unit = "hour(s)"
-        t_final = t_final/3600
+    t_final_gen = dt.timedelta(seconds=t_final)
+    # if t_final < 60:
+    #     t_unit = "sec(s)"
+    # elif t_final > 60 and t_final < 3600:
+    #     t_unit = "min(s)"
+    #     t_final = t_final/60
+    # elif t_final > 3600:
+    #     t_unit = "hour(s)"
+    #     t_final = t_final/3600
 
-    print(f"time of the whole search for h={param:.{precision}f} is: {t_final} {t_unit}")
+    print(f"time of the whole search for h={param:.{precision}f} is: {t_final_gen}")
     
     if not args_mps["training"]:
         energy = energy[-1]
@@ -160,63 +163,31 @@ def ground_state_Z2(args_mps, multpr, param, reps: int=3):
 
         for p in param:
             params = [args_mps, p]
-            for attempt in range(reps):
-                
-                with ThreadPoolExecutor() as executor:
-                    future = executor.submit(ground_state_Z2_param, params=params)
-                    try:
-                        # Attempt to execute within the threshold time
-                        results = future.result(timeout=threshold)
-                        energy, entropy, schmidt_vals, t_dmrg = results
-                        print(f"Run for parameter: {p:.2f} attempt: {attempt} completed in {t_dmrg:.2f}s within threshold.")
-                        execution_times.append(t_dmrg)
-                        energies_param.append(energy)
-                        entropies_param.append(entropy)
-                        schmidt_vals_param.append(schmidt_vals)
-                        time_param.append(t_dmrg)
-                        break  # Exit retry loop since run was successful
+            # Set the timeout period (in seconds)
+            timeout_secs = new_timeout_secs # You can change this value according to your requirement
+            # Set the alarm
+            signal.alarm(int(timeout_secs+1))
+            print(f"New timeout seconds: {int(timeout_secs+1)}")
+            try:
+                print("Running with guess state:")
+                energy, entropy, schmidt_vals, t_dmrg = ground_state_Z2_param(params=params)
 
-                    except TimeoutError:
-                        print(f"Run for parameter: {p:.2f} attempt: {attempt} exceeded threshold of {threshold:.2f}s. Retrying with random state...")
+            except TimeoutError as e:
+                print(e)
+                args_mps["guess"] = []
+                print("Running with random state:")
+                energy, entropy, schmidt_vals, t_dmrg = ground_state_Z2_param(params=params)
+            else:
+                # Cancel the alarm if the algorithm finishes before the timeout
+                signal.alarm(0)
 
-                    # Update parameters here as needed before retrying
-                    args_mps["guess"] = []
-
-            # Update the threshold based on the average time with slack
-            if execution_times:
-                avg_time = sum(execution_times) / len(execution_times)
-                threshold = avg_time * slack
-                print(f"New threshold updated to {threshold:.2f}s")
-
-
-        # for p in param:
-        #     params = [args_mps, p]
-        #     # Set the timeout period (in seconds)
-        #     timeout_secs = threshold # You can change this value according to your requirement
-        #     # Set the alarm
-        #     signal.alarm(int(timeout_secs+1))
-        #     print(f"New timeout seconds: {int(timeout_secs+1)}")
-        #     try:
-        #         print("Running with guess state:")
-        #         energy, entropy, schmidt_vals, t_dmrg = ground_state_Z2_param(params=params)
-
-        #     except TimeoutError as e:
-        #         print(e)
-        #         args_mps["guess"] = []
-        #         print("Running with random state:")
-        #         energy, entropy, schmidt_vals, t_dmrg = ground_state_Z2_param(params=params)
-        #     else:
-        #         # Cancel the alarm if the algorithm finishes before the timeout
-        #         signal.alarm(0)
-
-        #     time_param.append(t_dmrg)
-        #     t_mean = np.mean(time_param)
-        #     t_std = np.std(time_param)
-        #     threshold = t_mean + 3*t_std
-        #     energies_param.append(energy)
-        #     entropies_param.append(entropy)
-        #     schmidt_vals_param.append(schmidt_vals)
-        #     time_param.append(t_dmrg)
-
+            time_param.append(t_dmrg)
+            t_mean = np.mean(time_param)
+            t_std = np.std(time_param)
+            new_timeout_secs = t_mean + 3*t_std
+            energies_param.append(energy)
+            entropies_param.append(entropy)
+            schmidt_vals_param.append(schmidt_vals)
+            time_param.append(t_dmrg)
 
     return energies_param, entropies_param, schmidt_vals_param, time_param
