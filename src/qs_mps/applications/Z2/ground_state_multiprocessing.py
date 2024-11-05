@@ -163,21 +163,14 @@ def ground_state_Z2(args_mps, multpr, param, reps: int=3):
 
         for p in param:
             params = [args_mps, p]
-            for attempt in range(reps):
-                
-                with ThreadPoolExecutor() as executor:
-                    future = executor.submit(ground_state_Z2_param, params=params)
-                    try:
-                        # Attempt to execute within the threshold time
-                        results = future.result(timeout=threshold)
-                        energy, entropy, schmidt_vals, t_dmrg = results
-                        print(f"Run for parameter: {p:.2f} attempt: {attempt} completed in {t_dmrg:.2f}s within threshold.")
-                        execution_times.append(t_dmrg)
-                        energies_param.append(energy)
-                        entropies_param.append(entropy)
-                        schmidt_vals_param.append(schmidt_vals)
-                        time_param.append(t_dmrg)
-                        break  # Exit retry loop since run was successful
+            # Set the timeout period (in seconds)
+            timeout_secs = new_timeout_secs # You can change this value according to your requirement
+            # Set the alarm
+            signal.alarm(int(timeout_secs+1))
+            print(f"New timeout seconds: {int(timeout_secs+1)}")
+            try:
+                print("Running with guess state:")
+                energy, entropy, schmidt_vals, t_dmrg = ground_state_Z2_param(params=params)
 
                     except TimeoutError:
                         print(f"Run for parameter: {p:.2f} attempt: {attempt} exceeded threshold of {threshold:.2f}s. Retrying with random state...")
