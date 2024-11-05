@@ -9,12 +9,12 @@ import time
 import numpy as np
 from concurrent.futures import ThreadPoolExecutor, TimeoutError
 
-# Define a function to handle the timeout
-def timeout_handler(signum, frame):
-    raise TimeoutError("Algorithm took too long to execute")
+# # Define a function to handle the timeout
+# def timeout_handler(signum, frame):
+#     raise TimeoutError("Algorithm took too long to execute")
 
-# Set the signal handler
-signal.signal(signal.SIGALRM, timeout_handler)
+# # Set the signal handler
+# signal.signal(signal.SIGALRM, timeout_handler)
 
 def ground_state_Z2_exact_param(params):
     args_lattice = params[0]
@@ -163,31 +163,61 @@ def ground_state_Z2(args_mps, multpr, param, reps: int=3):
 
         for p in param:
             params = [args_mps, p]
-            # Set the timeout period (in seconds)
-            timeout_secs = new_timeout_secs # You can change this value according to your requirement
-            # Set the alarm
-            signal.alarm(int(timeout_secs+1))
-            print(f"New timeout seconds: {int(timeout_secs+1)}")
-            try:
-                print("Running with guess state:")
-                energy, entropy, schmidt_vals, t_dmrg = ground_state_Z2_param(params=params)
+            for attempt in range(reps):
+                
+                with ThreadPoolExecutor() as executor:
+                    future = executor.submit(ground_state_Z2_param, params=params)
+                    try:
+                        # Attempt to execute within the threshold time
+                        results = future.result(timeout=threshold)
+                        energy, entropy, schmidt_vals, t_dmrg = results
+                        print(f"Run for parameter: {p:.2f} attempt: {attempt} completed in {t_dmrg:.2f}s within threshold.")
+                        execution_times.append(t_dmrg)
+                        energies_param.append(energy)
+                        entropies_param.append(entropy)
+                        schmidt_vals_param.append(schmidt_vals)
+                        time_param.append(t_dmrg)
+                        break  # Exit retry loop since run was successful
 
-            except TimeoutError as e:
-                print(e)
-                args_mps["guess"] = []
-                print("Running with random state:")
-                energy, entropy, schmidt_vals, t_dmrg = ground_state_Z2_param(params=params)
-            else:
-                # Cancel the alarm if the algorithm finishes before the timeout
-                signal.alarm(0)
+                    except TimeoutError:
+                        print(f"Run for parameter: {p:.2f} attempt: {attempt} exceeded threshold of {threshold:.2f}s. Retrying with random state...")
 
-            time_param.append(t_dmrg)
-            t_mean = np.mean(time_param)
-            t_std = np.std(time_param)
-            new_timeout_secs = t_mean + 3*t_std
-            energies_param.append(energy)
-            entropies_param.append(entropy)
-            schmidt_vals_param.append(schmidt_vals)
-            time_param.append(t_dmrg)
+                    # Update parameters here as needed before retrying
+                    args_mps["guess"] = []
+
+            # Update the threshold based on the average time with slack
+            if execution_times:
+                avg_time = sum(execution_times) / len(execution_times)
+                threshold = avg_time * slack
+                print(f"New threshold updated to {threshold:.2f}s")
+
+        # for p in param:
+        #     params = [args_mps, p]
+        #     # Set the timeout period (in seconds)
+        #     timeout_secs = new_timeout_secs # You can change this value according to your requirement
+        #     # Set the alarm
+        #     signal.alarm(int(timeout_secs+1))
+        #     print(f"New timeout seconds: {int(timeout_secs+1)}")
+        #     try:
+        #         print("Running with guess state:")
+        #         energy, entropy, schmidt_vals, t_dmrg = ground_state_Z2_param(params=params)
+
+        #     except TimeoutError as e:
+        #         print(e)
+        #         args_mps["guess"] = []
+        #         print("Running with random state:")
+        #         energy, entropy, schmidt_vals, t_dmrg = ground_state_Z2_param(params=params)
+        #     else:
+        #         # Cancel the alarm if the algorithm finishes before the timeout
+        #         signal.alarm(0)
+
+        #     time_param.append(t_dmrg)
+        #     t_mean = np.mean(time_param)
+        #     t_std = np.std(time_param)
+        #     new_timeout_secs = t_mean + 3*t_std
+        #     energies_param.append(energy)
+        #     entropies_param.append(entropy)
+        #     schmidt_vals_param.append(schmidt_vals)
+        #     time_param.append(t_dmrg)
 
     return energies_param, entropies_param, schmidt_vals_param, time_param
