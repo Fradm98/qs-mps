@@ -195,7 +195,9 @@ for L in args.Ls:
                 args.where = "all"
 
             if args.training:
+
                 energy_chi = np.asarray(energy_chi)
+                print(energy_chi.shape, energy_chi)
                 energy_chi = energy_chi.reshape((len(interval),len(energy_chi[0])))
                 print(energy_chi.shape)
                 np.save(

@@ -147,7 +147,7 @@ def ground_state_Z2_multpr(args_mps, multpr_param, cpu_percentage=90):
     return energies, entropies
 
 
-def ground_state_Z2(args_mps, multpr, param, reps: int=3):
+def ground_state_Z2(args_mps, multpr, param, reps: int=1):
     if multpr:
         energies_param, entropies_param = ground_state_Z2_multpr(
             args_mps=args_mps, multpr_param=param
@@ -158,18 +158,21 @@ def ground_state_Z2(args_mps, multpr, param, reps: int=3):
         schmidt_vals_param = []
         time_param = []
         threshold = 5
-        slack = 2
+        slack = 1
         execution_times = []
 
         for p in param:
             params = [args_mps, p]
             for attempt in range(reps):
-                
                 with ThreadPoolExecutor() as executor:
-                    future = executor.submit(ground_state_Z2_param, params=params)
                     try:
+                        results = executor.map(ground_state_Z2_param, [params], timeout=threshold)
+                        # future = executor.submit(ground_state_Z2_param, params=params)
                         # Attempt to execute within the threshold time
-                        results = future.result(timeout=threshold)
+                        # results = future.result()
+                        for result in results:
+                            print("HHEEEEEEERRRRREEEEEEEE")
+                            print(result)
                         energy, entropy, schmidt_vals, t_dmrg = results
                         print(f"Run for parameter: {p:.2f} attempt: {attempt} completed in {t_dmrg:.2f}s within threshold.")
                         execution_times.append(t_dmrg)
@@ -181,16 +184,19 @@ def ground_state_Z2(args_mps, multpr, param, reps: int=3):
 
                     except TimeoutError:
                         print(f"Run for parameter: {p:.2f} attempt: {attempt} exceeded threshold of {threshold:.2f}s. Retrying with random state...")
-
-                    # Update parameters here as needed before retrying
-                    args_mps["guess"] = []
-
+                        # Update parameters here as needed before retrying
+                        args_mps["guess"] = []
+            
+                # # Ensure the executor is closed after each attempt
+                # executor.shutdown(wait=True)
+            
             # Update the threshold based on the average time with slack
             if execution_times:
                 avg_time = sum(execution_times) / len(execution_times)
                 threshold = avg_time * slack
                 print(f"New threshold updated to {threshold:.2f}s")
 
+            
         # for p in param:
         #     params = [args_mps, p]
         #     # Set the timeout period (in seconds)
