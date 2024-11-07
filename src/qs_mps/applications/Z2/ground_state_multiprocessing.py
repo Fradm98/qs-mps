@@ -78,6 +78,7 @@ def ground_state_Z2(args_mps, interval, reps=3):
     t_tot = []
     timeout = 10000
     slack = 3
+    precision = args_mps["precision"]
     params_not_found = []
     for p in interval:
         count_attempts = 0
@@ -85,7 +86,6 @@ def ground_state_Z2(args_mps, interval, reps=3):
             params = (args_mps, p)
             result = run_with_timeout(ground_state_Z2_param, (params,), timeout)
             if result is None:
-                precision = args_mps["precision"]
                 print(f"Computation for h={params[1]:.{precision}f} timed out and was terminated.")
                 args_mps["guess"] = []
                 timeout = timeout * slack
