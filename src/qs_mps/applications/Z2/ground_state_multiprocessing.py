@@ -101,14 +101,14 @@ def ground_state_Z2(args_mps, interval, reps=3):
                 break
         
         if count_attempts == 0:
-            print(f"h={params[1]:.{args_mps["precision"]}f}")
+            print(f"h={params[1]:.{precision}f}")
             params_not_found.append(params[1])
         if t_tot:
             avg_time = sum(t_tot) / len(t_tot)
             timeout = avg_time * slack
             print(f"New timeout updated to {timeout:.2f}s")
     
-        print(f"Completed computation for h={params[1]:.{args_mps["precision"]}f}")
+        print(f"Completed computation for h={params[1]:.{precision}f}")
     print(f"Parameters not found are {len(params_not_found)}:\n{params_not_found}")
     
     return ene_tot, ent_tot, sm_tot, t_tot
