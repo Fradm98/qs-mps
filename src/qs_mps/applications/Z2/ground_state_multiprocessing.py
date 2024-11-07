@@ -77,7 +77,7 @@ def ground_state_Z2(args_mps, interval, reps=3):
     sm_tot = []
     t_tot = []
     timeout = 10000
-    slack = 2
+    slack = 3
     params_not_found = []
     for p in interval:
         count_attempts = 0

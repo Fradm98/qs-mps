@@ -176,7 +176,7 @@ for L in args.Ls:
 
         if __name__ == "__main__":
             energy_chi, entropy_chi, schmidt_vals_chi, t_chi = ground_state_Z2(
-                args_mps=args_mps, inverval=interval
+                args_mps=args_mps, interval=interval
             )
 
             t_final = np.sum(t_chi)
