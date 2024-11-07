@@ -85,7 +85,8 @@ def ground_state_Z2(args_mps, interval, reps=3):
             params = (args_mps, p)
             result = run_with_timeout(ground_state_Z2_param, (params,), timeout)
             if result is None:
-                print(f"Computation for h={params[1]:.{args_mps["precision"]}f} timed out and was terminated.")
+                precision = args_mps["precision"]
+                print(f"Computation for h={params[1]:.{precision}f} timed out and was terminated.")
                 args_mps["guess"] = []
                 timeout = timeout * slack
                 continue
