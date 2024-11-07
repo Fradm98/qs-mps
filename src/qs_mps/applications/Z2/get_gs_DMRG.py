@@ -176,19 +176,11 @@ for L in args.Ls:
 
         if __name__ == "__main__":
             energy_chi, entropy_chi, schmidt_vals_chi, t_chi = ground_state_Z2(
-                args_mps=args_mps, multpr=args.multpr, param=interval
+                args_mps=args_mps, inverval=interval
             )
 
             t_final = np.sum(t_chi)
             t_final_gen = dt.timedelta(seconds=t_final)
-            # if t_final < 60:
-            #     t_unit = "sec(s)"
-            # elif t_final > 60 and t_final < 3600:
-            #     t_unit = "min(s)"
-            #     t_final = t_final/60
-            # elif t_final > 3600:
-            #     t_unit = "hour(s)"
-            #     t_final = t_final/3600
 
             print(f"time of the whole search for chi={chi} is: {t_final_gen}")
             if args.bond == False:
