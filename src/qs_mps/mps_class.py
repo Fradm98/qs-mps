@@ -391,19 +391,19 @@ class MPS:
         if type_shape == "trapezoidal":
             chi = int(np.log2(self.chi))
             for i in range(chi):
-                extended_array.append(np.zeros((self.d**i, self.d, self.d ** (i + 1))))
+                extended_array.append(np.zeros((self.d**i, self.d, self.d ** (i + 1)), dtype=np.complex128))
             for _ in range(self.L - (2 * chi)):
-                extended_array.append(np.zeros((self.d**chi, self.d, self.d**chi)))
+                extended_array.append(np.zeros((self.d**chi, self.d, self.d**chi), dtype=np.complex128))
             for i in range(chi):
                 extended_array.append(
-                    np.zeros((self.d ** (chi - i), self.d, self.d ** (chi - i - 1)))
+                    np.zeros((self.d ** (chi - i), self.d, self.d ** (chi - i - 1)), dtype=np.complex128)
                 )
 
         elif type_shape == "rectangular":
-            extended_array.append(np.zeros((1,self.d,self.chi)))
+            extended_array.append(np.zeros((1,self.d,self.chi), dtype=np.complex128))
             for _ in range(self.L-2):
-                extended_array.append(np.zeros((self.chi,self.d,self.chi)))
-            extended_array.append(np.zeros((self.chi,self.d,1)))
+                extended_array.append(np.zeros((self.chi,self.d,self.chi), dtype=np.complex128))
+            extended_array.append(np.zeros((self.chi,self.d,1), dtype=np.complex128))
         if prnt:
             print("shapes enlarged tensors:")
             tensor_shapes(extended_array)

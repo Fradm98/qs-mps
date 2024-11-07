@@ -82,6 +82,7 @@ def ground_state_Z2(args_mps, interval, reps=3):
     params_not_found = []
     for p in interval:
         count_attempts = 0
+        print(f"\n*** Starting attempts in {dt.datetime.now()}\n")
         for attempt in range(reps):
             params = (args_mps, p)
             result = run_with_timeout(ground_state_Z2_param, (params,), timeout)
@@ -108,7 +109,7 @@ def ground_state_Z2(args_mps, interval, reps=3):
             timeout = avg_time * slack
             print(f"New timeout updated to {timeout:.2f}s")
     
-        print(f"Completed computation for h={params[1]:.{precision}f}")
+        print(f"\n*** Completed computation in {dt.datetime.now()} for h={params[1]:.{precision}f}\n")
     print(f"Parameters not found are {len(params_not_found)}:\n{params_not_found}")
     
     return ene_tot, ent_tot, sm_tot, t_tot
