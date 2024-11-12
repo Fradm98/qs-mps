@@ -37,7 +37,6 @@ def ground_state_Z2_param(params):
         extra_ancillary_site = a.reshape((1,2,1))
         ladder.sites.append(extra_ancillary_site)
         ladder.L = len(ladder.sites)
-        print(f"Ladder with pbc has L: {ladder.L}")
 
     energy, entropy, schmidt_vals, t_dmrg = ladder.DMRG(
         trunc_tol=args_mps["trunc_tol"],
@@ -60,7 +59,6 @@ def ground_state_Z2_param(params):
         ladder.L = len(ladder.sites)
         ladder.save_sites(args_mps["path"], args_mps["precision"], args_mps["charges_x"], args_mps["charges_y"])
     new_guess = ladder.sites.copy()
-    print(f"Ladder with pbc has L: {ladder.L}")
 
     return energy, entropy, schmidt_vals, t_dmrg, new_guess
 
