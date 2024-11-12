@@ -26,17 +26,18 @@ def ground_state_Z2_param(params):
         print("Running with random state")
         ladder._random_state(seed=3, chi=args_mps["chi"], type_shape=args_mps["type_shape"])
         ladder.canonical_form(trunc_chi=True, trunc_tol=False)
-        if ladder.bc == "pbc":
-            a = np.zeros((1,2))
-            a[0,0] = 1
-            extra_ancillary_site = a.reshape((1,2,1))
-            ladder.sites.append(extra_ancillary_site)
-            ladder.L = len(ladder.sites)
-            print(f"Ladder with pbc has L: {ladder.L}")
     else:
         print("Running with guess state")
         ladder.sites = args_mps["guess"].copy()
         ladder.enlarge_chi()
+
+    if ladder.bc == "pbc":
+        a = np.zeros((1,2))
+        a[0,0] = 1
+        extra_ancillary_site = a.reshape((1,2,1))
+        ladder.sites.append(extra_ancillary_site)
+        ladder.L = len(ladder.sites)
+        print(f"Ladder with pbc has L: {ladder.L}")
 
     energy, entropy, schmidt_vals, t_dmrg = ladder.DMRG(
         trunc_tol=args_mps["trunc_tol"],
