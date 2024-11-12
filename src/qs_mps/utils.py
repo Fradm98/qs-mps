@@ -1177,3 +1177,11 @@ def anim(frames: int, interval: int, data: np.ndarray, params: np.ndarray, show:
     if show:
         plt.show()
     return animation
+
+
+def get_cx(L,R):
+    assert 0 < R < L, "The fluxtube is longer than the lattice length"
+    return [L//2-R//2,L//2+R//2]
+
+def get_cy(l):
+    return [l//2,l//2]
