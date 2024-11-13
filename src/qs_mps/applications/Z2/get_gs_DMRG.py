@@ -4,6 +4,7 @@ import datetime as dt
 from qs_mps.mps_class import MPS
 from qs_mps.utils import get_precision, save_list_of_lists, access_txt
 from qs_mps.applications.Z2.ground_state_multiprocessing import ground_state_Z2
+import sys
 
 # DENSITY MATRIX RENORMALIZATION GROUP to find ground states of the Z2 Pure Gauge Theory 
 # changing the transverse field parameters in its dual formulation
@@ -92,8 +93,20 @@ parser.add_argument(
     default="obc",
     type=str
 )
+parser.add_argument(
+    "-log",
+    "--logging",
+    help="Name to log the output of the computation",
+    default="output.out",
+    type=str
+)
 
 args = parser.parse_args()
+
+# Redirect stdout and stderr to the log file
+sys.stdout = open(f'results/logs/{args.logging}', 'w')
+sys.stderr = sys.stdout
+
 
 # define the physical dimension
 d = int(2**(args.l))
