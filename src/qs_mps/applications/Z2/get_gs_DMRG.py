@@ -103,9 +103,9 @@ parser.add_argument(
 
 args = parser.parse_args()
 
-# Redirect stdout and stderr to the log file
-sys.stdout = open(f'results/logs/{args.logging}', 'w')
-sys.stderr = sys.stdout
+# # Redirect stdout and stderr to the log file
+# sys.stdout = open(f'results/logs/{args.logging}', 'w')
+# sys.stderr = sys.stdout
 
 
 # define the physical dimension
