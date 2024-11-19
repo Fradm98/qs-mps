@@ -4,6 +4,7 @@ import numpy as np
 import datetime as dt
 from qs_mps.mps_class import MPS
 from qs_mps. utils import tensor_shapes, get_precision
+import os
 
 def ground_state_Z2_param(params):
     args_mps = params[0]
@@ -48,7 +49,7 @@ def ground_state_Z2_param(params):
     )
     t_final = np.sum(t_dmrg)
     t_final_gen = dt.timedelta(seconds=t_final)
-    print(f"time of the whole search for h={param:.{precision}f} is: {t_final_gen}")
+    print(f"time of the whole search for h={param:.{precision}f}, chi={args_mps["chi"]} is: {t_final_gen} in date {dt.datetime.now()}")
     
     if not args_mps["training"]:
         energy = energy[-1]
@@ -63,12 +64,14 @@ def ground_state_Z2_param(params):
     return energy, entropy, schmidt_vals, t_dmrg, new_guess
 
 def run_with_timeout(func, args, timeout):
-    with multiprocessing.Pool() as pool:
+    workers = os.cpu_count()
+    with multiprocessing.Pool(processes=int(workers*0.8)) as pool:
+        print(f"\n  --- Using {int(workers*0.8)} processes ---\n")
         result = pool.apply_async(func, args)
         try:
             return result.get(timeout=timeout)
         except multiprocessing.TimeoutError:
-            print(f"\n## TimeoutError: Algorithm exceeded {timeout} seconds ##\n")
+            print(f"\n## TimeoutError: Algorithm exceeded {timeout} seconds in date {dt.datetime.now()} ##\n")
             pool.terminate()  # Forcefully terminate the worker
             pool.join()
             return None  # Return None or any indicator of failure
@@ -89,7 +92,7 @@ def ground_state_Z2(args_mps, interval, reps=3):
             params = (args_mps, p)
             result = run_with_timeout(ground_state_Z2_param, (params,), timeout)
             if result is None:
-                print(f"Computation for h={params[1]:.{precision}f} timed out and was terminated.")
+                print(f"Computation for h={params[1]:.{precision}f} timed out and was terminated in date {dt.datetime.now()}")
                 args_mps["guess"] = []
                 timeout = timeout * slack
                 continue
@@ -109,9 +112,9 @@ def ground_state_Z2(args_mps, interval, reps=3):
         if t_tot:
             avg_time = sum(t_tot) / len(t_tot)
             timeout = avg_time * slack
-            print(f"New timeout updated to {timeout:.2f}s")
+            print(f"New timeout updated to {timeout:.2f}s in date {dt.datetime.now()}")
     
-        print(f"\n*** Completed computation in {dt.datetime.now()} for h={params[1]:.{precision}f}\n")
+        print(f"\n*** Completed computation in date {dt.datetime.now()} for h={params[1]:.{precision}f}\n")
     print(f"Parameters not found are {len(params_not_found)}:\n{params_not_found}")
     
     return ene_tot, ent_tot, sm_tot, t_tot
