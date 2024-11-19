@@ -17,6 +17,7 @@ def ground_state_Z2_param(params):
         bc=args_mps["bc"],
         h=param,
     )
+    chi = args_mps["chi"]
     save = args_mps["save"]
     precision = args_mps["precision"]
     if ladder.model == "Z2_dual":
@@ -49,7 +50,7 @@ def ground_state_Z2_param(params):
     )
     t_final = np.sum(t_dmrg)
     t_final_gen = dt.timedelta(seconds=t_final)
-    print(f"time of the whole search for h={param:.{precision}f}, chi={args_mps["chi"]} is: {t_final_gen} in date {dt.datetime.now()}")
+    print(f"time of the whole search for h={param:.{precision}f}, chi={chi} is: {t_final_gen} in date {dt.datetime.now()}")
     
     if not args_mps["training"]:
         energy = energy[-1]
