@@ -189,12 +189,13 @@ for L in args.Ls:
         
 
         if __name__ == "__main__":
-            t_init = dt.datetime.now()
+            t_init = time.monotonic()
+            date_start = dt.datetime.now()
             energy_chi, entropy_chi, schmidt_vals_chi, t_chi = ground_state_Z2(
                 args_mps=args_mps, interval=interval, multpr=args.multpr
             )
-
-            t_final = dt.timedelta(seconds=t_init)
+            
+            t_final = dt.datetime.now() - date_start
 
             print(f"time of the whole search for chi={chi} is: {t_final}")
             if args.bond == False:
