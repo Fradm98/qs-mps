@@ -4,9 +4,9 @@ from scp import SCPClient, SCPException
 from datetime import datetime
 
 device = "marcos2"
-device = "pc"
+# device = "pc"
 observable = "energy_data"
-# observable = "entropy_data"
+observable = "entropy_data"
 
 # List of server information
 all_servers = [

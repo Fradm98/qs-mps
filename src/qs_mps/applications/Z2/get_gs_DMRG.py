@@ -5,6 +5,7 @@ from qs_mps.mps_class import MPS
 from qs_mps.utils import get_precision, save_list_of_lists, access_txt
 from qs_mps.applications.Z2.ground_state_multiprocessing import ground_state_Z2
 import sys
+import time
 
 # DENSITY MATRIX RENORMALIZATION GROUP to find ground states of the Z2 Pure Gauge Theory 
 # changing the transverse field parameters in its dual formulation
@@ -103,9 +104,9 @@ parser.add_argument(
 
 args = parser.parse_args()
 
-# Redirect stdout and stderr to the log file
-sys.stdout = open(f'results/logs/{args.logging}', 'w')
-sys.stderr = sys.stdout
+# # Redirect stdout and stderr to the log file
+# sys.stdout = open(f'results/logs/{args.logging}', 'w')
+# sys.stderr = sys.stdout
 
 
 # define the physical dimension
@@ -188,14 +189,15 @@ for L in args.Ls:
         
 
         if __name__ == "__main__":
+            t_init = time.monotonic()
+            date_start = dt.datetime.now()
             energy_chi, entropy_chi, schmidt_vals_chi, t_chi = ground_state_Z2(
-                args_mps=args_mps, interval=interval
+                args_mps=args_mps, interval=interval, multpr=args.multpr
             )
+            
+            t_final = dt.datetime.now() - date_start
 
-            t_final = np.sum(t_chi)
-            t_final_gen = dt.timedelta(seconds=t_final)
-
-            print(f"time of the whole search for chi={chi} is: {t_final_gen}")
+            print(f"time of the whole search for chi={chi} is: {t_final}")
             if args.bond == False:
                 args.where = "all"
 

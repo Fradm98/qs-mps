@@ -4,6 +4,8 @@ import numpy as np
 import datetime as dt
 from qs_mps.mps_class import MPS
 from qs_mps. utils import tensor_shapes, get_precision
+import os
+from threading import Event
 
 def ground_state_Z2_param(params):
     args_mps = params[0]
@@ -16,6 +18,7 @@ def ground_state_Z2_param(params):
         bc=args_mps["bc"],
         h=param,
     )
+    chi = args_mps["chi"]
     save = args_mps["save"]
     precision = args_mps["precision"]
     if ladder.model == "Z2_dual":
@@ -48,7 +51,7 @@ def ground_state_Z2_param(params):
     )
     t_final = np.sum(t_dmrg)
     t_final_gen = dt.timedelta(seconds=t_final)
-    print(f"time of the whole search for h={param:.{precision}f} is: {t_final_gen}")
+    print(f"time of the whole search for h={param:.{precision}f}, chi={chi} is: {t_final_gen} in date {dt.datetime.now()}")
     
     if not args_mps["training"]:
         energy = energy[-1]
@@ -58,63 +61,69 @@ def ground_state_Z2_param(params):
             ladder.sites.pop()
         ladder.L = len(ladder.sites)
         ladder.save_sites(args_mps["path"], args_mps["precision"], args_mps["charges_x"], args_mps["charges_y"])
-    new_guess = ladder.sites.copy()
+    # new_guess = ladder.sites.copy()
 
-    return energy, entropy, schmidt_vals, t_dmrg, new_guess
+    return energy, entropy, schmidt_vals, t_dmrg
+    # return energy, entropy, schmidt_vals, t_dmrg, new_guess
 
 def run_with_timeout(func, args, timeout):
-    with multiprocessing.Pool() as pool:
+    workers = os.cpu_count()
+    with multiprocessing.Pool(processes=int(workers*0.8)) as pool:
+        print(f"\n  --- Using {int(workers*0.8)} processes ---\n")
         result = pool.apply_async(func, args)
         try:
-            return result.get(timeout=timeout)
+            results = result.get(timeout=timeout)
+            pool.terminate()
+            pool.join()
+            return results
         except multiprocessing.TimeoutError:
-            print(f"\n## TimeoutError: Algorithm exceeded {timeout} seconds ##\n")
+            print(f"\n## TimeoutError: Algorithm exceeded {timeout} seconds in date {dt.datetime.now()} ##\n")
             pool.terminate()  # Forcefully terminate the worker
             pool.join()
             return None  # Return None or any indicator of failure
 
-def ground_state_Z2(args_mps, interval, reps=3):
-    ene_tot = []
-    ent_tot = []
-    sm_tot = []
-    t_tot = []
-    timeout = 10000
-    slack = 3
-    precision = args_mps["precision"]
-    params_not_found = []
-    for p in interval:
-        count_attempts = 0
-        print(f"\n*** Starting attempts in {dt.datetime.now()}\n")
-        for attempt in range(reps):
-            params = (args_mps, p)
-            result = run_with_timeout(ground_state_Z2_param, (params,), timeout)
-            if result is None:
-                print(f"Computation for h={params[1]:.{precision}f} timed out and was terminated.")
-                args_mps["guess"] = []
-                timeout = timeout * slack
-                continue
-            else:
-                energy, entropy, sm, tdmrg, new_guess = result
-                ene_tot.append(energy)
-                ent_tot.append(entropy)
-                sm_tot.append(sm)
-                t_tot.append(tdmrg)
-                args_mps["guess"] = new_guess.copy() 
-                count_attempts = 1
-                break
+# def ground_state_Z2(args_mps, interval, reps=3):
+#     ene_tot = []
+#     ent_tot = []
+#     sm_tot = []
+#     t_tot = []
+#     timeout = 10000
+#     slack = 3
+#     precision = args_mps["precision"]
+#     params_not_found = []
+#     for p in interval:
+#         count_attempts = 0
+#         print(f"\n*** Starting attempts in {dt.datetime.now()}\n")
+#         for attempt in range(reps):
+#             params = (args_mps, p)
+#             result = run_with_timeout(ground_state_Z2_param, (params,), timeout)
+#             if result is None:
+#                 print(f"Computation for h={params[1]:.{precision}f} timed out and was terminated in date {dt.datetime.now()}")
+#                 args_mps["guess"] = []
+#                 timeout = timeout * slack
+#                 continue
+#             else:
+#                 energy, entropy, sm, tdmrg, new_guess = result
+#                 ene_tot.append(energy)
+#                 ent_tot.append(entropy)
+#                 sm_tot.append(sm)
+#                 t_tot.append(tdmrg)
+#                 args_mps["guess"] = new_guess.copy() 
+#                 count_attempts = 1
+#                 break
         
-        if count_attempts == 0:
-            print(f"h={params[1]:.{precision}f}")
-            params_not_found.append(params[1])
-        if t_tot:
-            avg_time = sum(t_tot) / len(t_tot)
-            timeout = avg_time * slack
-            print(f"New timeout updated to {timeout:.2f}s")
+#         if count_attempts == 0:
+#             print(f"h={params[1]:.{precision}f}")
+#             params_not_found.append(params[1])
+#         if t_tot:
+#             avg_time = sum(t_tot) / len(t_tot)
+#             timeout = avg_time * slack
+#             print(f"New timeout updated to {timeout:.2f}s in date {dt.datetime.now()}")
     
-        print(f"\n*** Completed computation in {dt.datetime.now()} for h={params[1]:.{precision}f}\n")
-    print(f"Parameters not found are {len(params_not_found)}:\n{params_not_found}")
+#         print(f"\n*** Completed computation in date {dt.datetime.now()} for h={params[1]:.{precision}f}\n")
+#     print(f"Parameters not found are {len(params_not_found)}:\n{params_not_found}")
     
-    return ene_tot, ent_tot, sm_tot, t_tot
+#     return ene_tot, ent_tot, sm_tot, t_tot
 
 # import concurrent.futures
 # import os
@@ -247,101 +256,131 @@ def ground_state_Z2(args_mps, interval, reps=3):
 #     return energy, entropy, schmidt_vals, t_dmrg
 
 
-# def ground_state_Z2_multpr(args_mps, multpr_param, cpu_percentage=90):
-#     max_workers = int(os.cpu_count() * (cpu_percentage / 100))
-#     with concurrent.futures.ProcessPoolExecutor(max_workers=max_workers) as executor:
-#         args = [[args_mps, param] for param in multpr_param]
-#         results = executor.map(ground_state_Z2_param, args)
+def ground_state_Z2_multpr(args_mps, multpr_param, timeout=1000, cpu_percentage=90):
+    max_workers = int(os.cpu_count() * (cpu_percentage / 100))
+    timeout = timeout * len(multpr_param)
+    stop_event = Event()
+    with concurrent.futures.ThreadPoolExecutor(max_workers=max_workers) as executor:
+        args = [[args_mps, param] for param in multpr_param]
+        try:
+            results = executor.map(ground_state_Z2_param, args, timeout=timeout)
+        except TimeoutError:
+            print("Timeout reached! Requesting termination of tasks...")
+            stop_event.set()
+            results = None
 
-#     energies = []
-#     entropies = []
-#     i = 0
-#     for result in results:
-#         print(f"energy of h:{multpr_param[i]} is:\n {result[0][-1]}")
-#         energies.append(result[0])
-#         print(f"entropies of h:{multpr_param[i]} is:\n {result[1]}")
-#         entropies.append(result[1])
-#         i += 1
-#     return energies, entropies
+        return results
+
+def get_results(results):
+    energies = []
+    entropies = []
+    schmidt_vals = []
+    times = []
+    # i = 0
+    for result in results:
+        # print(f"energy of h:{multpr_param[i]} is:\n {result[0][-1]}")
+        energies.append(result[0])
+        # print(f"entropies of h:{multpr_param[i]} is:\n {result[1]}")
+        entropies.append(result[1])
+        schmidt_vals.append(result[2])
+        times.append(result[3])
+        # i += 1
+    return energies, entropies, schmidt_vals, times
 
 
-# def ground_state_Z2(args_mps, multpr, param, reps: int=1):
-#     if multpr:
-#         energies_param, entropies_param = ground_state_Z2_multpr(
-#             args_mps=args_mps, multpr_param=param
-#         )
-#     else:
-#         energies_param = []
-#         entropies_param = []
-#         schmidt_vals_param = []
-#         time_param = []
-#         threshold = 5
-#         slack = 1
-#         execution_times = []
+def ground_state_Z2(args_mps, multpr, interval, reps: int=1):
+    if multpr:
+        results_param = ground_state_Z2_multpr(
+            args_mps=args_mps, multpr_param=interval
+        )
+        if results_param == None:
+            return print("The computation exceeded the time limit")
+        else:
+            return get_results(results_param)
+    else:
+        energies, entropies, schmidt_vals, times = [], [], [], []
+        for p in interval:
+            print(f"\n*** Starting param: {p:.5f} in {dt.datetime.now()} ***\n")
+            params = [args_mps, p]
+            energy, entropy, schmidt_val, t_dmrg = ground_state_Z2_param(params)
+            energies.append(energy)
+            entropies.append(entropy)
+            schmidt_vals.append(schmidt_val)
+            times.append(t_dmrg)
+        return energies, entropies, schmidt_vals, times
+    
+    # else:
+    #     energies_param = []
+    #     entropies_param = []
+    #     schmidt_vals_param = []
+    #     time_param = []
+    #     threshold = 5
+    #     slack = 1
+    #     execution_times = []
 
-#         for p in param:
-#             params = [args_mps, p]
-#             for attempt in range(reps):
-#                 with ThreadPoolExecutor() as executor:
-#                     try:
-#                         results = executor.map(ground_state_Z2_param, [params], timeout=threshold)
-#                         # future = executor.submit(ground_state_Z2_param, params=params)
-#                         # Attempt to execute within the threshold time
-#                         # results = future.result()
-#                         for result in results:
-#                             print("HHEEEEEEERRRRREEEEEEEE")
-#                             print(result)
-#                         energy, entropy, schmidt_vals, t_dmrg = results
-#                         print(f"Run for parameter: {p:.2f} attempt: {attempt} completed in {t_dmrg:.2f}s within threshold.")
-#                         execution_times.append(t_dmrg)
-#                         energies_param.append(energy)
-#                         entropies_param.append(entropy)
-#                         schmidt_vals_param.append(schmidt_vals)
-#                         time_param.append(t_dmrg)
-#                         break  # Exit retry loop since run was successful
+    #     for p in param:
+    #         params = [args_mps, p]
+    #         for attempt in range(reps):
+    #             with ThreadPoolExecutor() as executor:
+    #                 try:
+    #                     results = executor.map(ground_state_Z2_param, [params], timeout=threshold)
+    #                     # future = executor.submit(ground_state_Z2_param, params=params)
+    #                     # Attempt to execute within the threshold time
+    #                     # results = future.result()
+    #                     for result in results:
+    #                         print("HHEEEEEEERRRRREEEEEEEE")
+    #                         print(result)
+    #                     energy, entropy, schmidt_vals, t_dmrg = results
+    #                     print(f"Run for parameter: {p:.2f} attempt: {attempt} completed in {t_dmrg:.2f}s within threshold.")
+    #                     execution_times.append(t_dmrg)
+    #                     energies_param.append(energy)
+    #                     entropies_param.append(entropy)
+    #                     schmidt_vals_param.append(schmidt_vals)
+    #                     time_param.append(t_dmrg)
+    #                     break  # Exit retry loop since run was successful
 
-#                     except TimeoutError:
-#                         print(f"Run for parameter: {p:.2f} attempt: {attempt} exceeded threshold of {threshold:.2f}s. Retrying with random state...")
-#                         # Update parameters here as needed before retrying
-#                         args_mps["guess"] = []
+    #                 except TimeoutError:
+    #                     print(f"Run for parameter: {p:.2f} attempt: {attempt} exceeded threshold of {threshold:.2f}s. Retrying with random state...")
+    #                     # Update parameters here as needed before retrying
+    #                     args_mps["guess"] = []
             
-#                 # # Ensure the executor is closed after each attempt
-#                 # executor.shutdown(wait=True)
+    #             # # Ensure the executor is closed after each attempt
+    #             # executor.shutdown(wait=True)
             
-#             # Update the threshold based on the average time with slack
-#             if execution_times:
-#                 avg_time = sum(execution_times) / len(execution_times)
-#                 threshold = avg_time * slack
-#                 print(f"New threshold updated to {threshold:.2f}s")
+    #         # Update the threshold based on the average time with slack
+    #         if execution_times:
+    #             avg_time = sum(execution_times) / len(execution_times)
+    #             threshold = avg_time * slack
+    #             print(f"New threshold updated to {threshold:.2f}s")
 
             
-#         # for p in param:
-#         #     params = [args_mps, p]
-#         #     # Set the timeout period (in seconds)
-#         #     timeout_secs = new_timeout_secs # You can change this value according to your requirement
-#         #     # Set the alarm
-#         #     signal.alarm(int(timeout_secs+1))
-#         #     print(f"New timeout seconds: {int(timeout_secs+1)}")
-#         #     try:
-#         #         print("Running with guess state:")
-#         #         energy, entropy, schmidt_vals, t_dmrg = ground_state_Z2_param(params=params)
+    #     # for p in param:
+    #     #     params = [args_mps, p]
+    #     #     # Set the timeout period (in seconds)
+    #     #     timeout_secs = new_timeout_secs # You can change this value according to your requirement
+    #     #     # Set the alarm
+    #     #     signal.alarm(int(timeout_secs+1))
+    #     #     print(f"New timeout seconds: {int(timeout_secs+1)}")
+    #     #     try:
+    #     #         print("Running with guess state:")
+    #     #         energy, entropy, schmidt_vals, t_dmrg = ground_state_Z2_param(params=params)
 
-#         #     except TimeoutError as e:
-#         #         print(e)
-#         #         args_mps["guess"] = []
-#         #         print("Running with random state:")
-#         #         energy, entropy, schmidt_vals, t_dmrg = ground_state_Z2_param(params=params)
-#         #     else:
-#         #         # Cancel the alarm if the algorithm finishes before the timeout
-#         #         signal.alarm(0)
+    #     #     except TimeoutError as e:
+    #     #         print(e)
+    #     #         args_mps["guess"] = []
+    #     #         print("Running with random state:")
+    #     #         energy, entropy, schmidt_vals, t_dmrg = ground_state_Z2_param(params=params)
+    #     #     else:
+    #     #         # Cancel the alarm if the algorithm finishes before the timeout
+    #     #         signal.alarm(0)
 
-#         #     time_param.append(t_dmrg)
-#         #     t_mean = np.mean(time_param)
-#         #     t_std = np.std(time_param)
-#         #     new_timeout_secs = t_mean + 3*t_std
-#         #     energies_param.append(energy)
-#         #     entropies_param.append(entropy)
-#         #     schmidt_vals_param.append(schmidt_vals)
-#         #     time_param.append(t_dmrg)
+    #     #     time_param.append(t_dmrg)
+    #     #     t_mean = np.mean(time_param)
+    #     #     t_std = np.std(time_param)
+    #     #     new_timeout_secs = t_mean + 3*t_std
+    #     #     energies_param.append(energy)
+    #     #     entropies_param.append(entropy)
+    #     #     schmidt_vals_param.append(schmidt_vals)
+    #     #     time_param.append(t_dmrg)
 
-#     return energies_param, entropies_param, schmidt_vals_param, time_param
+    # return energies_param, entropies_param, schmidt_vals_param, time_param
