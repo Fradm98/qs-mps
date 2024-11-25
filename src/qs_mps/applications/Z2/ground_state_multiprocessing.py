@@ -297,6 +297,18 @@ def ground_state_Z2(args_mps, multpr, interval, reps: int=1):
             return print("The computation exceeded the time limit")
         else:
             return get_results(results_param)
+    else:
+        energies, entropies, schmidt_vals, times = [], [], [], []
+        for p in interval:
+            print(f"\n*** Starting param: {p:.5f} in {dt.datetime.now()} ***\n")
+            params = [args_mps, p]
+            energy, entropy, schmidt_val, t_dmrg = ground_state_Z2_param(params)
+            energies.append(energy)
+            entropies.append(entropy)
+            schmidt_vals.append(schmidt_val)
+            times.append(t_dmrg)
+        return energies, entropies, schmidt_vals, times
+    
     # else:
     #     energies_param = []
     #     entropies_param = []
