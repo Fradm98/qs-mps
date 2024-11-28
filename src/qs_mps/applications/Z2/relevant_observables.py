@@ -1,0 +1,152 @@
+import numpy as np
+
+from scipy.optimize import curve_fit
+
+from qs_mps.applications.Z2.utils import get_cx, get_cy
+
+def static_potential(g: float, R: int, l: int, L: int, chi: int, bc: str=None, sector: str=None, h_i: float=None, h_f: float=None, npoints: int=None, path_tensor: str=None):
+    """
+    static potential
+
+    This function computes the static potential as the difference between the ground state energies of the two-charge sector and vacuum sector.
+    The potential indicates the energy of the static pair of charges separated by R for a lattice lxL at a specific value of the coupling g
+    and a certain bond dimension chi. 
+
+    g: float - value of the electric field coupling
+    R: int - string length formed by the separation of two charges
+    l: int - number of ladders in the direct lattice
+    L: int - number of plaquettes per ladder in the direct lattice (rungs-1)
+    chi: int - bond dimension used to approximate DMRG computations of the ground state
+    bc: str - boundary conditions of the lattice
+    sector: str - sector of the ground state
+    h_i: float - starting point for computations spanning the coupling phase space
+    h_f: float - ending point for computations spanning the coupling phase space
+    npoints: int - number of points for computations spanning the coupling phase space
+    path_tensor: str - path name for retrieving the ground state energy values
+
+    """
+    cx = get_cx(L,R)
+    cy = get_cy(l,bc=bc)
+    interval = np.linspace(h_i,h_f,npoints)
+    try:
+        vac = None
+        energy_charges = np.load(f"{path_tensor}/results/energy_data/energy_Z2_dual_direct_lattice_{l}x{L}_{sector}_bc_{bc}_{cx}-{cy}_h_{h_i}-{h_f}_delta_{npoints}_chi_{chi}.npy")
+        energy_vacuum = np.load(f"{path_tensor}/results/energy_data/energy_Z2_dual_direct_lattice_{l}x{L}_vacuum_sector_bc_{bc}_{vac}-{vac}_h_{h_i}-{h_f}_delta_{npoints}_chi_{chi}.npy")
+    except:
+        vac = np.nan
+        energy_charges = np.load(f"{path_tensor}/results/energy_data/energy_Z2_dual_direct_lattice_{l}x{L}_{sector}_bc_{bc}_{cx}-{cy}_h_{h_i}-{h_f}_delta_{npoints}_chi_{chi}.npy")
+        energy_vacuum = np.load(f"{path_tensor}/results/energy_data/energy_Z2_dual_direct_lattice_{l}x{L}_vacuum_sector_bc_{bc}_{vac}-{vac}_h_{h_i}-{h_f}_delta_{npoints}_chi_{chi}.npy")
+
+    energy_difference = (energy_charges - energy_vacuum)
+
+    for i, val in enumerate(energy_difference):
+        if round(g,3) == round(interval[i],3):
+            return val
+
+def static_potential_chis(g: float, R: int, l: int, L: int, chis: list, bc: str=None, sector: str=None, h_i: float=None, h_f: float=None, npoints: int=None, path_tensor: str=None):
+    """
+    static potential
+
+    This function collects the static potentials computed for different bond dimensions chis.
+
+    g: float - value of the electric field coupling
+    R: int - string length formed by the separation of two charges
+    l: int - number of ladders in the direct lattice
+    L: int - number of plaquettes per ladder in the direct lattice (rungs-1)
+    chis: list - bond dimensions used to approximate DMRG computations of the ground state
+    bc: str - boundary conditions of the lattice
+    sector: str - sector of the ground state
+    h_i: float - starting point for computations spanning the coupling phase space
+    h_f: float - ending point for computations spanning the coupling phase space
+    npoints: int - number of points for computations spanning the coupling phase space
+    path_tensor: str - path name for retrieving the ground state energy values
+
+    """
+    st_pots = []
+    for chi in chis:
+        st_pot = static_potential(g,R,l,L,chi,bc,sector,h_i,h_f,npoints,path_tensor)
+        st_pots.append(st_pot)
+    return st_pots
+
+
+def get_exact_potential_chis(chis, potentials):
+    # Given data
+    x_data = chis
+    y_data = potentials
+    x_inv_data = [1/chi for chi in chis]
+
+    # Define the model function with asymptotic behavior
+    def asymptotic_model(x, y0, A, B):
+        exponent = np.clip(-B * x, -700, 700)
+        return y0 + A * np.exp(exponent)
+
+    # Fit the model to the data
+    popt, pcov = curve_fit(asymptotic_model, x_data, y_data, p0=(y_data[-1], 0.1, 0.1))
+
+    # Extract fitted parameters and their errors
+    y0_fit, A_fit, B_fit = popt
+    y0_err, A_err, B_err = np.sqrt(np.diag(pcov))
+    print(f"y0 (asymptotic value) = {y0_fit:.6f} ± {y0_err:.6f}")
+    return y0_fit, y0_err
+
+def static_potential_exact_chi(g: float, R: int, l: int, L: int, chis: list, bc: str=None, sector: str=None, h_i: float=None, h_f: float=None, npoints: int=None, path_tensor: str=None):
+    potentials = static_potential_chis(g,R,l,L,chis,bc,sector,h_i,h_f,npoints,path_tensor)
+    pot_exact, err = get_exact_potential_chis(chis, potentials)
+    return pot_exact, err
+
+def static_potential_Ls(g: float, R: int, l: int, Ls: int, chis: list, bc: str=None, sector: str=None, h_i: float=None, h_f: float=None, npoints: int=None, path_tensor: str=None):
+    potentials = []
+    potentials_err = []
+    for L in Ls:
+        pot, err = static_potential_exact_chi(g,R,l,L,chis,bc,sector,h_i,h_f,npoints,path_tensor)
+        potentials.append(pot)
+        potentials_err.append(err)
+    return potentials, potentials_err
+
+def get_exact_potential_Ls(Ls, potentials):
+    # Given data
+    x_data = Ls
+    y_data = potentials
+    x_inv_data = [1/L for L in Ls]
+    p0 = (1, y_data[-1])
+
+    # Define the model function with asymptotic behavior
+    def asymptotic_model(x, a, b):
+        return b + (a * x)
+    
+    # Fit the model to the data
+    popt, pcov = curve_fit(asymptotic_model, x_inv_data, y_data, p0=p0)
+    errs = np.sqrt(np.diag(pcov))
+
+    # Extract fitted parameters and their errors
+    y0_fit = popt[1]
+    y0_err = errs[1]
+    print(f"y0 (asymptotic value) = {y0_fit:.6f} ± {y0_err:.6f}")
+    return y0_fit, y0_err
+
+def static_potential_exact_L(g: float, R: int, l: int, Ls: int, chis: list, bc: str=None, sector: str=None, h_i: float=None, h_f: float=None, npoints: int=None, path_tensor: str=None):
+    potentials = static_potential_Ls(g,R,l,Ls,chis,bc,sector,h_i,h_f,npoints,path_tensor)
+    pot_exact, err = get_exact_potential_Ls(Ls, potentials)
+    return pot_exact, err
+
+def static_potential_varying_R(g,Rs,l,L,chis):
+    potentials = []
+    err_potentials = []
+    for R in Rs:
+        print(f"R: {R}")
+        pot, err = static_potential_exact_chi(g,R,l,L,chis)
+        potentials.append(pot)
+        err_potentials.append(err)
+
+    return potentials, err_potentials
+
+def static_potential_varying_g(gs,R,l,L,chis):
+    potentials = []
+    err_potentials = []
+    for g in gs:
+        print(f"g: {g}")
+        pot, err = static_potential_exact_chi(g,R,l,L,chis)
+        potentials.append(pot)
+        err_potentials.append(err)
+
+    return potentials, err_potentials

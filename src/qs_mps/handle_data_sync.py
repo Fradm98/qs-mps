@@ -7,7 +7,7 @@ device = "marcos2"
 # device = "pc"
 device = "mac"
 observable = "energy_data"
-observable = "entropy_data"
+# observable = "entropy_data"
 
 # List of server information
 all_servers = [
