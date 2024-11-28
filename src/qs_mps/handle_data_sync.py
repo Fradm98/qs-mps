@@ -5,6 +5,7 @@ from datetime import datetime
 
 device = "marcos2"
 # device = "pc"
+device = "mac"
 observable = "energy_data"
 observable = "entropy_data"
 
@@ -22,7 +23,7 @@ if device == "pc":
     key_filename = "C:/Users/HP/.ssh/id_rsa_marcos"
     local_results_dir = f"C:/Users/HP/Desktop/projects/1_Z2/results/{observable}"
 elif device == "mac":
-    key_filename = "/Users/fradm98/.ssh/id_rsa_marcos"
+    key_filename = "/Users/fradm98/.ssh/id_rsa_mac"
     local_results_dir = f"/Users/fradm98/Desktop/projects/1_Z2/results/{observable}"
 elif device == "marcos1":
     key_filename = "/Users/fradm/.ssh/id_rsa_marcos1"
