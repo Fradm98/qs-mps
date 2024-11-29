@@ -5,12 +5,6 @@ from typing import Literal, Union
 
 import matplotlib.pyplot as plt
 
-# global parameters
-l = ...
-L = ...
-g = ...
-R = ...
-
 def get_cx(L,R):
     assert 0 < R < L, f"The fluxtube spans for {R} lattice links but the lattice length is {L}"
     return [L//2-R//2,L//2+R//2]
@@ -59,6 +53,51 @@ def find_closest_value(interval, g):
     print(f"we search for g={closest}")
     return closest
 
+def weighted_average(data: list, err_data: list):
+    """
+    weighted average
+
+    This function takes the average of some data weighted for their standard deviations.
+    In particular, we can use it when the r=R/L between the string and lattice length
+    is below a certain r threshold of 4/5.
+
+    data: list - e.g. list of static potential values
+    err_data: list - e.g. list of static potential error values after getting rid of the bond dimension
+    
+    """
+    weights = 1 / np.asarray(err_data)**2
+    av = np.sum(np.asarray(data) * weights) / np.sum(weights)
+
+    # Error in the weighted average
+    av_err = np.sqrt(1 / np.sum(weights))
+
+
+    print(f"Weighted Average: {av}")
+    print(f"Error in the Average: {av_err}")
+    return av, av_err
+
+def arithmetic_average(data: list, err_data: list):
+    """
+    arithmetic average
+
+    This function takes the average of some data and propagates the error for their standard deviations.
+    In particular, we can use it when the r=R/L between the string and lattice length
+    is below a certain r threshold of 4/5.
+
+    data: list - e.g. list of static potential values
+    err_data: list - e.g. list of static potential error values after getting rid of the bond dimension
+    
+    """
+    weights = np.asarray(err_data)**2
+    av = np.sum(data) / len(data)
+
+    # Error propagation in the arithmetic average
+    av_err = np.sqrt(np.sum(weights))/len(weights)
+
+
+    print(f"Arithmetic Average: {av}")
+    print(f"Error propagation in the Average: {av_err}")
+    return av, av_err
 
 def asymptotic_fit(y_data: np.ndarray, x_data: Union[np.ndarray, list], x_label: str, y_err: np.ndarray=None, fit_func: Literal["exp","lin"]="exp", bounds: tuple=None):
     
@@ -82,15 +121,16 @@ def asymptotic_fit(y_data: np.ndarray, x_data: Union[np.ndarray, list], x_label:
     # Fit the model to the data
     popt, pcov = curve_fit(asymptotic_model, x_inv_data, y_data, sigma=y_err, p0=p0, maxfev=1000)
     errs = np.sqrt(np.diag(pcov))
-    vals_err = [[param,err] for param, err in zip(popt,errs)]
     print(f"Fitted {fit_func} observable in function of {x_label}:")
-    # print(f"V0 (asymptotic value) = {vals_err[0][0]:.6f} ± {vals_err[0][1]:.6f}")
-    # vals_err.pop(0)
-    # for i, val_err in enumerate(vals_err):
-    #     print(f"Parameter {i} = {val_err[0]:.6f} ± {val_err[1]:.6f}")
     return popt, errs
 
-def plot_asymptotic_fit(y_data: np.ndarray, x_data: Union[np.ndarray, list], x_label: str, popt: list, errs: np.ndarray, y_err: np.ndarray=None, fit_func: Literal["exp","lin"]="exp"):
+def plot_asymptotic_fit(y_data: np.ndarray, x_data: Union[np.ndarray, list], x_label: str, popt: list, errs: np.ndarray, y_err: np.ndarray=None, fit_func: Literal["exp","lin"]="exp", fixed_params: list=None):
+    g = fixed_params[0]
+    R = fixed_params[1]
+    l = fixed_params[2]
+    L = fixed_params[3]
+
+
     x_inv_data = [1/x for x in x_data]
 
     # Plot the data and the fit with respect to 1/x

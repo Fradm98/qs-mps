@@ -4,8 +4,8 @@ from scp import SCPClient, SCPException
 from datetime import datetime
 
 device = "marcos2"
-# device = "pc"
-device = "mac"
+device = "pc"
+# device = "mac"
 observable = "energy_data"
 # observable = "entropy_data"
 
