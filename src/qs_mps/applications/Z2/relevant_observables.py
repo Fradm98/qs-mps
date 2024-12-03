@@ -3,6 +3,7 @@ import numpy as np
 from scipy.optimize import curve_fit
 
 from qs_mps.applications.Z2.utils import get_cx, get_cy, arithmetic_average
+from qs_mps.utils import von_neumann_entropy
 
 def static_potential(g: float, R: int, l: int, L: int, chi: int, bc: str=None, sector: str=None, h_i: float=None, h_f: float=None, npoints: int=None, path_tensor: str=None):
     """
@@ -294,3 +295,37 @@ def string_width_chis(g: float, R: int, l: int, L: int, chis: list, bc: str=None
         w = string_width_electric_energy_density(g,R,l,L,chi,bc,sector,h_i,h_f,npoints,path_tensor)
         ws_chi.append(w)
     return ws_chi
+
+def entropy(R: int, l: int, L: int, chi: list, bc: str=None, sector: str=None, h_i: float=None, h_f: float=None, npoints: int=None, path_tensor: str=None):
+    """
+    entropy
+
+    This function computes the entropies for some couplings gs.
+
+    R: int - string length formed by the separation of two charges
+    l: int - number of ladders in the direct lattice
+    L: int - number of plaquettes per ladder in the direct lattice (rungs-1)
+    chi: int - bond dimension used to approximate DMRG computations of the ground state
+    bc: str - boundary conditions of the lattice
+    sector: str - sector of the ground state
+    h_i: float - starting point for computations spanning the coupling phase space
+    h_f: float - ending point for computations spanning the coupling phase space
+    npoints: int - number of points for computations spanning the coupling phase space
+    path_tensor: str - path name for retrieving the energy density values
+
+    """
+    cx = get_cx(L,R)
+    cy = get_cy(l,bc=bc)
+
+    try:
+        vac = None
+        schmidt_values = np.load(f"{path_tensor}/results/entropy_data/{L//2}_schmidt_vals_Z2_dual_direct_lattice_{l}x{L}_{sector}_bc_{bc}_{cx}-{cy}_h_{h_i}-{h_f}_delta_{npoints}_chi_{chi}.npy")
+    except:
+        vac = np.nan
+        schmidt_values = np.load(f"{path_tensor}/results/entropy_data/{L//2}_schmidt_vals_Z2_dual_direct_lattice_{l}x{L}_{sector}_bc_{bc}_{cx}-{cy}_h_{h_i}-{h_f}_delta_{npoints}_chi_{chi}.npy")
+
+    entropies = []
+    for sm in schmidt_values:
+        entropies.append(von_neumann_entropy(sm))
+
+    return entropies
