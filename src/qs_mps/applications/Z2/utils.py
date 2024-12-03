@@ -90,7 +90,8 @@ def asymptotic_fit(y_data: np.ndarray, x_data: Union[np.ndarray, list], x_label:
     #     print(f"Parameter {i} = {val_err[0]:.6f} ± {val_err[1]:.6f}")
     return popt, errs
 
-def plot_asymptotic_fit(y_data: np.ndarray, x_data: Union[np.ndarray, list], x_label: str, popt: list, errs: np.ndarray, y_err: np.ndarray=None, fit_func: Literal["exp","lin"]="exp"):
+def plot_asymptotic_fit(y_data: np.ndarray, x_data: Union[np.ndarray, list], x_label: str, popt: list, errs: np.ndarray, y_err: np.ndarray=None, fit_func: Literal["exp","lin"]="exp", fixed_params: list=None):
+    g, R, l, L = ~fixed_params
     x_inv_data = [1/x for x in x_data]
 
     # Plot the data and the fit with respect to 1/x
@@ -107,7 +108,7 @@ def plot_asymptotic_fit(y_data: np.ndarray, x_data: Union[np.ndarray, list], x_l
         def asymptotic_model(x, a, b, c):
             return c + a * np.exp(-b * x)
         # Assign label for the model function of the asymptotic behavior
-        fit_label = f'Fit: $O = {popt[2]:.2f} + {popt[0]:.2f} e^{{-{popt[1]:.2f} {x_label}}}$'
+        fit_label = f'Fit: $y = {popt[2]:.2f} + {popt[0]:.2f} e^{{-{popt[1]:.2f} {x_label}}}$'
         asymptotic_val = popt[2]
         err_val = errs[2]
         # Generate data for the fitted curve
@@ -120,7 +121,7 @@ def plot_asymptotic_fit(y_data: np.ndarray, x_data: Union[np.ndarray, list], x_l
         def asymptotic_model(x, a, b):
             return b + (a * x)
         # Assign label for the model function of the asymptotic behavior
-        fit_label = f'Fit: $O = {popt[1]:.2f} + {popt[0]:.2f} {x_label}$'
+        fit_label = f'Fit: $y = {popt[1]:.2f} + {popt[0]:.2f} {x_label}$'
         asymptotic_val = popt[1]
         err_val = errs[1]
         # Generate data for the fitted curve
@@ -131,18 +132,18 @@ def plot_asymptotic_fit(y_data: np.ndarray, x_data: Union[np.ndarray, list], x_l
     else:
         raise TypeError("The fit you chose is not available. 'exp' and 'lin' fits are implemented")
 
-    plt.errorbar(x_inv_data, y_data, yerr=y_err, fmt='x', capsize=7, label=f"$O(g={round(g,2)}, R={R}{last_fixed_var})")
+    plt.errorbar(x_inv_data, y_data, yerr=y_err, fmt='x', capsize=7, label=f"$y(g={round(g,2)}, R={R}{last_fixed_var})")
     plt.text(x=x_inv_data[-1], y=y_data[-1]+(y_data[-2]-y_data[-1])/2, s=f"${x_label}: {x_data[-1]}$",
             bbox=dict(facecolor='lightblue', edgecolor='black', boxstyle='round,pad=0.5', alpha=0.7))
 
     # plt.plot(x_fit, y_fit, linewidth=1, linestyle="--", color="red", label=fit_label)
 
     # Plot the asymptotic value at 1/x = 0 with error bar
-    plt.errorbar(0, asymptotic_val, yerr=err_val, fmt='o', color='black', capsize=7, label='Asymptotic Value $O_0$')
+    plt.errorbar(0, asymptotic_val, yerr=err_val, fmt='o', color='black', capsize=7, label='Asymptotic Value $y_0$')
 
     # Customize the plot
     plt.xlabel(f"$1/{x_label}$")
-    plt.ylabel("Relevan Observable $(O)$")
+    plt.ylabel("Relevan Observable $(y)$")
     plt.title(f'Asymptotic Fit $vs$ $1/{x_label}$')
     plt.legend()
     plt.grid(True)

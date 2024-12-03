@@ -5,7 +5,7 @@ from datetime import datetime
 
 device = "marcos2"
 # device = "pc"
-device = "mac"
+# device = "mac"
 observable = "energy_data"
 # observable = "entropy_data"
 
