@@ -125,7 +125,7 @@ def asymptotic_fit(y_data: np.ndarray, x_data: Union[np.ndarray, list], x_label:
     return popt, errs
 
 def plot_asymptotic_fit(y_data: np.ndarray, x_data: Union[np.ndarray, list], x_label: str, popt: list, errs: np.ndarray, y_err: np.ndarray=None, fit_func: Literal["exp","lin"]="exp", fixed_params: list=None):
-    g, R, l, L = ~fixed_params
+    g, R, l, L = fixed_params[0], fixed_params[1], fixed_params[2], fixed_params[3]
     x_inv_data = [1/x for x in x_data]
 
     # Plot the data and the fit with respect to 1/x

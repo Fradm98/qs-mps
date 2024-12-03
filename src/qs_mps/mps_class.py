@@ -1354,7 +1354,7 @@ class MPS:
         """
         tot_ed = []
         for ladder in range(self.Z2.l):
-            self.Z2.mpo_Z2_plaquette_electric_energy_density(site=site, ladder=ladder)
+            self.Z2.mpo_Z2_plaquette_electric_energy_density(site=site, ladder=ladder, cc=cc)
             self.w = self.Z2.mpo.copy()
             tot_ed.append(self.mpo_first_moment().real) # energy density for plaquette
         

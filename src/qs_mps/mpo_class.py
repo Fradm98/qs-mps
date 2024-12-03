@@ -666,14 +666,18 @@ class MPO_ladder:
                     # "local" ZZ interaction for bulk link 2
                     coeff = np.prod(self.charges[ladder,:c+1])
                     self.mpo[0,-1] += - (1/2) * self.lamb * coeff * sparse_pauli_z(n=ladder-1, L=self.l).toarray() @ sparse_pauli_z(n=ladder, L=self.l).toarray() # link 2 is shared between two plaquettes
-                    if cc == "h":
-                        coeff = np.prod(self.charges[ladder+1,:c+1])
-                    elif cc == "v":
-                        coeff = self.charge_coeff_v(mpo_site=c, l=ladder)
                     if self.bc == "obc":
+                        if cc == "h":
+                            coeff = np.prod(self.charges[ladder+1,:c+1])
+                        elif cc == "v":
+                            coeff = self.charge_coeff_v(mpo_site=c, l=ladder)
                         # local Z interaction for boundary link 4
                         self.mpo[0,-1] += - self.lamb * coeff * sparse_pauli_z(n=ladder, L=self.l).toarray() # link 4 boundary is just in one plaquette
                     elif self.bc == "pbc":
+                        if cc == "h":
+                            coeff = np.prod(self.charges[(ladder+1)%self.l,:c+1])
+                        elif cc == "v":
+                            coeff = self.charge_coeff_v(mpo_site=c, l=ladder)
                         # "local" ZZ interaction for bulk link 4
                         self.mpo[0,-1] += - self.lamb * coeff * sparse_pauli_z(n=ladder, L=self.l).toarray() @ sparse_pauli_z(n=(ladder+1)%self.l, L=self.l).toarray() # link 4 bulk is shared between the first and last plaquette for pbc
             

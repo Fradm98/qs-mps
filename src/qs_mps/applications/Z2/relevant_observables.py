@@ -208,3 +208,89 @@ def fit_string_tension(gs, Rs, l, Ls, chis,bc,sector,h_i,h_f,npoints,path_tensor
         sigmas.append(sigma)
         sigmas_errs.append(luscher_err)
     return sigmas, sigmas_errs
+
+
+def connected_electric_energy_density(g: float, R: int, l: int, L: int, chi: int, bc: str=None, sector: str=None, h_i: float=None, h_f: float=None, npoints: int=None, path_tensor: str=None):
+    """
+    connected electric energy density
+
+    This function computes the electric energy density as the difference between the electric energy densities of the two-charge sector and vacuum sector.
+    The list of energy densities indicates the central ladder distribution of energy for a static pair of charges separated by R for a lattice lxL at a specific value of the coupling g
+    and a certain bond dimension chi. 
+
+    g: float - value of the electric field coupling
+    R: int - string length formed by the separation of two charges
+    l: int - number of ladders in the direct lattice
+    L: int - number of plaquettes per ladder in the direct lattice (rungs-1)
+    chi: int - bond dimension used to approximate DMRG computations of the ground state
+    bc: str - boundary conditions of the lattice
+    sector: str - sector of the ground state
+    h_i: float - starting point for computations spanning the coupling phase space
+    h_f: float - ending point for computations spanning the coupling phase space
+    npoints: int - number of points for computations spanning the coupling phase space
+    path_tensor: str - path name for retrieving the energy densities values
+
+    """
+    cx = get_cx(L,R)
+    cy = get_cy(l,bc=bc)
+    interval = np.linspace(h_i,h_f,npoints)
+    try:
+        vac = None
+        energy_densities_charges = np.load(f"{path_tensor}/results/energy_data/electric_energy_density_Z2_dual_direct_lattice_{l}x{L}_{sector}_bc_{bc}_{cx}-{cy}_h_{h_i}-{h_f}_delta_{npoints}_chi_{chi}.npy")
+        energy_densities_vacuum = np.load(f"{path_tensor}/results/energy_data/electric_energy_density_Z2_dual_direct_lattice_{l}x{L}_vacuum_sector_bc_{bc}_{vac}-{vac}_h_{h_i}-{h_f}_delta_{npoints}_chi_{chi}.npy")
+    except:
+        vac = np.nan
+        energy_densities_charges = np.load(f"{path_tensor}/results/energy_data/electric_energy_density_Z2_dual_direct_lattice_{l}x{L}_{sector}_bc_{bc}_{cx}-{cy}_h_{h_i}-{h_f}_delta_{npoints}_chi_{chi}.npy")
+        energy_densities_vacuum = np.load(f"{path_tensor}/results/energy_data/electric_energy_density_Z2_dual_direct_lattice_{l}x{L}_vacuum_sector_bc_{bc}_{vac}-{vac}_h_{h_i}-{h_f}_delta_{npoints}_chi_{chi}.npy")
+
+    energy_density_difference = (energy_densities_charges - energy_densities_vacuum)
+
+    for i, val in enumerate(energy_density_difference):
+        if round(g,3) == round(interval[i],3):
+            return val
+
+def string_width_electric_energy_density(g: float, R: int, l: int, L: int, chi: int, bc: str=None, sector: str=None, h_i: float=None, h_f: float=None, npoints: int=None, path_tensor: str=None):
+    """
+    string width electric energy density
+
+    This function computes the string width by taking the connected electric energy density of a plaquette and weighting it for the distance
+    of the plaquette to the axis of the string (fluxtube). This value is relative to a specific electric coupling g.
+
+    eed_conn_lad: numpy.ndarray - array of connected energy densities for a ladder in the middle of the string
+    
+    """
+
+    eed_conn_lad = connected_electric_energy_density(g,R,l,L,chi,bc,sector,h_i,h_f,npoints,path_tensor)
+    l = len(eed_conn_lad)
+    xs = [i for i in range(-l//2,l//2+1,) if i!=0]
+
+    eed_sum_lad = 0
+    for x, eed_x in zip(xs, eed_conn_lad):
+        eed_sum_lad += eed_x * ((x)**2)
+    eed_sum_lad = eed_sum_lad / sum(eed_conn_lad)
+    return eed_sum_lad
+
+def string_width_chis(g: float, R: int, l: int, L: int, chis: list, bc: str=None, sector: str=None, h_i: float=None, h_f: float=None, npoints: int=None, path_tensor: str=None):
+    """
+    static potential
+
+    This function collects the electric string width computed for different bond dimensions chis.
+
+    g: float - value of the electric field coupling
+    R: int - string length formed by the separation of two charges
+    l: int - number of ladders in the direct lattice
+    L: int - number of plaquettes per ladder in the direct lattice (rungs-1)
+    chis: list - bond dimensions used to approximate DMRG computations of the ground state
+    bc: str - boundary conditions of the lattice
+    sector: str - sector of the ground state
+    h_i: float - starting point for computations spanning the coupling phase space
+    h_f: float - ending point for computations spanning the coupling phase space
+    npoints: int - number of points for computations spanning the coupling phase space
+    path_tensor: str - path name for retrieving the energy density values
+
+    """
+    ws_chi = []
+    for chi in chis:
+        w = string_width_electric_energy_density(g,R,l,L,chi,bc,sector,h_i,h_f,npoints,path_tensor)
+        ws_chi.append(w)
+    return ws_chi
