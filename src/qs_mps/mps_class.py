@@ -3135,15 +3135,36 @@ class MPS:
         # # reshape the flat tensors and initializing the sites
         # self.sites = [site.reshape(shapes[i]) for i, site in enumerate(flat_tn)]
 
-        filename = f"/results/tensors/tensor_sites_{self.model}_direct_lattice_{self.Z2.l}x{self.Z2.L}_bc_{self.bc}_{self.Z2.sector}_{cx}-{cy}_chi_{self.chi}_h_{self.h:.{precision}f}"
-        with h5py.File(f"{path}{filename}.h5", "r") as f:
-            # Load metadata
-            metadata = {key: f.attrs[key] for key in f.attrs}
-            print("Metadata:", metadata)
+        if cx == None:
+            try:
+                filename = f"/results/tensors/tensor_sites_{self.model}_direct_lattice_{self.Z2.l}x{self.Z2.L}_bc_{self.bc}_{self.Z2.sector}_{cx}-{cy}_chi_{self.chi}_h_{self.h:.{precision}f}"
+                with h5py.File(f"{path}{filename}.h5", "r") as f:
+                    # Load metadata
+                    metadata = {key: f.attrs[key] for key in f.attrs}
+                    print("Metadata:", metadata)
             
-            # Load tensors
-            self.sites = [f["tensors"][f"tensor_{i}"][:] for i in range(self.Z2.L)]
-
+                    # Load tensors
+                    self.sites = [f["tensors"][f"tensor_{i}"][:] for i in range(self.Z2.L)]
+            except:
+                cx = np.nan
+                cy = np.nan
+                filename = f"/results/tensors/tensor_sites_{self.model}_direct_lattice_{self.Z2.l}x{self.Z2.L}_bc_{self.bc}_{self.Z2.sector}_{cx}-{cy}_chi_{self.chi}_h_{self.h:.{precision}f}"
+                with h5py.File(f"{path}{filename}.h5", "r") as f:
+                    # Load metadata
+                    metadata = {key: f.attrs[key] for key in f.attrs}
+                    print("Metadata:", metadata)
+            
+                    # Load tensors
+                    self.sites = [f["tensors"][f"tensor_{i}"][:] for i in range(self.Z2.L)]
+        else:
+            filename = f"/results/tensors/tensor_sites_{self.model}_direct_lattice_{self.Z2.l}x{self.Z2.L}_bc_{self.bc}_{self.Z2.sector}_{cx}-{cy}_chi_{self.chi}_h_{self.h:.{precision}f}"
+            with h5py.File(f"{path}{filename}.h5", "r") as f:
+                # Load metadata
+                metadata = {key: f.attrs[key] for key in f.attrs}
+                print("Metadata:", metadata)
+        
+                # Load tensors
+                self.sites = [f["tensors"][f"tensor_{i}"][:] for i in range(self.Z2.L)]
         return self
 
     def load_sites_XXZ(self, path, precision: int=2):
