@@ -2,7 +2,7 @@ import numpy as np
 
 from scipy.optimize import curve_fit
 
-from qs_mps.applications.Z2.utils import get_cx, get_cy
+from qs_mps.applications.Z2.utils import get_cx, get_cy, arithmetic_average
 
 def static_potential(g: float, R: int, l: int, L: int, chi: int, bc: str=None, sector: str=None, h_i: float=None, h_f: float=None, npoints: int=None, path_tensor: str=None):
     """
@@ -81,17 +81,21 @@ def get_exact_potential_chis(chis, potentials):
         return y0 + A * np.exp(exponent)
 
     # Fit the model to the data
-    popt, pcov = curve_fit(asymptotic_model, x_data, y_data, p0=(y_data[-1], 0.1, 0.1))
+    popt, pcov = curve_fit(asymptotic_model, x_data, y_data, p0=(y_data[-1], 0.1, 0.1), maxfev=1000)
 
     # Extract fitted parameters and their errors
     y0_fit, A_fit, B_fit = popt
     y0_err, A_err, B_err = np.sqrt(np.diag(pcov))
-    print(f"y0 (asymptotic value) = {y0_fit:.6f} ± {y0_err:.6f}")
+    print(f"y0 (asymptotic value in 1/chi) = {y0_fit:.6f} ± {y0_err:.6f}")
     return y0_fit, y0_err
 
-def static_potential_exact_chi(g: float, R: int, l: int, L: int, chis: list, bc: str=None, sector: str=None, h_i: float=None, h_f: float=None, npoints: int=None, path_tensor: str=None):
+def static_potential_exact_chi(g: float, R: int, l: int, L: int, chis: list, bc: str=None, sector: str=None, h_i: float=None, h_f: float=None, npoints: int=None, path_tensor: str=None, g_thr: float=1):
     potentials = static_potential_chis(g,R,l,L,chis,bc,sector,h_i,h_f,npoints,path_tensor)
-    pot_exact, err = get_exact_potential_chis(chis, potentials)
+    if g > g_thr:
+        pot_exact, err = get_exact_potential_chis(chis, potentials)
+    else:
+        pot_exact = potentials[-1]
+        err = np.abs(potentials[-1] - potentials[-2])
     return pot_exact, err
 
 def static_potential_Ls(g: float, R: int, l: int, Ls: int, chis: list, bc: str=None, sector: str=None, h_i: float=None, h_f: float=None, npoints: int=None, path_tensor: str=None):
@@ -103,7 +107,7 @@ def static_potential_Ls(g: float, R: int, l: int, Ls: int, chis: list, bc: str=N
         potentials_err.append(err)
     return potentials, potentials_err
 
-def get_exact_potential_Ls(Ls, potentials):
+def get_exact_potential_Ls(Ls, potentials, y_errs):
     # Given data
     x_data = Ls
     y_data = potentials
@@ -115,38 +119,92 @@ def get_exact_potential_Ls(Ls, potentials):
         return b + (a * x)
     
     # Fit the model to the data
-    popt, pcov = curve_fit(asymptotic_model, x_inv_data, y_data, p0=p0)
+    popt, pcov = curve_fit(asymptotic_model, x_inv_data, y_data, sigma=y_errs, p0=p0)
     errs = np.sqrt(np.diag(pcov))
 
     # Extract fitted parameters and their errors
     y0_fit = popt[1]
     y0_err = errs[1]
-    print(f"y0 (asymptotic value) = {y0_fit:.6f} ± {y0_err:.6f}")
+    print(f"y0 (asymptotic value in 1/L) = {y0_fit:.6f} ± {y0_err:.6f}")
     return y0_fit, y0_err
 
-def static_potential_exact_L(g: float, R: int, l: int, Ls: int, chis: list, bc: str=None, sector: str=None, h_i: float=None, h_f: float=None, npoints: int=None, path_tensor: str=None):
-    potentials = static_potential_Ls(g,R,l,Ls,chis,bc,sector,h_i,h_f,npoints,path_tensor)
-    pot_exact, err = get_exact_potential_Ls(Ls, potentials)
+def static_potential_exact_L(g: float, R: int, l: int, Ls: int, chis: list, bc: str=None, sector: str=None, h_i: float=None, h_f: float=None, npoints: int=None, path_tensor: str=None, r_thr: float=4/5):
+    potentials, pot_errs = static_potential_Ls(g,R,l,Ls,chis,bc,sector,h_i,h_f,npoints,path_tensor)
+    rs = [R/L for L in Ls]
+    flag = 0
+    for r in rs:
+        if r > r_thr:
+            flag = 1
+
+    if flag == 1:
+        print(f"The ratio R/L: {r} exceeds the threshold ratio: {r_thr}\n")
+        print(f"Consider taking smaller Rs, computing the potential with linear fit")
+        pot_exact, err = get_exact_potential_Ls(Ls, potentials, pot_errs)
+    elif flag == 0:
+        print(f"Negligible boundary effects in L\n")
+        print(f"Computing the potential with arithmetic average")
+        pot_exact, err = arithmetic_average(potentials, pot_errs)
+
     return pot_exact, err
 
-def static_potential_varying_R(g,Rs,l,L,chis):
+def static_potential_varying_R(g,Rs,l,Ls,chis,bc,sector,h_i,h_f,npoints,path_tensor):
     potentials = []
     err_potentials = []
     for R in Rs:
         print(f"R: {R}")
-        pot, err = static_potential_exact_chi(g,R,l,L,chis)
+        pot, err = static_potential_exact_L(g,R,l,Ls,chis,bc,sector,h_i,h_f,npoints,path_tensor)
         potentials.append(pot)
         err_potentials.append(err)
 
     return potentials, err_potentials
 
-def static_potential_varying_g(gs,R,l,L,chis):
+def static_potential_varying_g(gs,R,l,Ls,chis,bc,sector,h_i,h_f,npoints,path_tensor):
     potentials = []
     err_potentials = []
     for g in gs:
         print(f"g: {g}")
-        pot, err = static_potential_exact_chi(g,R,l,L,chis)
+        pot, err = static_potential_exact_L(g,R,l,Ls,chis,bc,sector,h_i,h_f,npoints,path_tensor)
         potentials.append(pot)
         err_potentials.append(err)
 
     return potentials, err_potentials
+
+def potential_fit(R, sigma, mu, gamma):
+    return sigma*R + mu + gamma/R
+
+def fitting(Rs, potentials, errors):
+    popt, pcov = curve_fit(potential_fit, Rs, potentials, sigma=errors)
+    errs = np.sqrt(np.diag(pcov))
+    return popt, errs
+
+def fit_luscher_term_g(g, Rs, l, Ls, chis,bc,sector,h_i,h_f,npoints,path_tensor):
+    pot, err = static_potential_varying_R(g, Rs, l, Ls, chis,bc,sector,h_i,h_f,npoints,path_tensor)
+    popt, errs = fitting(Rs, pot, err)
+    term = popt[2]
+    term_err = errs[2]
+    return term, term_err
+
+def fit_string_tension_g(g, Rs, l, Ls, chis,bc,sector,h_i,h_f,npoints,path_tensor):
+    pot, err = static_potential_varying_R(g, Rs, l, Ls, chis,bc,sector,h_i,h_f,npoints,path_tensor)
+    popt, errs = fitting(Rs, pot, err)
+    term = popt[0]
+    term_err = errs[0]
+    return term, term_err
+
+def fit_luscher(gs, Rs, l, Ls, chis,bc,sector,h_i,h_f,npoints,path_tensor):
+    luschers = []
+    luscher_errs = []
+    for g in gs:
+        luscher, luscher_err = fit_luscher_term_g(g, Rs, l, Ls, chis,bc,sector,h_i,h_f,npoints,path_tensor)
+        luschers.append(luscher)
+        luscher_errs.append(luscher_err)
+    return luschers, luscher_errs
+
+def fit_string_tension(gs, Rs, l, Ls, chis,bc,sector,h_i,h_f,npoints,path_tensor):
+    sigmas = []
+    sigmas_errs = []
+    for g in gs:
+        sigma, luscher_err = fit_string_tension_g(g, Rs, l, Ls, chis,bc,sector,h_i,h_f,npoints,path_tensor)
+        sigmas.append(sigma)
+        sigmas_errs.append(luscher_err)
+    return sigmas, sigmas_errs
