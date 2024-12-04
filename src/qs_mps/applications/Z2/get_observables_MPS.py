@@ -252,5 +252,5 @@ for L in args.Ls:
         if "end" in args.obs:
             np.save(
                         f"{parent_path}/results/energy_data/electric_energy_density_{args.model}_direct_lattice_{args.l}x{L}_{sector}_bc_{args.boundcond}_{charges_x}-{charges_y}_h_{args.h_i}-{args.h_f}_delta_{args.npoints}_chi_{chi}.npy",
-                        En,
+                        End,
                     )
