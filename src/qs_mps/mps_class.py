@@ -8,7 +8,7 @@ import scipy.sparse.linalg as spla
 
 from ncon import ncon
 
-import time 
+import time
 import datetime as dt
 from qs_mps.utils import *
 from qs_mps.checks import check_matrix
@@ -82,7 +82,7 @@ class MPS:
             assert (
                 chi >= self.d
             ), "The bond dimension is too small for the selected physical dimension d"
-            
+
             n = int(logarithm_base_d(x=chi, d=self.d))
             assert (
                 self.L >= 2 * n
@@ -543,7 +543,7 @@ class MPS:
 
         We decompose the vector with successive svd starting from the right towards the left,
         hence a left sweep. The final tensors will be in Right Canonical Form (RCF)
-        
+
         vec: np.ndarray - vector we want to transform in a MPS
 
         """
@@ -576,7 +576,7 @@ class MPS:
             bonds.append(s)
             vec = u @ np.diag(s)
             alpha = vec.shape[1]
-        
+
         sites.reverse()
         bonds.reverse()
         self.sites = sites.copy()
@@ -600,10 +600,10 @@ class MPS:
 
         elif self.model == "ANNNI":
             self.mpo_ANNNI(long=long, deg_method=1)
-        
+
         elif self.model == "Cluster":
             self.mpo_Cluster(long=long)
-        
+
         elif self.model == "Cluster-XY":
             self.mpo_Cluster_xy(long=long)
 
@@ -648,7 +648,7 @@ class MPS:
             w_tot.append(w)
         self.w = w_tot
         return self
-    
+
     def mpo_ANNNI(self, long: str = "X", trans: str = "Z", deg_method: int = 2):
         """
         mpo_ANNNI
@@ -679,9 +679,9 @@ class MPS:
                 c_i = 1
 
             w = np.array(
-                [[I, long_op, O, - (self.h * self.J) * trans_op - (self.eps * self.J * c) * long_op + (self.eps * self.J * c_i) * I], 
-                 [O, O, I, - (self.J) * long_op], 
-                 [O, O, O, (self.k * self.J) * long_op], 
+                [[I, long_op, O, - (self.h * self.J) * trans_op - (self.eps * self.J * c) * long_op + (self.eps * self.J * c_i) * I],
+                 [O, O, I, - (self.J) * long_op],
+                 [O, O, O, (self.k * self.J) * long_op],
                  [O, O, O, I]]
             )
             w_tot.append(w)
@@ -757,7 +757,7 @@ class MPS:
             w_tot.append(w)
         self.w = w_tot
         return self
-    
+
     def mpo_xxz(self, long: str="X", eps: float=1e-5):
         """
         mpo_Cluster
@@ -793,7 +793,7 @@ class MPS:
             w_tot.append(w)
         self.w = w_tot
         return self
-    
+
     def mpo_quench(
         self,
         quench: str,
@@ -920,7 +920,7 @@ class MPS:
         """
         if self.model == "Ising":
             self.order_param_Ising(op=op)
-        
+
         elif self.model == "ANNNI":
             self.order_param_Ising(op=op)
 
@@ -955,7 +955,7 @@ class MPS:
             w_tot.append(w_mag)
         self.w = w_tot
         return self
-    
+
     def order_param_Z2(self):
         """
         order_param_Z2
@@ -1017,7 +1017,7 @@ class MPS:
                     self.Z2.mpo[0,-1] += sparse_pauli_z(n=l, L=self.Z2.l).toarray()
             mpo_tot.append(self.Z2.mpo)
             self.Z2.mpo_skeleton(aux_dim=2)
-                    
+
         self.Z2.mpo = mpo_tot
 
         self.w = self.Z2.mpo
@@ -1066,11 +1066,11 @@ class MPS:
             w_mag = w_init
             if i == site - 1:
                 w_mag[0,-1] = long_op
-        
+
             w_tot.append(w_mag)
         self.w = w_tot
         return self
-    
+
     def single_operator_ANNNI(self, site, long: str="X"):
         """
         single_operator_Ising
@@ -1094,7 +1094,7 @@ class MPS:
             w_mag = w_init
             if i == site - 1:
                 w_mag[0,-1] = long_op
-        
+
             w_tot.append(w_mag)
         self.w = w_tot
         return self
@@ -1126,7 +1126,7 @@ class MPS:
         electric_field_Z2
 
         This function finds the mpo for the electric field in the direct lattice of a Z2 theory.
-        To reconstruct the field in the direct lattices we need functions to compute the 
+        To reconstruct the field in the direct lattices we need functions to compute the
         borders and the bulk fields, weighted for the appropriate charges.
 
         """
@@ -1167,7 +1167,7 @@ class MPS:
                 E[(l+j)*2,mpo_site*2+1] = coeff * self.mpo_first_moment().real
                 # E[(l+j)*2,mpo_site*2+1] = self.mpo_first_moment().real
                 j = 1
-            
+
         # now we can obtain the bulk values given by the zz interactions
         # vertical
         for l in range(self.Z2.l-1):
@@ -1187,7 +1187,7 @@ class MPS:
                 E_h.append(coeff * self.mpo_first_moment().real)
             E_h.append(E[(l*2+1), -1])
             E[(l*2+1), 2::2] = E_h
-        
+
         return E
 
     def connected_correlator(self, site, lad):
@@ -1216,7 +1216,7 @@ class MPS:
                 if link == 0:
                     l = link
                 elif link == self.Z2.l:
-                    l = link - 1                    
+                    l = link - 1
                 # find the exp val for the link separated by r
                 self.Z2.local_observable_Z2_dual(mpo_site=site, l=l)
                 coeff = self.Z2.charge_coeff_v(mpo_site=site, l=l)
@@ -1242,7 +1242,7 @@ class MPS:
             # print(E_lad_r - (E_lad * E_r))
 
         return E_corr
-    
+
     def electric_energy_density_Z2(self, site):
         """
         electric_energy_density_Z2
@@ -1251,7 +1251,7 @@ class MPS:
         in the whole column of our ladder system.
         The column is located at a certain site.
         We can have a "connected" energy density if we subtract the expecation values
-        of the plaquettes we are referring to with the expectation values of the vacuum state. 
+        of the plaquettes we are referring to with the expectation values of the vacuum state.
         E.g. <q,q'|el_en_density|q,q'> - <0|el_en_density|0> (we do not do that here)
 
         site: int - site we will use for the vertical section of the ladder system
@@ -1271,7 +1271,7 @@ class MPS:
                     eed -= self.mpo_first_moment().real
                     # self.w += [(self.h / 2) * mpo for mpo in self.Z2.mpo].copy()
                 elif lad == self.Z2.l-1:
-                    l = lad    
+                    l = lad
                     # find the sigma_2^x last
                     self.Z2.zz_observable_Z2_dual(mpo_site=site, l=l-1, direction="vertical")
                     self.w = [(self.h / 2) * mpo for mpo in self.Z2.mpo].copy()
@@ -1282,7 +1282,7 @@ class MPS:
                 coeff = self.Z2.charge_coeff_v(mpo_site=site, l=l)
                 self.w += [(self.h * coeff) * mpo for mpo in self.Z2.mpo].copy() # times 2 because we do not share this link with any other plaquette
                 eed -= self.mpo_first_moment().real
-                
+
             else:
                 l = lad - 1
                 # find the sigma_2^x
@@ -1337,9 +1337,9 @@ class MPS:
             self.Z2.mpo_Z2_plaquette_total_energy_density(site=site, ladder=ladder, cc=cc)
             self.w = self.Z2.mpo.copy()
             tot_ed.append(self.mpo_first_moment().real) # energy density for plaquette
-        
+
         return tot_ed
-    
+
     def mpo_Z2_column_electric_energy_density(self, site: int, cc: str="h"):
         """
         mpo_Z2_column_electric_energy_density
@@ -1357,9 +1357,9 @@ class MPS:
             self.Z2.mpo_Z2_plaquette_electric_energy_density(site=site, ladder=ladder)
             self.w = self.Z2.mpo.copy()
             tot_ed.append(self.mpo_first_moment().real) # energy density for plaquette
-        
+
         return tot_ed
-    
+
     def mpo_Z2_column_magnetic_energy_density(self, site: int, cc: str="h"):
         """
         mpo_Z2_column_magnetic_energy_density
@@ -1370,16 +1370,16 @@ class MPS:
 
         site: int - column we are interested in computing the energy density
         cc: str - charge convention used to compute the MPS
-        
+
         """
         tot_ed = []
         for ladder in range(self.Z2.l):
             self.Z2.mpo_Z2_plaquette_magnetic_energy_density(site=site, ladder=ladder)
             self.w = self.Z2.mpo.copy()
             tot_ed.append(self.mpo_first_moment().real) # energy density for plaquette
-        
+
         return tot_ed
-    
+
     # -------------------------------------------------
     # Manipulation of MPOs
     # -------------------------------------------------
@@ -1521,7 +1521,7 @@ class MPS:
                 E_r = ncon(
                     [E_r, array[i - 1].conjugate()], [[-1, -2, -3, 1, 2], [-4, 1, 2]]
                 )
-                self.env_right.append(E_r) 
+                self.env_right.append(E_r)
 
         elif fm:
             array = self.sites
@@ -1876,7 +1876,7 @@ class MPS:
         #     sites = np.arange(1, self.L + 1).tolist()
         # else:
         #     sites = np.arange(1, self.L + 1).tolist()
-        
+
         sites = np.arange(1, self.L+1).tolist()
 
         if self.w == None:
@@ -1930,7 +1930,7 @@ class MPS:
                 energy_dist = np.abs(energies[-1] - energies[-2])/energies[-1]
                 if energy_dist < conv_tol:
                     break
-            
+
             # print("reversing the sweep")
             sweeps.reverse()
             sites.reverse()
@@ -2555,7 +2555,7 @@ class MPS:
         # local dual mag
         self.order_param()
         mag = self.mpo_first_moment().real/(len(self.Z2.latt.plaquettes()) - (2 * (self.Z2.L-1) + 2 * (self.Z2.l-2)))
-        
+
         # wilson loop
         self.Z2.wilson_Z2_dual(mpo_sites=sites, ls=ladders) #list(range(s))
         self.w = self.Z2.mpo.copy()
@@ -2573,7 +2573,7 @@ class MPS:
 
         self.ancilla_sites = self.sites.copy()
 
-        
+
 
         for trott in range(trotter_steps):
             print(f"------ Trotter steps: {trott} -------")
@@ -2614,7 +2614,7 @@ class MPS:
             # local dual mag
             self.order_param()
             mag = self.mpo_first_moment().real/(len(self.Z2.latt.plaquettes()) - (2 * (self.Z2.L-1) + 2 * (self.Z2.l-2)))
-            
+
             # wilson loop
             self.Z2.wilson_Z2_dual(mpo_sites=sites, ls=ladders) #list(range(s))
             self.w = self.Z2.mpo.copy()
@@ -2641,7 +2641,7 @@ class MPS:
             errors,
             entropies,
         )
-    
+
     def TEBD_variational_Z2_trotter_step(
         self,
         trotter_step: int,
@@ -2888,7 +2888,7 @@ class MPS:
         else:
             raise ValueError("Choose a correct model")
         return self
-    
+
     def load_sites(self, path: str, precision: int=2, cx: list=None, cy: list=None):
         """
         load_sites
@@ -2932,7 +2932,7 @@ class MPS:
             tensor,
         )
         return self
-    
+
     def save_sites_Cluster_xy(self, path, precision: int=2):
         # shapes of the tensors
         shapes = tensor_shapes(self.sites, False)
@@ -2949,7 +2949,7 @@ class MPS:
             tensor,
         )
         return self
-    
+
     def save_sites_ANNNI(self, path, precision: int=2):
         # shapes of the tensors
         shapes = tensor_shapes(self.sites, False)
@@ -2966,7 +2966,7 @@ class MPS:
             tensor,
         )
         return self
-    
+
     def save_sites_Z2(self, path, precision: int=2, cx: list=np.nan, cy: list=np.nan):
         # shapes of the tensors
         # shapes = tensor_shapes(self.sites)
@@ -2982,7 +2982,7 @@ class MPS:
         #     f"{path}/results/tensors/tensor_sites_{self.model}_direct_lattice_{self.Z2.l}x{self.Z2.L}_bc_{self.bc}_{cx}-{cy}_chi_{self.chi}_h_{self.h:.{precision}f}",
         #     tensor,
         # )
-        
+
         t_start = time.perf_counter()
 
         metadata = dict(model=self.model, l=self.Z2.l, L=self.Z2.L, bc=self.bc, sector=self.Z2.sector, cx=cx, cy=cy, chi=self.chi, h=self.h)
@@ -2994,11 +2994,11 @@ class MPS:
 
             # Create a group for the tensors
             tensors_group = f.create_group("tensors")
-            
+
             # Store each tensor as a separate dataset within the group
             for i, tensor in enumerate(self.sites):
                 tensors_group.create_dataset(f"tensor_{i}", data=tensor, compression="gzip")
-        
+
         t_save = abs(time.perf_counter() - t_start)
         t_save = dt.timedelta(seconds=t_save)
         print(f"time for saving: {t_save}")
@@ -3077,7 +3077,7 @@ class MPS:
         self.sites = [site.reshape(shapes[i]) for i, site in enumerate(flat_tn)]
 
         return self
-    
+
     def load_sites_ANNNI(self, path, precision: int=2):
         """
         load_sites
@@ -3106,7 +3106,7 @@ class MPS:
         self.sites = [site.reshape(shapes[i]) for i, site in enumerate(flat_tn)]
 
         return self
-    
+
     def load_sites_Z2(self, path, precision: int=2, cx: list=None, cy: list=None):
         """
         load_sites
@@ -3140,7 +3140,7 @@ class MPS:
             # Load metadata
             metadata = {key: f.attrs[key] for key in f.attrs}
             print("Metadata:", metadata)
-            
+
             # Load tensors
             self.sites = [f["tensors"][f"tensor_{i}"][:] for i in range(self.Z2.L)]
 
@@ -3174,7 +3174,7 @@ class MPS:
         self.sites = [site.reshape(shapes[i]) for i, site in enumerate(flat_tn)]
 
         return self
-    
+
     def save_sites_old(self, path, precision=2):
         """
         save_sites

@@ -18,12 +18,14 @@ class Simulation:
 
 
     def save(self, filename: str, mode='w-'):
+    # TODO include string length in the hierarchy
         with h5py.File(f"{filename}.hdf5", mode=mode) as file:
-            for result in self.results:
+            for k, result in enumerate(self.results):
                 # Hierarchy:
                 # - by l:
                 #   - by L:
                 #     - by chi:
+                print(f"*** Opts:\n {self.opts_list[k]}\n****")
                 dir = f"width_{result.l}/length_{result.L:0>2d}/chi_{result.chi:0>3d}"
                 if dir is not file:
                     file.create_group(dir)

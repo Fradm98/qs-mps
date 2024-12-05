@@ -12,6 +12,7 @@ def assure_list(x):
 
 
 def unpack_opts(input_opts: dict) -> dict:
+    # TODO unpack also for string length
     if 'L' not in input_opts:
         raise ValueError("Missing `L`, the horizontal dimension")
     if 'l' not in input_opts:
@@ -29,7 +30,7 @@ def unpack_opts(input_opts: dict) -> dict:
 
     opts_list = [
         dict(L=L, l=l, chi=chi, **other_opts)
-        for L, l, chi in product(lengths, nrungs, chis)
+        for l, L, chi in product(nrungs, lengths, chis)
     ]
 
     return opts_list
