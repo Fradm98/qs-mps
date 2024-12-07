@@ -16,34 +16,67 @@ parser.add_argument(
     type=int,
 )
 parser.add_argument(
-    "h_i", help="Starting value of h (external transverse field on the dual lattice)", type=float
+    "h_i",
+    help="Starting value of h (external transverse field on the dual lattice)",
+    type=float,
 )
 parser.add_argument(
     "path",
     help="Path to the drive depending on the device used. Available are 'pc', 'mac', 'marcos'",
     type=str,
 )
-parser.add_argument("o", help="Observable we want to compute. Available are 'wl', 'el'", type=str)
-parser.add_argument("-L", "--Ls", help="Number of rungs per ladder", nargs="+", type=int)
-parser.add_argument("-D", "--chis", help="Simulated bond dimensions", nargs="+", type=int)
-parser.add_argument("-cx", "--charges_x", help="a list of the first index of the charges", nargs="*", type=int)
-parser.add_argument("-cy", "--charges_y", help="a list of the second index of the charges", nargs="*", type=int)
 parser.add_argument(
-    "-f", "--h_f", help="Final value of h (external transverse field on the dual lattice)", type=float
+    "o", help="Observable we want to compute. Available are 'wl', 'el'", type=str
 )
 parser.add_argument(
-    "-d", "--delta", help="Width of each time slice during the time evolution. Should be 'small enough'", type=float
+    "-L", "--Ls", help="Number of rungs per ladder", nargs="+", type=int
 )
 parser.add_argument(
-    "-ev", "--h_ev", help="Quench value of h (external transverse field on the dual lattice)", type=float
+    "-D", "--chis", help="Simulated bond dimensions", nargs="+", type=int
 )
-parser.add_argument("-lx","--sites", help="Number of sites in the wilson loop", type=int)
-parser.add_argument("-ly","--ladders", help="Number of ladders in the wilson loop", type=int)
+parser.add_argument(
+    "-cx",
+    "--charges_x",
+    help="a list of the first index of the charges",
+    nargs="*",
+    type=int,
+)
+parser.add_argument(
+    "-cy",
+    "--charges_y",
+    help="a list of the second index of the charges",
+    nargs="*",
+    type=int,
+)
+parser.add_argument(
+    "-f",
+    "--h_f",
+    help="Final value of h (external transverse field on the dual lattice)",
+    type=float,
+)
+parser.add_argument(
+    "-d",
+    "--delta",
+    help="Width of each time slice during the time evolution. Should be 'small enough'",
+    type=float,
+)
+parser.add_argument(
+    "-ev",
+    "--h_ev",
+    help="Quench value of h (external transverse field on the dual lattice)",
+    type=float,
+)
+parser.add_argument(
+    "-lx", "--sites", help="Number of sites in the wilson loop", type=int
+)
+parser.add_argument(
+    "-ly", "--ladders", help="Number of ladders in the wilson loop", type=int
+)
 parser.add_argument(
     "-m", "--model", help="Model to simulate", default="Z2_dual", type=str
 )
 parser.add_argument(
-    "-U", "--gauss", help="Gauss constraint parameter", default=1e+3, type=float
+    "-U", "--gauss", help="Gauss constraint parameter", default=1e3, type=float
 )
 parser.add_argument(
     "-sh",
@@ -74,7 +107,7 @@ parser.add_argument(
     "--interval",
     help="Type of interval spacing. Available are 'log', 'lin'",
     default="lin",
-    type=str
+    type=str,
 )
 
 args = parser.parse_args()
@@ -111,8 +144,6 @@ else:
     raise SyntaxError("Path not valid. Choose among 'pc', 'mac', 'marcos'")
 
 
-
-
 for L in args.Ls:
     # define the sector by looking of the given charges
     if len(args.charges_x) == 0:
@@ -125,12 +156,13 @@ for L in args.Ls:
         charges_y = args.charges_y
 
     for chi in args.chis:
-        if args.o == 'el':
-            
+        if args.o == "el":
             if args.exact:
                 path_file = f"electric_field_{args.model}_direct_lattice_{args.l-1}x{L-1}_{sector}_{args.charges_x}-{args.charges_y}_h_{args.h_i}-{args.h_f}_delta_{args.npoints}"
                 dataname = f"{parent_path}/results/exact/electric_field/{path_file}.npy"
-                savename = f"{parent_path}/figures/exact/animations/animation_{path_file}.mp4"
+                savename = (
+                    f"{parent_path}/figures/exact/animations/animation_{path_file}.mp4"
+                )
             elif args.time:
                 path_file = f"electric_field_{args.model}_direct_lattice_{args.l}x{L-1}_{sector}_{args.charges_x}-{args.charges_y}_h_i_{args.h_i}_h_ev_{args.h_ev}_delta_{args.delta}_trotter_steps_{args.npoints}_chi_{chi}"
                 dataname = f"{parent_path}/results/electric_field/{path_file}.npy"
@@ -139,10 +171,19 @@ for L in args.Ls:
                 path_file = f"electric_field_{args.model}_direct_lattice_{args.l}x{L-1}_{sector}_{args.charges_x}-{args.charges_y}_h_{args.h_i}-{args.h_f}_delta_{args.npoints}_chi_{chi}"
                 dataname = f"{parent_path}/results/electric_field/{path_file}.npy"
                 savename = f"{parent_path}/figures/animations/animation_{path_file}.mp4"
-            
+
             data = np.load(dataname)
 
-
-        movie = anim(frames=args.npoints, interval=200, data=data, params=interval, show=args.show, charges_x=args.charges_x, charges_y=args.charges_y, precision=precision, time=args.time)
+        movie = anim(
+            frames=args.npoints,
+            interval=200,
+            data=data,
+            params=interval,
+            show=args.show,
+            charges_x=args.charges_x,
+            charges_y=args.charges_y,
+            precision=precision,
+            time=args.time,
+        )
         if args.save:
             movie.save(savename)

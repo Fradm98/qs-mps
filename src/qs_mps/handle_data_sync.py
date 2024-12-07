@@ -4,7 +4,7 @@ from scp import SCPClient, SCPException
 from datetime import datetime
 
 device = "marcos2"
-# device = "pc"
+device = "pc"
 # device = "mac"
 observable = "energy_data"
 # observable = "entropy_data"
@@ -43,30 +43,29 @@ for server in all_servers:
     server["key_filename"] = key_filename
     servers.append(server)
 
-    
+
 def get_remote_files(client, remote_dir):
     stdin, stdout, stderr = client.exec_command(f"ls -l {remote_dir}")
     files = {}
 
     for line in stdout:
         parts = line.strip().split()
-        
-        
+
         # Skip lines that don't correspond to files
-        if len(parts) < 9 or parts[0][0] == 'd':
+        if len(parts) < 9 or parts[0][0] == "d":
             continue  # Ignore directories and malformed lines
         else:
             # Extract the filename and modification time
-            filename = ' '.join(parts[8:])  # Join any spaces in the filename
-            
+            filename = " ".join(parts[8:])  # Join any spaces in the filename
+
             # Parse the date string to a timestamp
             # Determine if the date has a time or just a year
-            if ':' in parts[7]:  # If there's a colon, the format is like 'Sep 19 11:54'
+            if ":" in parts[7]:  # If there's a colon, the format is like 'Sep 19 11:54'
                 date_str = f"{parts[5]} {parts[6]} {parts[7]} {datetime.now().year}"
-                date_format = '%b %d %H:%M %Y'
+                date_format = "%b %d %H:%M %Y"
             else:  # Otherwise, it's in the 'Dec 18 2023' format
                 date_str = f"{parts[5]} {parts[6]} {parts[7]}"
-                date_format = '%b %d %Y'
+                date_format = "%b %d %Y"
             try:
                 timestamp = int(datetime.strptime(date_str, date_format).timestamp())
             except ValueError as e:
@@ -75,7 +74,7 @@ def get_remote_files(client, remote_dir):
 
             # Add the full path and timestamp to the dictionary
             files[f"{remote_dir}/{filename}"] = timestamp
-    
+
     return files
 
 
@@ -118,7 +117,9 @@ def sync_files(server, max_attempts=3):
                 if remote_timestamp <= local_timestamp:
                     continue  # Skip copying if local file is newer or equal
                 else:
-                    print(f"Local file is older: {os.path.basename(remote_file)}. Copying the newer remote file")
+                    print(
+                        f"Local file is older: {os.path.basename(remote_file)}. Copying the newer remote file"
+                    )
                     scp.get(remote_file, local_file)
                     files_modified += 1
             else:
@@ -130,7 +131,7 @@ def sync_files(server, max_attempts=3):
                     print(f"Copied: {os.path.basename(remote_file)}")
                 except SCPException as e:
                     print(f"Error copying file: {e}")
-            
+
         if files_modified == 0:
             print(f"All files are up-to-date")
         else:
@@ -142,8 +143,6 @@ def sync_files(server, max_attempts=3):
 # Sync files from each server
 for server in servers:
     sync_files(server)
-
-
 
 
 # import subprocess
@@ -159,7 +158,6 @@ for server in servers:
 # local_dir = "C:/Users/HP/Desktop/projects/1_Z2/results"
 
 
-
 # # Function to generate a filename or search pattern based on parameters
 # def generate_filename(params):
 #     filename = "_".join(f"{key}_{value}" for key, value in params.items())
@@ -170,10 +168,10 @@ for server in servers:
 #     filename_pattern = generate_filename(params)
 #     for server in servers:
 #         remote_path = f"{server['username']}@{server['hostname']}:{server['local_path']}/{filename_pattern}*"
-        
+
 #         # Rsync command to sync matching files to the local directory
 #         rsync_command = ["rsync", "-avz", "--ignore-missing-args", remote_path, local_dir]
-        
+
 #         try:
 #             result = subprocess.run(rsync_command, capture_output=True, text=True, check=True)
 #             if result.returncode == 0 and "skipping non-regular file" not in result.stdout:
@@ -181,7 +179,7 @@ for server in servers:
 #                 return f"{local_dir}/{filename_pattern}"
 #         except subprocess.CalledProcessError as e:
 #             print(f"Error syncing from {server['hostname']}: {e}")
-    
+
 #     print("Result not found on any server. Computation may still be required.")
 #     return None
 
@@ -193,10 +191,10 @@ for server in servers:
 # def copy_google_drive_scp():
 #     for server in servers:
 #         remote_path = f"{server['username']}@{server['hostname']}:{server['local_path']}"
-        
+
 #         # SCP command to copy Google Drive folder to remote server
 #         scp_command = ["scp", "-rv", google_drive_path, remote_path]
-        
+
 #         try:
 #             result = subprocess.run(scp_command, capture_output=True, text=True, check=True)
 #             if result.returncode == 0:

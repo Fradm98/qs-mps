@@ -1,6 +1,7 @@
 from scipy.sparse.linalg import LinearOperator
 import numpy as np
 
+
 class TensorMultiplierOperator(LinearOperator):
     r"""
     TensorMultiplierOperator
@@ -13,8 +14,11 @@ class TensorMultiplierOperator(LinearOperator):
     The function implementing this is in the class MPS of qs-mps.
 
     """
+
     def __init__(self, shape, matvec, dtype=None):
-        super(TensorMultiplierOperator, self).__init__(dtype=np.dtype(dtype), shape=shape)
+        super(TensorMultiplierOperator, self).__init__(
+            dtype=np.dtype(dtype), shape=shape
+        )
         self.matvec = matvec
 
     def _matvec(self, x):

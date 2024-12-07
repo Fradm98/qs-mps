@@ -1,5 +1,9 @@
 from qs_mps.lattice import Lattice
-from qs_mps.sparse_hamiltonians_and_operators import sparse_pauli_z, sparse_pauli_x, sparse_pauli_y
+from qs_mps.sparse_hamiltonians_and_operators import (
+    sparse_pauli_z,
+    sparse_pauli_x,
+    sparse_pauli_y,
+)
 from qs_mps.utils import mpo_to_matrix
 from ncon import ncon
 from scipy.sparse import csc_array, identity, linalg
@@ -26,14 +30,14 @@ class MPO_ladder:
         elif self.bc == "pbc":
             charges = np.ones((self.l, self.L + 1))
         return charges
-    
+
     def _define_dof_dir(self):
         if self.bc == "obc":
             self.dof_dir = 2 * self.l * self.L + self.l + self.L
         elif self.bc == "pbc":
             self.dof_dir = 2 * self.l * self.L + self.l
         return self
-    
+
     def _define_dof_dual(self):
         if self.bc == "obc":
             self.dof_dual = self.l * self.L
@@ -82,16 +86,16 @@ class MPO_ladder:
         for charge in self.charges.flatten():
             if charge == -1:
                 particles += 1
-        
+
         if particles == 0:
             sector = "vacuum_sector"
         else:
             sector = f"{particles}_particle(s)_sector"
-        
+
         self.sector = sector
         return sector
-    
-    def mpo_skeleton(self, aux_dim: int=None):
+
+    def mpo_skeleton(self, aux_dim: int = None):
         """
         mpo_skeleton
 
@@ -99,7 +103,7 @@ class MPO_ladder:
         with O matrices. We add as well the identities in the first and last
         element of the mpo tensor.
 
-        aux_dim: int - This auxiliary dimension represents how many rows and 
+        aux_dim: int - This auxiliary dimension represents how many rows and
                     columns we want in our MPO. By default None means that it adapts
                     to the system under study. Fixing the auxiliary dimension is
                     useful for known observables which will not need larger MPOs
@@ -168,7 +172,7 @@ class MPO_ladder:
                 col = mpo_site
             elif mpo_site == (self.L - 1):
                 col = mpo_site + 1
-            
+
             if n == 1:
                 alpha = 1
                 n = n - 1
@@ -176,7 +180,7 @@ class MPO_ladder:
                 alpha = 1
                 n = n
             else:
-                alpha = 0                    
+                alpha = 0
 
             c_n_j = (1 + self.charges[n, col]) ** (alpha) * np.prod(
                 self.charges[n:, col]
@@ -199,8 +203,8 @@ class MPO_ladder:
         the fields in the direct lattice of a Z2 theory.
 
         """
-        coeff = np.prod(self.charges[(l+1):, mpo_site])
-        return coeff  
+        coeff = np.prod(self.charges[(l + 1) :, mpo_site])
+        return coeff
 
     def charge_coeff_v(self, mpo_site, l):
         """
@@ -212,29 +216,29 @@ class MPO_ladder:
         """
         if l == 0:
             coeff = np.prod([self.charges[:, col] for col in range(mpo_site + 1)])
-        elif l == (self.l-1):
+        elif l == (self.l - 1):
             coeff = 1
         return coeff
-    
 
     ##########################################
     # Terms of the Hamiltonian
     ##########################################
-    def coeff_vertical(self, file, column, from_zero: bool=True):
-        """
-        """
+    def coeff_vertical(self, file, column, from_zero: bool = True):
+        """ """
         if from_zero:
             column = column - 1
             file = file - 1
-        
+
         if column < self.L:
             coeff = 1
         else:
             prod_charges = np.prod(self.charges, axis=1).tolist()
-            coeff = prod_charges[:(file+1)]
+            coeff = prod_charges[: (file + 1)]
         return coeff
-    
-    def mpo_Z2_vertical_edges_obc(self, side: str, file: int, column: int, from_zero: bool=True):
+
+    def mpo_Z2_vertical_edges_obc(
+        self, side: str, file: int, column: int, from_zero: bool = True
+    ):
         """
         mpo_Z2_vertical_left_edge
 
@@ -252,9 +256,8 @@ class MPO_ladder:
             column = 1
             mpo_site = 0
         elif side == "right":
-            column = self.L+1
+            column = self.L + 1
             mpo_site = self.L - 1
-
 
         if from_zero:
             column = column - 1
@@ -264,14 +267,20 @@ class MPO_ladder:
         mpo_list = []
         for site in range(self.L):
             if site == mpo_site:
-                self.mpo[0,1] = - self.lamb * self.coeff_vertical(file, column, from_zero=False) * sparse_pauli_z(n=file, L=self.l).toarray()
+                self.mpo[0, 1] = (
+                    -self.lamb
+                    * self.coeff_vertical(file, column, from_zero=False)
+                    * sparse_pauli_z(n=file, L=self.l).toarray()
+                )
             mpo_list.append(self.mpo)
             self.mpo_skeleton()
 
         self.mpo = mpo_list
         return mpo_list
-    
-    def mpo_Z2_vertical_edges_pbc(self, side: str, file: int, column: int, from_zero: bool=True):
+
+    def mpo_Z2_vertical_edges_pbc(
+        self, side: str, file: int, column: int, from_zero: bool = True
+    ):
         """
         mpo_Z2_vertical_left_edge
 
@@ -289,9 +298,8 @@ class MPO_ladder:
             column = 1
             mpo_site = 0
         elif side == "right":
-            column = self.L+1
+            column = self.L + 1
             mpo_site = self.L - 1
-
 
         if from_zero:
             column = column - 1
@@ -299,22 +307,24 @@ class MPO_ladder:
 
         self.mpo_skeleton(aux_dim=2)
         mpo_list = []
-        for site in range(self.L+1):
+        for site in range(self.L + 1):
             if site == mpo_site:
-                self.mpo[0,1] = - self.lamb * self.coeff_vertical(file, column, from_zero=False) * sparse_pauli_z(n=file, L=self.l).toarray()
-            if (site-1) == mpo_site:
+                self.mpo[0, 1] = (
+                    -self.lamb
+                    * self.coeff_vertical(file, column, from_zero=False)
+                    * sparse_pauli_z(n=file, L=self.l).toarray()
+                )
+            if (site - 1) == mpo_site:
                 l_aux = self.l
                 self.l = 1
-                self.mpo_skeleton(aux_dim=(l_aux+2))
+                self.mpo_skeleton(aux_dim=(l_aux + 2))
                 self.l = l_aux
-                self.mpo[1,1] = sparse_pauli_z(n=0, L=1).toarray()
+                self.mpo[1, 1] = sparse_pauli_z(n=0, L=1).toarray()
             mpo_list.append(self.mpo)
             self.mpo_skeleton()
 
         self.mpo = mpo_list
         return mpo_list
-    
-
 
     def mpo_Z2_ladder_generalized(self):
         """
@@ -335,7 +345,7 @@ class MPO_ladder:
     def mpo_Z2_ladder_generalized_pbc(self):
         # # degrees of freedom
         # self.L = self.L - 1
-        dof = self.l*self.L + 1
+        dof = self.l * self.L + 1
 
         prod_charges = np.prod(self.charges, axis=1).tolist()
 
@@ -343,28 +353,39 @@ class MPO_ladder:
         self.mpo_skeleton()
         mpo_list = []
         for c in range(self.L):
-    
             for f in range(self.l):
-            ## Vertical Bulk ----------------------------------------------
+                ## Vertical Bulk ----------------------------------------------
                 # first row, for the zz horizontal interactions
-                self.mpo[0, f+1] = sparse_pauli_z(n=f, L=self.l).toarray()
+                self.mpo[0, f + 1] = sparse_pauli_z(n=f, L=self.l).toarray()
                 # last column, for the zz horizontal interactions
-                self.mpo[f+1, -1] = - self.lamb * sparse_pauli_z(n=f, L=self.l).toarray()
-            ## Horizontal Bulk ----------------------------------------------
+                self.mpo[f + 1, -1] = (
+                    -self.lamb * sparse_pauli_z(n=f, L=self.l).toarray()
+                )
+                ## Horizontal Bulk ----------------------------------------------
                 # first row last column, for the "local" zz vertical interaction
-                coeff = np.prod(self.charges[(f+1)%self.l,:c+1])
-                self.mpo[0,-1] += - self.lamb * coeff * (sparse_pauli_z(n=f, L=self.l).toarray() @ sparse_pauli_z(n=(f+1)%self.l, L=self.l).toarray())
-            ## Plaquette ----------------------------------------------
-            # first row last column, for the local x plaquette terms
-                self.mpo[0,-1] += - 1/self.lamb * sparse_pauli_x(n=f, L=self.l).toarray()
+                coeff = np.prod(self.charges[(f + 1) % self.l, : c + 1])
+                self.mpo[0, -1] += (
+                    -self.lamb
+                    * coeff
+                    * (
+                        sparse_pauli_z(n=f, L=self.l).toarray()
+                        @ sparse_pauli_z(n=(f + 1) % self.l, L=self.l).toarray()
+                    )
+                )
+                ## Plaquette ----------------------------------------------
+                # first row last column, for the local x plaquette terms
+                self.mpo[0, -1] += (
+                    -1 / self.lamb * sparse_pauli_x(n=f, L=self.l).toarray()
+                )
 
             ## Vertical Left ----------------------------------------------
             # first row last column, for the local z vertical terms on the left boundary
             if c == 0:
                 for f in range(self.l):
-                    self.mpo[0,-1] += - self.lamb * sparse_pauli_z(n=f, L=self.l).toarray()
+                    self.mpo[0, -1] += (
+                        -self.lamb * sparse_pauli_z(n=f, L=self.l).toarray()
+                    )
 
-        
             mpo_list.append(self.mpo)
             self.mpo_skeleton()
 
@@ -372,20 +393,22 @@ class MPO_ladder:
         # last column, add the extra degree of freedom which depends on the charges
         l_aux = self.l
         self.l = 1
-        self.mpo_skeleton(aux_dim=(l_aux+2))
+        self.mpo_skeleton(aux_dim=(l_aux + 2))
         self.l = l_aux
         for f in range(self.l):
-            coeff = np.prod(prod_charges[:f+1])
-            self.mpo[f+1, -1] = - self.lamb * coeff * sparse_pauli_z(n=0, L=1).toarray()
-        self.mpo = self.mpo[:,-1].reshape((self.l+2,1,2,2))
+            coeff = np.prod(prod_charges[: f + 1])
+            self.mpo[f + 1, -1] = (
+                -self.lamb * coeff * sparse_pauli_z(n=0, L=1).toarray()
+            )
+        self.mpo = self.mpo[:, -1].reshape((self.l + 2, 1, 2, 2))
         mpo_list.append(self.mpo)
 
         self.mpo = mpo_list
         return mpo_list
-    
+
     def mpo_Z2_ladder_generalized_obc_cc_h(self):
         # degrees of freedom
-        dof = self.l*self.L
+        dof = self.l * self.L
 
         # initialize
         self.mpo_skeleton()
@@ -393,46 +416,64 @@ class MPO_ladder:
         for c in range(self.L):
             ## Horizontal Up ----------------------------------------------
             # first row last column, for the local z horizontal up
-            coeff = np.prod(self.charges[0,:c+1])
-            self.mpo[0,-1] += - self.lamb * coeff * sparse_pauli_z(n=0, L=self.l).toarray()
-            
+            coeff = np.prod(self.charges[0, : c + 1])
+            self.mpo[0, -1] += (
+                -self.lamb * coeff * sparse_pauli_z(n=0, L=self.l).toarray()
+            )
+
             ## Horizontal Bulk ----------------------------------------------
-            for f in range(self.l-1):
+            for f in range(self.l - 1):
                 # first row last column, for the "local" zz vertical interaction
-                coeff = np.prod(self.charges[f+1,:c+1])
-                self.mpo[0,-1] += - self.lamb * coeff * (sparse_pauli_z(n=f, L=self.l).toarray() @ sparse_pauli_z(n=f+1, L=self.l).toarray())
+                coeff = np.prod(self.charges[f + 1, : c + 1])
+                self.mpo[0, -1] += (
+                    -self.lamb
+                    * coeff
+                    * (
+                        sparse_pauli_z(n=f, L=self.l).toarray()
+                        @ sparse_pauli_z(n=f + 1, L=self.l).toarray()
+                    )
+                )
 
             f += 1
             ## Horizontal Bottom ----------------------------------------------
             # first row last column, for the local z horizontal bottom
-            coeff = np.prod(self.charges[f+1,:c+1])
-            self.mpo[0,-1] += - self.lamb * coeff * sparse_pauli_z(n=f, L=self.l).toarray()
+            coeff = np.prod(self.charges[f + 1, : c + 1])
+            self.mpo[0, -1] += (
+                -self.lamb * coeff * sparse_pauli_z(n=f, L=self.l).toarray()
+            )
 
             ## Vertical Left ----------------------------------------------
             # first row last column, for the local z vertical terms on the left boundary
             if c == 0:
                 for f in range(self.l):
-                    self.mpo[0,-1] += - self.lamb * sparse_pauli_z(n=f, L=self.l).toarray()
-            
-            for f in range(self.l):            
-            ## Vertical Bulk ----------------------------------------------
+                    self.mpo[0, -1] += (
+                        -self.lamb * sparse_pauli_z(n=f, L=self.l).toarray()
+                    )
+
+            for f in range(self.l):
+                ## Vertical Bulk ----------------------------------------------
                 # first row, for the zz horizontal interactions
-                self.mpo[0, f+1] = sparse_pauli_z(n=f, L=self.l).toarray()
+                self.mpo[0, f + 1] = sparse_pauli_z(n=f, L=self.l).toarray()
                 # last column, for the zz horizontal interactions
-                self.mpo[f+1, -1] = - self.lamb * sparse_pauli_z(n=f, L=self.l).toarray()
-            
+                self.mpo[f + 1, -1] = (
+                    -self.lamb * sparse_pauli_z(n=f, L=self.l).toarray()
+                )
+
             ## Plaquette ----------------------------------------------
             # first row last column, for the local x plaquette terms
             for f in range(self.l):
-                self.mpo[0,-1] += - 1/self.lamb * sparse_pauli_x(n=f, L=self.l).toarray()
-
+                self.mpo[0, -1] += (
+                    -1 / self.lamb * sparse_pauli_x(n=f, L=self.l).toarray()
+                )
 
             ## Vertical Right ----------------------------------------------
             # first row last column, for the local z vertical right
-            if c == (self.L-1):
+            if c == (self.L - 1):
                 for f in range(self.l):
-                    coeff = np.prod(self.charges[:f+1,:self.L+1])
-                    self.mpo[0, -1] += - self.lamb * coeff * sparse_pauli_z(n=f, L=self.l).toarray()
+                    coeff = np.prod(self.charges[: f + 1, : self.L + 1])
+                    self.mpo[0, -1] += (
+                        -self.lamb * coeff * sparse_pauli_z(n=f, L=self.l).toarray()
+                    )
 
             mpo_list.append(self.mpo)
             self.mpo_skeleton()
@@ -471,13 +512,14 @@ class MPO_ladder:
                     -self.charge_coeff_local_Z(n=i, mpo_site=mpo_site)
                     * self.lamb
                     * sparse_pauli_z(n=i - 1, L=self.l).toarray()
-                    - (1/self.lamb) * sparse_pauli_x(n=i - 1, L=self.l).toarray()
+                    - (1 / self.lamb) * sparse_pauli_x(n=i - 1, L=self.l).toarray()
                 )
             # vertical Z interaction
             for j in range(self.l - 1):
                 self.mpo[0, n + 1] += -(
                     self.lamb
-                    * sparse_pauli_z(n=j, L=self.l) @ sparse_pauli_z(n=j + 1, L=self.l)
+                    * sparse_pauli_z(n=j, L=self.l)
+                    @ sparse_pauli_z(n=j + 1, L=self.l)
                 ).toarray()
 
             # -----------
@@ -492,9 +534,10 @@ class MPO_ladder:
 
         self.mpo = mpo_list
         return mpo_list
-    
 
-    def mpo_Z2_plaquette_total_energy_density(self, site: int, ladder: int, cc: str="h"):
+    def mpo_Z2_plaquette_total_energy_density(
+        self, site: int, ladder: int, cc: str = "h"
+    ):
         """
         mpo_Z2_plaquette_total_energy_density
 
@@ -504,11 +547,11 @@ class MPO_ladder:
         contributes with four terms. The latters are expressed in the dual formalism
         with ZZ interaction terms or local Z terms according to which link we are
         computing. Boundary conditions also affect the duality. The magnetic
-        hamiltonian contributes with the product of four terms which in the dual form 
+        hamiltonian contributes with the product of four terms which in the dual form
         is simply a local X term without any charge coefficient.
         We enumerate the links starting from the vertical left (1) and proceed clockwise:
 
-        _ | _ _ 2 _ _ | _ 
+        _ | _ _ 2 _ _ | _
           |           |
           |           |
           1           3
@@ -520,83 +563,142 @@ class MPO_ladder:
         site: int - column we are interested in computing the energy density
         ladder: int - row we are interested in computing the energy density
         cc: str - charge convention used to compute the MPS
-        
+
         """
         self.mpo_skeleton(aux_dim=3)
         mpo_list = []
         for c in range(self.L):
-            
-            if c == site-1:
+            if c == site - 1:
                 # prepare the ZZ interaction for the link 1
-                self.mpo[0,1] = sparse_pauli_z(n=ladder, L=self.l).toarray()
-            
+                self.mpo[0, 1] = sparse_pauli_z(n=ladder, L=self.l).toarray()
+
             if c == site:
                 # prepare the ZZ interaction for the link 3
-                self.mpo[0,1] = sparse_pauli_z(n=ladder, L=self.l).toarray()
+                self.mpo[0, 1] = sparse_pauli_z(n=ladder, L=self.l).toarray()
                 # finish the ZZ interaction for the link 1
                 if cc == "h":
                     coeff = 1
                 elif cc == "v":
-                    coeff = self.charge_coeff_interaction(n=ladder+1,mpo_site=c)
-                self.mpo[1,-1] = - (1/2) * self.lamb * coeff * sparse_pauli_z(n=ladder, L=self.l).toarray() # link 1 is shared between two plaquettes
-                
+                    coeff = self.charge_coeff_interaction(n=ladder + 1, mpo_site=c)
+                self.mpo[1, -1] = (
+                    -(1 / 2)
+                    * self.lamb
+                    * coeff
+                    * sparse_pauli_z(n=ladder, L=self.l).toarray()
+                )  # link 1 is shared between two plaquettes
+
                 if ladder == 0:
                     # local Z interaction for boundary link 2
                     if cc == "h":
-                        coeff = np.prod(self.charges[ladder,:c+1])
+                        coeff = np.prod(self.charges[ladder, : c + 1])
                     elif cc == "v":
                         coeff = self.charge_coeff_v(mpo_site=c, l=ladder)
                     if self.bc == "obc":
                         # local Z interaction for boundary link 2
-                        self.mpo[0,-1] += - self.lamb * coeff * sparse_pauli_z(n=ladder, L=self.l).toarray() # link 2 boundary is just in one plaquette
+                        self.mpo[0, -1] += (
+                            -self.lamb
+                            * coeff
+                            * sparse_pauli_z(n=ladder, L=self.l).toarray()
+                        )  # link 2 boundary is just in one plaquette
                     elif self.bc == "pbc":
                         # "local" ZZ interaction for bulk link 2
-                        self.mpo[0,-1] += - self.lamb * coeff * sparse_pauli_z(n=(ladder-1)%self.l, L=self.l).toarray() @ sparse_pauli_z(n=ladder, L=self.l).toarray() # link 2 boundary is shared between the first and last plaquette for pbc
+                        self.mpo[0, -1] += (
+                            -self.lamb
+                            * coeff
+                            * sparse_pauli_z(
+                                n=(ladder - 1) % self.l, L=self.l
+                            ).toarray()
+                            @ sparse_pauli_z(n=ladder, L=self.l).toarray()
+                        )  # link 2 boundary is shared between the first and last plaquette for pbc
                     # "local" ZZ interaction for bulk link 4
-                    coeff = np.prod(self.charges[ladder+1,:c+1])
-                    self.mpo[0,-1] += - (1/2) * self.lamb * coeff * sparse_pauli_z(n=ladder, L=self.l).toarray() @ sparse_pauli_z(n=ladder+1, L=self.l).toarray() # link 4 is shared between two plaquettes
-                
-                elif ladder in range(1,self.l-1):
+                    coeff = np.prod(self.charges[ladder + 1, : c + 1])
+                    self.mpo[0, -1] += (
+                        -(1 / 2)
+                        * self.lamb
+                        * coeff
+                        * sparse_pauli_z(n=ladder, L=self.l).toarray()
+                        @ sparse_pauli_z(n=ladder + 1, L=self.l).toarray()
+                    )  # link 4 is shared between two plaquettes
+
+                elif ladder in range(1, self.l - 1):
                     # "local" ZZ interaction for bulk link 2
-                    coeff = np.prod(self.charges[ladder,:c+1])
-                    self.mpo[0,-1] += - (1/2) * self.lamb * coeff * sparse_pauli_z(n=ladder-1, L=self.l).toarray() @ sparse_pauli_z(n=ladder, L=self.l).toarray() # link 2 is shared between two plaquettes
+                    coeff = np.prod(self.charges[ladder, : c + 1])
+                    self.mpo[0, -1] += (
+                        -(1 / 2)
+                        * self.lamb
+                        * coeff
+                        * sparse_pauli_z(n=ladder - 1, L=self.l).toarray()
+                        @ sparse_pauli_z(n=ladder, L=self.l).toarray()
+                    )  # link 2 is shared between two plaquettes
                     # "local" ZZ interaction for bulk link 4
-                    coeff = np.prod(self.charges[ladder+1,:c+1])
-                    self.mpo[0,-1] += - (1/2) * self.lamb * coeff * sparse_pauli_z(n=ladder, L=self.l).toarray() @ sparse_pauli_z(n=ladder+1, L=self.l).toarray() # link 4 is shared between two plaquettes
-                
-                elif ladder == self.l-1:
+                    coeff = np.prod(self.charges[ladder + 1, : c + 1])
+                    self.mpo[0, -1] += (
+                        -(1 / 2)
+                        * self.lamb
+                        * coeff
+                        * sparse_pauli_z(n=ladder, L=self.l).toarray()
+                        @ sparse_pauli_z(n=ladder + 1, L=self.l).toarray()
+                    )  # link 4 is shared between two plaquettes
+
+                elif ladder == self.l - 1:
                     # "local" ZZ interaction for bulk link 2
-                    coeff = np.prod(self.charges[ladder,:c+1])
-                    self.mpo[0,-1] += - (1/2) * self.lamb * coeff * sparse_pauli_z(n=ladder-1, L=self.l).toarray() @ sparse_pauli_z(n=ladder, L=self.l).toarray() # link 2 is shared between two plaquettes
+                    coeff = np.prod(self.charges[ladder, : c + 1])
+                    self.mpo[0, -1] += (
+                        -(1 / 2)
+                        * self.lamb
+                        * coeff
+                        * sparse_pauli_z(n=ladder - 1, L=self.l).toarray()
+                        @ sparse_pauli_z(n=ladder, L=self.l).toarray()
+                    )  # link 2 is shared between two plaquettes
                     # local Z interaction for boundary link 4
                     if cc == "h":
-                        coeff = np.prod(self.charges[ladder+1,:c+1])
+                        coeff = np.prod(self.charges[ladder + 1, : c + 1])
                     elif cc == "v":
                         coeff = self.charge_coeff_v(mpo_site=c, l=ladder)
                     if self.bc == "obc":
                         # local Z interaction for boundary link 4
-                        self.mpo[0,-1] += - self.lamb * coeff * sparse_pauli_z(n=ladder, L=self.l).toarray() # link 4 boundary is just in one plaquette
+                        self.mpo[0, -1] += (
+                            -self.lamb
+                            * coeff
+                            * sparse_pauli_z(n=ladder, L=self.l).toarray()
+                        )  # link 4 boundary is just in one plaquette
                     elif self.bc == "pbc":
                         # "local" ZZ interaction for bulk link 4
-                        self.mpo[0,-1] += - self.lamb * coeff * sparse_pauli_z(n=ladder, L=self.l).toarray() @ sparse_pauli_z(n=(ladder+1)%self.l, L=self.l).toarray() # link 4 bulk is shared between the first and last plaquette for pbc
-            
-                ### magnetic term ###
-                self.mpo[0,-1] += - 1/self.lamb * sparse_pauli_x(n=ladder, L=self.l).toarray()
+                        self.mpo[0, -1] += (
+                            -self.lamb
+                            * coeff
+                            * sparse_pauli_z(n=ladder, L=self.l).toarray()
+                            @ sparse_pauli_z(
+                                n=(ladder + 1) % self.l, L=self.l
+                            ).toarray()
+                        )  # link 4 bulk is shared between the first and last plaquette for pbc
 
-            if c == site+1:
+                ### magnetic term ###
+                self.mpo[0, -1] += (
+                    -1 / self.lamb * sparse_pauli_x(n=ladder, L=self.l).toarray()
+                )
+
+            if c == site + 1:
                 # finish the ZZ interaction for the link 3
                 if cc == "h":
                     coeff = 1
                 elif cc == "v":
-                    coeff = self.charge_coeff_interaction(n=ladder+1,mpo_site=c)
-                self.mpo[1,-1] = - (1/2) * self.lamb * coeff * sparse_pauli_z(n=ladder, L=self.l).toarray() # link 3 is shared between two plaquettes
-            
+                    coeff = self.charge_coeff_interaction(n=ladder + 1, mpo_site=c)
+                self.mpo[1, -1] = (
+                    -(1 / 2)
+                    * self.lamb
+                    * coeff
+                    * sparse_pauli_z(n=ladder, L=self.l).toarray()
+                )  # link 3 is shared between two plaquettes
+
             mpo_list.append(self.mpo)
             self.mpo_skeleton(aux_dim=3)
         self.mpo = mpo_list
         return mpo_list
 
-    def mpo_Z2_plaquette_electric_energy_density(self, site: int, ladder: int, cc: str="h"):
+    def mpo_Z2_plaquette_electric_energy_density(
+        self, site: int, ladder: int, cc: str = "h"
+    ):
         """
         mpo_Z2_plaquette_electric_energy_density
 
@@ -607,7 +709,7 @@ class MPO_ladder:
         computing. Boundary conditions also affect the duality. We enumerate the links
         starting from the vertical left (1) and proceed clockwise:
 
-        _ | _ _ 2 _ _ | _ 
+        _ | _ _ 2 _ _ | _
           |           |
           |           |
           1           3
@@ -619,76 +721,133 @@ class MPO_ladder:
         site: int - column we are interested in computing the energy density
         ladder: int - row we are interested in computing the energy density
         cc: str - charge convention used to compute the MPS
-        
+
         """
         self.mpo_skeleton(aux_dim=3)
         mpo_list = []
         for c in range(self.L):
-            
-            if c == site-1:
+            if c == site - 1:
                 # prepare the ZZ interaction for the link 1
-                self.mpo[0,1] = sparse_pauli_z(n=ladder, L=self.l).toarray()
-            
+                self.mpo[0, 1] = sparse_pauli_z(n=ladder, L=self.l).toarray()
+
             if c == site:
                 # prepare the ZZ interaction for the link 3
-                self.mpo[0,1] = sparse_pauli_z(n=ladder, L=self.l).toarray()
+                self.mpo[0, 1] = sparse_pauli_z(n=ladder, L=self.l).toarray()
                 # finish the ZZ interaction for the link 1
                 if cc == "h":
                     coeff = 1
                 elif cc == "v":
-                    coeff = self.charge_coeff_interaction(n=ladder+1,mpo_site=c)
-                self.mpo[1,-1] = - (1/2) * self.lamb * coeff * sparse_pauli_z(n=ladder, L=self.l).toarray() # link 1 is shared between two plaquettes
+                    coeff = self.charge_coeff_interaction(n=ladder + 1, mpo_site=c)
+                self.mpo[1, -1] = (
+                    -(1 / 2)
+                    * self.lamb
+                    * coeff
+                    * sparse_pauli_z(n=ladder, L=self.l).toarray()
+                )  # link 1 is shared between two plaquettes
 
                 if ladder == 0:
                     if cc == "h":
-                        coeff = np.prod(self.charges[ladder,:c+1])
+                        coeff = np.prod(self.charges[ladder, : c + 1])
                     elif cc == "v":
                         coeff = self.charge_coeff_v(mpo_site=c, l=ladder)
                     if self.bc == "obc":
                         # local Z interaction for boundary link 2
-                        self.mpo[0,-1] += - self.lamb * coeff * sparse_pauli_z(n=ladder, L=self.l).toarray() # link 2 boundary is just in one plaquette
+                        self.mpo[0, -1] += (
+                            -self.lamb
+                            * coeff
+                            * sparse_pauli_z(n=ladder, L=self.l).toarray()
+                        )  # link 2 boundary is just in one plaquette
                     elif self.bc == "pbc":
                         # "local" ZZ interaction for bulk link 2
-                        self.mpo[0,-1] += - self.lamb * coeff * sparse_pauli_z(n=(ladder-1)%self.l, L=self.l).toarray() @ sparse_pauli_z(n=ladder, L=self.l).toarray() # link 2 boundary is shared between the first and last plaquette for pbc
+                        self.mpo[0, -1] += (
+                            -self.lamb
+                            * coeff
+                            * sparse_pauli_z(
+                                n=(ladder - 1) % self.l, L=self.l
+                            ).toarray()
+                            @ sparse_pauli_z(n=ladder, L=self.l).toarray()
+                        )  # link 2 boundary is shared between the first and last plaquette for pbc
                     # "local" ZZ interaction for bulk link 4
-                    coeff = np.prod(self.charges[ladder+1,:c+1])
-                    self.mpo[0,-1] += - (1/2) * self.lamb * coeff * sparse_pauli_z(n=ladder, L=self.l).toarray() @ sparse_pauli_z(n=ladder+1, L=self.l).toarray() # link 4 is shared between two plaquettes
-                
-                elif ladder in range(1,self.l-1):
+                    coeff = np.prod(self.charges[ladder + 1, : c + 1])
+                    self.mpo[0, -1] += (
+                        -(1 / 2)
+                        * self.lamb
+                        * coeff
+                        * sparse_pauli_z(n=ladder, L=self.l).toarray()
+                        @ sparse_pauli_z(n=ladder + 1, L=self.l).toarray()
+                    )  # link 4 is shared between two plaquettes
+
+                elif ladder in range(1, self.l - 1):
                     # "local" ZZ interaction for bulk link 2
-                    coeff = np.prod(self.charges[ladder,:c+1])
-                    self.mpo[0,-1] += - (1/2) * self.lamb * coeff * sparse_pauli_z(n=ladder-1, L=self.l).toarray() @ sparse_pauli_z(n=ladder, L=self.l).toarray() # link 2 is shared between two plaquettes
+                    coeff = np.prod(self.charges[ladder, : c + 1])
+                    self.mpo[0, -1] += (
+                        -(1 / 2)
+                        * self.lamb
+                        * coeff
+                        * sparse_pauli_z(n=ladder - 1, L=self.l).toarray()
+                        @ sparse_pauli_z(n=ladder, L=self.l).toarray()
+                    )  # link 2 is shared between two plaquettes
                     # "local" ZZ interaction for bulk link 4
-                    coeff = np.prod(self.charges[ladder+1,:c+1])
-                    self.mpo[0,-1] += - (1/2) * self.lamb * coeff * sparse_pauli_z(n=ladder, L=self.l).toarray() @ sparse_pauli_z(n=ladder+1, L=self.l).toarray() # link 4 is shared between two plaquettes
-                
-                elif ladder == self.l-1:
+                    coeff = np.prod(self.charges[ladder + 1, : c + 1])
+                    self.mpo[0, -1] += (
+                        -(1 / 2)
+                        * self.lamb
+                        * coeff
+                        * sparse_pauli_z(n=ladder, L=self.l).toarray()
+                        @ sparse_pauli_z(n=ladder + 1, L=self.l).toarray()
+                    )  # link 4 is shared between two plaquettes
+
+                elif ladder == self.l - 1:
                     # "local" ZZ interaction for bulk link 2
-                    coeff = np.prod(self.charges[ladder,:c+1])
-                    self.mpo[0,-1] += - (1/2) * self.lamb * coeff * sparse_pauli_z(n=ladder-1, L=self.l).toarray() @ sparse_pauli_z(n=ladder, L=self.l).toarray() # link 2 is shared between two plaquettes
+                    coeff = np.prod(self.charges[ladder, : c + 1])
+                    self.mpo[0, -1] += (
+                        -(1 / 2)
+                        * self.lamb
+                        * coeff
+                        * sparse_pauli_z(n=ladder - 1, L=self.l).toarray()
+                        @ sparse_pauli_z(n=ladder, L=self.l).toarray()
+                    )  # link 2 is shared between two plaquettes
                     if self.bc == "obc":
                         if cc == "h":
-                            coeff = np.prod(self.charges[ladder+1,:c+1])
+                            coeff = np.prod(self.charges[ladder + 1, : c + 1])
                         elif cc == "v":
                             coeff = self.charge_coeff_v(mpo_site=c, l=ladder)
                         # local Z interaction for boundary link 4
-                        self.mpo[0,-1] += - self.lamb * coeff * sparse_pauli_z(n=ladder, L=self.l).toarray() # link 4 boundary is just in one plaquette
+                        self.mpo[0, -1] += (
+                            -self.lamb
+                            * coeff
+                            * sparse_pauli_z(n=ladder, L=self.l).toarray()
+                        )  # link 4 boundary is just in one plaquette
                     elif self.bc == "pbc":
                         if cc == "h":
-                            coeff = np.prod(self.charges[(ladder+1)%self.l,:c+1])
+                            coeff = np.prod(
+                                self.charges[(ladder + 1) % self.l, : c + 1]
+                            )
                         elif cc == "v":
                             coeff = self.charge_coeff_v(mpo_site=c, l=ladder)
                         # "local" ZZ interaction for bulk link 4
-                        self.mpo[0,-1] += - self.lamb * coeff * sparse_pauli_z(n=ladder, L=self.l).toarray() @ sparse_pauli_z(n=(ladder+1)%self.l, L=self.l).toarray() # link 4 bulk is shared between the first and last plaquette for pbc
-            
-            if c == site+1:
+                        self.mpo[0, -1] += (
+                            -self.lamb
+                            * coeff
+                            * sparse_pauli_z(n=ladder, L=self.l).toarray()
+                            @ sparse_pauli_z(
+                                n=(ladder + 1) % self.l, L=self.l
+                            ).toarray()
+                        )  # link 4 bulk is shared between the first and last plaquette for pbc
+
+            if c == site + 1:
                 # finish the ZZ interaction for the link 3
                 if cc == "h":
                     coeff = 1
                 elif cc == "v":
-                    coeff = self.charge_coeff_interaction(n=ladder+1,mpo_site=c)
-                self.mpo[1,-1] = - (1/2) * self.lamb * coeff * sparse_pauli_z(n=ladder, L=self.l).toarray() # link 3 is shared between two plaquettes
-            
+                    coeff = self.charge_coeff_interaction(n=ladder + 1, mpo_site=c)
+                self.mpo[1, -1] = (
+                    -(1 / 2)
+                    * self.lamb
+                    * coeff
+                    * sparse_pauli_z(n=ladder, L=self.l).toarray()
+                )  # link 3 is shared between two plaquettes
+
             mpo_list.append(self.mpo)
             self.mpo_skeleton(aux_dim=3)
         self.mpo = mpo_list
@@ -702,10 +861,10 @@ class MPO_ladder:
         an arbitrary site and ladder. In the direct hamiltonian we have four terms
         to take into account. The product of this four originates the magnetic term
         which in the dual form is simply a local X term without any charge coefficient.
-        We enumerate the links starting from the vertical left (1) and 
+        We enumerate the links starting from the vertical left (1) and
         proceed clockwise:
 
-        _ | _ _ 2 _ _ | _ 
+        _ | _ _ 2 _ _ | _
           |           |
           |           |
           1           3
@@ -713,7 +872,7 @@ class MPO_ladder:
           |           |
         _ | _ _ 4 _ _ | _
           |           |
-          
+
         site: int - column we are interested in computing the energy density
         ladder: int - row we are interested in computing the energy density
 
@@ -722,12 +881,13 @@ class MPO_ladder:
         mpo_list = []
         for c in range(self.L):
             if c == site:
-                self.mpo[0,-1] = - 1/self.lamb * sparse_pauli_x(n=ladder, L=self.l).toarray()
+                self.mpo[0, -1] = (
+                    -1 / self.lamb * sparse_pauli_x(n=ladder, L=self.l).toarray()
+                )
             mpo_list.append(self.mpo)
             self.mpo_skeleton(aux_dim=2)
         self.mpo = mpo_list
         return mpo_list
-
 
     def diagonalize(self):
         self.mpo_Z2_ladder_generalized()
@@ -742,8 +902,10 @@ class MPO_ladder:
             w_init_X = np.array([[I]])
             for l in range(self.l):
                 X_l = sparse_pauli_x(n=l, L=self.l).toarray()
-                w_init_X_l = np.array([[linalg.expm(1j * (1/h_ev) * delta * X_l)]])
-                w_init_X = ncon([w_init_X_l, w_init_X], [[-1, -3, 1, -6], [-2, -4, -5, 1]]).reshape((1,1,w_init_X.shape[2],w_init_X_l.shape[3]))
+                w_init_X_l = np.array([[linalg.expm(1j * (1 / h_ev) * delta * X_l)]])
+                w_init_X = ncon(
+                    [w_init_X_l, w_init_X], [[-1, -3, 1, -6], [-2, -4, -5, 1]]
+                ).reshape((1, 1, w_init_X.shape[2], w_init_X_l.shape[3]))
             w_tot.append(w_init_X)
         self.mpo = w_tot
         return self
@@ -752,9 +914,9 @@ class MPO_ladder:
         I = identity(2**self.l, dtype=complex).toarray()
 
         w_tot = []
-        for mpo_site in range(self.L - 1):   
+        for mpo_site in range(self.L - 1):
             w_l = np.array([[I]])
-            for l in range(1,self.l+1):
+            for l in range(1, self.l + 1):
                 Z = sparse_pauli_z(n=l - 1, L=self.l).toarray()
                 c_loc = self.charge_coeff_local_Z(n=l, mpo_site=mpo_site)
                 w_loc = np.array(linalg.expm(1j * c_loc * h_ev * delta * Z))
@@ -764,7 +926,10 @@ class MPO_ladder:
                     [
                         [
                             np.sqrt(np.cos(c_int * h_ev * delta)) * I,
-                            1j * np.sign(c_int) * np.sqrt(np.sin(np.abs(c_int) * h_ev * delta)) * Z,
+                            1j
+                            * np.sign(c_int)
+                            * np.sqrt(np.sin(np.abs(c_int) * h_ev * delta))
+                            * Z,
                         ]
                     ]
                 )
@@ -781,30 +946,51 @@ class MPO_ladder:
                     w_l = ncon(
                         [w_loc, w_even, w_l],
                         [[-5, 2], [-1, -3, 2, 1], [-2, -4, 1, -6]],
-                    ).reshape((w_l.shape[0]*w_even.shape[0],w_l.shape[1]*w_even.shape[1],w_loc.shape[0],w_l.shape[-1]))
+                    ).reshape(
+                        (
+                            w_l.shape[0] * w_even.shape[0],
+                            w_l.shape[1] * w_even.shape[1],
+                            w_loc.shape[0],
+                            w_l.shape[-1],
+                        )
+                    )
                 elif mpo_site == self.L - 2:
                     w_l = ncon(
-                        [w_loc,w_odd,w_l],
+                        [w_loc, w_odd, w_l],
                         [[-5, 2], [-1, -3, 2, 1], [-2, -4, 1, -6]],
-                    ).reshape((w_l.shape[0]*w_odd.shape[0],w_l.shape[1]*w_odd.shape[1],w_loc.shape[0],w_l.shape[-1]))
+                    ).reshape(
+                        (
+                            w_l.shape[0] * w_odd.shape[0],
+                            w_l.shape[1] * w_odd.shape[1],
+                            w_loc.shape[0],
+                            w_l.shape[-1],
+                        )
+                    )
                 else:
                     w_l = ncon(
                         [w_loc, w_even, w_odd, w_l],
                         [[-7, 3], [-1, -4, 3, 2], [-2, -5, 2, 1], [-3, -6, 1, -8]],
-                    ).reshape((w_l.shape[0]*w_odd.shape[0]*w_even.shape[0],w_l.shape[1]*w_odd.shape[1]*w_even.shape[1],w_loc.shape[0],w_l.shape[-1]))
+                    ).reshape(
+                        (
+                            w_l.shape[0] * w_odd.shape[0] * w_even.shape[0],
+                            w_l.shape[1] * w_odd.shape[1] * w_even.shape[1],
+                            w_loc.shape[0],
+                            w_l.shape[-1],
+                        )
+                    )
 
-            for l in range(1,self.l):
+            for l in range(1, self.l):
                 Z_ll = (
                     sparse_pauli_z(n=l - 1, L=self.l) @ sparse_pauli_z(n=l, L=self.l)
                 ).toarray()
                 w_int_loc = np.array(linalg.expm(1j * h_ev * delta * Z_ll))
-                w_l = ncon([w_int_loc,w_l],[[-3,1],[-1,-2,1,-4]])
+                w_l = ncon([w_int_loc, w_l], [[-3, 1], [-1, -2, 1, -4]])
 
             w_tot.append(w_l)
 
         self.mpo = w_tot
         return self
-    
+
     # def thooft(self, site: list, l: list, direction: str):
     #     """
     #     thooft
@@ -812,7 +998,7 @@ class MPO_ladder:
     #     This function finds the 't Hooft string for the Z2 dual lattice.
     #     It gives us vertical and horizontal strings from a specific dual lattice
     #     site and going, conventionally, up and left, respectively (to vertical and horizontal).
-        
+
     #     site: list - the first element is the mps site of the interested dual lattice site, starts from 0
     #     l: list - the first element is the ladder of the interested dual lattice site, starts from 0
     #     direction: str - indicates in the direction of the string. We use the convention:
@@ -837,7 +1023,7 @@ class MPO_ladder:
     #             self.mpo[0,-1] = coeff * sparse_pauli_z(n=l, L=self.l).toarray()
     #         mpo_tot.append(self.mpo)
     #         self.mpo_skeleton(aux_dim=2)
-                    
+
     #     self.mpo = mpo_tot
     #     return self
     def thooft(self, site: list, l: list, direction: str):
@@ -847,7 +1033,7 @@ class MPO_ladder:
         This function finds the 't Hooft string for the Z2 dual lattice.
         It gives us vertical and horizontal strings from a specific dual lattice
         site and going, conventionally, up and left, respectively (to vertical and horizontal).
-        
+
         site: list - the first element is the mps site of the interested dual lattice site, starts from 0
         l: list - the first element is the ladder of the interested dual lattice site, starts from 0
         direction: str - indicates in the direction of the string. We use the convention:
@@ -860,20 +1046,20 @@ class MPO_ladder:
         site = site[0]
         l = l[0]
         mpo_tot = []
-        if direction == "vertical": # depends on the bounday conditions
+        if direction == "vertical":  # depends on the bounday conditions
             coeff = self.charge_coeff_v(mpo_site=site, l=0)
-        if direction == "horizontal": # no charges
+        if direction == "horizontal":  # no charges
             coeff = 1
-                
+
         for mpo_site in range(self.L):
             if mpo_site == site:
-                self.mpo[0,-1] = coeff * sparse_pauli_z(n=l, L=self.l).toarray()
+                self.mpo[0, -1] = coeff * sparse_pauli_z(n=l, L=self.l).toarray()
             mpo_tot.append(self.mpo)
             self.mpo_skeleton(aux_dim=2)
-                    
+
         self.mpo = mpo_tot
         return self
-    
+
     def correlator(self, site: list, ladders: list):
         """
         thooft
@@ -881,7 +1067,7 @@ class MPO_ladder:
         This function finds the 't Hooft string for the Z2 dual lattice.
         It gives us vertical and horizontal strings from a specific dual lattice
         site and going, conventionally, up and left, respectively (to vertical and horizontal).
-        
+
         site: list - the first element is the mps site of the interested dual lattice site
         l: list - the first element is the ladder of the interested dual lattice site
         direction: str - indicates in the direction of the string. We use the convention:
@@ -893,25 +1079,31 @@ class MPO_ladder:
 
         site = site[0]
         mpo_tot = []
-        
-        for mpo_site in range(self.L-1):
+
+        for mpo_site in range(self.L - 1):
             if mpo_site == site:
-                self.mpo[0,-1] = identity(2**self.l, dtype=complex).toarray()
+                self.mpo[0, -1] = identity(2**self.l, dtype=complex).toarray()
                 for l in ladders:
                     if l == 0 or l == self.l:
                         if l == 0:
                             l = l
                         elif l == self.l:
-                            l = l - 1 
+                            l = l - 1
                         coeff = self.charge_coeff_v(mpo_site=site, l=l)
-                        self.mpo[0,-1] = self.mpo[0,-1] @ (coeff * sparse_pauli_z(n=l, L=self.l).toarray())
+                        self.mpo[0, -1] = self.mpo[0, -1] @ (
+                            coeff * sparse_pauli_z(n=l, L=self.l).toarray()
+                        )
                         # self.mpo[0,-1] = self.mpo[0,-1] @ (sparse_pauli_z(n=l, L=self.l).toarray())
                     else:
                         l = l - 1
-                        self.mpo[0,-1] = self.mpo[0,-1] @ sparse_pauli_z(n=l, L=self.l).toarray() @ sparse_pauli_z(n=l+1, L=self.l).toarray()
+                        self.mpo[0, -1] = (
+                            self.mpo[0, -1]
+                            @ sparse_pauli_z(n=l, L=self.l).toarray()
+                            @ sparse_pauli_z(n=l + 1, L=self.l).toarray()
+                        )
             mpo_tot.append(self.mpo)
             self.mpo_skeleton(aux_dim=2)
-                    
+
         self.mpo = mpo_tot
         return self
 
@@ -934,20 +1126,30 @@ class MPO_ladder:
             if len(mpo_sites) == 1:
                 # we are between two rungs
                 if site in mpo_sites and (mpo_sites[0] == 0):
-                    self.mpo[0, 1] = self.pauli_string(string=ls, direction="vertical", pauli_type="X")
+                    self.mpo[0, 1] = self.pauli_string(
+                        string=ls, direction="vertical", pauli_type="X"
+                    )
                 elif site in mpo_sites:
-                    self.mpo[1, -1] = self.pauli_string(string=ls, direction="vertical", pauli_type="X")
+                    self.mpo[1, -1] = self.pauli_string(
+                        string=ls, direction="vertical", pauli_type="X"
+                    )
             # take the string of pauli on the ladders that creates the interaction among the mpo sites
             else:
                 if site == mpo_sites[0]:
-                    self.mpo[0, 1] = self.pauli_string(string=ls, direction="vertical", pauli_type="X")
+                    self.mpo[0, 1] = self.pauli_string(
+                        string=ls, direction="vertical", pauli_type="X"
+                    )
                 # take the string of pauli on the ladders that ends the interaction among the mpo sites
                 elif site == mpo_sites[-1]:
-                    self.mpo[1, -1] = self.pauli_string(string=ls, direction="vertical", pauli_type="X")
+                    self.mpo[1, -1] = self.pauli_string(
+                        string=ls, direction="vertical", pauli_type="X"
+                    )
                 # take the string of pauli on the ladders that continues the interaction among the mpo sites
                 elif site in mpo_sites[1:-1]:
-                    self.mpo[1, 1] = self.pauli_string(string=ls, direction="vertical", pauli_type="X")
-            
+                    self.mpo[1, 1] = self.pauli_string(
+                        string=ls, direction="vertical", pauli_type="X"
+                    )
+
             if site < mpo_sites[0]:
                 # before the pauli strings, place identities for the previous mpo sites
                 self.mpo[0, 1] = I
@@ -965,13 +1167,13 @@ class MPO_ladder:
         """
         pauli_string
 
-        This function creates a string of certain paulis in a given direction 
+        This function creates a string of certain paulis in a given direction
         of the lattice.
 
         string: list - list of the sites on the dual lattice. Starts from 1
         direction: str - direction of the string on the sites of the dual lattice
         pauli_type: str - type of pauli matrix we want to use. Available are: "X", "Y", "Z"
-        
+
         """
         # define the pauli type
         if pauli_type == "X":
@@ -980,10 +1182,10 @@ class MPO_ladder:
             sigma = sparse_pauli_y
         elif pauli_type == "Z":
             sigma = sparse_pauli_z
-        
+
         # define the direction
         if direction == "horizontal":
-            dim = self.L-1
+            dim = self.L - 1
         elif direction == "vertical":
             dim = self.l
 
@@ -998,21 +1200,23 @@ class MPO_ladder:
         mpo_list = []
         self.mpo_skeleton()
         for c in range(self.L):
-            if c == self.L-1:
-                self.mpo[0, file+1] = sparse_pauli_z(n=file, L=self.l).toarray()
+            if c == self.L - 1:
+                self.mpo[0, file + 1] = sparse_pauli_z(n=file, L=self.l).toarray()
             mpo_list.append(self.mpo)
             self.mpo_skeleton()
-            
+
         l_aux = self.l
         self.l = 1
-        self.mpo_skeleton(aux_dim=(l_aux+2))
+        self.mpo_skeleton(aux_dim=(l_aux + 2))
         self.l = l_aux
         for f in range(self.l):
-            coeff = np.prod(np.prod(self.charges, axis=1).tolist()[:f+1])
-            self.mpo[f+1, -1] = - self.lamb * coeff * sparse_pauli_z(n=0, L=1).toarray()
-        self.mpo = self.mpo[:,-1].reshape((self.l+2,1,2,2))
+            coeff = np.prod(np.prod(self.charges, axis=1).tolist()[: f + 1])
+            self.mpo[f + 1, -1] = (
+                -self.lamb * coeff * sparse_pauli_z(n=0, L=1).toarray()
+            )
+        self.mpo = self.mpo[:, -1].reshape((self.l + 2, 1, 2, 2))
         mpo_list.append(self.mpo)
-        
+
         self.mpo = mpo_list
         return mpo_list
 
@@ -1020,12 +1224,16 @@ class MPO_ladder:
         """
         local_observable_Z2_dual
 
-        This function finds the mpo representing local observables in the 
+        This function finds the mpo representing local observables in the
         dual lattice of the Z2 theory.
 
         """
-        assert (0 <= mpo_site < self.L), "The mpo site is out of bound. Choose it 0 <= site < L-1"
-        assert (0 <= l < self.l), "The mpo ladder is out of bound. Choose it 0 <= site < l"
+        assert (
+            0 <= mpo_site < self.L
+        ), "The mpo site is out of bound. Choose it 0 <= site < L-1"
+        assert (
+            0 <= l < self.l
+        ), "The mpo ladder is out of bound. Choose it 0 <= site < l"
 
         self.mpo_skeleton(aux_dim=2)
 
@@ -1040,7 +1248,9 @@ class MPO_ladder:
         self.mpo = mpo_tot
         return self
 
-    def zz_observable_Z2_dual(self, mpo_site: int, l: int, direction: str, aux_dim: int=2):
+    def zz_observable_Z2_dual(
+        self, mpo_site: int, l: int, direction: str, aux_dim: int = 2
+    ):
         """
         zz_observable_Z2_dual
 
@@ -1057,15 +1267,19 @@ class MPO_ladder:
 
         for site in range(self.L):
             if direction == "horizontal":
-                assert (0 <= mpo_site < self.L-1), "The mpo site is out of bound. Choose it 0 <= site < L-2"
-                if (mpo_site+i) == site:
+                assert (
+                    0 <= mpo_site < self.L - 1
+                ), "The mpo site is out of bound. Choose it 0 <= site < L-2"
+                if (mpo_site + i) == site:
                     if i == 0:
                         self.mpo[0, 1] = sparse_pauli_z(n=l, L=self.l).toarray()
                     else:
                         self.mpo[1, -1] = sparse_pauli_z(n=l, L=self.l).toarray()
                     i = 1
             elif direction == "vertical":
-                assert (0 <= l < self.l-1), "The mpo ladder is out of bound. Choose it 0 <= site < l-1"
+                assert (
+                    0 <= l < self.l - 1
+                ), "The mpo ladder is out of bound. Choose it 0 <= site < l-1"
                 if mpo_site == site:
                     self.mpo[0, -1] = (
                         sparse_pauli_z(n=l, L=self.l).toarray()

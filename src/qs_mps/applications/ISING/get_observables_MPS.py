@@ -20,15 +20,25 @@ parser.add_argument(
     help="Path to the drive depending on the device used. Available are 'pc', 'mac', 'marcos'",
     type=str,
 )
-parser.add_argument("o", help="Observable we want to compute. Available are 'mag'", type=str)
+parser.add_argument(
+    "o", help="Observable we want to compute. Available are 'mag'", type=str
+)
 parser.add_argument("-L", "--Ls", help="Spin chain lengths", nargs="*", type=int)
-parser.add_argument("-D", "--chis", help="Simulated bond dimensions", nargs="+", type=int)
-parser.add_argument("-d", "--dimension", help="Physical dimension. By default 2", default=2, type=int)
+parser.add_argument(
+    "-D", "--chis", help="Simulated bond dimensions", nargs="+", type=int
+)
+parser.add_argument(
+    "-d", "--dimension", help="Physical dimension. By default 2", default=2, type=int
+)
 parser.add_argument(
     "-m", "--model", help="Model to simulate", default="Ising", type=str
 )
 parser.add_argument(
-    "-mo", "--moment", help="Moment degree of the Free energy. E.g. Magnetization -> First Moment, Susceptibility -> Second Moment, etc. Available are 1,2,4", default=1, type=int
+    "-mo",
+    "--moment",
+    help="Moment degree of the Free energy. E.g. Magnetization -> First Moment, Susceptibility -> Second Moment, etc. Available are 1,2,4",
+    default=1,
+    type=int,
 )
 
 args = parser.parse_args()
@@ -51,7 +61,7 @@ else:
     raise SyntaxError("Path not valid. Choose among 'pc', 'mac', 'marcos'")
 
 num = (args.h_f - args.h_i) / args.npoints
-precision = get_precision(num) 
+precision = get_precision(num)
 
 
 # define moment
@@ -70,19 +80,27 @@ for L in args.Ls:
         M = []
         for J in interval:
             for h in interval:
-                chain_mps = MPS(L=L, d=args.dimension, model=args.model, chi=chi, h=h, J=J)
+                chain_mps = MPS(
+                    L=L, d=args.dimension, model=args.model, chi=chi, h=h, J=J
+                )
 
                 chain_mps.load_sites(path=path_tensor, precision=precision)
-                
+
                 if args.o == "mag":
-                    print(f"Magnetization for L:{L}, D:{chi}, h:{h:.{precision}f}, J:{J:.{precision}f}")
+                    print(
+                        f"Magnetization for L:{L}, D:{chi}, h:{h:.{precision}f}, J:{J:.{precision}f}"
+                    )
                     chain_mps.order_param()
                     if args.moment == 1:
                         M.append(chain_mps.mpo_first_moment().real)
                     elif args.moment == 2:
-                        M.append(chain_mps.mpo_second_moment().real/(chain_mps.L**2))
+                        M.append(
+                            chain_mps.mpo_second_moment().real / (chain_mps.L**2)
+                        )
                     elif args.moment == 4:
-                        M.append(chain_mps.mpo_fourth_moment().real/(chain_mps.L**4))
+                        M.append(
+                            chain_mps.mpo_fourth_moment().real / (chain_mps.L**4)
+                        )
                 else:
                     raise ValueError("Select a valid observable. Available are 'mag'")
 
@@ -90,6 +108,6 @@ for L in args.Ls:
             M = np.array(M)
             M = np.array_split(M, args.npoints)
             np.save(
-                    f"{parent_path}/results/mag_data/magnetization_{moment}_moment_{args.model}_L_{L}_h_{args.h_i}-{args.h_f}_J_{args.h_i}-{args.h_f}_delta_{args.npoints}_chi_{chi}.npy",
-                    M,
-                )
+                f"{parent_path}/results/mag_data/magnetization_{moment}_moment_{args.model}_L_{L}_h_{args.h_i}-{args.h_f}_J_{args.h_i}-{args.h_f}_delta_{args.npoints}_chi_{chi}.npy",
+                M,
+            )

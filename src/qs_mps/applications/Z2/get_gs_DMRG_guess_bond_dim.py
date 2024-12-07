@@ -4,7 +4,7 @@ from qs_mps.mps_class import MPS
 from qs_mps.utils import get_precision, save_list_of_lists, access_txt
 from qs_mps.applications.Z2.ground_state_multiprocessing import ground_state_Z2
 
-# DENSITY MATRIX RENORMALIZATION GROUP to find ground states of the Z2 Pure Gauge Theory 
+# DENSITY MATRIX RENORMALIZATION GROUP to find ground states of the Z2 Pure Gauge Theory
 # changing the transverse field parameters in its dual formulation
 
 parser = argparse.ArgumentParser(prog="gs_search_Z2")
@@ -15,28 +15,55 @@ parser.add_argument(
     type=int,
 )
 parser.add_argument(
-    "h_i", help="Starting value of h (external transverse field on the dual lattice)", type=float
+    "h_i",
+    help="Starting value of h (external transverse field on the dual lattice)",
+    type=float,
 )
 parser.add_argument(
-    "h_f", help="Final value of h (external transverse field on the dual lattice)", type=float
+    "h_f",
+    help="Final value of h (external transverse field on the dual lattice)",
+    type=float,
 )
 parser.add_argument(
     "path",
     help="Path to the drive depending on the device used. Available are 'pc', 'mac', 'marcos'",
     type=str,
 )
-parser.add_argument("-L", "--Ls", help="Number of rungs per ladder", nargs="+", type=int)
-parser.add_argument("-D", "--chis", help="Simulated bond dimensions", nargs="+", type=int)
-parser.add_argument("-cx", "--charges_x", help="a list of the first index of the charges", nargs="*", type=int)
-parser.add_argument("-cy", "--charges_y", help="a list of the second index of the charges", nargs="*", type=int)
 parser.add_argument(
-    "-ty", "--type_shape", help="Type of shape of the bond dimension. Available are: 'trapezoidal', 'pyramidal', 'rectangular'", default="rectangular", type=str
+    "-L", "--Ls", help="Number of rungs per ladder", nargs="+", type=int
+)
+parser.add_argument(
+    "-D", "--chis", help="Simulated bond dimensions", nargs="+", type=int
+)
+parser.add_argument(
+    "-cx",
+    "--charges_x",
+    help="a list of the first index of the charges",
+    nargs="*",
+    type=int,
+)
+parser.add_argument(
+    "-cy",
+    "--charges_y",
+    help="a list of the second index of the charges",
+    nargs="*",
+    type=int,
+)
+parser.add_argument(
+    "-ty",
+    "--type_shape",
+    help="Type of shape of the bond dimension. Available are: 'trapezoidal', 'pyramidal', 'rectangular'",
+    default="rectangular",
+    type=str,
 )
 parser.add_argument(
     "-m", "--model", help="Model to simulate", default="Z2_dual", type=str
 )
 parser.add_argument(
-    "-mu", "--multpr", help="If True computes ground states with multiprocessing. By default False", action="store_true"
+    "-mu",
+    "--multpr",
+    help="If True computes ground states with multiprocessing. By default False",
+    action="store_true",
 )
 parser.add_argument(
     "-s",
@@ -82,20 +109,20 @@ parser.add_argument(
     "--interval",
     help="Type of interval spacing. Available are 'log', 'lin'",
     default="lin",
-    type=str
+    type=str,
 )
 parser.add_argument(
     "-bc",
     "--boundcond",
     help="Type of boundary conditions. Available are 'obc', 'pbc'",
     default="obc",
-    type=str
+    type=str,
 )
 
 args = parser.parse_args()
 
 # define the physical dimension
-d = int(2**(args.l))
+d = int(2 ** (args.l))
 
 # define the interval of equally spaced values of external field
 if args.interval == "lin":
@@ -104,7 +131,7 @@ if args.interval == "lin":
     precision = get_precision(num)
 elif args.interval == "log":
     interval = np.logspace(args.h_i, args.h_f, args.npoints)
-    precision = int(np.max([np.abs(args.h_f),np.abs(args.h_i)]))
+    precision = int(np.max([np.abs(args.h_f), np.abs(args.h_i)]))
 
 # take the path and precision to save files
 # if we want to save the tensors we save them locally because they occupy a lot of memory
@@ -150,11 +177,15 @@ for L in args.Ls:
     init_tensor = []
     energy_tot, entropy_tot, schmidt_vals_tot, t_tot = [], [], [], []
     for h in interval:
-        lattice_mps = MPS(L=L, d=d, model=args.model, chi=args.chis[0], h=h, bc=args.boundcond)
-        lattice_mps.load_sites(path=path_tensor, precision=precision, cx=charges_x, cy=charges_y)
+        lattice_mps = MPS(
+            L=L, d=d, model=args.model, chi=args.chis[0], h=h, bc=args.boundcond
+        )
+        lattice_mps.load_sites(
+            path=path_tensor, precision=precision, cx=charges_x, cy=charges_y
+        )
         if sector != "vacuum_sector":
             lattice_mps.Z2.add_charges(charges_x, charges_y)
-        
+
         lattice_mps.chi = args.chis[-1]
         lattice_mps.enlarge_chi()
         init_tensor = lattice_mps.sites.copy()
@@ -181,7 +212,7 @@ for L in args.Ls:
             "guess": init_tensor,
             "bc": args.boundcond,
         }
-        
+
         if __name__ == "__main__":
             energy_h, entropy_h, schmidt_vals_h, t_h = ground_state_Z2(
                 args_mps=args_mps, multpr=args.multpr, param=[h]
@@ -192,12 +223,14 @@ for L in args.Ls:
                 t_unit = "sec(s)"
             elif t_final > 60 and t_final < 3600:
                 t_unit = "min(s)"
-                t_final = t_final/60
+                t_final = t_final / 60
             elif t_final > 3600:
                 t_unit = "hour(s)"
-                t_final = t_final/3600
+                t_final = t_final / 3600
 
-            print(f"time of the whole search for h={h:.{precision}f} is: {t_final} {t_unit}")
+            print(
+                f"time of the whole search for h={h:.{precision}f} is: {t_final} {t_unit}"
+            )
             if args.bond == False:
                 args.where = "all"
 
@@ -211,17 +244,17 @@ for L in args.Ls:
         t_unit = "sec(s)"
     elif t_final > 60 and t_final < 3600:
         t_unit = "min(s)"
-        t_final = t_final/60
+        t_final = t_final / 60
     elif t_final > 3600:
         t_unit = "hour(s)"
-        t_final = t_final/3600
+        t_final = t_final / 3600
 
     print(f"time of the whole search for chi={args.chis[-1]} is: {t_final} {t_unit}")
 
     if args.training:
         energy_tot = np.asarray(energy_tot)
         print(energy_tot.shape)
-        energy_tot = energy_tot.reshape((len(interval),len(energy_h)))
+        energy_tot = energy_tot.reshape((len(interval), len(energy_h)))
         print(energy_tot.shape)
         np.save(
             f"{parent_path}/results/energy_data/energies_{args.model}_direct_lattice_{args.l}x{L}_{sector}_bc_{args.boundcond}_{charges_x}-{charges_y}_h_{args.h_i}-{args.h_f}_delta_{args.npoints}_chi_{args.chis[-1]}.npy",
@@ -229,8 +262,11 @@ for L in args.Ls:
         )
         energy_last = []
         for i in range(len(interval)):
-            energy_last.append(energy_tot[i,-1])
-        np.save(f"{parent_path}/results/energy_data/energy_{args.model}_direct_lattice_{args.l}x{L}_{sector}_bc_{args.boundcond}_{charges_x}-{charges_y}_h_{args.h_i}-{args.h_f}_delta_{args.npoints}_chi_{args.chis[-1]}.npy", energy_last)
+            energy_last.append(energy_tot[i, -1])
+        np.save(
+            f"{parent_path}/results/energy_data/energy_{args.model}_direct_lattice_{args.l}x{L}_{sector}_bc_{args.boundcond}_{charges_x}-{charges_y}_h_{args.h_i}-{args.h_f}_delta_{args.npoints}_chi_{args.chis[-1]}.npy",
+            energy_last,
+        )
 
     else:
         np.save(
@@ -259,5 +295,3 @@ for L in args.Ls:
             f"{parent_path}/results/entropy_data/{args.L // 2}_bond_entropy_{args.model}_direct_lattice_{args.l}x{L}_{sector}_bc_{args.boundcond}_{charges_x}-{charges_y}_h_{args.h_i}-{args.h_f}_delta_{args.npoints}_chi_{args.chis[-1]}",
             entropy_mid,
         )
-
-
