@@ -420,18 +420,21 @@ def string_width_electric_energy_density(
         g, R, l, L, chi, bc, sector, h_i, h_f, npoints, path_tensor, cx, cy
     )
     l = len(eed_conn_lad)
-    x0 = cy[0]
-    xs = [
-        i
-        for i in range(
-            -x0,
-            (l - x0) + 1,
-        )
-        if i != 0
-    ]
+    if bc == "obc":
+        x0 = cy[0]
+        xs = [
+            i
+            for i in range(
+                -x0,
+                (l - x0) + 1,
+            )
+            if i != 0
+        ]
 
     # correctly "translate" the coordinates
-    if bc == "pbc":
+    elif bc == "pbc":
+        x0 = l // 2
+        xs = [i for i in range(-x0,(l - x0) + 1,)if i != 0]
         xs = [xs[i - (l - (l // 2))] for i in range(len(xs))]
 
     eed_sum_lad = 0
