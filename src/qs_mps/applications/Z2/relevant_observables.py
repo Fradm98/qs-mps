@@ -18,6 +18,8 @@ def static_potential(
     h_f: float = None,
     npoints: int = None,
     path_tensor: str = None,
+    cx: list = None,
+    cy: list = None,
 ):
     """
     static potential
@@ -82,6 +84,8 @@ def static_potential_chis(
     h_f: float = None,
     npoints: int = None,
     path_tensor: str = None,
+    cx: list = None,
+    cy: list = None,
 ):
     """
     static potential
@@ -104,7 +108,7 @@ def static_potential_chis(
     st_pots = []
     for chi in chis:
         st_pot = static_potential(
-            g, R, l, L, chi, bc, sector, h_i, h_f, npoints, path_tensor
+            g, R, l, L, chi, bc, sector, h_i, h_f, npoints, path_tensor, cx, cy
         )
         st_pots.append(st_pot)
     return st_pots
@@ -145,10 +149,12 @@ def static_potential_exact_chi(
     h_f: float = None,
     npoints: int = None,
     path_tensor: str = None,
+    cx: list = None,
+    cy: list = None,
     g_thr: float = 1,
 ):
     potentials = static_potential_chis(
-        g, R, l, L, chis, bc, sector, h_i, h_f, npoints, path_tensor
+        g, R, l, L, chis, bc, sector, h_i, h_f, npoints, path_tensor, cx, cy
     )
     if g > g_thr:
         pot_exact, err = get_exact_potential_chis(chis, potentials)
@@ -170,12 +176,14 @@ def static_potential_Ls(
     h_f: float = None,
     npoints: int = None,
     path_tensor: str = None,
+    cx: list = None,
+    cy: list = None,
 ):
     potentials = []
     potentials_err = []
     for L in Ls:
         pot, err = static_potential_exact_chi(
-            g, R, l, L, chis, bc, sector, h_i, h_f, npoints, path_tensor
+            g, R, l, L, chis, bc, sector, h_i, h_f, npoints, path_tensor, cx, cy
         )
         potentials.append(pot)
         potentials_err.append(err)
@@ -216,10 +224,12 @@ def static_potential_exact_L(
     h_f: float = None,
     npoints: int = None,
     path_tensor: str = None,
+    cx: list = None,
+    cy: list = None,
     r_thr: float = 4 / 5,
 ):
     potentials, pot_errs = static_potential_Ls(
-        g, R, l, Ls, chis, bc, sector, h_i, h_f, npoints, path_tensor
+        g, R, l, Ls, chis, bc, sector, h_i, h_f, npoints, path_tensor, cx, cy
     )
     rs = [R / L for L in Ls]
     flag = 0
@@ -240,14 +250,14 @@ def static_potential_exact_L(
 
 
 def static_potential_varying_R(
-    g, Rs, l, Ls, chis, bc, sector, h_i, h_f, npoints, path_tensor
+    g, Rs, l, Ls, chis, bc, sector, h_i, h_f, npoints, path_tensor, cx=None, cy=None
 ):
     potentials = []
     err_potentials = []
     for R in Rs:
         print(f"R: {R}")
         pot, err = static_potential_exact_L(
-            g, R, l, Ls, chis, bc, sector, h_i, h_f, npoints, path_tensor
+            g, R, l, Ls, chis, bc, sector, h_i, h_f, npoints, path_tensor, cx, cy
         )
         potentials.append(pot)
         err_potentials.append(err)
@@ -292,10 +302,10 @@ def fit_luscher_term_g(g, Rs, l, Ls, chis, bc, sector, h_i, h_f, npoints, path_t
 
 
 def fit_string_tension_g(
-    g, Rs, l, Ls, chis, bc, sector, h_i, h_f, npoints, path_tensor
+    g, Rs, l, Ls, chis, bc, sector, h_i, h_f, npoints, path_tensor, cx=None, cy=None
 ):
     pot, err = static_potential_varying_R(
-        g, Rs, l, Ls, chis, bc, sector, h_i, h_f, npoints, path_tensor
+        g, Rs, l, Ls, chis, bc, sector, h_i, h_f, npoints, path_tensor, cx, cy
     )
     popt, errs = fitting(Rs, pot, err)
     term = popt[0]
@@ -315,12 +325,12 @@ def fit_luscher(gs, Rs, l, Ls, chis, bc, sector, h_i, h_f, npoints, path_tensor)
     return luschers, luscher_errs
 
 
-def fit_string_tension(gs, Rs, l, Ls, chis, bc, sector, h_i, h_f, npoints, path_tensor):
+def fit_string_tension(gs, Rs, l, Ls, chis, bc, sector, h_i, h_f, npoints, path_tensor, cx=None, cy=None):
     sigmas = []
     sigmas_errs = []
     for g in gs:
         sigma, luscher_err = fit_string_tension_g(
-            g, Rs, l, Ls, chis, bc, sector, h_i, h_f, npoints, path_tensor
+            g, Rs, l, Ls, chis, bc, sector, h_i, h_f, npoints, path_tensor, cx, cy
         )
         sigmas.append(sigma)
         sigmas_errs.append(luscher_err)
@@ -365,7 +375,7 @@ def connected_electric_energy_density(
     if cx == None:
         cx = get_cx(L, R)
     if cy == None:
-        cy = get_cy(l, bc=bc)
+        cy = get_cy(l, R=R, bc=bc)
     interval = np.linspace(h_i, h_f, npoints)
     try:
         vac = None
@@ -418,7 +428,7 @@ def string_width_electric_energy_density(
     if cx == None:
         cx = get_cx(L, R)
     if cy == None:
-        cy = get_cy(l, bc=bc)
+        cy = get_cy(l, R=R, bc=bc)
 
     eed_conn_lad = connected_electric_energy_density(
         g, R, l, L, chi, bc, sector, h_i, h_f, npoints, path_tensor, cx, cy
