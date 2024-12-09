@@ -56,14 +56,14 @@ eig_exact = []
 eig_first = []
 colors_mps = create_sequential_colors(20, "Blues")
 colors = create_sequential_colors(20, "Reds")
-markers = ["x","+","1","2"]
+markers = ["x", "+", "1", "2"]
 
 # alphas = [1,0.7]
 l = 3
-dof = (2*l*L - l - L)
+dof = 2 * l * L - l - L
 print(dof)
 v0 = np.array([-0.25 for _ in range(2**dof)])
-for s in range(L-1):
+for s in range(L - 1):
     W = []
     W_exact = []
     for h in hs:
@@ -72,17 +72,17 @@ for s in range(L-1):
         ladder.L = ladder.L - 1
 
         ladder.load_sites(path=path)
-        ladder.Z2.wilson_Z2_dual(mpo_sites=[s], ls=[1]) #list(range(s))
+        ladder.Z2.wilson_Z2_dual(mpo_sites=[s], ls=[1])  # list(range(s))
         ladder.w = ladder.Z2.mpo
         W.append(ladder.mpo_first_moment().real)
-    
+
         # exact
-        Z2_exact = H_Z2_gauss(L=L, l=l, model="Z2", lamb=h, U=1e+3)
+        Z2_exact = H_Z2_gauss(L=L, l=l, model="Z2", lamb=h, U=1e3)
         H, e, v = Z2_exact.diagonalize(v0=v0)
         if s == 0:
             eig_exact.append(np.min(e))
         # eig_first.append(np.sort(e)[1])
-        psi = v[:,0]
+        psi = v[:, 0]
         v0 = psi
         # print("Psi exact:")
         # print(psi)
@@ -92,7 +92,6 @@ for s in range(L-1):
         # plaq = Z2_exact.plaquette_term(loop[s+1])
         exp_val_wilson_loop = np.real(psi.T @ plaq @ psi)
         W_exact.append(exp_val_wilson_loop)
-
 
     # print(loop)
     plt.plot(hs, W, marker=markers[s], color="darkturquoise", label=f"mps {s}")
@@ -114,15 +113,16 @@ plt.figure().clear()
 
 fig = plt.figure()
 plt.title(f"Energy(h)")
-plt.scatter(hs,
-            energies_h,
-            marker="o",
-            alpha=1,
-            facecolors="none",
-            edgecolors='g',
-            label=f"mps L: {L}"
-            )
-plt.plot(hs,eig_exact,'--',color='red', label='exact gs')
+plt.scatter(
+    hs,
+    energies_h,
+    marker="o",
+    alpha=1,
+    facecolors="none",
+    edgecolors="g",
+    label=f"mps L: {L}",
+)
+plt.plot(hs, eig_exact, "--", color="red", label="exact gs")
 plt.xlabel("electric local parameter (h)")
 plt.legend(loc="lower right")
 plt.savefig("energy.png")

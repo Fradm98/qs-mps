@@ -30,20 +30,49 @@ parser.add_argument(
     help="Results we want to plot. Available are: 'energy', 'error', 'entropy', 'wilson_loop', 'thooft', 'mag', 'energy_tr', 'error_tr', 'entropy_tot'",
     type=str,
 )
-parser.add_argument("-L", "--Ls", help="Number of rungs per ladder", nargs="+", type=int)
-parser.add_argument("-D", "--chis", help="Simulated bond dimensions", nargs="+", type=int)
-parser.add_argument("-cx", "--charges_x", help="a list of the first index of the charges", nargs="*", type=int)
-parser.add_argument("-cy", "--charges_y", help="a list of the second index of the charges", nargs="*", type=int)
-parser.add_argument("-lx", "--sites", help="Number of sites in the wilson loop", nargs="*", type=int)
-parser.add_argument("-ly", "--ladders", help="Number of ladders in the wilson loop", nargs="*", type=int)
 parser.add_argument(
-    "-f", "--h_f", help="Final value of h (external transverse field on the dual lattice)", type=float
+    "-L", "--Ls", help="Number of rungs per ladder", nargs="+", type=int
 )
 parser.add_argument(
-    "-del", "--delta", help="Width of each time slice during the time evolution. Should be 'small enough'", type=float
+    "-D", "--chis", help="Simulated bond dimensions", nargs="+", type=int
 )
 parser.add_argument(
-    "-ev", "--h_ev", help="Quench value of h (external transverse field on the dual lattice)", type=float
+    "-cx",
+    "--charges_x",
+    help="a list of the first index of the charges",
+    nargs="*",
+    type=int,
+)
+parser.add_argument(
+    "-cy",
+    "--charges_y",
+    help="a list of the second index of the charges",
+    nargs="*",
+    type=int,
+)
+parser.add_argument(
+    "-lx", "--sites", help="Number of sites in the wilson loop", nargs="*", type=int
+)
+parser.add_argument(
+    "-ly", "--ladders", help="Number of ladders in the wilson loop", nargs="*", type=int
+)
+parser.add_argument(
+    "-f",
+    "--h_f",
+    help="Final value of h (external transverse field on the dual lattice)",
+    type=float,
+)
+parser.add_argument(
+    "-del",
+    "--delta",
+    help="Width of each time slice during the time evolution. Should be 'small enough'",
+    type=float,
+)
+parser.add_argument(
+    "-ev",
+    "--h_ev",
+    help="Quench value of h (external transverse field on the dual lattice)",
+    type=float,
 )
 
 parser.add_argument(
@@ -53,7 +82,11 @@ parser.add_argument(
     "-m", "--model", help="Model to simulate", default="Z2_dual", type=str
 )
 parser.add_argument(
-    "-mo", "--moment", help="Moment of the order parameter. Available are 1,2, and 4. By default 1", default=1, type=int
+    "-mo",
+    "--moment",
+    help="Moment of the order parameter. Available are 1,2, and 4. By default 1",
+    default=1,
+    type=int,
 )
 parser.add_argument(
     "-t", "--time", help="Plot observables of time evolution", action="store_true"
@@ -117,7 +150,7 @@ parser.add_argument(
     "--interval",
     help="Type of interval spacing. Available are 'log', 'lin'",
     default="lin",
-    type=str
+    type=str,
 )
 parser.add_argument(
     "-d",
@@ -136,7 +169,7 @@ args = parser.parse_args()
 
 # define the interval of equally spaced values of external field or trotter steps
 if args.time:
-    interval = range(args.npoints+1)
+    interval = range(args.npoints + 1)
     precision = get_precision(args.h_i)
     if args.interval == "lin":
         xscale = "linear"
@@ -158,7 +191,7 @@ else:
 if args.direction == "ver":
     direction = "vertical"
 elif args.direction == "hor":
-    direction = "horizontal"  
+    direction = "horizontal"
 
 
 # define the moment
@@ -170,14 +203,7 @@ elif args.moment == 4:
     moment = "fourth"
 
 
-plot_val = [
-    "energy",
-    "error",
-    "entropy",
-    "wilson_loop",
-    "thooft",
-    "mag"
-]
+plot_val = ["energy", "error", "entropy", "wilson_loop", "thooft", "mag"]
 plot_cmap = ["energy_tr", "error_tr", "entropy_tot"]
 
 if args.path == "pc":
@@ -213,7 +239,6 @@ for L in args.Ls:
         args.where = L // 2
     elif args.where == -2:
         args.bond = "all"
-
 
     if args.obs == "energy":
         title = f"Energy: lattice = ${args.l}$x${L-1}$ ; {sector}"
@@ -269,7 +294,12 @@ for L in args.Ls:
         txt = False
 
     elif args.obs == "thooft":
-        title = f"'t Hooft {direction} string: lattice = ${args.l}$x${L-1}$ ; {sector}" + " $\mu^z$ for " + f"L={args.sites[0]}, l={args.ladders[0]}" + " dual"
+        title = (
+            f"'t Hooft {direction} string: lattice = ${args.l}$x${L-1}$ ; {sector}"
+            + " $\mu^z$ for "
+            + f"L={args.sites[0]}, l={args.ladders[0]}"
+            + " dual"
+        )
         fname_obs = f"thooft_string_{moment}_moment_{args.sites[0]}-{args.ladders[0]}_{direction}"
         fname_ex_obs = f"thooft_string_{moment}_moment_{args.sites[0]}-{args.ladders[0]}_{direction}"
         path = parent_path + f"results/thooft"
@@ -277,9 +307,9 @@ for L in args.Ls:
         path_save = parent_path + f"figures/thooft/"
         ylabel = "$\\langle \sigma^x \dots \sigma^x \\rangle$"
         txt = False
-    
+
     elif args.obs == "mag":
-        title = f"Dual Magnetization: lattice = ${args.l}$x${L-1}$ ; {sector}" 
+        title = f"Dual Magnetization: lattice = ${args.l}$x${L-1}$ ; {sector}"
         fname_obs = f"dual_mag_{moment}_moment"
         fname_ex_obs = f"dual_mag_{moment}_moment"
         path = parent_path + f"results/mag_data"
@@ -350,7 +380,7 @@ for L in args.Ls:
             n_points=args.n_points,
             cmap=args.cmap,
             txt=txt,
-            precision=precision
+            precision=precision,
         )
 
     if args.obs in plot_cmap:

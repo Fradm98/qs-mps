@@ -3,9 +3,10 @@ import multiprocessing
 import numpy as np
 import datetime as dt
 from qs_mps.mps_class import MPS
-from qs_mps. utils import tensor_shapes, get_precision
+from qs_mps.utils import tensor_shapes, get_precision
 import os
 from threading import Event
+
 
 def ground_state_Z2_param(params):
     args_mps = params[0]
@@ -23,11 +24,15 @@ def ground_state_Z2_param(params):
     precision = args_mps["precision"]
     if ladder.model == "Z2_dual":
         if args_mps["sector"] != "vacuum_sector":
-            ladder.Z2.add_charges(rows=args_mps["charges_x"], columns=args_mps["charges_y"])
+            ladder.Z2.add_charges(
+                rows=args_mps["charges_x"], columns=args_mps["charges_y"]
+            )
             ladder.Z2._define_sector()
     if args_mps["guess"] == []:
         print("Running with random state")
-        ladder._random_state(seed=3, chi=args_mps["chi"], type_shape=args_mps["type_shape"])
+        ladder._random_state(
+            seed=3, chi=args_mps["chi"], type_shape=args_mps["type_shape"]
+        )
         ladder.canonical_form(trunc_chi=True, trunc_tol=False)
     else:
         print("Running with guess state")
@@ -35,9 +40,9 @@ def ground_state_Z2_param(params):
         ladder.enlarge_chi()
 
     if ladder.bc == "pbc":
-        a = np.zeros((1,2))
-        a[0,0] = 1
-        extra_ancillary_site = a.reshape((1,2,1))
+        a = np.zeros((1, 2))
+        a[0, 0] = 1
+        extra_ancillary_site = a.reshape((1, 2, 1))
         ladder.sites.append(extra_ancillary_site)
         ladder.L = len(ladder.sites)
 
@@ -47,12 +52,14 @@ def ground_state_Z2_param(params):
         where=args_mps["where"],
         bond=args_mps["bond"],
         n_sweeps=args_mps["n_sweeps"],
-        conv_tol=args_mps["conv_tol"]
+        conv_tol=args_mps["conv_tol"],
     )
     t_final = np.sum(t_dmrg)
     t_final_gen = dt.timedelta(seconds=t_final)
-    print(f"time of the whole search for h={param:.{precision}f}, chi={chi} is: {t_final_gen} in date {dt.datetime.now()}")
-    
+    print(
+        f"time of the whole search for h={param:.{precision}f}, chi={chi} is: {t_final_gen} in date {dt.datetime.now()}"
+    )
+
     if not args_mps["training"]:
         energy = energy[-1]
 
@@ -60,15 +67,21 @@ def ground_state_Z2_param(params):
         if ladder.bc == "pbc":
             ladder.sites.pop()
         ladder.L = len(ladder.sites)
-        ladder.save_sites(args_mps["path"], args_mps["precision"], args_mps["charges_x"], args_mps["charges_y"])
+        ladder.save_sites(
+            args_mps["path"],
+            args_mps["precision"],
+            args_mps["charges_x"],
+            args_mps["charges_y"],
+        )
     # new_guess = ladder.sites.copy()
 
     return energy, entropy, schmidt_vals, t_dmrg
     # return energy, entropy, schmidt_vals, t_dmrg, new_guess
 
+
 def run_with_timeout(func, args, timeout):
     workers = os.cpu_count()
-    with multiprocessing.Pool(processes=int(workers*0.8)) as pool:
+    with multiprocessing.Pool(processes=int(workers * 0.8)) as pool:
         print(f"\n  --- Using {int(workers*0.8)} processes ---\n")
         result = pool.apply_async(func, args)
         try:
@@ -77,10 +90,13 @@ def run_with_timeout(func, args, timeout):
             pool.join()
             return results
         except multiprocessing.TimeoutError:
-            print(f"\n## TimeoutError: Algorithm exceeded {timeout} seconds in date {dt.datetime.now()} ##\n")
+            print(
+                f"\n## TimeoutError: Algorithm exceeded {timeout} seconds in date {dt.datetime.now()} ##\n"
+            )
             pool.terminate()  # Forcefully terminate the worker
             pool.join()
             return None  # Return None or any indicator of failure
+
 
 # def ground_state_Z2(args_mps, interval, reps=3):
 #     ene_tot = []
@@ -108,10 +124,10 @@ def run_with_timeout(func, args, timeout):
 #                 ent_tot.append(entropy)
 #                 sm_tot.append(sm)
 #                 t_tot.append(tdmrg)
-#                 args_mps["guess"] = new_guess.copy() 
+#                 args_mps["guess"] = new_guess.copy()
 #                 count_attempts = 1
 #                 break
-        
+
 #         if count_attempts == 0:
 #             print(f"h={params[1]:.{precision}f}")
 #             params_not_found.append(params[1])
@@ -119,10 +135,10 @@ def run_with_timeout(func, args, timeout):
 #             avg_time = sum(t_tot) / len(t_tot)
 #             timeout = avg_time * slack
 #             print(f"New timeout updated to {timeout:.2f}s in date {dt.datetime.now()}")
-    
+
 #         print(f"\n*** Completed computation in date {dt.datetime.now()} for h={params[1]:.{precision}f}\n")
 #     print(f"Parameters not found are {len(params_not_found)}:\n{params_not_found}")
-    
+
 #     return ene_tot, ent_tot, sm_tot, t_tot
 
 # import concurrent.futures
@@ -179,7 +195,7 @@ def run_with_timeout(func, args, timeout):
 #         if len(args_lattice["charges_x"]) > 0:
 #             print("adding charges")
 #             Z2.add_charges(rows=args_lattice["charges_x"], columns=args_lattice["charges_y"])
-#             Z2._define_sector()       
+#             Z2._define_sector()
 #         energy, vectors = Z2.diagonalize(v0=args_lattice["v0"], sparse=args_lattice["sparse"], path=args_lattice["path"], save=args_lattice["save"], precision=args_lattice["precision"], cx=args_lattice["charges_x"], cy=args_lattice["charges_y"])
 #         energies_param.append(energy)
 #         v0 = vectors[:,0]
@@ -243,7 +259,7 @@ def run_with_timeout(func, args, timeout):
 #     #     t_final = t_final/3600
 
 #     print(f"time of the whole search for h={param:.{precision}f} is: {t_final_gen}")
-    
+
 #     if not args_mps["training"]:
 #         energy = energy[-1]
 
@@ -271,6 +287,7 @@ def ground_state_Z2_multpr(args_mps, multpr_param, timeout=1000, cpu_percentage=
 
         return results
 
+
 def get_results(results):
     energies = []
     entropies = []
@@ -288,11 +305,9 @@ def get_results(results):
     return energies, entropies, schmidt_vals, times
 
 
-def ground_state_Z2(args_mps, multpr, interval, reps: int=1):
+def ground_state_Z2(args_mps, multpr, interval, reps: int = 1):
     if multpr:
-        results_param = ground_state_Z2_multpr(
-            args_mps=args_mps, multpr_param=interval
-        )
+        results_param = ground_state_Z2_multpr(args_mps=args_mps, multpr_param=interval)
         if results_param == None:
             return print("The computation exceeded the time limit")
         else:
@@ -308,7 +323,7 @@ def ground_state_Z2(args_mps, multpr, interval, reps: int=1):
             schmidt_vals.append(schmidt_val)
             times.append(t_dmrg)
         return energies, entropies, schmidt_vals, times
-    
+
     # else:
     #     energies_param = []
     #     entropies_param = []
@@ -343,17 +358,16 @@ def ground_state_Z2(args_mps, multpr, interval, reps: int=1):
     #                     print(f"Run for parameter: {p:.2f} attempt: {attempt} exceeded threshold of {threshold:.2f}s. Retrying with random state...")
     #                     # Update parameters here as needed before retrying
     #                     args_mps["guess"] = []
-            
+
     #             # # Ensure the executor is closed after each attempt
     #             # executor.shutdown(wait=True)
-            
+
     #         # Update the threshold based on the average time with slack
     #         if execution_times:
     #             avg_time = sum(execution_times) / len(execution_times)
     #             threshold = avg_time * slack
     #             print(f"New threshold updated to {threshold:.2f}s")
 
-            
     #     # for p in param:
     #     #     params = [args_mps, p]
     #     #     # Set the timeout period (in seconds)

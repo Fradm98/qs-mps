@@ -1,11 +1,17 @@
 import argparse
 import numpy as np
 from qs_mps.mps_class import MPS
-from qs_mps.utils import get_precision, save_list_of_lists, access_txt, swap_columns, swap_rows
+from qs_mps.utils import (
+    get_precision,
+    save_list_of_lists,
+    access_txt,
+    swap_columns,
+    swap_rows,
+)
 from qs_mps.applications.ANNNI.ground_state_multiprocessing import ground_state_ANNNI
 from scipy.sparse.linalg._eigen.arpack.arpack import ArpackNoConvergence
 
-# DENSITY MATRIX RENORMALIZATION GROUP to find ground states of the Z2 Pure Gauge Theory 
+# DENSITY MATRIX RENORMALIZATION GROUP to find ground states of the Z2 Pure Gauge Theory
 # changing the transverse field parameters in its dual formulation
 
 parser = argparse.ArgumentParser(prog="gs_search_ANNNI")
@@ -32,16 +38,27 @@ parser.add_argument(
     type=str,
 )
 parser.add_argument("-L", "--Ls", help="Spin chain lengths", nargs="*", type=int)
-parser.add_argument("-D", "--chis", help="Simulated bond dimensions", nargs="+", type=int)
-parser.add_argument("-d","--dimension", help="Physical dimension. By default 2", default=2, type=int)
 parser.add_argument(
-    "-ty", "--type_shape", help="Type of shape of the bond dimension. Available are: 'trapezoidal', 'pyramidal', 'rectangular'", default="rectangular", type=str
+    "-D", "--chis", help="Simulated bond dimensions", nargs="+", type=int
+)
+parser.add_argument(
+    "-d", "--dimension", help="Physical dimension. By default 2", default=2, type=int
+)
+parser.add_argument(
+    "-ty",
+    "--type_shape",
+    help="Type of shape of the bond dimension. Available are: 'trapezoidal', 'pyramidal', 'rectangular'",
+    default="rectangular",
+    type=str,
 )
 parser.add_argument(
     "-m", "--model", help="Model to simulate", default="ANNNI", type=str
 )
 parser.add_argument(
-    "-mu", "--multpr", help="If True computes ground states with multiprocessing. By default False", action="store_true"
+    "-mu",
+    "--multpr",
+    help="If True computes ground states with multiprocessing. By default False",
+    action="store_true",
 )
 parser.add_argument(
     "-s",
@@ -87,7 +104,7 @@ parser.add_argument(
     "--interval",
     help="Type of interval spacing. Available are 'log', 'lin'",
     default="lin",
-    type=str
+    type=str,
 )
 
 args = parser.parse_args()
@@ -104,7 +121,7 @@ if args.interval == "lin":
 elif args.interval == "log":
     interval_k = np.logspace(args.hx_i, args.hx_f, args.npoints)
     interval_h = np.logspace(args.hy_i, args.hy_f, args.npoints)
-    num = (interval_k[-1]-interval_k[0]) / args.npoints
+    num = (interval_k[-1] - interval_k[0]) / args.npoints
     precision = get_precision(num)
 
 interval_h = interval_h.tolist().copy()
@@ -125,8 +142,6 @@ else:
     raise SyntaxError("Path not valid. Choose among 'pc', 'mac', 'marcos'")
 
 
-
-
 # ---------------------------------------------------------
 # DMRG
 # ---------------------------------------------------------
@@ -137,7 +152,7 @@ for L in args.Ls:
     elif args.where == -2:
         args.bond = False
     for chi in args.chis:  # L // 2 + 1
-        up = np.array([[[1],[0]]])
+        up = np.array([[[1], [0]]])
         init_tensor = [up for _ in range(L)]
 
         energy_chi = []
@@ -151,11 +166,15 @@ for L in args.Ls:
                 chain = MPS(L=L, d=d, chi=chi, model=args.model, eps=1, h=h, J=1, k=k)
                 chain.sites = init_tensor.copy()
                 chain.enlarge_chi()
-                energy, entropy, schmidt_vals = chain.DMRG(trunc_tol=False, trunc_chi=True, where=L//2)
-                print(f"energy of h:{h:.{precision}f}, k:{k:.{precision}f} is:\n {energy}")
+                energy, entropy, schmidt_vals = chain.DMRG(
+                    trunc_tol=False, trunc_chi=True, where=L // 2
+                )
+                print(
+                    f"energy of h:{h:.{precision}f}, k:{k:.{precision}f} is:\n {energy}"
+                )
                 print(f"Schmidt values in the middle of the chain:\n {schmidt_vals}")
                 print(f"Entropy: {entropy}")
-                
+
                 if args.training:
                     energy_k.append(energy)
                 else:
@@ -166,7 +185,7 @@ for L in args.Ls:
                 if h == interval_h[0]:
                     init_tensor_k = chain.sites.copy()
                 init_tensor = chain.sites.copy()
-            
+
             init_tensor = init_tensor_k.copy()
 
             # energy_k.reverse()
@@ -192,21 +211,30 @@ for L in args.Ls:
                 for j in range(len(interval_h)):
                     energy_min_i.append(energy_chi[i][j][-1])
                 energy_min.append(energy_min_i)
-            np.save(f"{parent_path}/results/energy_data/energy_{args.model}_L_{L}_k_{args.hx_i}-{args.hx_f}_h_{args.hy_i}-{args.hy_f}_delta_{args.npoints}_chi_{chi}", energy_min)
-                    
+            np.save(
+                f"{parent_path}/results/energy_data/energy_{args.model}_L_{L}_k_{args.hx_i}-{args.hx_f}_h_{args.hy_i}-{args.hy_f}_delta_{args.npoints}_chi_{chi}",
+                energy_min,
+            )
+
         else:
-            energy_chi = np.swapaxes(swap_columns(np.asarray(energy_chi)), axis1=0, axis2=1)
+            energy_chi = np.swapaxes(
+                swap_columns(np.asarray(energy_chi)), axis1=0, axis2=1
+            )
             np.save(
                 f"{parent_path}/results/energy_data/energy_{args.model}_L_{L}_k_{args.hx_i}-{args.hx_f}_h_{args.hy_i}-{args.hy_f}_delta_{args.npoints}_chi_{chi}",
                 energy_chi,
             )
-        
-        entropy_chi = np.swapaxes(swap_columns(np.asarray(entropy_chi), tensor=False), axis1=0, axis2=1)
+
+        entropy_chi = np.swapaxes(
+            swap_columns(np.asarray(entropy_chi), tensor=False), axis1=0, axis2=1
+        )
         save_list_of_lists(
             f"{parent_path}/results/entropy_data/{args.where}_bond_entropy_{args.model}_L_{L}_k_{args.hx_i}-{args.hx_f}_h_{args.hy_i}-{args.hy_f}_delta_{args.npoints}_chi_{chi}",
             entropy_chi,
         )
-        schmidt_vals_chi = np.swapaxes(swap_columns(np.asarray(schmidt_vals_chi)), axis1=0, axis2=1)
+        schmidt_vals_chi = np.swapaxes(
+            swap_columns(np.asarray(schmidt_vals_chi)), axis1=0, axis2=1
+        )
         save_list_of_lists(
             f"{parent_path}/results/entropy_data/{args.where}_schmidt_vals_{args.model}_L_{L}_k_{args.hx_i}-{args.hx_f}_h_{args.hy_i}-{args.hy_f}_delta_{args.npoints}_chi_{chi}",
             schmidt_vals_chi,
@@ -214,7 +242,7 @@ for L in args.Ls:
         if args.where == "all":
             entropy_mid = access_txt(
                 f"{parent_path}/results/entropy_data/{args.where}_bond_entropy_{args.model}_L_{L}_k_{args.hx_i}-{args.hx_f}_h_{args.hy_i}-{args.hy_f}_delta_{args.npoints}_chi_{chi}",
-                (L-1) // 2,
+                (L - 1) // 2,
             )
             np.savetxt(
                 f"{parent_path}/results/entropy_data/{args.L // 2}_bond_entropy_{args.model}_L_{L}_k_{args.hx_i}-{args.hx_f}_h_{args.hy_i}-{args.hy_f}_delta_{args.npoints}_chi_{chi}",

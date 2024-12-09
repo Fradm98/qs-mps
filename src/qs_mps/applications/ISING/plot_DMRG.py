@@ -38,7 +38,11 @@ parser.add_argument(
     "-m", "--model", help="Model to simulate", default="Ising", type=str
 )
 parser.add_argument(
-    "-mo", "--moment", help="Moment degree of the Free energy. E.g. Magnetization -> First Moment, Susceptibility -> Second Moment, etc. Available are 1,2,4", default=1, type=int
+    "-mo",
+    "--moment",
+    help="Moment degree of the Free energy. E.g. Magnetization -> First Moment, Susceptibility -> Second Moment, etc. Available are 1,2,4",
+    default=1,
+    type=int,
 )
 parser.add_argument(
     "-t", "--time", help="Final time of the evolution", default=10, type=float
@@ -280,7 +284,7 @@ if args.what in plot_val:
         alpha=args.alpha,
         n_points=args.n_points,
         cmap=args.cmap,
-        show=args.show
+        show=args.show,
     )
 
 if args.what in plot_cmap:

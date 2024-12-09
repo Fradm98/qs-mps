@@ -7,14 +7,16 @@ from qs_mps.gs_multiprocessing import ground_state_ising
 import signal
 import time
 
+
 # Define a function to handle the timeout
 def timeout_handler(signum, frame):
     raise TimeoutError("Algorithm took too long to execute")
 
+
 # Set the signal handler
 signal.signal(signal.SIGALRM, timeout_handler)
 
-# DENSITY MATRIX RENORMALIZATION GROUP to find ground states of the 
+# DENSITY MATRIX RENORMALIZATION GROUP to find ground states of the
 # 1D Ising Transverse Field model changing the transverse field parameters
 
 parser = argparse.ArgumentParser(prog="gs_search_Ising")
@@ -35,10 +37,18 @@ parser.add_argument(
     type=str,
 )
 parser.add_argument("-L", "--Ls", help="Spin chain lengths", nargs="*", type=int)
-parser.add_argument("-D", "--chis", help="Simulated bond dimensions", nargs="+", type=int)
-parser.add_argument("-d","--dimension", help="Physical dimension. By default 2", default=2, type=int)
 parser.add_argument(
-    "-ty", "--type_shape", help="Type of shape of the bond dimension. Available are: 'trapezoidal', 'pyramidal', 'rectangular'", default="trapezoidal", type=str
+    "-D", "--chis", help="Simulated bond dimensions", nargs="+", type=int
+)
+parser.add_argument(
+    "-d", "--dimension", help="Physical dimension. By default 2", default=2, type=int
+)
+parser.add_argument(
+    "-ty",
+    "--type_shape",
+    help="Type of shape of the bond dimension. Available are: 'trapezoidal', 'pyramidal', 'rectangular'",
+    default="trapezoidal",
+    type=str,
 )
 parser.add_argument(
     "-m", "--model", help="Model to simulate", default="Ising", type=str
@@ -125,7 +135,7 @@ for L in args.Ls:
         entropy_chi = []
         schmidt_vals_chi = []
         time_chi = []
-        exceptions_chi = np.zeros((len(interval_hy),len(interval_hx)))
+        exceptions_chi = np.zeros((len(interval_hy), len(interval_hx)))
         for idx0, J in enumerate(interval_hy):
             energy_J = []
             entropy_J = []
@@ -141,7 +151,7 @@ for L in args.Ls:
                     h=h,
                     J=J,
                     eps=1e-5,
-                )                
+                )
                 if h == interval_hx[0]:
                     # init_tensor = [init_state for _ in range(L)]
                     # chain.sites = init_tensor.copy()
@@ -152,10 +162,10 @@ for L in args.Ls:
                     chain.sites = init_tensor.copy()
 
                 # Set the timeout period (in seconds)
-                timeout_secs = new_timeout_secs # You can change this value according to your requirement
+                timeout_secs = new_timeout_secs  # You can change this value according to your requirement
 
                 # Set the alarm
-                signal.alarm(int(timeout_secs+1))
+                signal.alarm(int(timeout_secs + 1))
                 print(f"New timeout seconds: {int(timeout_secs+1)}")
                 try:
                     # Call your algorithm function with the initial parameter
@@ -178,7 +188,7 @@ for L in args.Ls:
                         where=args.where,
                         bond=args.bond,
                     )
-                    exceptions_chi[idx0,idx1] = 1
+                    exceptions_chi[idx0, idx1] = 1
                 else:
                     # Cancel the alarm if the algorithm finishes before the timeout
                     signal.alarm(0)
@@ -186,9 +196,11 @@ for L in args.Ls:
                 t_slice.append(t_dmrg)
                 t_mean = np.mean(t_slice)
                 t_std = np.std(t_slice)
-                new_timeout_secs = t_mean + 3*t_std
-                
-                print(f"energy of h:{h:.{precision}f}, J:{J:.{precision}f} is:\n {energy}")
+                new_timeout_secs = t_mean + 3 * t_std
+
+                print(
+                    f"energy of h:{h:.{precision}f}, J:{J:.{precision}f} is:\n {energy}"
+                )
                 print(f"Schmidt values in the middle of the chain:\n {schmidt_vals}")
 
                 chain.save_sites(path=path_tensor, precision=precision)
@@ -202,7 +214,7 @@ for L in args.Ls:
                 if h == interval_hx[0]:
                     init_tensor_J = chain.sites.copy()
                 init_tensor = chain.sites.copy()
-            
+
             init_tensor = init_tensor_J.copy()
 
             time_chi.append(t_slice)
@@ -219,7 +231,9 @@ for L in args.Ls:
         np.save(f"{parent_path}/results/energy_data/", exceptions_chi)
 
         if args.training:
-            energy_chi = np.swapaxes(swap_rows(np.asarray(energy_chi)), axis1=0, axis2=1)
+            energy_chi = np.swapaxes(
+                swap_rows(np.asarray(energy_chi)), axis1=0, axis2=1
+            )
             np.save(
                 f"{parent_path}/results/energy_data/energies_{args.model}_L_{L}_h_{args.h_i}-{args.h_f}_J_{args.h_i}-{args.h_f}_delta_{args.npoints}_chi_{chi}",
                 energy_chi,
@@ -230,7 +244,10 @@ for L in args.Ls:
                 for j in range(len(interval_hy)):
                     energy_min_i.append(energy_chi[i][j][-1])
                 energy_min.append(energy_min_i)
-            np.save(f"{parent_path}/results/energy_data/energy_{args.model}_L_{L}_h_{args.h_i}-{args.h_f}_J_{args.h_i}-{args.h_f}_delta_{args.npoints}_chi_{chi}", energy_min)
+            np.save(
+                f"{parent_path}/results/energy_data/energy_{args.model}_L_{L}_h_{args.h_i}-{args.h_f}_J_{args.h_i}-{args.h_f}_delta_{args.npoints}_chi_{chi}",
+                energy_min,
+            )
         else:
             energy_chi = np.array(energy_chi)
             energy_chi = np.array_split(energy_chi, args.npoints)

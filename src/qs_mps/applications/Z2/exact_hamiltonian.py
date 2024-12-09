@@ -6,15 +6,16 @@ from scipy.sparse import identity, csc_array, linalg
 from ncon import ncon
 import time
 
+
 class H_Z2_gauss:
     def __init__(
         self,
         l,
         L,
         model: str,
-        lamb: float=0,
-        J: float=1,
-        U: float=1e+3,
+        lamb: float = 0,
+        J: float = 1,
+        U: float = 1e3,
     ):
         self.L = L
         self.l = l
@@ -52,7 +53,7 @@ class H_Z2_gauss:
         for charge in self.charges.flatten():
             if charge == -1:
                 particles += 1
-        
+
         if particles == 0:
             sector = "vacuum_sector"
         else:
@@ -101,14 +102,24 @@ class H_Z2_gauss:
             G += (g - self.charges[site[1], site[0]] * I) @ (
                 g - self.charges[site[1], site[0]] * I
             )
-        return - (self.lamb * loc) - (1/self.lamb * plaq) + (self.U * G)
+        return -(self.lamb * loc) - (1 / self.lamb * plaq) + (self.U * G)
 
-    def diagonalize(self, v0: np.ndarray=None, sparse: bool=True, save: bool=True, path: str=None, precision: int=2, spectrum: str="gs", cx: list=None, cy: list=None):
+    def diagonalize(
+        self,
+        v0: np.ndarray = None,
+        sparse: bool = True,
+        save: bool = True,
+        path: str = None,
+        precision: int = 2,
+        spectrum: str = "gs",
+        cx: list = None,
+        cy: list = None,
+    ):
         H = self.hamiltonian()
 
         if sparse:
             if spectrum == "all":
-                k = (2 ** len(self.latt.plaquettes()))
+                k = 2 ** len(self.latt.plaquettes())
             elif spectrum == "gs":
                 k = 1
             e, v = linalg.eigsh(H, k=k, which="SA", v0=v0)
@@ -117,7 +128,11 @@ class H_Z2_gauss:
             e, v = np.linalg.eigh(H)
         if save:
             # print(self.sector)
-            np.save(path+f"/results/eigenvectors/ground_state_direct_lattice_{self.l-1}x{self.L-1}_{self.sector}_{cx}-{cy}_U_{self.U}_h_{self.lamb:.{precision}f}.npy", v[:,0])
+            np.save(
+                path
+                + f"/results/eigenvectors/ground_state_direct_lattice_{self.l-1}x{self.L-1}_{self.sector}_{cx}-{cy}_U_{self.U}_h_{self.lamb:.{precision}f}.npy",
+                v[:, 0],
+            )
         return e, v
 
     # observables
@@ -126,66 +141,62 @@ class H_Z2_gauss:
         plaq = self.plaquette_term(loop[sites])
         exp_val_wilson_loop = np.real(psi.T @ plaq @ psi)
         return exp_val_wilson_loop
-    
+
     def h_electric_field(self, psi):
         exp_val_h_links = []
-        for link in range((self.l*(self.L-1))):
+        for link in range((self.l * (self.L - 1))):
             obs = self.local_term(link)
             exp_val_electric_field = np.real(psi.T @ obs @ psi)
             exp_val_h_links.append(exp_val_electric_field)
-        exp_val_h_links = np.array(exp_val_h_links).reshape((self.l,self.L-1))
+        exp_val_h_links = np.array(exp_val_h_links).reshape((self.l, self.L - 1))
         return exp_val_h_links
-    
+
     def v_electric_field(self, psi):
         exp_val_v_links = []
-        for link in range((self.l*(self.L-1)),self.dof):
+        for link in range((self.l * (self.L - 1)), self.dof):
             obs = self.local_term(link)
             exp_val_electric_field = np.real(psi.T @ obs @ psi)
             exp_val_v_links.append(exp_val_electric_field)
-        exp_val_v_links = np.array(exp_val_v_links).reshape((self.l-1,self.L))
+        exp_val_v_links = np.array(exp_val_v_links).reshape((self.l - 1, self.L))
         return exp_val_v_links
-    
+
     def electric_field(self, psi, E):
-        E[::2,1::2] = self.h_electric_field(psi)
-        E[1::2,::2] = self.v_electric_field(psi)
+        E[::2, 1::2] = self.h_electric_field(psi)
+        E[1::2, ::2] = self.v_electric_field(psi)
         return E
 
     def v_thooft_idx(self, plaq_tot_spl: np.ndarray, mpo_site: int, l: int):
         plaqs = [pl for pl in plaq_tot_spl[mpo_site]].copy()
         # plaqs.reverse()
         pauli = []
-        for i in range(self.l-(l+1)):
+        for i in range(self.l - (l + 1)):
             pauli = pauli + [plaqs[i][0]]
 
         return pauli
-    
+
     def h_thooft_idx(self, plaq_tot_spl: np.ndarray, mpo_site: int, l: int):
         plaqs = np.swapaxes(plaq_tot_spl, axis1=0, axis2=1)
         plaqs = [pl for pl in plaqs].copy()
         plaqs.reverse()
         plaqs_h = plaqs[l].copy()
         pauli = []
-        for i in range(mpo_site+1):
+        for i in range(mpo_site + 1):
             pauli = pauli + [plaqs_h[i][3]]
-        
+
         return pauli
 
     def thooft(self, psi: np.ndarray, mpo_site: int, l: int, direction: str):
         plaq_tot = self.latt.plaquettes(from_zero=True)
-        plaq_tot_spl = np.array_split(plaq_tot, self.L-1)
+        plaq_tot_spl = np.array_split(plaq_tot, self.L - 1)
         if direction == "vertical":
-            pauli = self.v_thooft_idx(plaq_tot_spl=plaq_tot_spl, 
-                                      mpo_site=mpo_site, 
-                                      l=l)
+            pauli = self.v_thooft_idx(plaq_tot_spl=plaq_tot_spl, mpo_site=mpo_site, l=l)
         if direction == "horizontal":
-            pauli = self.h_thooft_idx(plaq_tot_spl=plaq_tot_spl, 
-                                      mpo_site=mpo_site, 
-                                      l=l)
-            
+            pauli = self.h_thooft_idx(plaq_tot_spl=plaq_tot_spl, mpo_site=mpo_site, l=l)
+
         op = identity(n=2**self.latt.nlinks)
         for idx in pauli:
             op = op @ sparse_pauli_x(n=idx, L=self.latt.nlinks)
-        
+
         thooft_string = (psi.T @ op @ psi).real
         return thooft_string
 
@@ -204,7 +215,7 @@ class H_Z2_gauss:
 # # print(f"Delta Energy gs - ex: {e[0]-e[1]}\nth: {8*lamb}")
 # # print(f"H:\n{H.toarray()}")
 # print(f"ground state:\n{v[:,0]}")
-# X = sparse_pauli_z(n=0,L=4) @ sparse_pauli_z(n=1,L=4) @ sparse_pauli_z(n=2,L=4) @ sparse_pauli_z(n=3,L=4) 
+# X = sparse_pauli_z(n=0,L=4) @ sparse_pauli_z(n=1,L=4) @ sparse_pauli_z(n=2,L=4) @ sparse_pauli_z(n=3,L=4)
 
 # exp_val = (psi.T @ X @ psi).real
 # print(exp_val)

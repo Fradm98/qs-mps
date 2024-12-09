@@ -7,7 +7,7 @@ from qs_mps.applications.Z2.ground_state_multiprocessing import ground_state_Z2
 import sys
 import time
 
-# DENSITY MATRIX RENORMALIZATION GROUP to find ground states of the Z2 Pure Gauge Theory 
+# DENSITY MATRIX RENORMALIZATION GROUP to find ground states of the Z2 Pure Gauge Theory
 # changing the transverse field parameters in its dual formulation
 
 parser = argparse.ArgumentParser(prog="gs_search_Z2")
@@ -18,28 +18,55 @@ parser.add_argument(
     type=int,
 )
 parser.add_argument(
-    "h_i", help="Starting value of h (external transverse field on the dual lattice)", type=float
+    "h_i",
+    help="Starting value of h (external transverse field on the dual lattice)",
+    type=float,
 )
 parser.add_argument(
-    "h_f", help="Final value of h (external transverse field on the dual lattice)", type=float
+    "h_f",
+    help="Final value of h (external transverse field on the dual lattice)",
+    type=float,
 )
 parser.add_argument(
     "path",
     help="Path to the drive depending on the device used. Available are 'pc', 'mac', 'marcos'",
     type=str,
 )
-parser.add_argument("-L", "--Ls", help="Number of rungs per ladder", nargs="+", type=int)
-parser.add_argument("-D", "--chis", help="Simulated bond dimensions", nargs="+", type=int)
-parser.add_argument("-cx", "--charges_x", help="a list of the first index of the charges", nargs="*", type=int)
-parser.add_argument("-cy", "--charges_y", help="a list of the second index of the charges", nargs="*", type=int)
 parser.add_argument(
-    "-ty", "--type_shape", help="Type of shape of the bond dimension. Available are: 'trapezoidal', 'pyramidal', 'rectangular'", default="rectangular", type=str
+    "-L", "--Ls", help="Number of rungs per ladder", nargs="+", type=int
+)
+parser.add_argument(
+    "-D", "--chis", help="Simulated bond dimensions", nargs="+", type=int
+)
+parser.add_argument(
+    "-cx",
+    "--charges_x",
+    help="a list of the first index of the charges",
+    nargs="*",
+    type=int,
+)
+parser.add_argument(
+    "-cy",
+    "--charges_y",
+    help="a list of the second index of the charges",
+    nargs="*",
+    type=int,
+)
+parser.add_argument(
+    "-ty",
+    "--type_shape",
+    help="Type of shape of the bond dimension. Available are: 'trapezoidal', 'pyramidal', 'rectangular'",
+    default="rectangular",
+    type=str,
 )
 parser.add_argument(
     "-m", "--model", help="Model to simulate", default="Z2_dual", type=str
 )
 parser.add_argument(
-    "-mu", "--multpr", help="If True computes ground states with multiprocessing. By default False", action="store_true"
+    "-mu",
+    "--multpr",
+    help="If True computes ground states with multiprocessing. By default False",
+    action="store_true",
 )
 parser.add_argument(
     "-s",
@@ -85,21 +112,21 @@ parser.add_argument(
     "--interval",
     help="Type of interval spacing. Available are 'log', 'lin'",
     default="lin",
-    type=str
+    type=str,
 )
 parser.add_argument(
     "-bc",
     "--boundcond",
     help="Type of boundary conditions. Available are 'obc', 'pbc'",
     default="obc",
-    type=str
+    type=str,
 )
 parser.add_argument(
     "-log",
     "--logging",
     help="Name to log the output of the computation",
     default="output.out",
-    type=str
+    type=str,
 )
 
 args = parser.parse_args()
@@ -110,7 +137,7 @@ args = parser.parse_args()
 
 
 # define the physical dimension
-d = int(2**(args.l))
+d = int(2 ** (args.l))
 
 # define the interval of equally spaced values of external field
 if args.interval == "lin":
@@ -119,7 +146,7 @@ if args.interval == "lin":
     precision = get_precision(num)
 elif args.interval == "log":
     interval = np.logspace(args.h_i, args.h_f, args.npoints)
-    precision = int(np.max([np.abs(args.h_f),np.abs(args.h_i)]))
+    precision = int(np.max([np.abs(args.h_f), np.abs(args.h_i)]))
 
 # take the path and precision to save files
 # if we want to save the tensors we save them locally because they occupy a lot of memory
@@ -186,7 +213,6 @@ for L in args.Ls:
             "guess": init_tensor,
             "bc": args.boundcond,
         }
-        
 
         if __name__ == "__main__":
             t_init = time.monotonic()
@@ -194,7 +220,7 @@ for L in args.Ls:
             energy_chi, entropy_chi, schmidt_vals_chi, t_chi = ground_state_Z2(
                 args_mps=args_mps, interval=interval, multpr=args.multpr
             )
-            
+
             t_final = dt.datetime.now() - date_start
 
             print(f"time of the whole search for chi={chi} is: {t_final}")
@@ -202,10 +228,9 @@ for L in args.Ls:
                 args.where = "all"
 
             if args.training:
-
                 energy_chi = np.asarray(energy_chi)
                 print(energy_chi.shape, energy_chi)
-                energy_chi = energy_chi.reshape((len(interval),len(energy_chi[0])))
+                energy_chi = energy_chi.reshape((len(interval), len(energy_chi[0])))
                 print(energy_chi.shape)
                 np.save(
                     f"{parent_path}/results/energy_data/energies_{args.model}_direct_lattice_{args.l}x{L}_{sector}_bc_{args.boundcond}_{charges_x}-{charges_y}_h_{args.h_i}-{args.h_f}_delta_{args.npoints}_chi_{chi}",
@@ -213,8 +238,11 @@ for L in args.Ls:
                 )
                 energy_last = []
                 for i in range(len(interval)):
-                    energy_last.append(energy_chi[i,-1])
-                np.save(f"{parent_path}/results/energy_data/energy_{args.model}_direct_lattice_{args.l}x{L}_{sector}_bc_{args.boundcond}_{charges_x}-{charges_y}_h_{args.h_i}-{args.h_f}_delta_{args.npoints}_chi_{chi}", energy_last)
+                    energy_last.append(energy_chi[i, -1])
+                np.save(
+                    f"{parent_path}/results/energy_data/energy_{args.model}_direct_lattice_{args.l}x{L}_{sector}_bc_{args.boundcond}_{charges_x}-{charges_y}_h_{args.h_i}-{args.h_f}_delta_{args.npoints}_chi_{chi}",
+                    energy_last,
+                )
 
             else:
                 np.save(

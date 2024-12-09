@@ -8,8 +8,12 @@ import os
 import concurrent.futures
 
 parser_ext = argparse.ArgumentParser(prog="gs_search_Z2_multi_run")
-parser_ext.add_argument("p", help="path of the json files. Available paths are 'pc', 'mac', 'marcos'", type=str)
-args_ext =parser_ext.parse_args()
+parser_ext.add_argument(
+    "p",
+    help="path of the json files. Available paths are 'pc', 'mac', 'marcos'",
+    type=str,
+)
+args_ext = parser_ext.parse_args()
 # def parse_args():
 #     parser = argparse.ArgumentParser(prog="gs_search_Z2")
 #     parser.add_argument("l", help="Number of ladders in the direct lattice", type=int)
@@ -103,18 +107,18 @@ elif args_ext.p == "marcos":
 else:
     raise SyntaxError("Path not valid. Choose among 'pc', 'mac', 'marcos'")
 
+
 def load_config(run_number):
-    with open(f'{parent_path}/json_files/run_{run_number}_gs.json', 'r') as config_file:
+    with open(f"{parent_path}/json_files/run_{run_number}_gs.json", "r") as config_file:
         config = json.load(config_file)
-        return argparse.Namespace(**config['arguments'])
+        return argparse.Namespace(**config["arguments"])
+
 
 def main():
-
     # Uncomment the next line if you want to resume from the last run
     # while os.path.exists(f'run_{run_number}.json'):
-    for run_number in range(1,5):
+    for run_number in range(1, 5):
         print(f"\nRun {run_number}:")
-        
 
         # Save arguments to a configuration file
         # args = parse_args()
@@ -125,7 +129,7 @@ def main():
 
         # Your main script logic here using the loaded arguments
         # define the physical dimension
-        d = int(2**(args.l))
+        d = int(2 ** (args.l))
 
         # define the interval of equally spaced values of external field
         interval = np.linspace(args.h_i, args.h_f, args.npoints)
@@ -154,7 +158,7 @@ def main():
             args.charges_x = None
             args.charges_y = None
         else:
-            for i in range(1,args.l*args.L):
+            for i in range(1, args.l * args.L):
                 if len(args.charges_x) == i:
                     sector = f"{i}_particle(s)_sector"
 
@@ -211,7 +215,7 @@ def main():
                 #         f"{parent_path}/results/energy_data/energies_{args.model}_direct_lattice_{args.l}x{args.L-1}_{sector}_{args.charges_x}-{args.charges_y}_h_{args.h_i}-{args.h_f}_delta_{args.npoints}_chi_{chi}",
                 #         energy_chi,
                 #     )
-                    
+
                 # save_list_of_lists(
                 #     f"{parent_path}/results/entropy_data/{args.where}_bond_entropy_{args.model}_direct_lattice_{args.l}x{args.L-1}_{sector}_{args.charges_x}-{args.charges_y}_h_{args.h_i}-{args.h_f}_delta_{args.npoints}_chi_{chi}",
                 #     entropy_chi,
@@ -226,5 +230,6 @@ def main():
                 #         entropy_mid,
                 #     )
 
-if __name__ == '__main__':
+
+if __name__ == "__main__":
     main()

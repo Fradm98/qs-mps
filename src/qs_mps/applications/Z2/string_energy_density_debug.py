@@ -4,10 +4,10 @@ from qs_mps.mps_class import MPS
 import matplotlib.pyplot as plt
 
 path_tensor = "/Users/fradm98/Desktop/projects/1_Z2"
-charges_x = [0,4]
-charges_y = [2,2]
+charges_x = [0, 4]
+charges_y = [2, 2]
 precision = 3
-interval = np.linspace(0.1,1.0,100)
+interval = np.linspace(0.1, 1.0, 100)
 L = 5
 l = 4
 chi = 16
@@ -17,10 +17,10 @@ eed_vacuum = []
 corr_vacuum = []
 for h in interval:
     print(f"vacuum for h: {h}")
-    lattice_mps = MPS(L=L,d=2**l, model="Z2_dual", chi=chi, h=h)
+    lattice_mps = MPS(L=L, d=2**l, model="Z2_dual", chi=chi, h=h)
     lattice_mps.L = lattice_mps.L - 1
     lattice_mps.load_sites(path=path_tensor, precision=precision)
-    eed = lattice_mps.electric_energy_density_Z2(site=L//2-1)
+    eed = lattice_mps.electric_energy_density_Z2(site=L // 2 - 1)
     # corr = lattice_mps.connected_correlator(site=L//2, lad=2)
     eed_vacuum.append(eed)
     # corr_vacuum.append(corr)
@@ -29,20 +29,22 @@ eed_charges = []
 corr_charges = []
 for h in interval:
     print(f"charges for h: {h}")
-    lattice_mps = MPS(L=L,d=2**l, model="Z2_dual", chi=chi, h=h)
+    lattice_mps = MPS(L=L, d=2**l, model="Z2_dual", chi=chi, h=h)
     lattice_mps.L = lattice_mps.L - 1
-    lattice_mps.Z2.add_charges(charges_x,charges_y)
-    lattice_mps.load_sites(path=path_tensor, precision=precision, cx=charges_x, cy=charges_y)
-    eed = lattice_mps.electric_energy_density_Z2(site=L//2-1)
+    lattice_mps.Z2.add_charges(charges_x, charges_y)
+    lattice_mps.load_sites(
+        path=path_tensor, precision=precision, cx=charges_x, cy=charges_y
+    )
+    eed = lattice_mps.electric_energy_density_Z2(site=L // 2 - 1)
     # corr = lattice_mps.connected_correlator(site=L//2, lad=2)
     eed_charges.append(eed)
     # corr_charges.append(corr)
 
-eed_conn = (np.array(eed_charges) - np.array(eed_vacuum))
+eed_conn = np.array(eed_charges) - np.array(eed_vacuum)
 # corr_conn = (np.array(corr_charges) - np.array(corr_vacuum))
 
 plt.title(f"Energy density")
-plt.imshow(eed_conn, aspect=0.1, origin='lower')
+plt.imshow(eed_conn, aspect=0.1, origin="lower")
 
 # plt.title(f"Correlations")
 # plt.imshow(corr_conn, aspect=0.1, origin='lower')
@@ -53,7 +55,7 @@ eed_string = []
 for eed_lad in eed_conn:
     eed_sum_lad = 0
     for i, eed_x in enumerate(eed_lad):
-        eed_sum_lad += eed_lad * ((i+1)**2)
+        eed_sum_lad += eed_lad * ((i + 1) ** 2)
     eed_sum_lad = eed_sum_lad / sum(eed_lad)
     eed_string.append(eed_sum_lad)
 

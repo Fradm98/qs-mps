@@ -2,10 +2,13 @@ import numpy as np
 import argparse
 from qs_mps.sparse_hamiltonians_and_operators import exact_evolution_sparse
 from qs_mps.utils import get_precision, save_list_of_lists, access_txt
-from qs_mps.applications.Z2.ground_state_multiprocessing import ground_state_Z2_exact, ground_state_Z2_exact_test
+from qs_mps.applications.Z2.ground_state_multiprocessing import (
+    ground_state_Z2_exact,
+    ground_state_Z2_exact_test,
+)
 from qs_mps.applications.Z2.exact_hamiltonian import H_Z2_gauss
 
-# EXACT DIAGONALIZATION to find ground states of the Z2 Pure Gauge Theory 
+# EXACT DIAGONALIZATION to find ground states of the Z2 Pure Gauge Theory
 # changing the plaquette (magnetic) parameters in its direct formulation
 
 parser = argparse.ArgumentParser(prog="gs_search_Z2_exact")
@@ -17,20 +20,40 @@ parser.add_argument(
     type=int,
 )
 parser.add_argument(
-    "h_i", help="Starting value of h (external transverse field on the dual lattice)", type=float
+    "h_i",
+    help="Starting value of h (external transverse field on the dual lattice)",
+    type=float,
 )
 parser.add_argument(
-    "h_f", help="Final value of h (external transverse field on the dual lattice)", type=float
+    "h_f",
+    help="Final value of h (external transverse field on the dual lattice)",
+    type=float,
 )
 parser.add_argument(
     "path",
     help="Path to the drive depending on the device used. Available are 'pc', 'mac', 'marcos'",
     type=str,
 )
-parser.add_argument("-cx", "--charges_x", help="a list of the first index of the charges", nargs="*", type=int)
-parser.add_argument("-cy", "--charges_y", help="a list of the second index of the charges", nargs="*", type=int)
 parser.add_argument(
-    "-m", "--model", help="Model to simulate. By default Z2_dual", default="Z2_dual", type=str
+    "-cx",
+    "--charges_x",
+    help="a list of the first index of the charges",
+    nargs="*",
+    type=int,
+)
+parser.add_argument(
+    "-cy",
+    "--charges_y",
+    help="a list of the second index of the charges",
+    nargs="*",
+    type=int,
+)
+parser.add_argument(
+    "-m",
+    "--model",
+    help="Model to simulate. By default Z2_dual",
+    default="Z2_dual",
+    type=str,
 )
 parser.add_argument(
     "-v",
@@ -52,7 +75,11 @@ parser.add_argument(
     type=int,
 )
 parser.add_argument(
-    "-U", "--gauss", help="Gauss constraint parameter. By default 1e+3", default=1e+3, type=float
+    "-U",
+    "--gauss",
+    help="Gauss constraint parameter. By default 1e+3",
+    default=1e3,
+    type=float,
 )
 
 args = parser.parse_args()
@@ -82,9 +109,9 @@ num = (args.h_f - args.h_i) / args.npoints
 precision = get_precision(num)
 
 # define the initial guess state
-dof_direct = (2*args.l*args.L - args.l - args.L)
+dof_direct = 2 * args.l * args.L - args.l - args.L
 # constant without sparse method (if we start from h=0)
-c = (1/np.sqrt(2))**dof_direct
+c = (1 / np.sqrt(2)) ** dof_direct
 
 print("finding guess for the sparse computation...")
 v0 = np.full(2**dof_direct, c)
@@ -97,14 +124,14 @@ if args.spectrum == -1:
 elif args.spectrum == 0:
     spectrum = "all"
 
-    
+
 # define the sector by looking of the given charges
 if len(args.charges_x) == 0:
     sector = "vacuum_sector"
     args.charges_x = None
     args.charges_y = None
 else:
-    for i in range(1,args.l*args.L):
+    for i in range(1, args.l * args.L):
         if len(args.charges_x) == i:
             sector = f"{i}_particle(s)_sector"
 
@@ -136,9 +163,17 @@ for h in interval:
         Z2.add_charges(rows=args.charges_x, columns=args.charges_y)
         Z2._define_sector()
         print(Z2.charges)
-    e, v = Z2.diagonalize(v0=v0, sparse=args.sparse, save=args.save, path=path_eigvec, cx=args.charges_x, cy=args.charges_y, precision=precision) # , path=args.path, precision=precision, spectrum=spectrum, cx=args.charges_x, cy=args.charges_y
+    e, v = Z2.diagonalize(
+        v0=v0,
+        sparse=args.sparse,
+        save=args.save,
+        path=path_eigvec,
+        cx=args.charges_x,
+        cy=args.charges_y,
+        precision=precision,
+    )  # , path=args.path, precision=precision, spectrum=spectrum, cx=args.charges_x, cy=args.charges_y
     energy.append(e[0])
-    v0 = v[:,0]
+    v0 = v[:, 0]
     print("groud state:")
     print(v0)
 
@@ -152,13 +187,15 @@ if spectrum == "all":
         energy,
     )
     energy_gs = access_txt(
-            f"{parent_path}/results/exact/energy_data/energies_{args.model}_direct_lattice_{args.l-1}x{args.L-1}_{sector}_{args.charges_x}-{args.charges_y}_h_{args.h_i}-{args.h_f}_delta_{args.npoints}",
-            0,
-        )
-    np.savetxt(f"{parent_path}/results/exact/energy_data/energies_{args.model}_direct_lattice_{args.l-1}x{args.L-1}_{sector}_{args.charges_x}-{args.charges_y}_h_{args.h_i}-{args.h_f}_delta_{args.npoints}",
+        f"{parent_path}/results/exact/energy_data/energies_{args.model}_direct_lattice_{args.l-1}x{args.L-1}_{sector}_{args.charges_x}-{args.charges_y}_h_{args.h_i}-{args.h_f}_delta_{args.npoints}",
+        0,
+    )
+    np.savetxt(
+        f"{parent_path}/results/exact/energy_data/energies_{args.model}_direct_lattice_{args.l-1}x{args.L-1}_{sector}_{args.charges_x}-{args.charges_y}_h_{args.h_i}-{args.h_f}_delta_{args.npoints}",
         energy_gs,
     )
 else:
-    np.savetxt(f"{parent_path}/results/exact/energy_data/energy_{args.model}_direct_lattice_{args.l-1}x{args.L-1}_{sector}_{args.charges_x}-{args.charges_y}_h_{args.h_i}-{args.h_f}_delta_{args.npoints}",
+    np.savetxt(
+        f"{parent_path}/results/exact/energy_data/energy_{args.model}_direct_lattice_{args.l-1}x{args.L-1}_{sector}_{args.charges_x}-{args.charges_y}_h_{args.h_i}-{args.h_f}_delta_{args.npoints}",
         energy,
     )

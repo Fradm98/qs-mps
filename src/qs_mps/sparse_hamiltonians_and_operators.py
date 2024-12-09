@@ -6,6 +6,7 @@ import scipy.sparse.linalg as spla
 from .utils import get_middle_chain_schmidt_values, von_neumann_entropy, mps_to_vector
 from scipy.sparse import identity, csc_array, csc_matrix
 
+
 # -----------------------------------------------
 # Sparse Non-Diagonal Pauli Indices
 # -----------------------------------------------
@@ -30,10 +31,16 @@ def sparse_non_diag_paulis_indices(n: int, N: int):
     else:
         raise ValueError("Index n must fulfill 0 <= n < N")
 
+
 # ---------------------------------------------------------------------------------------
 # Sparse Pauli X
 # ---------------------------------------------------------------------------------------
-def sparse_pauli_x(n: int, L: int, row_indices_cache: np.ndarray=None, col_indices_cache: np.ndarray=None):
+def sparse_pauli_x(
+    n: int,
+    L: int,
+    row_indices_cache: np.ndarray = None,
+    col_indices_cache: np.ndarray = None,
+):
     """
     Returns a CSC sparse matrix representation of the pauli_x matrix acting over qubit n in a Hilbert space of L qubits
     0 <= n < L
@@ -50,10 +57,16 @@ def sparse_pauli_x(n: int, L: int, row_indices_cache: np.ndarray=None, col_indic
     else:
         raise ValueError("Index n must fulfill 0 <= n < L")
 
+
 # ---------------------------------------------------------------------------------------
 # Sparse Pauli Y
 # ---------------------------------------------------------------------------------------
-def sparse_pauli_y(n: int, L: int, row_indices_cache: np.ndarray=None, col_indices_cache: np.ndarray=None):
+def sparse_pauli_y(
+    n: int,
+    L: int,
+    row_indices_cache: np.ndarray = None,
+    col_indices_cache: np.ndarray = None,
+):
     """
     Returns a CSC sparse matrix representation of the pauli_y matrix acting over qubit n in a Hilbert space of L qubits
     0 <= n < L
@@ -99,10 +112,11 @@ def sparse_pauli_z(n: int, L: int):
     else:
         raise ValueError("Index n must fulfill 0 <= n < L")
 
+
 # ---------------------------------------------------------------------------------------
 # Sparse Magnetization
 # ---------------------------------------------------------------------------------------
-def sparse_magnetization(L, op="X", staggered: bool=False):
+def sparse_magnetization(L, op="X", staggered: bool = False):
     if op == "X":
         op = sparse_pauli_x
     elif op == "Z":
@@ -111,16 +125,17 @@ def sparse_magnetization(L, op="X", staggered: bool=False):
     m = 0
     c = [1 for _ in range(L)]
     if staggered:
-        c = [(-1)**(i//2) for i in range(L)]
+        c = [(-1) ** (i // 2) for i in range(L)]
     for i in range(L):
         n_row_indices, n_col_indices = sparse_non_diag_paulis_indices(i, L)
         m += c[i] * op(i, L, n_row_indices, n_col_indices)
-    return m/L
+    return m / L
+
 
 # -----------------------------------------------
 # Sparse Ising Hamiltonian
 # -----------------------------------------------
-def sparse_ising_hamiltonian(J: float, h_t: float, h_l: float, L: int, long: str="X"):
+def sparse_ising_hamiltonian(J: float, h_t: float, h_l: float, L: int, long: str = "X"):
     """
     Returns a sparse representation of the Hamiltonian of the 1D Ising model in a chain of length L
     with open boundary conditions
@@ -130,10 +145,10 @@ def sparse_ising_hamiltonian(J: float, h_t: float, h_l: float, L: int, long: str
     hamiltonian_l = csc_array((2**L, 2**L), dtype=complex)
     hamiltonian_t = csc_array((2**L, 2**L), dtype=complex)
     hamiltonian_int = csc_array((2**L, 2**L), dtype=complex)
-    
+
     if long == "X":
-    # First sum over the terms containing sigma_x, sigma_y because the non-zero element indices are the same
-    # so that this improves performance
+        # First sum over the terms containing sigma_x, sigma_y because the non-zero element indices are the same
+        # so that this improves performance
         if h_t != 0:
             for n in range(L):
                 n_pauli_z = sparse_pauli_z(n, L)
@@ -147,14 +162,14 @@ def sparse_ising_hamiltonian(J: float, h_t: float, h_l: float, L: int, long: str
         # Sum over sigma_z terms
         for n in range(L - 1):
             n_row_indices, n_col_indices = sparse_non_diag_paulis_indices(n, L)
-            np1_row_indices, np1_col_indices = sparse_non_diag_paulis_indices(n+1, L)
+            np1_row_indices, np1_col_indices = sparse_non_diag_paulis_indices(n + 1, L)
             n_pauli_x = sparse_pauli_x(n, L, n_row_indices, n_col_indices)
             np1_pauli_x = sparse_pauli_x(n + 1, L, np1_row_indices, np1_col_indices)
             hamiltonian_int += n_pauli_x @ np1_pauli_x
 
-    if long == "Z":    
-    # First sum over the terms containing sigma_x, sigma_y because the non-zero element indices are the same
-    # so that this improves performance
+    if long == "Z":
+        # First sum over the terms containing sigma_x, sigma_y because the non-zero element indices are the same
+        # so that this improves performance
         if h_t != 0:
             for n in range(L):
                 n_row_indices, n_col_indices = sparse_non_diag_paulis_indices(n, L)
@@ -173,10 +188,19 @@ def sparse_ising_hamiltonian(J: float, h_t: float, h_l: float, L: int, long: str
 
     return -J * hamiltonian_int - h_t * hamiltonian_t - h_l * hamiltonian_l
 
+
 # -----------------------------------------------
 # Sparse ANNNI Hamiltonian
 # -----------------------------------------------
-def sparse_ANNNI_hamiltonian(J: float, h_t: float, h_ll: float, L: int, eps: float=1e-5, long: str="X", deg_method: int=1):
+def sparse_ANNNI_hamiltonian(
+    J: float,
+    h_t: float,
+    h_ll: float,
+    L: int,
+    eps: float = 1e-5,
+    long: str = "X",
+    deg_method: int = 1,
+):
     """
     sparse_ANNNI_hamiltonian
 
@@ -197,41 +221,54 @@ def sparse_ANNNI_hamiltonian(J: float, h_t: float, h_ll: float, L: int, eps: flo
                 hamiltonian_t += n_pauli_z
         if h_ll != 0:
             # next nearest neighbor interaction
-            for n in range(L-2):
+            for n in range(L - 2):
                 n_row_indices, n_col_indices = sparse_non_diag_paulis_indices(n, L)
-                np2_row_indices, np2_col_indices = sparse_non_diag_paulis_indices(n+2, L)
+                np2_row_indices, np2_col_indices = sparse_non_diag_paulis_indices(
+                    n + 2, L
+                )
                 n_pauli_x = sparse_pauli_x(n, L, n_row_indices, n_col_indices)
-                np2_pauli_x = sparse_pauli_x(n+2, L, np2_row_indices, np2_col_indices)
+                np2_pauli_x = sparse_pauli_x(n + 2, L, np2_row_indices, np2_col_indices)
                 hamiltonian_ll += n_pauli_x @ np2_pauli_x
- 
+
         # nearest neighbor interaction
-        for n in range(L-1):
+        for n in range(L - 1):
             n_row_indices, n_col_indices = sparse_non_diag_paulis_indices(n, L)
-            np1_row_indices, np1_col_indices = sparse_non_diag_paulis_indices(n+1, L)
+            np1_row_indices, np1_col_indices = sparse_non_diag_paulis_indices(n + 1, L)
             n_pauli_x = sparse_pauli_x(n, L, n_row_indices, n_col_indices)
-            np1_pauli_x = sparse_pauli_x(n+1, L, np1_row_indices, np1_col_indices)
+            np1_pauli_x = sparse_pauli_x(n + 1, L, np1_row_indices, np1_col_indices)
             hamiltonian_int += n_pauli_x @ np1_pauli_x
         if eps != 0:
             # add a term to break the double degeneracy of the ground state
             if deg_method == 0:
                 hamiltonian_deg = 0
             elif deg_method == 1:
-                hamiltonian_deg = sparse_pauli_x(n=0,L=L) - identity(2**L)
+                hamiltonian_deg = sparse_pauli_x(n=0, L=L) - identity(2**L)
             elif deg_method == 2:
                 for n in range(L):
-                    hamiltonian_deg += (1 + (-1)**(n//2)) * sparse_pauli_x(n=n,L=L) -  2 * identity(2**L)
+                    hamiltonian_deg += (1 + (-1) ** (n // 2)) * sparse_pauli_x(
+                        n=n, L=L
+                    ) - 2 * identity(2**L)
             elif deg_method == 3:
                 for n in range(L):
-                    hamiltonian_deg += (-1)**(n//2) * sparse_pauli_x(n=n,L=L) - identity(2**L)
+                    hamiltonian_deg += (-1) ** (n // 2) * sparse_pauli_x(
+                        n=n, L=L
+                    ) - identity(2**L)
             else:
                 raise ValueError("Choose a proper degeneracy method")
-    return - J * hamiltonian_int + h_ll * hamiltonian_ll - h_t * hamiltonian_t - eps * hamiltonian_deg
+    return (
+        -J * hamiltonian_int
+        + h_ll * hamiltonian_ll
+        - h_t * hamiltonian_t
+        - eps * hamiltonian_deg
+    )
 
 
 # -----------------------------------------------
 # Sparse Cluster Hamiltonian
 # -----------------------------------------------
-def sparse_cluster_hamiltonian(J: float, h_t: float, L: int, eps: float=1e-5, long: str="X"):
+def sparse_cluster_hamiltonian(
+    J: float, h_t: float, L: int, eps: float = 1e-5, long: str = "X"
+):
     """
     Returns a sparse representation of the Hamiltonian of the 1D Cluster model in a chain of length L
     with open boundary conditions
@@ -241,10 +278,10 @@ def sparse_cluster_hamiltonian(J: float, h_t: float, L: int, eps: float=1e-5, lo
     hamiltonian_t = csc_array((2**L, 2**L), dtype=complex)
     hamiltonian_deg = csc_array((2**L, 2**L), dtype=complex)
     hamiltonian_int = csc_array((2**L, 2**L), dtype=complex)
-    
+
     if long == "X":
-    # First sum over the terms containing sigma_x, sigma_y because the non-zero element indices are the same
-    # so that this improves performance
+        # First sum over the terms containing sigma_x, sigma_y because the non-zero element indices are the same
+        # so that this improves performance
         if h_t != 0:
             for n in range(L):
                 n_pauli_z = sparse_pauli_z(n, L)
@@ -254,11 +291,11 @@ def sparse_cluster_hamiltonian(J: float, h_t: float, L: int, eps: float=1e-5, lo
                 n_row_indices, n_col_indices = sparse_non_diag_paulis_indices(n, L)
                 n_pauli_x = sparse_pauli_x(n, L, n_row_indices, n_col_indices)
                 hamiltonian_deg += n_pauli_x
-            
+
         # Interaction
         for n in range(L - 2):
             n_row_indices, n_col_indices = sparse_non_diag_paulis_indices(n, L)
-            np2_row_indices, np2_col_indices = sparse_non_diag_paulis_indices(n+2, L)
+            np2_row_indices, np2_col_indices = sparse_non_diag_paulis_indices(n + 2, L)
             n_pauli_x = sparse_pauli_x(n, L, n_row_indices, n_col_indices)
             np1_pauli_z = sparse_pauli_z(n + 1, L)
             np2_pauli_x = sparse_pauli_x(n + 2, L, np2_row_indices, np2_col_indices)
@@ -266,10 +303,19 @@ def sparse_cluster_hamiltonian(J: float, h_t: float, L: int, eps: float=1e-5, lo
 
     return -J * hamiltonian_int - h_t * hamiltonian_t - eps * hamiltonian_deg
 
+
 # -----------------------------------------------
 # Sparse Cluster-XY Hamiltonian
 # -----------------------------------------------
-def sparse_cluster_xy_hamiltonian(J: float, h_t: float, h_x: float, h_y: float, L: int, eps: float=1e-5, long: str="X"):
+def sparse_cluster_xy_hamiltonian(
+    J: float,
+    h_t: float,
+    h_x: float,
+    h_y: float,
+    L: int,
+    eps: float = 1e-5,
+    long: str = "X",
+):
     """
     Returns a sparse representation of the Hamiltonian of the 1D Cluster-XY model in a chain of length L
     with open boundary conditions
@@ -281,21 +327,21 @@ def sparse_cluster_xy_hamiltonian(J: float, h_t: float, h_x: float, h_y: float, 
     hamiltonian_y = csc_array((2**L, 2**L), dtype=complex)
     hamiltonian_deg = csc_array((2**L, 2**L), dtype=complex)
     hamiltonian_int = csc_array((2**L, 2**L), dtype=complex)
-    
+
     if long == "X":
-    # First sum over the terms containing sigma_x, sigma_y because the non-zero element indices are the same
-    # so that this improves performance
+        # First sum over the terms containing sigma_x, sigma_y because the non-zero element indices are the same
+        # so that this improves performance
         if h_t != 0:
             for n in range(L):
                 n_pauli_z = sparse_pauli_z(n, L)
                 hamiltonian_t += n_pauli_z
         if h_x != 0:
-            for n in range(L-1):
+            for n in range(L - 1):
                 n_row_indices, n_col_indices = sparse_non_diag_paulis_indices(n, L)
                 n_pauli_x = sparse_pauli_x(n, L, n_row_indices, n_col_indices)
                 hamiltonian_x += n_pauli_x
         if h_y != 0:
-            for n in range(L-1):
+            for n in range(L - 1):
                 n_row_indices, n_col_indices = sparse_non_diag_paulis_indices(n, L)
                 n_pauli_y = sparse_pauli_y(n, L, n_row_indices, n_col_indices)
                 hamiltonian_y += n_pauli_y
@@ -304,27 +350,37 @@ def sparse_cluster_xy_hamiltonian(J: float, h_t: float, h_x: float, h_y: float, 
                 n_row_indices, n_col_indices = sparse_non_diag_paulis_indices(n, L)
                 n_pauli_x = sparse_pauli_x(n, L, n_row_indices, n_col_indices)
                 hamiltonian_deg += n_pauli_x
-            
+
         # Interaction
         for n in range(L - 2):
             n_row_indices, n_col_indices = sparse_non_diag_paulis_indices(n, L)
-            np2_row_indices, np2_col_indices = sparse_non_diag_paulis_indices(n+2, L)
+            np2_row_indices, np2_col_indices = sparse_non_diag_paulis_indices(n + 2, L)
             n_pauli_x = sparse_pauli_x(n, L, n_row_indices, n_col_indices)
             np1_pauli_z = sparse_pauli_z(n + 1, L)
             np2_pauli_x = sparse_pauli_x(n + 2, L, np2_row_indices, np2_col_indices)
             hamiltonian_int += n_pauli_x @ np1_pauli_z @ np2_pauli_x
 
-    return -J * hamiltonian_int - h_t * hamiltonian_t - eps * hamiltonian_deg + h_x * hamiltonian_x + h_y * hamiltonian_y
+    return (
+        -J * hamiltonian_int
+        - h_t * hamiltonian_t
+        - eps * hamiltonian_deg
+        + h_x * hamiltonian_x
+        + h_y * hamiltonian_y
+    )
+
 
 # ---------------------------------------------------------------------------------------
 # Diagonalization
 # ---------------------------------------------------------------------------------------
-def diagonalization(H: csc_matrix, sparse: bool, v0: np.ndarray=None, k: int=1, which: str='SA'):
+def diagonalization(
+    H: csc_matrix, sparse: bool, v0: np.ndarray = None, k: int = 1, which: str = "SA"
+):
     if sparse:
-        e,v = spla.eigsh(H, k=k, which=which, v0=v0)
+        e, v = spla.eigsh(H, k=k, which=which, v0=v0)
     else:
-        e,v = la.eigh(H.toarray())
-    return e,v
+        e, v = la.eigh(H.toarray())
+    return e, v
+
 
 # ---------------------------------------------------------------------------------------
 # Sparse Ground state
@@ -351,6 +407,7 @@ def sparse_ising_ground_state(
     psi = v[:, 0]
     return psi
 
+
 # ---------------------------------------------------------------------------------------
 # Sparse U Evolution
 # ---------------------------------------------------------------------------------------
@@ -376,6 +433,7 @@ def U_evolution_sparse(
     H_ev = -1j * delta * H_ev
     psi_ev = spla.expm_multiply(H_ev, psi_init)
     return psi_ev
+
 
 # ---------------------------------------------------------------------------------------
 # Sparse exact Evolution

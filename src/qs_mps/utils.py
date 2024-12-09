@@ -12,10 +12,11 @@ from matplotlib.animation import FuncAnimation
 from typing import Union
 from functools import partial
 
+
 # ---------------------------------------------------------------------------------------
 # Tensor shapes
 # ---------------------------------------------------------------------------------------
-def tensor_shapes(lists: np.ndarray, prnt: bool=True):
+def tensor_shapes(lists: np.ndarray, prnt: bool = True):
     """
     tensor_shapes
 
@@ -190,6 +191,7 @@ def load_list_of_lists(file_path):
 
     return loaded_data
 
+
 # ---------------------------------------------------------------------------------------
 # Access txt
 # ---------------------------------------------------------------------------------------
@@ -255,13 +257,14 @@ def replace_zeros_with_nan(input_list):
 
     return result_list, num_zeros
 
+
 # ---------------------------------------------------------------------------------------
 # Logarithm base d
 # ---------------------------------------------------------------------------------------
 def logarithm_base_d(x: float, d: float):
     """
     logarithm_base_d
-    
+
     This function performs the change of base of the logarithm to d for the value x.
 
     x: float - value we want to evaulate the logarithm of
@@ -269,12 +272,16 @@ def logarithm_base_d(x: float, d: float):
 
     """
     if x <= 0 or d <= 0 or d == 1:
-        raise ValueError("Invalid input: x and d must be positive and d must not be equal to 1.")
-    
+        raise ValueError(
+            "Invalid input: x and d must be positive and d must not be equal to 1."
+        )
+
     # Calculate the logarithms using the change of base formula
     result = np.log(x) / np.log(d)
-    
+
     return result
+
+
 # ---------------------------------------------------------------------------------------
 # ---------------------------------------------------------------------------------------
 # ---------------------------------------------------------------------------------------
@@ -509,27 +516,36 @@ def mpo_to_matrix(mpo):
     matrix = ncon([env, v_r.T], [label_env, mid]).reshape((d_prod, d_prod))
     return matrix
 
-def swap_columns(matrix, tensor: bool=True):
+
+def swap_columns(matrix, tensor: bool = True):
     n = len(matrix)
     for i in range(n // 2):
         col_to_swap = n - 1 - i
         if tensor:
-            matrix[i, :, :], matrix[col_to_swap, :, :] = matrix[col_to_swap, :, :], matrix[i, :, :].copy()
+            matrix[i, :, :], matrix[col_to_swap, :, :] = (
+                matrix[col_to_swap, :, :],
+                matrix[i, :, :].copy(),
+            )
         else:
             for row in matrix:
                 row[i], row[col_to_swap] = row[col_to_swap], row[i]
     return matrix
 
-def swap_rows(matrix, tensor: bool=True):
+
+def swap_rows(matrix, tensor: bool = True):
     n = len(matrix)
     for i in range(n // 2):
         row_to_swap = n - 1 - i
         if tensor:
-            matrix[:, i, :], matrix[:, row_to_swap, :] = matrix[:, row_to_swap, :], matrix[:, i, :].copy()
+            matrix[:, i, :], matrix[:, row_to_swap, :] = (
+                matrix[:, row_to_swap, :],
+                matrix[:, i, :].copy(),
+            )
         else:
             for row in matrix:
                 row[i], row[row_to_swap] = row[row_to_swap], row[i]
-    return matrix   
+    return matrix
+
 
 # ---------------------------------------------------------------------------------------
 # ---------------------------------------------------------------------------------------
@@ -870,7 +886,7 @@ def plot_side_by_side(
 # ---------------------------------------------------------------------------------------
 # Create Sequential Colors
 # ---------------------------------------------------------------------------------------
-def create_sequential_colors(num_colors, colormap_name: str='viridis'):
+def create_sequential_colors(num_colors, colormap_name: str = "viridis"):
     """
     create_sequential_colors
 
@@ -911,7 +927,7 @@ def plot_results_DMRG(
     cmap: str = "viridis",
     txt: bool = False,
     precision: int = 2,
-    show: bool = True
+    show: bool = True,
 ):
     """
     plot_results_evolution
@@ -951,10 +967,8 @@ def plot_results_DMRG(
             label=f"mps: $\\chi={elem}$",
         )
 
-        
     # labels = interval[:: (len(interval) // 10)],
     # labels = [f"{h:.{precision}f}" for h in labels]
-    
 
     if time:
         plt.xlabel(f"time $(\\delta t)$")
@@ -974,16 +988,16 @@ def plot_results_DMRG(
         )
     plt.ylabel(ylabel)
     if exact:
-            # res_exact = np.loadtxt(f"{path_ex}/{fname_ex}")
-            res_exact = np.load(f"{path_ex}/{fname_ex}.npy")
-            res_exact = res_exact[::step]
-            plt.plot(
-                x,
-                res_exact,
-                color="indianred",
-                linewidth=0.6,
-                label=f"exact",
-            )
+        # res_exact = np.loadtxt(f"{path_ex}/{fname_ex}")
+        res_exact = np.load(f"{path_ex}/{fname_ex}.npy")
+        res_exact = res_exact[::step]
+        plt.plot(
+            x,
+            res_exact,
+            color="indianred",
+            linewidth=0.6,
+            label=f"exact",
+        )
     plt.legend()
     plt.yscale(yscale)
     plt.xscale(xscale)
@@ -1120,20 +1134,29 @@ def plot_colormaps_evolution(
     plt.show()
 
 
-def anim(frames: int, interval: int, data: np.ndarray, params: np.ndarray, show: bool, charges_x: list, charges_y: list, precision: int, time: bool):
-
+def anim(
+    frames: int,
+    interval: int,
+    data: np.ndarray,
+    params: np.ndarray,
+    show: bool,
+    charges_x: list,
+    charges_y: list,
+    precision: int,
+    time: bool,
+):
     # Create a figure and axis
     fig, ax = plt.subplots()
     title = ax.set_title("")
 
     # create the lattice
     hlines = list(range(data[0].shape[0]))[::2]
-    vlines = list(range(data[0].shape[1]))[::2] 
-    ax.hlines(y=hlines, xmin=0, xmax=data[0].shape[1]-1, colors='k', linewidth=0.8)
-    ax.vlines(x=vlines, ymin=0, ymax=data[0].shape[0]-1, colors='k', linewidth=0.8)
+    vlines = list(range(data[0].shape[1]))[::2]
+    ax.hlines(y=hlines, xmin=0, xmax=data[0].shape[1] - 1, colors="k", linewidth=0.8)
+    ax.vlines(x=vlines, ymin=0, ymax=data[0].shape[0] - 1, colors="k", linewidth=0.8)
 
     # add the links expectation values
-    cmap = plt.get_cmap('viridis')
+    cmap = plt.get_cmap("viridis")
     im = ax.imshow(data[0], vmin=-1, vmax=1, cmap=cmap, interpolation="nearest")
     cbar = plt.colorbar(im, ax=ax)
     cbar.set_label("Electric field")
@@ -1141,17 +1164,27 @@ def anim(frames: int, interval: int, data: np.ndarray, params: np.ndarray, show:
     # add vacuum
     for i in vlines:
         for j in hlines:
-            circle = Ellipse((i, j), 0.1, 0.1, edgecolor='blue', facecolor='none', linewidth=1)
+            circle = Ellipse(
+                (i, j), 0.1, 0.1, edgecolor="blue", facecolor="none", linewidth=1
+            )
             ax.add_patch(circle)
 
     # add charges
     if charges_x != None:
         for i in range(len(charges_x)):
-            ax.text(x=2*charges_x[i]+0.1, y=2*charges_y[i]-0.1, s="-1", color="red")
-            circle = Ellipse((2*charges_x[i], 2*charges_y[i]), 0.1, 0.1, edgecolor='red', facecolor='none', linewidth=1)
+            ax.text(
+                x=2 * charges_x[i] + 0.1, y=2 * charges_y[i] - 0.1, s="-1", color="red"
+            )
+            circle = Ellipse(
+                (2 * charges_x[i], 2 * charges_y[i]),
+                0.1,
+                0.1,
+                edgecolor="red",
+                facecolor="none",
+                linewidth=1,
+            )
             ax.add_patch(circle)
 
-    
     # Function to update the colormap in each frame
     def update(frame, data: np.ndarray, params: np.ndarray, precision: int, time: bool):
         # print(frame, type(frame))
@@ -1163,15 +1196,20 @@ def anim(frames: int, interval: int, data: np.ndarray, params: np.ndarray, show:
         im.set_data(data_frame)
         # im.imshow(data_frame, vmin=0, vmax=1, cmap=cmap, interpolation="nearest")
         if time:
-            title.set_text(f'Trotter step: {param_frame:.{precision}f}')
+            title.set_text(f"Trotter step: {param_frame:.{precision}f}")
         else:
-            title.set_text(f'Magnetic term: {param_frame:.{precision}f}')
+            title.set_text(f"Magnetic term: {param_frame:.{precision}f}")
         # Set colorbar
         # cbar.set(im, ax=ax)
-        
 
     # Create the animation
-    animation = FuncAnimation(fig, partial(update, data=data, params=params, precision=precision, time=time), frames=frames, interval=interval, repeat=False)
+    animation = FuncAnimation(
+        fig,
+        partial(update, data=data, params=params, precision=precision, time=time),
+        frames=frames,
+        interval=interval,
+        repeat=False,
+    )
 
     # Show the animation
     if show:
@@ -1179,9 +1217,10 @@ def anim(frames: int, interval: int, data: np.ndarray, params: np.ndarray, show:
     return animation
 
 
-def get_cx(L,R):
+def get_cx(L, R):
     assert 0 < R < L, "The fluxtube is longer than the lattice length"
-    return [L//2-R//2,L//2+R//2]
+    return [L // 2 - R // 2, L // 2 + R // 2]
+
 
 def get_cy(l):
-    return [l//2,l//2]
+    return [l // 2, l // 2]

@@ -5,8 +5,13 @@ from qs_mps.utils import get_precision
 from qs_mps.mps_class import MPS
 
 parser_ext = argparse.ArgumentParser(prog="observables_Z2_multi_run")
-parser_ext.add_argument("p", help="path of the json files. Available paths are 'pc', 'mac', 'marcos'", type=str)
-args_ext =parser_ext.parse_args()
+parser_ext.add_argument(
+    "p",
+    help="path of the json files. Available paths are 'pc', 'mac', 'marcos'",
+    type=str,
+)
+args_ext = parser_ext.parse_args()
+
 
 def parse_args():
     parser = argparse.ArgumentParser(prog="observables_Z2_mps")
@@ -18,22 +23,50 @@ def parse_args():
         type=int,
     )
     parser.add_argument(
-        "h_i", help="Starting value of h (external transverse field on the dual lattice)", type=float
+        "h_i",
+        help="Starting value of h (external transverse field on the dual lattice)",
+        type=float,
     )
     parser.add_argument(
-        "h_f", help="Final value of h (external transverse field on the dual lattice)", type=float
+        "h_f",
+        help="Final value of h (external transverse field on the dual lattice)",
+        type=float,
     )
     parser.add_argument(
         "path",
         help="Path to the drive depending on the device used. Available are 'pc', 'mac', 'marcos'",
         type=str,
     )
-    parser.add_argument("o", help="Observable we want to compute. Available are 'wl', 'el', 'thooft'", type=str)
+    parser.add_argument(
+        "o",
+        help="Observable we want to compute. Available are 'wl', 'el', 'thooft'",
+        type=str,
+    )
     parser.add_argument("chis", help="Simulated bond dimensions", nargs="+", type=int)
-    parser.add_argument("-cx", "--charges_x", help="a list of the first index of the charges", nargs="*", type=int)
-    parser.add_argument("-cy", "--charges_y", help="a list of the second index of the charges", nargs="*", type=int)
-    parser.add_argument("-s", "--sites", help="Number of sites in the wilson loop", nargs="*", type=int)
-    parser.add_argument("-r", "--ladders", help="Number of ladders in the wilson loop", nargs="*", type=int)
+    parser.add_argument(
+        "-cx",
+        "--charges_x",
+        help="a list of the first index of the charges",
+        nargs="*",
+        type=int,
+    )
+    parser.add_argument(
+        "-cy",
+        "--charges_y",
+        help="a list of the second index of the charges",
+        nargs="*",
+        type=int,
+    )
+    parser.add_argument(
+        "-s", "--sites", help="Number of sites in the wilson loop", nargs="*", type=int
+    )
+    parser.add_argument(
+        "-r",
+        "--ladders",
+        help="Number of ladders in the wilson loop",
+        nargs="*",
+        type=int,
+    )
     parser.add_argument(
         "-d", "--direction", help="Direction of the string", default="hor", type=str
     )
@@ -43,14 +76,13 @@ def parse_args():
 
     return parser.parse_args()
 
-def save_config(run_number, args):
-    config = {
-        'run': run_number,
-        'arguments': vars(args)
-    }
 
-    with open(f'run_{run_number}_obs.json', 'w') as config_file:
+def save_config(run_number, args):
+    config = {"run": run_number, "arguments": vars(args)}
+
+    with open(f"run_{run_number}_obs.json", "w") as config_file:
         json.dump(config, config_file, indent=2)
+
 
 if args_ext.p == "pc":
     parent_path = "G:/My Drive/projects/1_Z2"
@@ -61,18 +93,21 @@ elif args_ext.p == "marcos":
 else:
     raise SyntaxError("Path not valid. Choose among 'pc', 'mac', 'marcos'")
 
+
 def load_config(run_number):
-    with open(f'{parent_path}/json_files/run_{run_number}_obs.json', 'r') as config_file:
+    with open(
+        f"{parent_path}/json_files/run_{run_number}_obs.json", "r"
+    ) as config_file:
         config = json.load(config_file)
-        return argparse.Namespace(**config['arguments'])
+        return argparse.Namespace(**config["arguments"])
+
 
 def main():
-
     # Uncomment the next line if you want to resume from the last run
     # while os.path.exists(f'run_{run_number}.json'):
-    for run_number in range(1,5):
+    for run_number in range(1, 5):
         print(f"\nRun {run_number}:")
-        
+
         # Save arguments to a configuration file
         # args = parse_args()
         # save_config(run_number, args)
@@ -82,7 +117,7 @@ def main():
 
         # Your main script logic here using the loaded arguments
         # define the physical dimension
-        d = int(2**(args.l))
+        d = int(2 ** (args.l))
 
         # define the interval of equally spaced values of external field
         interval = np.linspace(args.h_i, args.h_f, args.npoints)
@@ -114,7 +149,7 @@ def main():
         if args.direction == "ver":
             direction = "vertical"
         elif args.direction == "hor":
-            direction = "horizontal"    
+            direction = "horizontal"
 
         # define the sector by looking of the given charges
         if len(args.charges_x) == 0:
@@ -122,7 +157,7 @@ def main():
             args.charges_x = None
             args.charges_y = None
         else:
-            for i in range(1,args.l*args.L):
+            for i in range(1, args.l * args.L):
                 if len(args.charges_x) == i:
                     sector = f"{i}_particle(s)_sector"
 
@@ -137,45 +172,54 @@ def main():
                 lattice_mps = MPS(L=args.L, d=d, model=args.model, chi=chi, h=h)
                 lattice_mps.L = lattice_mps.L - 1
 
-                lattice_mps.load_sites(path=path_tensor, precision=precision, cx=args.charges_x, cy=args.charges_y)
+                lattice_mps.load_sites(
+                    path=path_tensor,
+                    precision=precision,
+                    cx=args.charges_x,
+                    cy=args.charges_y,
+                )
                 if sector != "vacuum_sector":
                     lattice_mps.Z2.add_charges(args.charges_x, args.charges_y)
-                
+
                 if args.o == "wl":
                     print(f"wilson loop for h:{h:.{precision}f}")
-                    lattice_mps.Z2.wilson_Z2_dual(mpo_sites=[sites], ls=[ladders]) #list(range(s))
+                    lattice_mps.Z2.wilson_Z2_dual(
+                        mpo_sites=[sites], ls=[ladders]
+                    )  # list(range(s))
                     lattice_mps.w = lattice_mps.Z2.mpo.copy()
                     W.append(lattice_mps.mpo_first_moment().real)
 
                 if args.o == "el":
                     print(f"electric field for h:{h:.{precision}f}")
-                    E_h = np.zeros((2*args.l+1,2*args.L-1))
+                    E_h = np.zeros((2 * args.l + 1, 2 * args.L - 1))
                     E_h[:] = np.nan
                     E_h = lattice_mps.electric_field_Z2(E_h)
                     E.append(E_h)
-                
+
                 if args.o == "thooft":
                     print(f"'t Hooft string for h:{h:.{precision}f}")
-                    lattice_mps.Z2.thooft(site=args.sites, l=args.ladders, direction=direction)
+                    lattice_mps.Z2.thooft(
+                        site=args.sites, l=args.ladders, direction=direction
+                    )
                     lattice_mps.w = lattice_mps.Z2.mpo.copy()
                     S.append(lattice_mps.mpo_first_moment().real)
 
-
             if args.o == "wl":
                 np.savetxt(
-                            f"{parent_path}/results/wilson_loops/wilson_loop_{args.model}_direct_lattice_{args.l}x{args.L-1}_h_{args.h_i}-{args.h_f}_delta_{args.npoints}_chi_{chi}",
-                            W,
-                        )
+                    f"{parent_path}/results/wilson_loops/wilson_loop_{args.model}_direct_lattice_{args.l}x{args.L-1}_h_{args.h_i}-{args.h_f}_delta_{args.npoints}_chi_{chi}",
+                    W,
+                )
             if args.o == "el":
                 np.save(
-                            f"{parent_path}/results/electric_field/electric_field_{args.model}_direct_lattice_{args.l}x{args.L-1}_{sector}_{args.charges_x}-{args.charges_y}_h_{args.h_i}-{args.h_f}_delta_{args.npoints}_chi_{chi}.npy",
-                            E,
-                        )
+                    f"{parent_path}/results/electric_field/electric_field_{args.model}_direct_lattice_{args.l}x{args.L-1}_{sector}_{args.charges_x}-{args.charges_y}_h_{args.h_i}-{args.h_f}_delta_{args.npoints}_chi_{chi}.npy",
+                    E,
+                )
             if args.o == "hooft":
                 np.save(
-                            f"{parent_path}/results/thooft/thooft_string_{args.sites[0]}-{args.ladders[0]}_{direction}_{args.model}_direct_lattice_{args.l}x{args.L-1}_{sector}_{args.charges_x}-{args.charges_y}_h_{args.h_i}-{args.h_f}_delta_{args.npoints}_chi_{chi}.npy",
-                            S,
-                        )
+                    f"{parent_path}/results/thooft/thooft_string_{args.sites[0]}-{args.ladders[0]}_{direction}_{args.model}_direct_lattice_{args.l}x{args.L-1}_{sector}_{args.charges_x}-{args.charges_y}_h_{args.h_i}-{args.h_f}_delta_{args.npoints}_chi_{chi}.npy",
+                    S,
+                )
 
-if __name__ == '__main__':
+
+if __name__ == "__main__":
     main()
