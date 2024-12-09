@@ -5,7 +5,7 @@ from scipy.optimize import curve_fit
 from qs_mps.applications.Z2.utils import get_cx, get_cy, arithmetic_average
 from qs_mps.utils import von_neumann_entropy
 
-def static_potential(g: float, R: int, l: int, L: int, chi: int, bc: str=None, sector: str=None, h_i: float=None, h_f: float=None, npoints: int=None, path_tensor: str=None):
+def static_potential(g: float, R: int, l: int, L: int, chi: int, bc: str=None, sector: str=None, h_i: float=None, h_f: float=None, npoints: int=None, path_tensor: str=None, cx: list=None, cy: list=None):
     """
     static potential
 
@@ -24,10 +24,14 @@ def static_potential(g: float, R: int, l: int, L: int, chi: int, bc: str=None, s
     h_f: float - ending point for computations spanning the coupling phase space
     npoints: int - number of points for computations spanning the coupling phase space
     path_tensor: str - path name for retrieving the ground state energy values
+    cx: list - list of charges x-coordinates
+    cy: list - list of charges y-coordinates
 
     """
-    cx = get_cx(L,R)
-    cy = get_cy(l,bc=bc)
+    if cx == None:
+        cx = get_cx(L,R)
+    if cy == None:
+        cy = get_cy(l,bc=bc,R=R)
     interval = np.linspace(h_i,h_f,npoints)
     try:
         vac = None
@@ -44,7 +48,7 @@ def static_potential(g: float, R: int, l: int, L: int, chi: int, bc: str=None, s
         if round(g,3) == round(interval[i],3):
             return val
 
-def static_potential_chis(g: float, R: int, l: int, L: int, chis: list, bc: str=None, sector: str=None, h_i: float=None, h_f: float=None, npoints: int=None, path_tensor: str=None):
+def static_potential_chis(g: float, R: int, l: int, L: int, chis: list, bc: str=None, sector: str=None, h_i: float=None, h_f: float=None, npoints: int=None, path_tensor: str=None, cx: list=None, cy: list=None):
     """
     static potential
 
@@ -65,7 +69,7 @@ def static_potential_chis(g: float, R: int, l: int, L: int, chis: list, bc: str=
     """
     st_pots = []
     for chi in chis:
-        st_pot = static_potential(g,R,l,L,chi,bc,sector,h_i,h_f,npoints,path_tensor)
+        st_pot = static_potential(g,R,l,L,chi,bc,sector,h_i,h_f,npoints,path_tensor,cx,cy)
         st_pots.append(st_pot)
     return st_pots
 
@@ -90,8 +94,8 @@ def get_exact_potential_chis(chis, potentials):
     print(f"y0 (asymptotic value in 1/chi) = {y0_fit:.6f} ± {y0_err:.6f}")
     return y0_fit, y0_err
 
-def static_potential_exact_chi(g: float, R: int, l: int, L: int, chis: list, bc: str=None, sector: str=None, h_i: float=None, h_f: float=None, npoints: int=None, path_tensor: str=None, g_thr: float=1):
-    potentials = static_potential_chis(g,R,l,L,chis,bc,sector,h_i,h_f,npoints,path_tensor)
+def static_potential_exact_chi(g: float, R: int, l: int, L: int, chis: list, bc: str=None, sector: str=None, h_i: float=None, h_f: float=None, npoints: int=None, path_tensor: str=None, cx: list=None, cy: list=None, g_thr: float=1.0):
+    potentials = static_potential_chis(g,R,l,L,chis,bc,sector,h_i,h_f,npoints,path_tensor,cx,cy)
     if g > g_thr:
         pot_exact, err = get_exact_potential_chis(chis, potentials)
     else:
@@ -99,11 +103,11 @@ def static_potential_exact_chi(g: float, R: int, l: int, L: int, chis: list, bc:
         err = np.abs(potentials[-1] - potentials[-2])
     return pot_exact, err
 
-def static_potential_Ls(g: float, R: int, l: int, Ls: int, chis: list, bc: str=None, sector: str=None, h_i: float=None, h_f: float=None, npoints: int=None, path_tensor: str=None):
+def static_potential_Ls(g: float, R: int, l: int, Ls: int, chis: list, bc: str=None, sector: str=None, h_i: float=None, h_f: float=None, npoints: int=None, path_tensor: str=None, cx: list=None, cy: list=None):
     potentials = []
     potentials_err = []
     for L in Ls:
-        pot, err = static_potential_exact_chi(g,R,l,L,chis,bc,sector,h_i,h_f,npoints,path_tensor)
+        pot, err = static_potential_exact_chi(g,R,l,L,chis,bc,sector,h_i,h_f,npoints,path_tensor,cx,cy)
         potentials.append(pot)
         potentials_err.append(err)
     return potentials, potentials_err
@@ -129,8 +133,8 @@ def get_exact_potential_Ls(Ls, potentials, y_errs):
     print(f"y0 (asymptotic value in 1/L) = {y0_fit:.6f} ± {y0_err:.6f}")
     return y0_fit, y0_err
 
-def static_potential_exact_L(g: float, R: int, l: int, Ls: int, chis: list, bc: str=None, sector: str=None, h_i: float=None, h_f: float=None, npoints: int=None, path_tensor: str=None, r_thr: float=4/5):
-    potentials, pot_errs = static_potential_Ls(g,R,l,Ls,chis,bc,sector,h_i,h_f,npoints,path_tensor)
+def static_potential_exact_L(g: float, R: int, l: int, Ls: int, chis: list, bc: str=None, sector: str=None, h_i: float=None, h_f: float=None, npoints: int=None, path_tensor: str=None, cx: list=None, cy: list=None, r_thr: float=4/5):
+    potentials, pot_errs = static_potential_Ls(g,R,l,Ls,chis,bc,sector,h_i,h_f,npoints,path_tensor,cx,cy)
     rs = [R/L for L in Ls]
     flag = 0
     for r in rs:
@@ -148,23 +152,23 @@ def static_potential_exact_L(g: float, R: int, l: int, Ls: int, chis: list, bc: 
 
     return pot_exact, err
 
-def static_potential_varying_R(g,Rs,l,Ls,chis,bc,sector,h_i,h_f,npoints,path_tensor):
+def static_potential_varying_R(g,Rs,l,Ls,chis,bc,sector,h_i,h_f,npoints,path_tensor,cx=None,cy=None):
     potentials = []
     err_potentials = []
     for R in Rs:
         print(f"R: {R}")
-        pot, err = static_potential_exact_L(g,R,l,Ls,chis,bc,sector,h_i,h_f,npoints,path_tensor)
+        pot, err = static_potential_exact_L(g,R,l,Ls,chis,bc,sector,h_i,h_f,npoints,path_tensor,cx,cy)
         potentials.append(pot)
         err_potentials.append(err)
 
     return potentials, err_potentials
 
-def static_potential_varying_g(gs,R,l,Ls,chis,bc,sector,h_i,h_f,npoints,path_tensor):
+def static_potential_varying_g(gs,R,l,Ls,chis,bc,sector,h_i,h_f,npoints,path_tensor,cx=None,cy=None):
     potentials = []
     err_potentials = []
     for g in gs:
         print(f"g: {g}")
-        pot, err = static_potential_exact_L(g,R,l,Ls,chis,bc,sector,h_i,h_f,npoints,path_tensor)
+        pot, err = static_potential_exact_L(g,R,l,Ls,chis,bc,sector,h_i,h_f,npoints,path_tensor,cx,cy)
         potentials.append(pot)
         err_potentials.append(err)
 
@@ -178,34 +182,34 @@ def fitting(Rs, potentials, errors):
     errs = np.sqrt(np.diag(pcov))
     return popt, errs
 
-def fit_luscher_term_g(g, Rs, l, Ls, chis,bc,sector,h_i,h_f,npoints,path_tensor):
-    pot, err = static_potential_varying_R(g, Rs, l, Ls, chis,bc,sector,h_i,h_f,npoints,path_tensor)
+def fit_luscher_term_g(g, Rs, l, Ls, chis,bc,sector,h_i,h_f,npoints,path_tensor,cx=None,cy=None):
+    pot, err = static_potential_varying_R(g, Rs, l, Ls, chis,bc,sector,h_i,h_f,npoints,path_tensor,cx,cy)
     popt, errs = fitting(Rs, pot, err)
     term = popt[2]
     term_err = errs[2]
     return term, term_err
 
-def fit_string_tension_g(g, Rs, l, Ls, chis,bc,sector,h_i,h_f,npoints,path_tensor):
-    pot, err = static_potential_varying_R(g, Rs, l, Ls, chis,bc,sector,h_i,h_f,npoints,path_tensor)
+def fit_string_tension_g(g, Rs, l, Ls, chis,bc,sector,h_i,h_f,npoints,path_tensor,cx=None,cy=None):
+    pot, err = static_potential_varying_R(g, Rs, l, Ls, chis,bc,sector,h_i,h_f,npoints,path_tensor,cx,cy)
     popt, errs = fitting(Rs, pot, err)
     term = popt[0]
     term_err = errs[0]
     return term, term_err
 
-def fit_luscher(gs, Rs, l, Ls, chis,bc,sector,h_i,h_f,npoints,path_tensor):
+def fit_luscher(gs, Rs, l, Ls, chis,bc,sector,h_i,h_f,npoints,path_tensor,cx=None,cy=None):
     luschers = []
     luscher_errs = []
     for g in gs:
-        luscher, luscher_err = fit_luscher_term_g(g, Rs, l, Ls, chis,bc,sector,h_i,h_f,npoints,path_tensor)
+        luscher, luscher_err = fit_luscher_term_g(g, Rs, l, Ls, chis,bc,sector,h_i,h_f,npoints,path_tensor,cx,cy)
         luschers.append(luscher)
         luscher_errs.append(luscher_err)
     return luschers, luscher_errs
 
-def fit_string_tension(gs, Rs, l, Ls, chis,bc,sector,h_i,h_f,npoints,path_tensor):
+def fit_string_tension(gs, Rs, l, Ls, chis,bc,sector,h_i,h_f,npoints,path_tensor,cx=None,cy=None):
     sigmas = []
     sigmas_errs = []
     for g in gs:
-        sigma, luscher_err = fit_string_tension_g(g, Rs, l, Ls, chis,bc,sector,h_i,h_f,npoints,path_tensor)
+        sigma, luscher_err = fit_string_tension_g(g, Rs, l, Ls, chis,bc,sector,h_i,h_f,npoints,path_tensor,cx,cy)
         sigmas.append(sigma)
         sigmas_errs.append(luscher_err)
     return sigmas, sigmas_errs
@@ -233,7 +237,7 @@ def connected_electric_energy_density(g: float, R: int, l: int, L: int, chi: int
 
     """
     cx = get_cx(L,R)
-    cy = get_cy(l,bc=bc)
+    cy = get_cy(l,bc=bc,R=R)
     interval = np.linspace(h_i,h_f,npoints)
     try:
         vac = None
@@ -295,6 +299,18 @@ def string_width_chis(g: float, R: int, l: int, L: int, chis: list, bc: str=None
         w = string_width_electric_energy_density(g,R,l,L,chi,bc,sector,h_i,h_f,npoints,path_tensor)
         ws_chi.append(w)
     return ws_chi
+
+
+def string_width_varying_g(gs,R,l,L,chis,bc,sector,h_i,h_f,npoints,path_tensor):
+    strings = []
+    err_strings = []
+    for g in gs:
+        print(f"g: {g}")
+        string = string_width_chis(g,R,l,L,chis,bc,sector,h_i,h_f,npoints,path_tensor)
+        strings.append(string)
+        # err_strings.append(err)
+
+    return strings, err_strings
 
 def entropy(R: int, l: int, L: int, chi: list, bc: str=None, sector: str=None, h_i: float=None, h_f: float=None, npoints: int=None, path_tensor: str=None):
     """

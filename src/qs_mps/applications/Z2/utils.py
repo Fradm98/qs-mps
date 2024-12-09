@@ -5,15 +5,21 @@ from typing import Literal, Union
 
 import matplotlib.pyplot as plt
 
-def get_cx(L,R):
-    assert 0 < R < L, f"The fluxtube spans for {R} lattice links but the lattice length is {L}"
-    return [L//2-R//2,L//2+R//2]
-
-def get_cy(l,bc: str="obc"):
-    if bc == "obc":
-        return [l//2,l//2]
+def get_cx(L: int, R: int):
+    assert 0 <= R < L, f"The fluxtube spans for {R} lattice links but the lattice length is {L}"
+    if R == 0:
+        return [np.nan,np.nan]
     else:
-        return [0,0]
+        return [L//2-R//2,L//2+R//2]
+
+def get_cy(l: int, bc: str="obc", R: int=0):
+    if R == 0:
+        return [np.nan,np.nan]
+    else:
+        if bc == "obc":
+            return [l//2,l//2]
+        elif bc == "pbc":
+            return [0,0]
 
 def find_closest_value(interval, g):
     """
