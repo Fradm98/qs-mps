@@ -10,7 +10,7 @@ def get_cx(L: int, R: int):
     if R == 0:
         return [np.nan,np.nan]
     else:
-        return [L//2-R//2,L//2+R//2]
+        return [int(L/2-R/2),int(L/2+R/2)]
 
 def get_cy(l: int, bc: str="obc", R: int=0):
     if R == 0:
