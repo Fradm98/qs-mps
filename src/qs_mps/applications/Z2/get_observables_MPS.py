@@ -169,12 +169,12 @@ for L in args.Ls:
                 path=path_tensor, precision=precision, cx=charges_x, cy=charges_y
             )
 
-            # if lattice_mps.bc == "pbc":
-            #     a = np.zeros((1,2))
-            #     a[0,0] = 1
-            #     extra_ancillary_site = a.reshape((1,2,1))
-            #     lattice_mps.sites.append(extra_ancillary_site)
-            #     lattice_mps.L = len(lattice_mps.sites)
+            if lattice_mps.bc == "pbc":
+                a = np.zeros((1,2))
+                a[0,0] = 1
+                extra_ancillary_site = a.reshape((1,2,1))
+                lattice_mps.sites.append(extra_ancillary_site)
+                lattice_mps.L = len(lattice_mps.sites)
 
             if "wl" in args.obs:
                 print(
@@ -283,7 +283,7 @@ for L in args.Ls:
                 print(
                     f"Ground state energy for h:{h:.{precision}f}, direct lattice lxL:{args.l}x{L}, bc: {args.boundcond}, chi:{chi}"
                 )
-                lattice_mps.Z2.mpo_Z2_ladder_generalized_obc_old()
+                lattice_mps.Z2.mpo_Z2_ladder_generalized_pbc()
                 lattice_mps.w = lattice_mps.Z2.mpo.copy()
                 En.append(lattice_mps.mpo_first_moment().real)
 
@@ -326,7 +326,7 @@ for L in args.Ls:
             )
         if "en" in args.obs:
             np.save(
-                f"{parent_path}/results/energy_data/energy_obs_old_{args.model}_direct_lattice_{args.l}x{L}_{sector}_bc_{args.boundcond}_{charges_x}-{charges_y}_h_{args.h_i}-{args.h_f}_delta_{args.npoints}_chi_{chi}.npy",
+                f"{parent_path}/results/energy_data/energy_{args.model}_direct_lattice_{args.l}x{L}_{sector}_bc_{args.boundcond}_{charges_x}-{charges_y}_h_{args.h_i}-{args.h_f}_delta_{args.npoints}_chi_{chi}.npy",
                 En,
             )
         if "end" in args.obs:
