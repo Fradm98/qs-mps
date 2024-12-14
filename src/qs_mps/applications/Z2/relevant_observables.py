@@ -288,12 +288,14 @@ def potential_fit(R, sigma, mu, gamma): # add: bool=False
     # else:
     return sigma * R + mu + gamma / R
 
+
 def potential_fit_ext(R, sigma, mu, gamma, delta): # add: bool=False
     # if add:
     #     add = 1
     #     return sigma * R + mu + gamma / R + add / (R**2)
     # else:
     return sigma * R + mu + gamma / R + delta / (R**3)
+
 
 def fitting(Rs, potentials, errors, fit="norm"):
     if fit == "norm":
@@ -350,6 +352,53 @@ def fit_string_tension(gs, Rs, l, Ls, chis, bc, sector, h_i, h_f, npoints, path_
     return sigmas, sigmas_errs
 
 
+def potential_first_discrete_derivative(
+    g: float,
+    R: int,
+    l: int,
+    Ls: int,
+    chis: list,
+    bc: str = None,
+    sector: str = None,
+    h_i: float = None,
+    h_f: float = None,
+    npoints: int = None,
+    path_tensor: str = None,
+    cx: list = None,
+    cy: list = None,
+    r_thr: float = 4 / 5,
+    a: int = 2,
+):
+    pot_ex, pot_ex_err = static_potential_exact_L(g,R,l,Ls,chis,bc,sector,h_i,h_f,npoints,path_tensor,cx,cy,r_thr)
+    pot_ex_minus, pot_ex_minus_err = static_potential_exact_L(g,R-a,l,Ls,chis,bc,sector,h_i,h_f,npoints,path_tensor,cx,cy,r_thr)
+    first_der = (pot_ex - pot_ex_minus) / a
+    first_der_err = (1 / a) * np.sqrt(pot_ex_err**2 + pot_ex_minus_err**2)
+    return first_der, first_der_err
+
+def potential_second_discrete_derivative(
+    g: float,
+    R: int,
+    l: int,
+    Ls: int,
+    chis: list,
+    bc: str = None,
+    sector: str = None,
+    h_i: float = None,
+    h_f: float = None,
+    npoints: int = None,
+    path_tensor: str = None,
+    cx: list = None,
+    cy: list = None,
+    r_thr: float = 4 / 5,
+    a: int = 2,
+):
+    pot_ex, pot_ex_err = static_potential_exact_L(g,R,l,Ls,chis,bc,sector,h_i,h_f,npoints,path_tensor,cx,cy,r_thr)
+    pot_ex_plus, pot_ex_plus_err = static_potential_exact_L(g,R+a,l,Ls,chis,bc,sector,h_i,h_f,npoints,path_tensor,cx,cy,r_thr)
+    pot_ex_minus, pot_ex_minus_err = static_potential_exact_L(g,R-a,l,Ls,chis,bc,sector,h_i,h_f,npoints,path_tensor,cx,cy,r_thr)
+    sec_der = (R**3) / (2 * (a**2)) * (pot_ex_plus + pot_ex_minus - 2 * pot_ex)
+    sec_der_err = (R**3) / (2 * (a**2)) * np.sqrt(pot_ex_plus_err**2 + pot_ex_minus_err**2 + 4 * pot_ex_err**2)
+    return sec_der, sec_der_err
+    
 def connected_electric_energy_density(
     g: float,
     R: int,
