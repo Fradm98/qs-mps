@@ -10,8 +10,8 @@ class DMRGRunner:
         """
         TODO DOCUMENTATION
         """
-        # TODO check the types diocan
-        # TODO reduce complexity
+        # TODO DOCUMENTATION
+        # TODO OPTIONAL reduce complexity
 
         # questi devono essere obbligatori
         assert 'l' in opts, "Missing number of ladders (vertical dimension)"
@@ -65,7 +65,7 @@ class DMRGRunner:
 
         # Charges and strings
         self.charges = opts.get('charges', None)
-        self.string_length = opts.get('string_length')
+        self.string_length = opts.get('string_length', None)
 
         # If string_length is defined, overwrite charges position
         if self.string_length is not None:
@@ -107,8 +107,6 @@ class DMRGRunner:
         else:
             raise ValueError(f"Invalid value of `which_bond` = {which_bond_}")
 
-        # self.which_bond = opts.get("which_bond", "middle")
-        # self.which_bond = self.L // 2 if self.which_bond == "middle" is None or self.which_bond == -1 else self.which_bond
         self.conv_tol = opts.get("conv_tol", 1e-12)
         self.training = opts.get("training", True)
         self.save_tensors = opts.get("save_tensors", True)
@@ -149,11 +147,15 @@ class DMRGRunner:
         energy, \
         entropy, \
         schmidt_vals, \
-        t_dmrg = ground_state_Z2(
+        t_dmrg, \
+        tensors = ground_state_Z2(
             args_mps=args_mps,
             multpr=self.multiprocessing,
             interval=self.interval
         )
+
+        print(f" >>> tensors length: {len(tensors)}")
+        print(f" >>> tensors[0] length: {len(tensors[0])}")
 
         return DMRGData(
             args_mps=args_mps,
@@ -161,18 +163,20 @@ class DMRGRunner:
             energies=energy,
             entropies=entropy,
             schmidt_vals=schmidt_vals,
-            t_dmrg=t_dmrg
+            t_dmrg=t_dmrg,
+            tensors=tensors
         )
 
 
 class DMRGData:
-    def __init__(self, args_mps, interval, energies, entropies, schmidt_vals, t_dmrg):
+    def __init__(self, args_mps, interval, energies, entropies, schmidt_vals, t_dmrg, tensors):
         self.args_mps = args_mps
         self.interval = interval
         self.energies = energies
         self.entropies = entropies
         self.schmidt_vals = schmidt_vals
         self.times = t_dmrg
+        self.tensors = tensors
 
 
     def save(self, obj: str | h5py.File | h5py.Group, mode='w-'):
@@ -197,7 +201,7 @@ class DMRGData:
             self.save_schmidt_vals(file, coupling_index="all")
         for k, coupling in enumerate(self.interval):
             print(f" ** saving for k={k} (g = {coupling})")
-            group = file.create_group(f"couling_index_{k}")
+            group = file.create_group(f"coupling_index_{k}")
             group.attrs['coupling'] = coupling
             if self.args_mps['training']:
                 self.save_training(group, coupling_index=k)
