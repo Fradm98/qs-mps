@@ -83,6 +83,13 @@ parser.add_argument(
     default="obc",
     type=str,
 )
+parser.add_argument(
+    "-p",
+    "--prec",
+    help="Precision of the coupling constant",
+    default=None,
+    type=int,
+)
 
 args = parser.parse_args()
 
@@ -93,10 +100,16 @@ d = int(2 ** (args.l))
 if args.interval == "lin":
     interval = np.linspace(args.h_i, args.h_f, args.npoints)
     num = (interval[-1] - interval[0]) / args.npoints
-    precision = get_precision(num)
+    if args.prec == None:
+        precision = get_precision(num)
+    else:
+        precision = args.prec
 elif args.interval == "log":
     interval = np.logspace(args.h_i, args.h_f, args.npoints)
-    precision = int(np.max([np.abs(args.h_f), np.abs(args.h_i)]))
+    if args.prec == None:
+        precision = int(np.max([np.abs(args.h_f), np.abs(args.h_i)]))
+    else:
+        precision = args.prec
 
 # take the path and precision to save files
 # if we want to save the tensors we save them locally because they occupy a lot of memory

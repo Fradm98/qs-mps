@@ -398,7 +398,31 @@ def potential_second_discrete_derivative(
     sec_der = (R**3) / (2 * (a**2)) * (pot_ex_plus + pot_ex_minus - 2 * pot_ex)
     sec_der_err = (R**3) / (2 * (a**2)) * np.sqrt(pot_ex_plus_err**2 + pot_ex_minus_err**2 + 4 * pot_ex_err**2)
     return sec_der, sec_der_err
-    
+
+def potential_second_discrete_derivative_varying_g(
+    gs: np.ndarray,
+    R: int,
+    l: int,
+    Ls: int,
+    chis: list,
+    bc: str = None,
+    sector: str = None,
+    h_i: float = None,
+    h_f: float = None,
+    npoints: int = None,
+    path_tensor: str = None,
+    cx: list = None,
+    cy: list = None,
+    r_thr: float = 4 / 5,
+    a: int = 2,
+):
+    luschers, luschers_err = [], []
+    for g in gs:
+        luscher, luscher_err = potential_second_discrete_derivative(g,R,l,Ls,chis,bc,sector,h_i,h_f,npoints,path_tensor,cx,cy,r_thr,a)
+        luschers.append(luscher)
+        luschers_err.append(luscher_err)
+    return luschers, luschers_err
+
 def connected_electric_energy_density(
     g: float,
     R: int,
