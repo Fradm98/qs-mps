@@ -2,7 +2,7 @@ import json
 from itertools import product
 
 
-def read_json(filename):
+def read_json(filename) -> dict:
     with open(filename, 'r') as file:
         content = json.load(file)
     return content
@@ -28,10 +28,18 @@ def unpack_opts(input_opts: dict) -> dict:
     for k in ('L', 'l', 'chi'):
         other_opts.pop(k)
 
-    opts_list = [
-        dict(L=L, l=l, chi=chi, **other_opts)
-        for l, L, chi in product(nrungs, lengths, chis)
-    ]
+    if "string_length" in input_opts:
+        string_lengths = assure_list(input_opts['string_length'])
+        other_opts.pop('string_length')
+        opts_list = [
+            dict(l=l, L=L, chi=chi, string_length=sl, **other_opts)
+            for l, L, chi, sl in product(nrungs, lengths, chis, string_lengths)
+        ]
+    else:
+        opts_list = [
+            dict(l=l, L=L, chi=chi, **other_opts)
+            for l, L, chi in product(nrungs, lengths, chis)
+        ]
 
     return opts_list
 
