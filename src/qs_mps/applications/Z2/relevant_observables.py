@@ -297,8 +297,8 @@ def potential_fit_ext(R, sigma, mu, gamma, delta): # add: bool=False
     return sigma * R + mu + gamma / R + delta / (R**3)
 
 
-def fitting(Rs, potentials, errors, fit="norm"):
-    if fit == "norm":
+def fitting(Rs, potentials, errors, fit="first"):
+    if fit == "first":
         popt, pcov = curve_fit(potential_fit, Rs, potentials, sigma=errors)
     elif fit == "ext":
         popt, pcov = curve_fit(potential_fit_ext, Rs, potentials, sigma=errors)
@@ -306,7 +306,7 @@ def fitting(Rs, potentials, errors, fit="norm"):
     return popt, errs
 
 
-def fit_luscher_term_g(g, Rs, l, Ls, chis, bc, sector, h_i, h_f, npoints, path_tensor, cx=None, cy=None, fit="norm"):
+def fit_luscher_term_g(g, Rs, l, Ls, chis, bc, sector, h_i, h_f, npoints, path_tensor, cx=None, cy=None, fit="first"):
     pot, err = static_potential_varying_R(
         g, Rs, l, Ls, chis, bc, sector, h_i, h_f, npoints, path_tensor, cx, cy
     )
@@ -328,7 +328,7 @@ def fit_string_tension_g(
     return term, term_err
 
 
-def fit_luscher(gs, Rs, l, Ls, chis, bc, sector, h_i, h_f, npoints, path_tensor, cx=None, cy=None, fit="norm"):
+def fit_luscher(gs, Rs, l, Ls, chis, bc, sector, h_i, h_f, npoints, path_tensor, cx=None, cy=None, fit="first"):
     luschers = []
     luscher_errs = []
     for g in gs:
