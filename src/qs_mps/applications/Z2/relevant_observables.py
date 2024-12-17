@@ -151,7 +151,7 @@ def static_potential_exact_chi(
     path_tensor: str = None,
     cx: list = None,
     cy: list = None,
-    g_thr: float = 1,
+    g_thr: float = 0.4,
 ):
     potentials = static_potential_chis(
         g, R, l, L, chis, bc, sector, h_i, h_f, npoints, path_tensor, cx, cy
@@ -317,12 +317,11 @@ def fit_luscher_term_g(g, Rs, l, Ls, chis, bc, sector, h_i, h_f, npoints, path_t
 
 
 def fit_string_tension_g(
-    g, Rs, l, Ls, chis, bc, sector, h_i, h_f, npoints, path_tensor, cx=None, cy=None
-):
+    g, Rs, l, Ls, chis, bc, sector, h_i, h_f, npoints, path_tensor, cx=None, cy=None, fit="first"):
     pot, err = static_potential_varying_R(
         g, Rs, l, Ls, chis, bc, sector, h_i, h_f, npoints, path_tensor, cx, cy
     )
-    popt, errs = fitting(Rs, pot, err)
+    popt, errs = fitting(Rs, pot, err, fit)
     term = popt[0]
     term_err = errs[0]
     return term, term_err
@@ -340,12 +339,12 @@ def fit_luscher(gs, Rs, l, Ls, chis, bc, sector, h_i, h_f, npoints, path_tensor,
     return luschers, luscher_errs
 
 
-def fit_string_tension(gs, Rs, l, Ls, chis, bc, sector, h_i, h_f, npoints, path_tensor, cx=None, cy=None):
+def fit_string_tension(gs, Rs, l, Ls, chis, bc, sector, h_i, h_f, npoints, path_tensor, cx=None, cy=None, fit="first"):
     sigmas = []
     sigmas_errs = []
     for g in gs:
         sigma, luscher_err = fit_string_tension_g(
-            g, Rs, l, Ls, chis, bc, sector, h_i, h_f, npoints, path_tensor, cx, cy
+            g, Rs, l, Ls, chis, bc, sector, h_i, h_f, npoints, path_tensor, cx, cy, fit
         )
         sigmas.append(sigma)
         sigmas_errs.append(luscher_err)
@@ -374,6 +373,30 @@ def potential_first_discrete_derivative(
     first_der = (pot_ex - pot_ex_minus) / a
     first_der_err = (1 / a) * np.sqrt(pot_ex_err**2 + pot_ex_minus_err**2)
     return first_der, first_der_err
+
+def potential_first_discrete_derivative_varying_g(
+    gs: np.ndarray,
+    R: int,
+    l: int,
+    Ls: int,
+    chis: list,
+    bc: str = None,
+    sector: str = None,
+    h_i: float = None,
+    h_f: float = None,
+    npoints: int = None,
+    path_tensor: str = None,
+    cx: list = None,
+    cy: list = None,
+    r_thr: float = 4 / 5,
+    a: int = 2,
+):
+    sigmas, sigmas_err = [], []
+    for g in gs:
+        sigma, sigma_err = potential_first_discrete_derivative(g,R,l,Ls,chis,bc,sector,h_i,h_f,npoints,path_tensor,cx,cy,r_thr,a)
+        sigmas.append(sigma)
+        sigmas_err.append(sigma_err)
+    return sigmas, sigmas_err
 
 def potential_second_discrete_derivative(
     g: float,
