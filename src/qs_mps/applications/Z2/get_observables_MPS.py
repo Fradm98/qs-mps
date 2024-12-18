@@ -182,13 +182,6 @@ for L in args.Ls:
                 path=path_tensor, precision=precision, cx=charges_x, cy=charges_y
             )
 
-            if lattice_mps.bc == "pbc":
-                a = np.zeros((1,2))
-                a[0,0] = 1
-                extra_ancillary_site = a.reshape((1,2,1))
-                lattice_mps.sites.append(extra_ancillary_site)
-                lattice_mps.L = len(lattice_mps.sites)
-
             if "wl" in args.obs:
                 print(
                     f"wilson loop for h:{h:.{precision}f}, direct lattice lxL:{args.l}x{L}, bc: {args.boundcond}, chi:{chi}"
@@ -293,6 +286,13 @@ for L in args.Ls:
                 C.append(c)
 
             if "en" in args.obs:
+                if lattice_mps.bc == "pbc":
+                    a = np.zeros((1,2))
+                    a[0,0] = 1
+                    extra_ancillary_site = a.reshape((1,2,1))
+                    lattice_mps.sites.append(extra_ancillary_site)
+                    lattice_mps.L = len(lattice_mps.sites)
+
                 print(
                     f"Ground state energy for h:{h:.{precision}f}, direct lattice lxL:{args.l}x{L}, bc: {args.boundcond}, chi:{chi}"
                 )
