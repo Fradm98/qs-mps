@@ -726,24 +726,24 @@ class MPO_ladder:
         self.mpo_skeleton(aux_dim=3)
         mpo_list = []
         for c in range(self.L):
-            if c == site - 1:
-                # prepare the ZZ interaction for the link 1
-                self.mpo[0, 1] = sparse_pauli_z(n=ladder, L=self.l).toarray()
+            # if c == site - 1:
+            #     # prepare the ZZ interaction for the link 1
+            #     self.mpo[0, 1] = sparse_pauli_z(n=ladder, L=self.l).toarray()
 
             if c == site:
-                # prepare the ZZ interaction for the link 3
-                self.mpo[0, 1] = sparse_pauli_z(n=ladder, L=self.l).toarray()
-                # finish the ZZ interaction for the link 1
-                if cc == "h":
-                    coeff = 1
-                elif cc == "v":
-                    coeff = self.charge_coeff_interaction(n=ladder + 1, mpo_site=c)
-                self.mpo[1, -1] = (
-                    -(1 / 2)
-                    * self.lamb
-                    * coeff
-                    * sparse_pauli_z(n=ladder, L=self.l).toarray()
-                )  # link 1 is shared between two plaquettes
+                # # prepare the ZZ interaction for the link 3
+                # self.mpo[0, 1] = sparse_pauli_z(n=ladder, L=self.l).toarray()
+                # # finish the ZZ interaction for the link 1
+                # if cc == "h":
+                #     coeff = 1
+                # elif cc == "v":
+                #     coeff = self.charge_coeff_interaction(n=ladder + 1, mpo_site=c)
+                # self.mpo[1, -1] = (
+                #     -(1 / 2)
+                #     * self.lamb
+                #     * coeff
+                #     * sparse_pauli_z(n=ladder, L=self.l).toarray()
+                # )  # link 1 is shared between two plaquettes
 
                 if ladder == 0:
                     if cc == "h":
@@ -835,18 +835,18 @@ class MPO_ladder:
                             ).toarray()
                         )  # link 4 bulk is shared between the first and last plaquette for pbc
 
-            if c == site + 1:
-                # finish the ZZ interaction for the link 3
-                if cc == "h":
-                    coeff = 1
-                elif cc == "v":
-                    coeff = self.charge_coeff_interaction(n=ladder + 1, mpo_site=c)
-                self.mpo[1, -1] = (
-                    -(1 / 2)
-                    * self.lamb
-                    * coeff
-                    * sparse_pauli_z(n=ladder, L=self.l).toarray()
-                )  # link 3 is shared between two plaquettes
+            # if c == site + 1:
+            #     # finish the ZZ interaction for the link 3
+            #     if cc == "h":
+            #         coeff = 1
+            #     elif cc == "v":
+            #         coeff = self.charge_coeff_interaction(n=ladder + 1, mpo_site=c)
+            #     self.mpo[1, -1] = (
+            #         -(1 / 2)
+            #         * self.lamb
+            #         * coeff
+            #         * sparse_pauli_z(n=ladder, L=self.l).toarray()
+            #     )  # link 3 is shared between two plaquettes
 
             mpo_list.append(self.mpo)
             self.mpo_skeleton(aux_dim=3)
