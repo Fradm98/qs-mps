@@ -151,7 +151,7 @@ def static_potential_exact_chi(
     path_tensor: str = None,
     cx: list = None,
     cy: list = None,
-    g_thr: float = 1,
+    g_thr: float = 20,
 ):
     potentials = static_potential_chis(
         g, R, l, L, chis, bc, sector, h_i, h_f, npoints, path_tensor, cx, cy
