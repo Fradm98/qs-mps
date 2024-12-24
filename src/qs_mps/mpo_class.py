@@ -1230,10 +1230,8 @@ class MPO_ladder:
         self.mpo_skeleton(aux_dim=3)
         self.l = l_aux
         
-        coeff = np.prod(np.prod(self.charges, axis=1).tolist()[: file + 1])
-        self.mpo[1, -1] = (
-                -self.lamb * coeff * sparse_pauli_z(n=0, L=1).toarray()
-            )
+        # coeff = np.prod(np.prod(self.charges, axis=1).tolist()[: file + 1])
+        self.mpo[1, -1] = sparse_pauli_z(n=0, L=1).toarray()
         self.mpo = self.mpo[:, -1].reshape((3, 1, 2, 2))
         mpo_list.append(self.mpo)
 

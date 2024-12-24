@@ -1243,9 +1243,8 @@ class MPS:
                 #     mpo_site=mpo_site, l=l
                 # )
                         self.Z2.mpo_Z2_vertical_right_edges_pbc(file=l)
-                        # prod_charges = np.prod(self.charges, axis=1).tolist()
-                        # coeff = np.prod(prod_charges[: l + 1])
-                        coeff = 1
+                        prod_charges = np.prod(self.charges, axis=1).tolist()
+                        coeff = np.prod(prod_charges[: l + 1])
                         self.w = self.Z2.mpo.copy()
                         E_v.append(coeff * self.mpo_first_moment().real)
                     
