@@ -1197,24 +1197,44 @@ class MPO_ladder:
         return pauli.toarray()
 
     def mpo_Z2_vertical_right_edges_pbc(self, file):
+        # mpo_list = []
+        # self.mpo_skeleton()
+        # for c in range(self.L):
+        #     if c == self.L - 1:
+        #         self.mpo[0, file + 1] = sparse_pauli_z(n=file, L=self.l).toarray()
+        #     mpo_list.append(self.mpo)
+        #     self.mpo_skeleton()
+
+        # l_aux = self.l
+        # self.l = 1
+        # self.mpo_skeleton(aux_dim=(l_aux + 2))
+        # self.l = l_aux
+        # for f in range(self.l):
+        #     coeff = np.prod(np.prod(self.charges, axis=1).tolist()[: f + 1])
+        #     self.mpo[f + 1, -1] = (
+        #         -self.lamb * coeff * sparse_pauli_z(n=0, L=1).toarray()
+        #     )
+        # self.mpo = self.mpo[:, -1].reshape((self.l + 2, 1, 2, 2))
+        # mpo_list.append(self.mpo)
+
         mpo_list = []
-        self.mpo_skeleton()
+        self.mpo_skeleton(aux_dim=3)
         for c in range(self.L):
             if c == self.L - 1:
-                self.mpo[0, file + 1] = sparse_pauli_z(n=file, L=self.l).toarray()
+                self.mpo[0, 1] = sparse_pauli_z(n=file, L=self.l).toarray()
             mpo_list.append(self.mpo)
-            self.mpo_skeleton()
+            self.mpo_skeleton(aux_dim=3)
 
         l_aux = self.l
         self.l = 1
-        self.mpo_skeleton(aux_dim=(l_aux + 2))
+        self.mpo_skeleton(aux_dim=3)
         self.l = l_aux
-        for f in range(self.l):
-            coeff = np.prod(np.prod(self.charges, axis=1).tolist()[: f + 1])
-            self.mpo[f + 1, -1] = (
+        
+        coeff = np.prod(np.prod(self.charges, axis=1).tolist()[: file + 1])
+        self.mpo[1, -1] = (
                 -self.lamb * coeff * sparse_pauli_z(n=0, L=1).toarray()
             )
-        self.mpo = self.mpo[:, -1].reshape((self.l + 2, 1, 2, 2))
+        self.mpo = self.mpo[:, -1].reshape((3, 1, 2, 2))
         mpo_list.append(self.mpo)
 
         self.mpo = mpo_list
@@ -1278,16 +1298,56 @@ class MPO_ladder:
                     i = 1
             elif direction == "vertical":
                 assert (
-                    0 <= l < self.l - 1
+                    -1 <= l < self.l - 1
                 ), "The mpo ladder is out of bound. Choose it 0 <= site < l-1"
                 if mpo_site == site:
-                    self.mpo[0, -1] = (
-                        sparse_pauli_z(n=l, L=self.l).toarray()
-                        @ sparse_pauli_z(n=l + 1, L=self.l).toarray()
-                    )
+                    if self.bc == "obc":
+                        self.mpo[0, -1] = (
+                            sparse_pauli_z(n=l, L=self.l).toarray()
+                            @ sparse_pauli_z(n=l + 1, L=self.l).toarray()
+                        )
+                    elif self.bc == "pbc":
+                        self.mpo[0, -1] = (
+                            sparse_pauli_z(n=l%self.l, L=self.l).toarray()
+                            @ sparse_pauli_z(n=(l + 1), L=self.l).toarray()
+                        )
 
             mpo_tot.append(self.mpo)
             self.mpo_skeleton(aux_dim=aux_dim)
+
+        self.mpo = mpo_tot
+        return self
+
+    def zz_vertical_right_pbc_Z2_dual(self, mpo_site: int, l: int, aux_dim: int = 2
+    ):
+        """
+        zz_observable_Z2_dual
+
+        This function finds the mpo representing the interacting observales in the
+        dual lattice of the Z2 theory. We make a distinction in the direction of
+        the interaction because in our mps formalism the vertical interaction falls
+        back into a local one.
+
+        """
+        self.mpo_skeleton(aux_dim=aux_dim)
+
+        mpo_tot = []
+        i = 0
+        for site in range(self.L):
+            
+            if (mpo_site + i) == site:
+                    if i == 0:
+                        self.mpo[0, 1] = sparse_pauli_z(n=l, L=self.l).toarray()
+                    else:
+                        self.mpo[1, -1] = sparse_pauli_z(n=0, L=1).toarray()
+                    i = 1
+                
+            mpo_tot.append(self.mpo)
+            self.mpo_skeleton(aux_dim=aux_dim)
+        
+        # self.mpo[1, -1] = sparse_pauli_z(n=0, L=1).toarray()
+        # # self.mpo[1,-1] = self.mpo[1, -1].reshape((2, 1, 2, 2))
+        # mpo_tot.append(self.mpo)
 
         self.mpo = mpo_tot
         return self

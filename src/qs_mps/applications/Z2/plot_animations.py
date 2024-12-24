@@ -109,6 +109,19 @@ parser.add_argument(
     default="lin",
     type=str,
 )
+parser.add_argument(
+    "-bc",
+    "--boundcond",
+    help="Type of boundary conditions. Available are 'obc', 'pbc'",
+    default="pbc",
+    type=str,
+)
+parser.add_argument(
+    "-r",
+    "--rev",
+    help="Reverese the data. For example the parameters swept or the time of an evolution. By default False",
+    action="store_true",
+)
 
 args = parser.parse_args()
 
@@ -158,21 +171,32 @@ for L in args.Ls:
     for chi in args.chis:
         if args.o == "el":
             if args.exact:
-                path_file = f"electric_field_{args.model}_direct_lattice_{args.l-1}x{L-1}_{sector}_{args.charges_x}-{args.charges_y}_h_{args.h_i}-{args.h_f}_delta_{args.npoints}"
+                path_file = f"electric_field_{args.model}_direct_lattice_{args.l}x{L}_{sector}_bc_{args.boundcond}_{args.charges_x}-{args.charges_y}_h_{args.h_i}-{args.h_f}_delta_{args.npoints}"
                 dataname = f"{parent_path}/results/exact/electric_field/{path_file}.npy"
                 savename = (
                     f"{parent_path}/figures/exact/animations/animation_{path_file}.mp4"
                 )
             elif args.time:
-                path_file = f"electric_field_{args.model}_direct_lattice_{args.l}x{L-1}_{sector}_{args.charges_x}-{args.charges_y}_h_i_{args.h_i}_h_ev_{args.h_ev}_delta_{args.delta}_trotter_steps_{args.npoints}_chi_{chi}"
+                path_file = f"electric_field_{args.model}_direct_lattice_{args.l}x{L}_{sector}_bc_{args.boundcond}_{args.charges_x}-{args.charges_y}_h_i_{args.h_i}_h_ev_{args.h_ev}_delta_{args.delta}_trotter_steps_{args.npoints}_chi_{chi}"
                 dataname = f"{parent_path}/results/electric_field/{path_file}.npy"
                 savename = f"{parent_path}/figures/animations/animation_{path_file}.mp4"
             else:
-                path_file = f"electric_field_{args.model}_direct_lattice_{args.l}x{L-1}_{sector}_{args.charges_x}-{args.charges_y}_h_{args.h_i}-{args.h_f}_delta_{args.npoints}_chi_{chi}"
+                path_file = f"electric_field_{args.model}_direct_lattice_{args.l}x{L}_{sector}_bc_{args.boundcond}_{args.charges_x}-{args.charges_y}_h_{args.h_i}-{args.h_f}_delta_{args.npoints}_chi_{chi}"
                 dataname = f"{parent_path}/results/electric_field/{path_file}.npy"
-                savename = f"{parent_path}/figures/animations/animation_{path_file}.mp4"
+                savename = f"{parent_path}/figures/animations/animation_{path_file}.gif"
 
             data = np.load(dataname)
+            if args.rev:
+                datalist = data.tolist()
+                datalist.reverse()
+                data = np.asarray(datalist)
+
+                intlist = interval.tolist()
+                intlist.reverse()
+                interval = np.asarray(intlist)
+
+                savename = f"{parent_path}/figures/animations/animation_reversed_{path_file}.gif"
+
 
         movie = anim(
             frames=args.npoints,

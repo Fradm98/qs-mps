@@ -175,6 +175,7 @@ for L in args.Ls:
 
             if sector != "vacuum_sector":
                 lattice_mps.Z2.add_charges(charges_x, charges_y)
+                lattice_mps.charges = lattice_mps.Z2.charges
                 lattice_mps.Z2._define_sector()
             else:
                 lattice_mps.Z2._define_sector()
@@ -228,7 +229,16 @@ for L in args.Ls:
                 print(
                     f"electric field for h:{h:.{precision}f}, direct lattice lxL:{args.l}x{L}, bc: {args.boundcond}, chi:{chi}"
                 )
-                E_h = np.zeros((2 * args.l + 1, 2 * L + 1))
+                if lattice_mps.bc == "obc":
+                    E_h = np.zeros((2 * args.l + 1, 2 * L + 1))
+                if lattice_mps.bc == "pbc":
+                    E_h = np.zeros((2 * args.l, 2 * L + 1))
+                    # a = np.zeros((1,2))
+                    # a[0,0] = 1
+                    # extra_ancillary_site = a.reshape((1,2,1))
+                    # lattice_mps.sites.append(extra_ancillary_site)
+                    # lattice_mps.L = len(lattice_mps.sites)
+
                 E_h[:] = np.nan
                 E_h = lattice_mps.electric_field_Z2(E_h)
                 E.append(E_h)

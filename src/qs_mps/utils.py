@@ -1198,7 +1198,7 @@ def anim(
         if time:
             title.set_text(f"Trotter step: {param_frame:.{precision}f}")
         else:
-            title.set_text(f"Magnetic term: {param_frame:.{precision}f}")
+            title.set_text(f"$g: {param_frame:.{precision}f}$")
         # Set colorbar
         # cbar.set(im, ax=ax)
 
@@ -1219,7 +1219,7 @@ def anim(
 
 def get_cx(L, R):
     assert 0 < R < L, "The fluxtube is longer than the lattice length"
-    return [L // 2 - R // 2, L // 2 + R // 2]
+    return [int(L / 2 - R / 2), int(L / 2 + R / 2)]
 
 
 def get_cy(l):
