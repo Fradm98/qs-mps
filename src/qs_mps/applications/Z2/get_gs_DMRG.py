@@ -2,7 +2,7 @@ import argparse
 import numpy as np
 import datetime as dt
 from qs_mps.mps_class import MPS
-from qs_mps.utils import get_precision, save_list_of_lists, access_txt
+from qs_mps.utils import get_precision, save_list_of_lists, access_txt, get_cx, get_cy
 from qs_mps.applications.Z2.ground_state_multiprocessing import ground_state_Z2
 import sys
 import time
@@ -50,6 +50,13 @@ parser.add_argument(
     "--charges_y",
     help="a list of the second index of the charges",
     nargs="*",
+    type=int,
+)
+parser.add_argument(
+    "-R",
+    "--length",
+    help="String length in the two particle sector. By default 0 means we are in the vacuum",
+    default=0,
     type=int,
 )
 parser.add_argument(
@@ -185,6 +192,9 @@ for L in args.Ls:
     elif args.where == -2:
         args.bond = False
 
+    if args.length != 0:
+        charges_x = get_cx(L, args.length)
+        charges_y = get_cy(args.l, args.boundcond)
     # init_state = np.zeros((d))
     # init_state[0] = 1
     # init_state = init_state.reshape((1,d,1))

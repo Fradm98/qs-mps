@@ -1222,5 +1222,8 @@ def get_cx(L, R):
     return [int(L / 2 - R / 2), int(L / 2 + R / 2)]
 
 
-def get_cy(l):
-    return [l // 2, l // 2]
+def get_cy(l, bc):
+    if bc == "pbc":
+        return [0,0]
+    elif bc == "obc":
+        return [l // 2, l // 2]
