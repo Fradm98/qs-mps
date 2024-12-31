@@ -240,9 +240,9 @@ for L in args.Ls:
 
             if args.training:
                 energy_chi = np.asarray(energy_chi)
-                print(energy_chi.shape, energy_chi)
+                print(energy_chi.shape, energy_chi[-1])
                 energy_chi = energy_chi.reshape((len(interval), len(energy_chi[0])))
-                print(energy_chi.shape)
+                # print(energy_chi.shape)
                 np.save(
                     f"{parent_path}/results/energy_data/energies_{args.model}_direct_lattice_{args.l}x{L}_{sector}_bc_{args.boundcond}_{charges_x}-{charges_y}_h_{args.h_i}-{args.h_f}_delta_{args.npoints}_chi_{chi}",
                     energy_chi,
@@ -269,6 +269,7 @@ for L in args.Ls:
             #     f"{parent_path}/results/entropy_data/{args.where}_schmidt_vals_{args.model}_direct_lattice_{args.l}x{L}_{sector}_bc_{args.boundcond}_{charges_x}-{charges_y}_h_{args.h_i}-{args.h_f}_delta_{args.npoints}_chi_{chi}",
             #     schmidt_vals_chi,
             # )
+            print(schmidt_vals_chi)
             np.save(
                 f"{parent_path}/results/entropy_data/{args.where}_schmidt_vals_{args.model}_direct_lattice_{args.l}x{L}_{sector}_bc_{args.boundcond}_{charges_x}-{charges_y}_h_{args.h_i}-{args.h_f}_delta_{args.npoints}_chi_{chi}.npy",
                 schmidt_vals_chi,
