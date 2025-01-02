@@ -2756,7 +2756,7 @@ class MPS:
             self.w = self.Z2.mpo
             self.mpo_to_mps()
 
-            self.Z2.mpo_Z2_quench_tot(delta=delta, h_ev=h_ev)
+            self.Z2.mpo_Z2_quench_int(delta=delta, h_ev=h_ev)
             self.w = self.Z2.mpo
 
             print(f"Bond dim ancilla: {self.ancilla_sites[self.L//2].shape[0]}")
@@ -2853,7 +2853,7 @@ class MPS:
         self.w = self.Z2.mpo
         self.mpo_to_mps()
 
-        self.Z2.mpo_Z2_quench_tot(delta=delta, h_ev=h_ev)
+        self.Z2.mpo_Z2_quench_int(delta=delta, h_ev=h_ev)
         self.w = self.Z2.mpo
 
         print(f"Bond dim ancilla: {self.ancilla_sites[self.L//2].shape[0]}")

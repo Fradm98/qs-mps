@@ -902,7 +902,7 @@ class MPO_ladder:
             w_init_X = np.array([[I]])
             for l in range(self.l):
                 X_l = sparse_pauli_x(n=l, L=self.l).toarray()
-                w_init_X_l = np.array([[linalg.expm(1j * (1 / h_ev) * delta * X_l)]])
+                w_init_X_l = np.array([[linalg.expm(1j * (1 / h_ev) * (delta / 2) * X_l)]])
                 w_init_X = ncon(
                     [w_init_X_l, w_init_X], [[-1, -3, 1, -6], [-2, -4, -5, 1]]
                 ).reshape((1, 1, w_init_X.shape[2], w_init_X_l.shape[3]))
@@ -910,18 +910,23 @@ class MPO_ladder:
         self.mpo = w_tot
         return self
 
-    def mpo_Z2_quench_tot(self, delta, h_ev):
+    def mpo_Z2_quench_int(self, delta, h_ev, cc: str="h"):
         I = identity(2**self.l, dtype=complex).toarray()
+        prod_charges = np.prod(self.charges, axis=1).tolist()
 
         w_tot = []
-        for mpo_site in range(self.L - 1):
+        for mpo_site in range(self.L):
             w_l = np.array([[I]])
-            for l in range(1, self.l + 1):
-                Z = sparse_pauli_z(n=l - 1, L=self.l).toarray()
-                c_loc = self.charge_coeff_local_Z(n=l, mpo_site=mpo_site)
+            for l in range(self.l):
+                Z = sparse_pauli_z(n=l, L=self.l).toarray()
+                if cc == "v":
+                    c_loc = self.charge_coeff_local_Z(n=l+1, mpo_site=mpo_site)
+                    c_int = self.charge_coeff_interaction(n=l+1, mpo_site=mpo_site)
+                elif cc == "h":
+                    c_loc = 1
+                    c_int = 1
                 w_loc = np.array(linalg.expm(1j * c_loc * h_ev * delta * Z))
 
-                c_int = self.charge_coeff_interaction(n=l, mpo_site=mpo_site)
                 w_even = np.array(
                     [
                         [
@@ -943,6 +948,7 @@ class MPO_ladder:
                 )
                 w_odd = np.swapaxes(w_odd, axis1=0, axis2=1)
                 if mpo_site == 0:
+                    # vertical links left edge - local and even terms
                     w_l = ncon(
                         [w_loc, w_even, w_l],
                         [[-5, 2], [-1, -3, 2, 1], [-2, -4, 1, -6]],
@@ -954,39 +960,101 @@ class MPO_ladder:
                             w_l.shape[-1],
                         )
                     )
-                elif mpo_site == self.L - 2:
-                    w_l = ncon(
-                        [w_loc, w_odd, w_l],
-                        [[-5, 2], [-1, -3, 2, 1], [-2, -4, 1, -6]],
-                    ).reshape(
-                        (
-                            w_l.shape[0] * w_odd.shape[0],
-                            w_l.shape[1] * w_odd.shape[1],
-                            w_loc.shape[0],
-                            w_l.shape[-1],
+                elif mpo_site == self.L - 1:
+                    # vertical links right edge - even terms
+                    if self.bc == "obc":
+                        w_l = ncon(
+                            [w_loc, w_odd, w_l],
+                            [[-5, 2], [-1, -3, 2, 1], [-2, -4, 1, -6]],
+                        ).reshape(
+                            (
+                                w_l.shape[0] * w_odd.shape[0],
+                                w_l.shape[1] * w_odd.shape[1],
+                                w_loc.shape[0],
+                                w_l.shape[-1],
+                            )
                         )
-                    )
+                    elif self.bc == "pbc":
+                        coeff = np.prod(prod_charges[: l + 1])
+                        w_l = coeff * ncon(
+                            [w_even, w_odd, w_l],
+                            [[-1, -4, 1, -8], [-2, -5, 2, 1], [-3, -6, -7, 2]],
+                        ).reshape(
+                            (
+                                w_l.shape[0] * w_odd.shape[0] * w_even.shape[0],
+                                w_l.shape[1] * w_odd.shape[1] * w_even.shape[1],
+                                w_l.shape[2],
+                                w_even.shape[-1],
+                            )
+                        )
                 else:
+                    # vertical links bulk - even/odd terms
                     w_l = ncon(
-                        [w_loc, w_even, w_odd, w_l],
-                        [[-7, 3], [-1, -4, 3, 2], [-2, -5, 2, 1], [-3, -6, 1, -8]],
+                        [w_even, w_odd, w_l],
+                        [[-1, -4, 1, -8], [-2, -5, 2, 1], [-3, -6, -7, 2]],
                     ).reshape(
                         (
                             w_l.shape[0] * w_odd.shape[0] * w_even.shape[0],
                             w_l.shape[1] * w_odd.shape[1] * w_even.shape[1],
-                            w_loc.shape[0],
-                            w_l.shape[-1],
+                            w_l.shape[2],
+                            w_even.shape[-1],
                         )
                     )
 
-            for l in range(1, self.l):
-                Z_ll = (
-                    sparse_pauli_z(n=l - 1, L=self.l) @ sparse_pauli_z(n=l, L=self.l)
-                ).toarray()
-                w_int_loc = np.array(linalg.expm(1j * h_ev * delta * Z_ll))
-                w_l = ncon([w_int_loc, w_l], [[-3, 1], [-1, -2, 1, -4]])
+            w_l = np.array([[I]])
+            if self.bc == "obc":
+                # horizontal links up/bulk/bottom - local terms
+                # up
+                coeff = np.prod(self.charges[0, : mpo_site + 1])
+                Z_l = coeff * sparse_pauli_z(n=0, L=self.l).toarray()
+                w_loc = np.array(linalg.expm(1j * h_ev * delta * Z_l))
+                w_l = ncon([w_loc, w_l], [[-3, 1], [-1, -2, 1, -4]])
+                # w_tot.append(w_l)
+                # bulk
+                for l in range(self.l-1):
+                    coeff = np.prod(self.charges[l + 1, : mpo_site + 1])
+                    Z_ll = coeff * (
+                        sparse_pauli_z(n=l, L=self.l) @ sparse_pauli_z(n=l + 1, L=self.l)
+                    ).toarray()
+                    w_int_loc = np.array(linalg.expm(1j * h_ev * delta * Z_ll))
+                    w_l = ncon([w_int_loc, w_l], [[-3, 1], [-1, -2, 1, -4]])
+                    # w_tot.append(w_l)
+                
+                l += 1
+                # bottom
+                coeff = np.prod(self.charges[l + 1, : mpo_site + 1])
+                Z_l = coeff * sparse_pauli_z(n=l, L=self.l).toarray()
+                w_loc = np.array(linalg.expm(1j * h_ev * delta * Z_l))
+                w_l = ncon([w_loc, w_l], [[-3, 1], [-1, -2, 1, -4]])
+                
+                w_tot.append(w_l)
+            
+            elif self.bc == "pbc":
+                # horizontal links bulk - local terms
+                for l in range(self.l):
+                    coeff = np.prod(self.charges[(l + 1) % self.l, : mpo_site + 1])
+                    Z_ll = coeff * (
+                        sparse_pauli_z(n=l, L=self.l) @ sparse_pauli_z(n=(l + 1) % self.l, L=self.l)
+                    ).toarray()
+                    w_int_loc = np.array(linalg.expm(1j * h_ev * delta * Z_ll))
+                    w_l = ncon([w_int_loc, w_l], [[-3, 1], [-1, -2, 1, -4]])
+                    # w_tot.append(w_l)
 
-            w_tot.append(w_l)
+                w_tot.append(w_l)
+
+        if self.bc == "pbc":
+            # vertical links right edge - odd term (ancillary site)
+            Z = sparse_pauli_z(n=0, L=1).toarray()
+            I = identity(2, dtype=complex).toarray()
+            w_odd = np.array(
+                    [
+                        [
+                            np.sqrt(np.cos(c_int * h_ev * delta)) * I,
+                            np.sqrt(np.sin(np.abs(c_int) * h_ev * delta)) * Z,
+                        ]
+                    ]
+                )
+            w_tot.append(w_odd)
 
         self.mpo = w_tot
         return self
