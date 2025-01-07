@@ -2751,33 +2751,14 @@ class MPS:
         for trott in range(trotter_steps):
             print(f"------ Trotter steps: {trott} -------")
 
-            # start with the half mu_x on each ladder
-            self.Z2._initialize_finalize_quench_local(delta=delta, h_ev=h_ev)
-            self.w = self.Z2.mpo
-            self.mpo_to_mps()
-
-            self.Z2.mpo_Z2_quench_int(delta=delta, h_ev=h_ev)
-            self.w = self.Z2.mpo
-
-            print(f"Bond dim ancilla: {self.ancilla_sites[self.L//2].shape[0]}")
-            print(f"Bond dim site: {self.sites[self.L//2].shape[0]}")
-
-            # compress the ladder evolution operator
-            error, entropy = self.compression(
-                trunc_tol=False,
-                trunc_chi=True,
+            error, entropy, schmidt_vals = self.TEBD_variational_Z2_trotter_step(
+                delta=delta,
+                h_ev=h_ev,
                 n_sweeps=n_sweeps,
                 conv_tol=conv_tol,
                 bond=bond,
-                where=where,
+                where=where
             )
-
-            # finish with the other half mu_x on each ladder
-            self.Z2._initialize_finalize_quench_local(delta=delta, h_ev=h_ev)
-            self.w = self.Z2.mpo
-            self.mpo_to_mps()
-
-            self.ancilla_sites = self.sites.copy()
 
             # electric field
             E_h = np.zeros((2 * self.Z2.l + 1, 2 * self.Z2.L - 1))
@@ -2819,7 +2800,6 @@ class MPS:
 
     def TEBD_variational_Z2_trotter_step(
         self,
-        trotter_step: int,
         delta: float,
         h_ev: float,
         n_sweeps: int = 2,
@@ -2828,12 +2808,17 @@ class MPS:
         where: int = -1,
     ):
         """
-        variational_mps_evolution
+        TEBD variational Z2 trotter step
 
-        This function computes the magnetization and (on demand) the fidelity
-        of the trotter evolved MPS by the MPO direct application.
+        This function computes one trotter step for the evolution of
+        a state using the Z2 Dual hamiltonian. We use a second order trotterization
+        where the local (magnetization/plaquette) term sandwiches the
+        interaction (electric/string) term. Whilst the local term is applied
+        as a block for all the ladders, the interaction term is applied ladder
+        per ladder to reduce the total bond dimension of the mpo.
+        Hence, the compression algorithm should work faster and give accurate
+        approximation of the initial state.  
 
-        trotter_steps: int - number of times we apply the mpo to the mps
         delta: float - time interval which defines the evolution per step
         h_ev: float - value of the external field in the evolving hamiltonian
         flip: bool - flip the initial state middle qubit
@@ -2845,31 +2830,30 @@ class MPS:
                 By default True
 
         """
-
-        print(f"------ Trotter steps: {trotter_step} -------")
-
-        # start with the half mu_x on each ladder
+        # start with the half mu_x before the ladder interacton evolution operator
         self.Z2._initialize_finalize_quench_local(delta=delta, h_ev=h_ev)
         self.w = self.Z2.mpo
         self.mpo_to_mps()
 
-        self.Z2.mpo_Z2_quench_int(delta=delta, h_ev=h_ev)
-        self.w = self.Z2.mpo
+        # apply the interaction operator one ladder per time
+        for l in range(self.l):
+            self.Z2.mpo_Z2_ladder_quench_int(delta=delta, h_ev=h_ev, l=l)
+            self.w = self.Z2.mpo
 
-        print(f"Bond dim ancilla: {self.ancilla_sites[self.L//2].shape[0]}")
-        print(f"Bond dim site: {self.sites[self.L//2].shape[0]}")
+            print(f"Bond dim ancilla: {self.ancilla_sites[self.L//2].shape[0]}")
+            print(f"Bond dim site: {self.sites[self.L//2].shape[0]}")
 
-        # compress the ladder evolution operator
-        error, entropy, schmidt_values = self.compression(
-            trunc_tol=False,
-            trunc_chi=True,
-            n_sweeps=n_sweeps,
-            conv_tol=conv_tol,
-            bond=bond,
-            where=where,
-        )
+            # compress the ladder evolution operator
+            error, entropy, schmidt_values = self.compression(
+                trunc_tol=False,
+                trunc_chi=True,
+                n_sweeps=n_sweeps,
+                conv_tol=conv_tol,
+                bond=bond,
+                where=where,
+            )
 
-        # finish with the other half mu_x on each ladder
+        # finish with the other half mu_x after the ladder interacton evolution operator
         self.Z2._initialize_finalize_quench_local(delta=delta, h_ev=h_ev)
         self.w = self.Z2.mpo
         self.mpo_to_mps()
