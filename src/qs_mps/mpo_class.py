@@ -898,13 +898,13 @@ class MPO_ladder:
     def _initialize_finalize_quench_local(self, delta, h_ev):
         I = identity(2**self.l, dtype=complex).toarray()
         w_tot = []
-        for _ in range(self.L - 1):
+        for _ in range(self.L):
             w_init_X = np.array([[I]])
             for l in range(self.l):
                 X_l = sparse_pauli_x(n=l, L=self.l).toarray()
                 w_init_X_l = np.array([[linalg.expm(1j * (1 / h_ev) * (delta / 2) * X_l)]])
                 w_init_X = ncon(
-                    [w_init_X_l, w_init_X], [[-1, -3, 1, -6], [-2, -4, -5, 1]]
+                    [w_init_X_l, w_init_X], [[-1, -3, -5, 1], [-2, -4, 1, -6]]
                 ).reshape((1, 1, w_init_X.shape[2], w_init_X_l.shape[3]))
             w_tot.append(w_init_X)
         self.mpo = w_tot
@@ -1057,6 +1057,7 @@ class MPO_ladder:
                         ]
                     ]
                 )
+            w_odd_re = np.swapaxes(w_odd_re, axis1=0, axis2=1)
             w_tot.append(w_odd_re)
 
         self.mpo = w_tot

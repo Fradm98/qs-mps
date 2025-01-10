@@ -2,7 +2,7 @@ import numpy as np
 import h5py
 
 from scipy.sparse import csr_matrix, csr_array, identity
-from scipy.linalg import expm, solve
+from scipy.linalg import expm, solve, norm
 import scipy.linalg as la
 import scipy.sparse.linalg as spla
 
@@ -16,9 +16,11 @@ from qs_mps.sparse_hamiltonians_and_operators import (
     exact_evolution_sparse,
     sparse_ising_ground_state,
     U_evolution_sparse,
+    sparse_Z2_dual_ham,
     sparse_pauli_x,
     sparse_pauli_y,
     sparse_pauli_z,
+    diagonalization,
 )
 from qs_mps.mpo_class import MPO_ladder
 from qs_mps.TensorMultiplier import TensorMultiplierOperator
@@ -2432,6 +2434,7 @@ class MPS:
                 errs = self.error(site=sites[i], M=M, N_anc=N_anc)
                 errors.append(np.abs(errs))
 
+                self.site = sites[i]
                 # s = self.update_state_ev(
                 #     sweeps[0],
                 #     sites[i],
@@ -2450,6 +2453,8 @@ class MPS:
                     trunc_chi=trunc_chi,
                     schmidt_tol=schmidt_tol,
                 )
+                threshold = 1e-15
+                s = s[s >= threshold]
                 if bond:
                     if sites[i] - 1 == where:
                         s_mid = s
@@ -2689,6 +2694,9 @@ class MPS:
         conv_tol: float = 1e-7,
         bond: bool = True,
         where: int = -1,
+        exact: bool = False,
+        cx: list = None,
+        cy: list = None,
     ):
         """
         variational_mps_evolution
@@ -2708,45 +2716,85 @@ class MPS:
                 By default True
 
         """
-        entropies = []
         E = []
         M = []
         W = []
         S = []
-        sites = [1, 2, 3, 4]
-        ladders = [2, 3]
-        errors = [[0, 0]]
-        entropies = [0]
+        Ov = []
+        diff2 = [0]
+        if self.bc == "pbc":
+            L_bc = self.L + 1
+            a = np.zeros((1,2))
+            a[0,0] = 1
+            extra_ancillary_site = a.reshape((1,2,1))
+        elif self.bc == "obc":
+            L_bc = self.L
 
-        self.enlarge_chi()
+        # ============================
+        # Observables
+        # ============================
+        # compression error
+        errors = [[0]*(n_sweeps*(L_bc-1))]
+        
+        # entropy
+        entropies = [[0]]
 
         # electric field
-        E_h = np.zeros((2 * self.Z2.l + 1, 2 * self.Z2.L - 1))
+        if self.bc == "obc":
+            E_h = np.zeros((2 * self.Z2.l + 1, 2 * self.L + 1))
+        if self.bc == "pbc":
+            E_h = np.zeros((2 * self.Z2.l, 2 * self.L + 1))
+        
         E_h[:] = np.nan
         E_h = self.electric_field_Z2(E_h)
+        E.append(E_h.copy())
 
-        # local dual mag
-        self.order_param()
-        mag = self.mpo_first_moment().real / (
-            len(self.Z2.latt.plaquettes()) - (2 * (self.Z2.L - 1) + 2 * (self.Z2.l - 2))
-        )
+        # overlap
+        if self.bc == "pbc":
+            self.sites.append(extra_ancillary_site.copy())
+        
+        psi_init = self.sites.copy()
+        self.ancilla_sites = psi_init.copy()
+        Ov.append(self._compute_norm(site=1, mixed=True))
+        self.ancilla_sites = []
+        
+        # exact
+        if exact:
+            vec_init = mps_to_vector(psi_init)
+            H_sc = sparse_Z2_dual_ham(self.Z2.l,self.L,self.h,cx,cy)
+            e, psi0 = diagonalization(H_sc, sparse=True)
+            psi0 = psi0[:,0]
+            print("overlap between initial state dmrg and initial state exact:")
+            print(vec_init.T.conjugate() @ psi0)
 
-        # wilson loop
-        self.Z2.wilson_Z2_dual(mpo_sites=sites, ls=ladders)  # list(range(s))
-        self.w = self.Z2.mpo.copy()
-        loop = self.mpo_first_moment().real
+        if self.bc == "pbc":
+            self.sites.pop()
 
-        # t'hooft string
-        self.Z2.thooft(site=[2], l=[2], direction="horizontal")
-        self.w = self.Z2.mpo.copy()
-        thooft = self.mpo_first_moment().real
+        # trotter error
+        trotter_err = [0]
 
-        E.append(E_h)
-        M.append(mag)
-        # W.append(loop)
-        S.append(thooft)
+        # # local dual mag
+        # self.order_param()
+        # mag = self.mpo_first_moment().real / (
+        #     len(self.Z2.latt.plaquettes()) - (2 * (self.Z2.L - 1) + 2 * (self.Z2.l - 2))
+        # )
 
-        self.ancilla_sites = self.sites.copy()
+        # # wilson loop
+        # self.Z2.wilson_Z2_dual(mpo_sites=sites, ls=ladders)  # list(range(s))
+        # self.w = self.Z2.mpo.copy()
+        # loop = self.mpo_first_moment().real
+
+        # # t'hooft string
+        # self.Z2.thooft(site=[2], l=[2], direction="horizontal")
+        # self.w = self.Z2.mpo.copy()
+        # thooft = self.mpo_first_moment().real
+        
+        # E.append(E_h)
+        # M.append(mag)
+        # # W.append(loop)
+        # S.append(thooft)
+
+        self.enlarge_chi()
 
         for trott in range(trotter_steps):
             print(f"------ Trotter steps: {trott} -------")
@@ -2760,42 +2808,72 @@ class MPS:
                 where=where
             )
 
-            # electric field
-            E_h = np.zeros((2 * self.Z2.l + 1, 2 * self.Z2.L - 1))
-            E_h[:] = np.nan
-            E_h = self.electric_field_Z2(E_h)
-
-            # local dual mag
-            self.order_param()
-            mag = self.mpo_first_moment().real / (
-                len(self.Z2.latt.plaquettes())
-                - (2 * (self.Z2.L - 1) + 2 * (self.Z2.l - 2))
-            )
-
-            # wilson loop
-            self.Z2.wilson_Z2_dual(mpo_sites=sites, ls=ladders)  # list(range(s))
-            self.w = self.Z2.mpo.copy()
-            loop = self.mpo_first_moment().real
-
-            # t'hooft string
-            self.Z2.thooft(site=[2], l=[2], direction="horizontal")
-            self.w = self.Z2.mpo.copy()
-            thooft = self.mpo_first_moment().real
-
-            E.append(E_h)
-            M.append(mag)
-            W.append(loop)
-            S.append(thooft)
+            # ============================
+            # Observables
+            # ============================
+            # compression error
             errors.append(error)
+            
+            # entropy
             entropies.append(entropy)
 
+            # electric field
+            E_h[:] = np.nan
+            E_h = self.electric_field_Z2(E_h)
+            E.append(E_h.copy())
+
+            # overlap
+            if self.bc == "pbc":
+                self.sites.append(extra_ancillary_site.copy())
+            
+            self.ancilla_sites = psi_init.copy()
+            Ov.append(self._compute_norm(site=1, mixed=True))
+            self.ancilla_sites = []
+            
+            # exact
+            if exact:
+                t = (trott+1)*delta
+                print(f"Evolution at time: {t}")
+                H_ev = sparse_Z2_dual_ham(self.Z2.l,self.L,h_ev,cx,cy)
+                U_exact = expm(-1j*t*H_ev)
+                psi_ev_ex = U_exact @ psi0
+                print("overlap between initial state dmrg and initial state exact:")
+                psi_ev_mps = mps_to_vector(self.sites.copy())
+                trotter_err.append(norm(psi_ev_ex - psi_ev_mps))
+            if self.bc == "pbc":
+                self.sites.pop()
+            
+            # # local dual mag
+            # self.order_param()
+            # mag = self.mpo_first_moment().real / (
+            #     len(self.Z2.latt.plaquettes())
+            #     - (2 * (self.Z2.L - 1) + 2 * (self.Z2.l - 2))
+            # )
+
+            # # wilson loop
+            # self.Z2.wilson_Z2_dual(mpo_sites=sites, ls=ladders)  # list(range(s))
+            # self.w = self.Z2.mpo.copy()
+            # loop = self.mpo_first_moment().real
+
+            # # t'hooft string
+            # self.Z2.thooft(site=[2], l=[2], direction="horizontal")
+            # self.w = self.Z2.mpo.copy()
+            # thooft = self.mpo_first_moment().real
+
+            # vec_ev = mps_to_vector(self.sites.copy())
+            # Ov.append(vec_ev.T.conjugate() @ vec_init)
+
+            # E.append(E_h)
+            # M.append(mag)
+            # W.append(loop)
+            # S.append(thooft)
+
         return (
-            E,
-            M,
-            W,
-            S,
             errors,
             entropies,
+            E,
+            Ov,
+            trotter_err,
         )
 
     def TEBD_variational_Z2_trotter_step(
@@ -2830,13 +2908,26 @@ class MPS:
                 By default True
 
         """
+        if self.bc == "pbc":
+            a = np.zeros((1,2))
+            a[0,0] = 1
+            extra_ancillary_site = a.reshape((1,2,1))
+
+        self.ancilla_sites = self.sites.copy()
+        
         # start with the half mu_x before the ladder interacton evolution operator
         self.Z2._initialize_finalize_quench_local(delta=delta, h_ev=h_ev)
         self.w = self.Z2.mpo
         self.mpo_to_mps()
 
+        if self.bc == "pbc":
+            self.sites.append(extra_ancillary_site.copy())
+            self.L = len(self.sites)
+
+            self.ancilla_sites.append(extra_ancillary_site.copy())
+
         # apply the interaction operator one ladder per time
-        for l in range(self.l):
+        for l in range(self.Z2.l):
             self.Z2.mpo_Z2_ladder_quench_int(delta=delta, h_ev=h_ev, l=l)
             self.w = self.Z2.mpo
 
@@ -2853,14 +2944,19 @@ class MPS:
                 where=where,
             )
 
+        if self.bc == "pbc":
+            self.sites.pop()
+            self.L = len(self.sites)
+            self.ancilla_sites.pop()
+
         # finish with the other half mu_x after the ladder interacton evolution operator
         self.Z2._initialize_finalize_quench_local(delta=delta, h_ev=h_ev)
         self.w = self.Z2.mpo
         self.mpo_to_mps()
 
-        self.ancilla_sites = self.sites.copy()
+        # self.ancilla_sites = self.sites.copy()
 
-        return (self, error, entropy, schmidt_values)
+        return error, entropy, schmidt_values
 
     # -------------------------------------------------
     # Computing expectation values

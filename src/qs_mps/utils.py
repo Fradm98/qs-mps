@@ -491,7 +491,7 @@ def mps_to_vector(mps):
     b = np.zeros(D)
     b[-1] = 1
     final_vec = ncon([a, b.T], [a_index, [1]])
-    final_vec = final_vec.reshape(d ** len(mps))
+    final_vec = final_vec.reshape(np.prod([site.shape[1] for site in mps]))
     return final_vec
 
 
@@ -1146,7 +1146,7 @@ def anim(
     time: bool,
 ):
     # Create a figure and axis
-    fig, ax = plt.subplots()
+    fig, ax = plt.subplots(dpi=300)
     title = ax.set_title("")
 
     # create the lattice

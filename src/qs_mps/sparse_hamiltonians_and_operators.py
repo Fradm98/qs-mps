@@ -368,6 +368,112 @@ def sparse_cluster_xy_hamiltonian(
         + h_y * hamiltonian_y
     )
 
+def sparse_Z2_electric_dual_ham(l: int, L: int, cx: list=[], cy: list=[]):
+    dof = l*L + 1
+    O = csc_array((2**dof, 2**dof), dtype=complex)
+    H_sigmas = O
+    H_taus = O
+
+    # charges
+    charges = np.ones((l,L+1))
+    if len(cx) != 0:
+        charges[cy[0],cx[0]] = -1
+        charges[cy[1],cx[1]] = -1
+    prod_charges = [1] + np.prod(charges[1:], axis=1).tolist()
+
+    # first column of sigma are local
+    for j in range(l):
+        H_sigmas += sparse_pauli_z(n=j*L, L=dof)
+    
+    # horizontal zz interactions, we exclude the last column of sigmas
+    for j in range(l):
+        for i in range(L-1):
+            H_sigmas += sparse_pauli_z(n=i+j*L, L=dof) @ sparse_pauli_z(n=(i+1)+j*L, L=dof)
+
+    # horizontal zz interactions, last column of sigmas
+    for j in range(l):
+        H_sigmas += np.prod(prod_charges[:(j+1)]) * sparse_pauli_z(n=j*L+L-1, L=dof) @ sparse_pauli_z(n=l*L, L=dof)
+
+    # vertical zz interactions 
+    for i in range(L):
+        for j in range(l):
+            H_taus += np.prod(charges[(j+1)%l,:(i+1)]) * sparse_pauli_z(n=j*L+i, L=dof) @ sparse_pauli_z(n=((j+1)%l)*L+i, L=dof)
+
+    return H_sigmas + H_taus
+
+def sparse_Z2_magnetic_dual_ham(l: int, L: int):
+    dof = l*L + 1
+    O = csc_array((2**dof, 2**dof), dtype=complex)
+    H_plaquettes = O
+
+    # plaquette terms
+    for i in range(l*L):
+        H_plaquettes += sparse_pauli_x(n=i, L=dof)
+    return H_plaquettes
+
+def sparse_Z2_dual_ham(l,L,g, cx: list=[], cy: list=[]):
+    # electric vertical and horizontal terms
+    H_el = sparse_Z2_electric_dual_ham(l,L,cx,cy)
+
+    # magnetic plaquette terms
+    H_mag = sparse_Z2_magnetic_dual_ham(l,L)
+
+    return - g * H_el - 1/g * H_mag
+
+def electric_field(l: int, L: int, statevector: np.ndarray, cx: list=[], cy: list=[]):
+    dof = l*L + 1
+    exp_sigmas = []
+    exp_taus = []
+
+    # charges
+    charges = np.ones((l,L+1))
+    if len(cx) != 0:
+        charges[cy[0],cx[0]] = -1
+        charges[cy[1],cx[1]] = -1
+    prod_charges = [1] + np.prod(charges[1:], axis=1).tolist()
+
+    # first column of sigma are local
+    for j in range(l):
+        # H_sigmas += sparse_pauli_z(n=j*L, L=dof)
+        exp_sigmas.append(statevector.T.conjugate() @ sparse_pauli_z(n=j*L, L=dof) @ statevector)
+    
+    # horizontal zz interactions, we exclude the last column of sigmas
+    for j in range(l):
+        for i in range(L-1):
+            # H_sigmas += sparse_pauli_z(n=i+j*L, L=dof) @ sparse_pauli_z(n=(i+1)+j*L, L=dof)
+            exp_sigmas.append(statevector.T.conjugate() @ sparse_pauli_z(n=i+j*L, L=dof) @ sparse_pauli_z(n=(i+1)+j*L, L=dof) @ statevector)
+
+    # horizontal zz interactions, last column of sigmas
+    for j in range(l):
+        # H_sigmas += np.prod(prod_charges[:(j+1)]) * sparse_pauli_z(n=j*L+L-1, L=dof) @ sparse_pauli_z(n=l*L, L=dof)
+        exp_sigmas.append(np.prod(prod_charges[:(j+1)]) * (statevector.T.conjugate() @ sparse_pauli_z(n=j*L+L-1, L=dof) @ sparse_pauli_z(n=l*L, L=dof) @ statevector))
+
+    # vertical zz interactions 
+    for i in range(L):
+        for j in range(l):
+            # H_taus += np.prod(charges[(j+1)%l,:(i+1)]) * sparse_pauli_z(n=j*L+i, L=dof) @ sparse_pauli_z(n=((j+1)%l)*L+i, L=dof)
+            exp_taus.append(np.prod(charges[(j+1)%l,:(i+1)]) * (statevector.T.conjugate() @ sparse_pauli_z(n=j*L+i, L=dof) @ sparse_pauli_z(n=((j+1)%l)*L+i, L=dof) @ statevector))
+    
+    exp_sigmas_l = np.asarray(exp_sigmas[:l]).reshape((l,1))
+    exp_sigmas_b = np.asarray(exp_sigmas[l:-l]).reshape((l,(L+1)-2))
+    exp_sigmas_r = np.asarray(exp_sigmas[-l:]).reshape((l,1))
+    exp_ver = [[exp_sigmas_l[i]]+[exp_sigmas_b[i]]+[exp_sigmas_r[i]] for i in range(l)]
+    exp_ver_swaped = []
+    for row in exp_ver:
+        for elem in row:
+            if len(elem) == 1:
+                exp_ver_swaped += (elem.real).tolist()
+            else:
+                exp_ver_swaped += (elem.real).tolist()
+    exp_hor = np.array(exp_taus).reshape((L,l))
+    exp_hor_swaped = exp_hor.swapaxes(0,1)
+    exp_hor_swaped[[0,-1]] = exp_hor_swaped[[-1,0]]
+    exp_val = np.zeros((2*l,2*L+1))
+    exp_val[:] = np.nan
+    exp_val[1::2,::2] = np.asarray(exp_ver_swaped).reshape((l,L+1))
+    exp_val[::2,1::2] = np.asarray(exp_hor_swaped).reshape((l,L))
+    
+    return exp_val
 
 # ---------------------------------------------------------------------------------------
 # Diagonalization
