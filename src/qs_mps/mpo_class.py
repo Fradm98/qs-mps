@@ -926,6 +926,15 @@ class MPO_ladder:
 
         w_tot = []
         for mpo_site in range(self.L):
+            if l == 0:
+                w_l = np.array([[I]])
+                for lad in range(self.l):
+                    X_l = sparse_pauli_x(n=lad, L=self.l).toarray()
+                    w_init_X_l = np.array([[linalg.expm(1j * (1 / h_ev) * (delta / 2) * X_l)]])
+                    w_l = ncon(
+                        [w_init_X_l, w_l], [[-1, -3, -5, 1], [-2, -4, 1, -6]]
+                    ).reshape((1, 1, w_init_X_l.shape[2], w_l.shape[3]))
+            
             Z = sparse_pauli_z(n=l, L=self.l).toarray()
             if cc == "v":
                 c_loc = self.charge_coeff_local_Z(n=l+1, mpo_site=mpo_site)
@@ -1031,7 +1040,12 @@ class MPO_ladder:
                     Z_l = coeff * sparse_pauli_z(n=l, L=self.l).toarray()
                     w_loc = np.array(linalg.expm(1j * h_ev * delta * Z_l))
                     w_l = ncon([w_loc, w_l], [[-3, 1], [-1, -2, 1, -4]])
-                
+                    for lad in range(self.l):
+                        X_l = sparse_pauli_x(n=lad, L=self.l).toarray()
+                        w_init_X_l = np.array([[linalg.expm(1j * (1 / h_ev) * (delta / 2) * X_l)]])
+                        w_l = ncon(
+                            [w_init_X_l, w_l], [[-1, -3, -5, 1], [-2, -4, 1, -6]]
+                        ).reshape((w_l.shape[0], w_l.shape[1], w_init_X_l.shape[2], w_l.shape[3]))
                 w_tot.append(w_l)
             
             elif self.bc == "pbc":
@@ -1042,6 +1056,13 @@ class MPO_ladder:
                 ).toarray()
                 w_int_loc = np.array(linalg.expm(1j * h_ev * delta * Z_ll))
                 w_l = ncon([w_int_loc, w_l], [[-3, 1], [-1, -2, 1, -4]])
+                if l == self.l - 1:
+                    for lad in range(self.l):
+                        X_l = sparse_pauli_x(n=lad, L=self.l).toarray()
+                        w_init_X_l = np.array([[linalg.expm(1j * (1 / h_ev) * (delta / 2) * X_l)]])
+                        w_l = ncon(
+                            [w_init_X_l, w_l], [[-1, -3, -5, 1], [-2, -4, 1, -6]]
+                        ).reshape((w_l.shape[0], w_l.shape[1], w_init_X_l.shape[2], w_l.shape[3]))
                 w_tot.append(w_l)
 
         if self.bc == "pbc":
@@ -1057,8 +1078,8 @@ class MPO_ladder:
                         ]
                     ]
                 )
-            w_odd_re = np.swapaxes(w_odd_re, axis1=0, axis2=1)
-            w_tot.append(w_odd_re)
+            w_l = np.swapaxes(w_odd_re, axis1=0, axis2=1)
+            w_tot.append(w_l)
 
         self.mpo = w_tot
         return self
