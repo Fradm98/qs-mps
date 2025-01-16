@@ -28,7 +28,7 @@ parser.add_argument(
 parser.add_argument(
     "-o",
     "--obs",
-    help="Observable we want to compute. Available are 'wl', 'wl_av', 'el', 'thooft', 'mag', 'corr', 'en', 'end",
+    help="Observable we want to compute. Available are 'wl', 'wl_av', 'el', 'thooft', 'mag', 'corr', 'en', 'end', 'md'",
     nargs="+",
     type=str,
 )
@@ -287,6 +287,9 @@ for L in args.Ls:
                         ** 4
                     )
 
+            if "md" in args.obs:
+                Md.append(lattice_mps.local_magnetization_Z2_dual())
+
             if "corr" in args.obs:
                 print(
                     f"Correlator for h:{h:.{precision}f}, direct lattice lxL:{args.l}x{L}, bc: {args.boundcond}, chi:{chi}"
@@ -317,9 +320,6 @@ for L in args.Ls:
                     lattice_mps.mpo_Z2_column_electric_energy_density(site=L // 2)
                 )
 
-            if "mag_dual" in args.obs:
-                Md.append(lattice_mps.local_magnetization_Z2_dual())
-
         if "wl" in args.obs:
             np.save(
                 f"{parent_path}/results/wilson_loops/wilson_loop_{moment}_moment_{args.sites}-{args.ladders}_{args.model}_direct_lattice_{args.l}x{L}_{sector}_bc_{args.boundcond}_{charges_x}-{charges_y}_h_{args.h_i}-{args.h_f}_delta_{args.npoints}_chi_{chi}.npy",
@@ -342,9 +342,16 @@ for L in args.Ls:
             )
         if "mag" in args.obs:
             np.save(
-                f"{parent_path}/results/mag_data/dual_mag_{moment}_moment_{args.model}_direct_lattice_{args.l}x{L}_{sector}_bc_{args.boundcond}_{charges_x}-{charges_y}_h_{args.h_i}-{args.h_f}_delta_{args.npoints}_chi_{chi}.npy",
+                f"{parent_path}/results/mag_data/direct_mag_{moment}_moment_{args.model}_direct_lattice_{args.l}x{L}_{sector}_bc_{args.boundcond}_{charges_x}-{charges_y}_h_{args.h_i}-{args.h_f}_delta_{args.npoints}_chi_{chi}.npy",
                 M,
             )
+        
+        if "md" in args.obs:
+            np.save(
+                f"{parent_path}/results/mag_data/dual_mag_{moment}_moment_{args.model}_direct_lattice_{args.l}x{L}_{sector}_bc_{args.boundcond}_{charges_x}-{charges_y}_h_{args.h_i}-{args.h_f}_delta_{args.npoints}_chi_{chi}.npy",
+                Md,
+            )
+
         if "corr" in args.obs:
             C = np.array_split(C, args.npoints)
             np.save(
