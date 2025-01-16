@@ -167,6 +167,7 @@ for L in args.Ls:
         End = []
         S = []
         M = []
+        Md = []
         C = []
         for h in interval:
             lattice_mps = MPS(
@@ -315,6 +316,9 @@ for L in args.Ls:
                 End.append(
                     lattice_mps.mpo_Z2_column_electric_energy_density(site=L // 2)
                 )
+
+            if "mag_dual" in args.obs:
+                Md.append(lattice_mps.local_magnetization_Z2_dual())
 
         if "wl" in args.obs:
             np.save(
