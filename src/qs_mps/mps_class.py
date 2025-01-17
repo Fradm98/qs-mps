@@ -2930,10 +2930,10 @@ class MPS:
 
         self.ancilla_sites = self.sites.copy()
         
-        # # start with the half mu_x before the ladder interacton evolution operator
-        # self.Z2._initialize_finalize_quench_local(delta=delta, h_ev=h_ev)
-        # self.w = self.Z2.mpo
-        # self.mpo_to_mps()
+        # start with the half mu_x before the ladder interacton evolution operator
+        self.Z2._initialize_finalize_quench_local(delta=delta, h_ev=h_ev)
+        self.w = self.Z2.mpo.copy()
+        self.mpo_to_mps()
 
         if self.bc == "pbc":
             self.sites.append(extra_ancillary_site.copy())
@@ -2944,7 +2944,7 @@ class MPS:
         # apply the interaction operator one ladder per time
         for l in range(self.Z2.l):
             self.Z2.mpo_Z2_ladder_quench_int(delta=delta, h_ev=h_ev, l=l)
-            self.w = self.Z2.mpo
+            self.w = self.Z2.mpo.copy()
 
             print(f"Bond dim ancilla: {self.ancilla_sites[self.L//2].shape[0]}")
             print(f"Bond dim site: {self.sites[self.L//2].shape[0]}")
@@ -2964,10 +2964,10 @@ class MPS:
             self.L = len(self.sites)
             self.ancilla_sites.pop()
 
-        # # finish with the other half mu_x after the ladder interacton evolution operator
-        # self.Z2._initialize_finalize_quench_local(delta=delta, h_ev=h_ev)
-        # self.w = self.Z2.mpo
-        # self.mpo_to_mps()
+        # finish with the other half mu_x after the ladder interacton evolution operator
+        self.Z2._initialize_finalize_quench_local(delta=delta, h_ev=h_ev)
+        self.w = self.Z2.mpo.copy()
+        self.mpo_to_mps()
 
         # self.ancilla_sites = self.sites.copy()
 
