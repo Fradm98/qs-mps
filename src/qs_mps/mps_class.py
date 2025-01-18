@@ -1185,6 +1185,22 @@ class MPS:
         self.w = self.Z2.mpo
         return self
 
+    def local_magnetization_Z2_dual(self):
+        """
+        order_param_Z2_dual
+
+        This function defines the MPO order parameter for the Z2 pure lattice gauge theory,
+        on the dual lattice. It is equivalent to a 2D transverse field Ising model.
+
+        """
+        observable = []
+        for l in range(self.Z2.l):
+            for mpo_site in range(self.L):
+                self.Z2.local_observable_Z2_dual(mpo_site=mpo_site, l=l)
+                self.w = self.Z2.mpo
+                observable.append(self.mpo_first_moment().real)
+        return observable
+    
     def mps_local_exp_val(self, op):
         chain = []
         self.clear_envs()
@@ -2721,7 +2737,6 @@ class MPS:
         W = []
         S = []
         Ov = []
-        diff2 = [0]
         if self.bc == "pbc":
             L_bc = self.L + 1
             a = np.zeros((1,2))
@@ -2917,7 +2932,7 @@ class MPS:
         
         # start with the half mu_x before the ladder interacton evolution operator
         self.Z2._initialize_finalize_quench_local(delta=delta, h_ev=h_ev)
-        self.w = self.Z2.mpo
+        self.w = self.Z2.mpo.copy()
         self.mpo_to_mps()
 
         if self.bc == "pbc":
@@ -2929,7 +2944,7 @@ class MPS:
         # apply the interaction operator one ladder per time
         for l in range(self.Z2.l):
             self.Z2.mpo_Z2_ladder_quench_int(delta=delta, h_ev=h_ev, l=l)
-            self.w = self.Z2.mpo
+            self.w = self.Z2.mpo.copy()
 
             print(f"Bond dim ancilla: {self.ancilla_sites[self.L//2].shape[0]}")
             print(f"Bond dim site: {self.sites[self.L//2].shape[0]}")
@@ -2951,7 +2966,7 @@ class MPS:
 
         # finish with the other half mu_x after the ladder interacton evolution operator
         self.Z2._initialize_finalize_quench_local(delta=delta, h_ev=h_ev)
-        self.w = self.Z2.mpo
+        self.w = self.Z2.mpo.copy()
         self.mpo_to_mps()
 
         # self.ancilla_sites = self.sites.copy()
