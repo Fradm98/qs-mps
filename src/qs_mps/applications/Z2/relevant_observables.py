@@ -151,7 +151,7 @@ def static_potential_exact_chi(
     path_tensor: str = None,
     cx: list = None,
     cy: list = None,
-    g_thr: float = 20,
+    g_thr: float = 0.4,
 ):
     potentials = static_potential_chis(
         g, R, l, L, chis, bc, sector, h_i, h_f, npoints, path_tensor, cx, cy
@@ -281,32 +281,30 @@ def static_potential_varying_g(
     return potentials, err_potentials
 
 
-def potential_fit(R, sigma, mu, gamma): # add: bool=False
-    # if add:
-    #     add = 1
-    #     return sigma * R + mu + gamma / R + add / (R**2)
-    # else:
+def potential_fit_1(R, sigma, mu, gamma):
     return sigma * R + mu + gamma / R
 
 
-def potential_fit_ext(R, sigma, mu, gamma, delta): # add: bool=False
-    # if add:
-    #     add = 1
-    #     return sigma * R + mu + gamma / R + add / (R**2)
-    # else:
+def potential_fit_2(R, sigma, mu, gamma, delta):
     return sigma * R + mu + gamma / R + delta / (R**3)
 
 
-def fitting(Rs, potentials, errors, fit="first"):
-    if fit == "first":
-        popt, pcov = curve_fit(potential_fit, Rs, potentials, sigma=errors)
-    elif fit == "ext":
-        popt, pcov = curve_fit(potential_fit_ext, Rs, potentials, sigma=errors)
+def potential_fit_3(R, sigma, mu, gamma, delta, alpha):
+    return sigma * R + mu + gamma / R + delta / (R**3) + alpha / (R**5)
+
+
+def fitting(Rs, potentials, errors, fit=1):
+    if fit == 1:
+        popt, pcov = curve_fit(potential_fit_1, Rs, potentials, sigma=errors)
+    elif fit == 2:
+        popt, pcov = curve_fit(potential_fit_2, Rs, potentials, sigma=errors)
+    elif fit == 3:
+        popt, pcov = curve_fit(potential_fit_3, Rs, potentials, sigma=errors)
     errs = np.sqrt(np.diag(pcov))
     return popt, errs
 
 
-def fit_luscher_term_g(g, Rs, l, Ls, chis, bc, sector, h_i, h_f, npoints, path_tensor, cx=None, cy=None, fit="first"):
+def fit_luscher_term_g(g, Rs, l, Ls, chis, bc, sector, h_i, h_f, npoints, path_tensor, cx=None, cy=None, fit=1):
     pot, err = static_potential_varying_R(
         g, Rs, l, Ls, chis, bc, sector, h_i, h_f, npoints, path_tensor, cx, cy
     )
@@ -317,7 +315,7 @@ def fit_luscher_term_g(g, Rs, l, Ls, chis, bc, sector, h_i, h_f, npoints, path_t
 
 
 def fit_string_tension_g(
-    g, Rs, l, Ls, chis, bc, sector, h_i, h_f, npoints, path_tensor, cx=None, cy=None, fit="first"):
+    g, Rs, l, Ls, chis, bc, sector, h_i, h_f, npoints, path_tensor, cx=None, cy=None, fit=1):
     pot, err = static_potential_varying_R(
         g, Rs, l, Ls, chis, bc, sector, h_i, h_f, npoints, path_tensor, cx, cy
     )
@@ -327,7 +325,7 @@ def fit_string_tension_g(
     return term, term_err
 
 
-def fit_luscher(gs, Rs, l, Ls, chis, bc, sector, h_i, h_f, npoints, path_tensor, cx=None, cy=None, fit="first"):
+def fit_luscher(gs, Rs, l, Ls, chis, bc, sector, h_i, h_f, npoints, path_tensor, cx=None, cy=None, fit=1):
     luschers = []
     luscher_errs = []
     for g in gs:
@@ -339,7 +337,7 @@ def fit_luscher(gs, Rs, l, Ls, chis, bc, sector, h_i, h_f, npoints, path_tensor,
     return luschers, luscher_errs
 
 
-def fit_string_tension(gs, Rs, l, Ls, chis, bc, sector, h_i, h_f, npoints, path_tensor, cx=None, cy=None, fit="first"):
+def fit_string_tension(gs, Rs, l, Ls, chis, bc, sector, h_i, h_f, npoints, path_tensor, cx=None, cy=None, fit=1):
     sigmas = []
     sigmas_errs = []
     for g in gs:

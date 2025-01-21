@@ -42,6 +42,7 @@ class MPS:
         k=None,
         charges=None,
         bc="obc",
+        cc="h",
     ):
         self.L = L
         self.d = d
@@ -66,8 +67,9 @@ class MPS:
         self.env_left_sm = []
         self.env_right_sm = []
         self.bc = bc
+        self.cc = cc
         self.Z2 = MPO_ladder(
-            L=self.L, l=int(np.log2(self.d)), model=self.model, lamb=self.h, bc=self.bc
+            L=self.L, l=int(np.log2(self.d)), model=self.model, lamb=self.h, bc=self.bc, cc=self.cc
         )
 
     # -------------------------------------------------

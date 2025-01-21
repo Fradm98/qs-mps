@@ -11,7 +11,7 @@ import numpy as np
 
 
 class MPO_ladder:
-    def __init__(self, l, L, model=str, lamb=None, bc="obc"):
+    def __init__(self, l, L, model=str, lamb=None, bc="obc", cc="h"):
         self.L = L
         self.l = l
         self.model = model
@@ -23,6 +23,7 @@ class MPO_ladder:
         self.dof_dir = None
         self.dof_dual = None
         self.sector = self._define_sector()
+        self.cc = cc
 
     def _define_charges(self):
         if self.bc == "obc":
@@ -335,8 +336,10 @@ class MPO_ladder:
 
         """
         if self.bc == "obc":
-            # mpo_list = self.mpo_Z2_ladder_generalized_obc_cc_v()
-            mpo_list = self.mpo_Z2_ladder_generalized_obc_cc_h()
+            if self.cc == "v":
+                mpo_list = self.mpo_Z2_ladder_generalized_obc_cc_v()
+            elif self.cc == "h":
+                mpo_list = self.mpo_Z2_ladder_generalized_obc_cc_h()
         elif self.bc == "pbc":
             mpo_list = self.mpo_Z2_ladder_generalized_pbc()
         self.mpo = mpo_list

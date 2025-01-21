@@ -17,6 +17,7 @@ def ground_state_Z2_param(params):
         model=args_mps["model"],
         chi=args_mps["chi"],
         bc=args_mps["bc"],
+        cc=args_mps["cc"],
         h=param,
     )
     chi = args_mps["chi"]

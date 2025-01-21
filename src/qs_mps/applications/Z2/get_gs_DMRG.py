@@ -135,7 +135,13 @@ parser.add_argument(
     default="output.out",
     type=str,
 )
-
+parser.add_argument(
+    "-cc",
+    "--chargeconv",
+    help="Type of Charge convension for obc. Available are 'h', 'v'. By default 'h'",
+    default="h",
+    type=str,
+)
 args = parser.parse_args()
 
 # # Redirect stdout and stderr to the log file
@@ -223,6 +229,7 @@ for L in args.Ls:
             "training": args.training,
             "guess": init_tensor,
             "bc": args.boundcond,
+            "cc": args.chargeconv,
         }
 
         if __name__ == "__main__":
