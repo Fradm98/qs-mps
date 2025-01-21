@@ -367,6 +367,7 @@ class MPO_ladder:
                 ## Horizontal Bulk ----------------------------------------------
                 # first row last column, for the "local" zz vertical interaction
                 coeff = np.prod(self.charges[(f + 1) % self.l, : c + 1])
+                # print(f"coeff column {c}, file {f} is : {coeff}")
                 self.mpo[0, -1] += (
                     -self.lamb
                     * coeff

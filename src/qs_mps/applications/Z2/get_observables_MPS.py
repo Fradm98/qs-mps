@@ -39,6 +39,9 @@ parser.add_argument(
     "-D", "--chis", help="Simulated bond dimensions", nargs="+", type=int
 )
 parser.add_argument(
+    "-R", "--Rs", help="Strings we want to analyze", nargs="+", type=int
+)
+parser.add_argument(
     "-cx",
     "--charges_x",
     help="a list of the first index of the charges",
@@ -149,7 +152,7 @@ if args.moment == 4:
 # ---------------------------------------------------------
 for L in args.Ls:
     # define the sector by looking of the given charges
-    if len(args.charges_x) == 0:
+    if len(args.charges_x) == 0 and len(args.Rs) == 0:
         print("here")
         sector = "vacuum_sector"
         charges_x = None
@@ -158,6 +161,7 @@ for L in args.Ls:
         sector = f"{len(args.charges_x)}_particle(s)_sector"
         charges_x = args.charges_x
         charges_y = args.charges_y
+    
 
     for chi in args.chis:
         W = []
@@ -169,6 +173,7 @@ for L in args.Ls:
         M = []
         Md = []
         C = []
+        Pot = []
         for h in interval:
             lattice_mps = MPS(
                 L=L, d=d, model=args.model, chi=chi, h=h, bc=args.boundcond
@@ -319,6 +324,50 @@ for L in args.Ls:
                 End.append(
                     lattice_mps.mpo_Z2_column_electric_energy_density(site=L // 2)
                 )
+            if "pot" in args.obs:
+                potr = []
+                for R in args.Rs:
+                    sector = f"{len(args.charges_x)}_particle(s)_sector"
+                    charges_x = get_cx(L,R)
+                    charges_y = get_cy(args.l, args.boundcond)
+
+                    lattice_mps = MPS(
+                    L=L, d=d, model=args.model, chi=chi, h=h, bc=args.boundcond
+                    )
+
+                    if sector != "vacuum_sector":
+                        lattice_mps.Z2.add_charges(charges_x, charges_y)
+                        lattice_mps.charges = lattice_mps.Z2.charges
+                        lattice_mps.Z2._define_sector()
+                    else:
+                        lattice_mps.Z2._define_sector()
+                    lattice_mps.load_sites(
+                        path=path_tensor, precision=precision, cx=charges_x, cy=charges_y
+                    )
+                    if lattice_mps.bc == "pbc":
+                        a = np.zeros((1,2))
+                        a[0,0] = 1
+                        extra_ancillary_site = a.reshape((1,2,1))
+                        lattice_mps.sites.append(extra_ancillary_site)
+                        lattice_mps.L = len(lattice_mps.sites)
+
+                
+                    print("ground state of the charges hamiltonian in the two-particles sector")
+                    lattice_mps.Z2.mpo_Z2_ladder_generalized_pbc()
+                    lattice_mps.w = lattice_mps.Z2.mpo.copy()
+                    energy0 = lattice_mps.mpo_first_moment().real
+                    print(energy0)
+
+                    print("ground state of the vacuum hamiltonian in the two-particles sector")
+                    lattice_mps.Z2.charges = lattice_mps.Z2._define_charges()
+                    lattice_mps.Z2.mpo_Z2_ladder_generalized_pbc()
+                    lattice_mps.w = lattice_mps.Z2.mpo.copy()
+                    energy2p = lattice_mps.mpo_first_moment().real
+                    print(energy2p)
+
+                    potr.append(energy2p-energy0)
+                Pot.append(potr)
+
 
         if "wl" in args.obs:
             np.save(
@@ -367,4 +416,9 @@ for L in args.Ls:
             np.save(
                 f"{parent_path}/results/energy_data/electric_energy_density_{args.model}_direct_lattice_{args.l}x{L}_{sector}_bc_{args.boundcond}_{charges_x}-{charges_y}_h_{args.h_i}-{args.h_f}_delta_{args.npoints}_chi_{chi}.npy",
                 End,
+            )
+        if "pot" in args.obs:
+            np.save(
+                f"{parent_path}/results/energy_data/string_potential_vacuum_ham_on_charge_state_{args.model}_direct_lattice_{args.l}x{L}_{sector}_bc_{args.boundcond}_{args.Rs}_h_{args.h_i}-{args.h_f}_delta_{args.npoints}_chi_{chi}.npy",
+                Pot,
             )
