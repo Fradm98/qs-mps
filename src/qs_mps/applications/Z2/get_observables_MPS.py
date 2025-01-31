@@ -39,7 +39,7 @@ parser.add_argument(
     "-D", "--chis", help="Simulated bond dimensions", nargs="+", type=int
 )
 parser.add_argument(
-    "-R", "--Rs", help="Strings we want to analyze", nargs="+", type=int
+    "-R", "--Rs", help="Strings we want to analyze", nargs="*", type=int
 )
 parser.add_argument(
     "-cx",
@@ -153,7 +153,6 @@ if args.moment == 4:
 for L in args.Ls:
     # define the sector by looking of the given charges
     if len(args.charges_x) == 0 and len(args.Rs) == 0:
-        print("here")
         sector = "vacuum_sector"
         charges_x = None
         charges_y = None
