@@ -66,8 +66,8 @@ def ground_state_Z2_param(params):
 
     if save:
         if ladder.bc == "pbc":
-            ladder.sites.pop()
-        ladder.L = len(ladder.sites)
+            # ladder.sites.pop()
+            ladder.L = len(ladder.sites) - 1
         ladder.save_sites(
             args_mps["path"],
             args_mps["precision"],
