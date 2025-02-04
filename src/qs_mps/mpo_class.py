@@ -367,6 +367,7 @@ class MPO_ladder:
                 ## Horizontal Bulk ----------------------------------------------
                 # first row last column, for the "local" zz vertical interaction
                 coeff = np.prod(self.charges[(f + 1) % self.l, : c + 1])
+                # print(f"coeff column {c}, file {f} is : {coeff}")
                 self.mpo[0, -1] += (
                     -self.lamb
                     * coeff
@@ -1525,6 +1526,40 @@ class MPO_ladder:
                             @ sparse_pauli_z(n=(l + 1), L=self.l).toarray()
                         )
 
+            mpo_tot.append(self.mpo)
+            self.mpo_skeleton(aux_dim=aux_dim)
+
+        self.mpo = mpo_tot
+        return self
+
+    def zz_string_correlator_Z2_dual(self, cx: list, cy: list, aux_dim: int = 2):
+        """
+        zz_string_correlator_Z2_dual
+
+        This function computes the spin-spin interaction in the dual lattice along
+        the path of the string of the direct lattice. Thus, the direction of the
+        interaction is in the vertical direction when the string lies on a path
+        made out of the horizontal links.
+
+        cx: list - coordinates of the charges in the x direction
+        cy: list - coordinates of the charges in the y direction
+
+        """
+        l = cy[0] - 1
+        self.mpo_skeleton(aux_dim=aux_dim)
+        mpo_tot = []
+        for site in range(self.L):
+            if site in range(cx[0], cx[1]):
+                if self.bc == "obc":
+                    self.mpo[0, -1] = (
+                        sparse_pauli_z(n=l, L=self.l).toarray()
+                        @ sparse_pauli_z(n=l + 1, L=self.l).toarray()
+                    )
+                elif self.bc == "pbc":
+                    self.mpo[0, -1] = (
+                        sparse_pauli_z(n=l%self.l, L=self.l).toarray()
+                        @ sparse_pauli_z(n=(l + 1), L=self.l).toarray()
+                    )
             mpo_tot.append(self.mpo)
             self.mpo_skeleton(aux_dim=aux_dim)
 

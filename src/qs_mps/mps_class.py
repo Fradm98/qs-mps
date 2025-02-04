@@ -1230,6 +1230,7 @@ class MPS:
             if mpo_site == 0:
                 E_v = []
                 for l in range(self.Z2.l):
+                    print(f"site: {mpo_site}, ladder: {l}")
                     self.Z2.local_observable_Z2_dual(mpo_site=mpo_site, l=l)
                     coeff = 1
                     self.w = self.Z2.mpo.copy()
@@ -1242,11 +1243,12 @@ class MPS:
                 E_v = []
                 if self.bc == "obc":
                     for l in range(self.Z2.l):
+                        print(f"site: {mpo_site}, ladder: {l}")
                         self.Z2.local_observable_Z2_dual(mpo_site=mpo_site, l=l)
                         if cc == "v":
-                            coeff = np.prod(np.prod(self.charges, axis=1).tolist()[: l + 1])
+                            coeff = np.prod(np.prod(self.Z2.charges, axis=1).tolist()[: l + 1])
                         elif cc == "h":
-                            coeff = np.prod(self.charges[: l + 1, : self.L + 1])
+                            coeff = np.prod(self.Z2.charges[: l + 1, : self.L + 1])
                         self.w = self.Z2.mpo.copy()
                         E_v.append(coeff * self.mpo_first_moment().real)
                         # E_v.append(self.mpo_first_moment().real)
@@ -1259,11 +1261,12 @@ class MPS:
                     # self.Z2.L = self.L
                     
                     for l in range(self.Z2.l):
+                        print(f"site: {mpo_site}, ladder: {l}")
                 #         self.Z2.zz_vertical_right_pbc_Z2_dual(
                 #     mpo_site=mpo_site, l=l
                 # )
                         self.Z2.mpo_Z2_vertical_right_edges_pbc(file=l)
-                        prod_charges = np.prod(self.charges, axis=1).tolist()
+                        prod_charges = np.prod(self.Z2.charges, axis=1).tolist()
                         coeff = np.prod(prod_charges[: l + 1])
                         self.w = self.Z2.mpo.copy()
                         E_v.append(coeff * self.mpo_first_moment().real)
@@ -1281,7 +1284,7 @@ class MPS:
                     if cc == "v":
                         coeff = self.Z2.charge_coeff_v(mpo_site=mpo_site, l=l)
                     elif cc == "h":
-                        coeff = np.prod(self.charges[l + j, : mpo_site + 1])
+                        coeff = np.prod(self.Z2.charges[l + j, : mpo_site + 1])
                     self.w = self.Z2.mpo.copy()
                     E[(l + j) * 2, mpo_site * 2 + 1] = coeff * self.mpo_first_moment().real
                     # E[(l+j)*2,mpo_site*2+1] = self.mpo_first_moment().real
@@ -1293,13 +1296,14 @@ class MPS:
             E_v = []
             E_v_pbc = []
             for mpo_site in range(self.L):
+                print(f"site: {mpo_site}, ladder: {l}")
                 if l == 0:
                     # the first horizontal links are bulk in pbc
                     if self.bc == "pbc":
                         self.Z2.zz_observable_Z2_dual(
                             mpo_site=mpo_site, l=l-1, direction="vertical" # interaction
                         )
-                        coeff = np.prod(self.charges[0, : mpo_site + 1])
+                        coeff = np.prod(self.Z2.charges[0, : mpo_site + 1])
                         self.w = self.Z2.mpo.copy()
                         E_v_pbc.append(coeff * self.mpo_first_moment().real)
                 
@@ -1309,7 +1313,7 @@ class MPS:
                 if cc == "v":
                     coeff = self.Z2.charge_coeff_interaction(n=l + 1, mpo_site=mpo_site)
                 elif cc == "h":
-                    coeff = np.prod(self.charges[l + 1, : mpo_site + 1])
+                    coeff = np.prod(self.Z2.charges[l + 1, : mpo_site + 1])
                 self.w = self.Z2.mpo.copy()
                 E_v.append(coeff * self.mpo_first_moment().real)
             E[(l + 1) * 2, 1::2] = E_v
@@ -1320,6 +1324,7 @@ class MPS:
         for l in range(self.Z2.l):
             E_h = []
             for mpo_site in range(self.L - 1):
+                print(f"site: {mpo_site}, ladder: {l}")
                 self.Z2.zz_observable_Z2_dual(
                     mpo_site=mpo_site, l=l, direction="horizontal" # interaction
                 )

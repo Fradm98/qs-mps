@@ -151,7 +151,7 @@ def static_potential_exact_chi(
     path_tensor: str = None,
     cx: list = None,
     cy: list = None,
-    g_thr: float = 0.4,
+    g_thr: float = 10,
 ):
     potentials = static_potential_chis(
         g, R, l, L, chis, bc, sector, h_i, h_f, npoints, path_tensor, cx, cy
@@ -281,72 +281,86 @@ def static_potential_varying_g(
     return potentials, err_potentials
 
 
-def potential_fit_1(R, sigma, mu, gamma):
-    return sigma * R + mu + gamma / R
+def potential_fit_0(R, a, b):
+    return a * R + b 
 
+def potential_fit_1(R, a, b, c):
+    return a * R - b * (1 / R) + c
 
-def potential_fit_2(R, sigma, mu, gamma, delta):
-    return sigma * R + mu + gamma / R + delta / (R**3)
+def potential_fit_2(R, a, b, c, d):
+    return a * R - b * (1 / R) - c * (1 / (R**3)) + d
 
+def potential_fit_3(R, a, b, c, d, e):
+    return a * R - b * (1 / R) - c * (1 / (R**3)) + d * (1 / (R**5)) + e
 
-def potential_fit_3(R, sigma, mu, gamma, delta, alpha):
-    return sigma * R + mu + gamma / R + delta / (R**3) + alpha / (R**5)
-
-
-def fitting(Rs, potentials, errors, fit=1):
+def fitting(Rs, potentials, errors, fit=1, guess=None):
+    if fit == 0:
+        popt, pcov = curve_fit(potential_fit_0, Rs, potentials, sigma=errors, p0=guess)
+        print()
     if fit == 1:
-        popt, pcov = curve_fit(potential_fit_1, Rs, potentials, sigma=errors)
+        popt, pcov = curve_fit(potential_fit_0, Rs, potentials, sigma=errors, p0=guess)
+        guess = np.append(popt,0)
+        popt, pcov = curve_fit(potential_fit_1, Rs, potentials, sigma=errors, p0=guess)
     elif fit == 2:
-        popt, pcov = curve_fit(potential_fit_2, Rs, potentials, sigma=errors)
+        popt, pcov = curve_fit(potential_fit_0, Rs, potentials, sigma=errors, p0=guess)
+        guess = np.append(popt,0)
+        popt, pcov = curve_fit(potential_fit_1, Rs, potentials, sigma=errors, p0=guess)
+        guess = np.append(popt,0)
+        popt, pcov = curve_fit(potential_fit_2, Rs, potentials, sigma=errors, p0=guess)
     elif fit == 3:
-        popt, pcov = curve_fit(potential_fit_3, Rs, potentials, sigma=errors)
+        popt, pcov = curve_fit(potential_fit_0, Rs, potentials, sigma=errors, p0=guess)
+        guess = np.append(popt,0)
+        popt, pcov = curve_fit(potential_fit_1, Rs, potentials, sigma=errors, p0=guess)
+        guess = np.append(popt,0)
+        popt, pcov = curve_fit(potential_fit_2, Rs, potentials, sigma=errors, p0=guess)
+        guess = np.append(popt,0)
+        popt, pcov = curve_fit(potential_fit_3, Rs, potentials, sigma=errors, p0=guess)
     errs = np.sqrt(np.diag(pcov))
     return popt, errs
 
 
-def fit_luscher_term_g(g, Rs, l, Ls, chis, bc, sector, h_i, h_f, npoints, path_tensor, cx=None, cy=None, fit=1):
+def fit_correction_term_g(g, Rs, l, Ls, chis, bc, sector, h_i, h_f, npoints, path_tensor, cx=None, cy=None, fit=1, param=2, guess=None, V=False):
+    """
+    - to get the string tension, param = 0 for all fits
+    - to get the luscher term, param = 1 for fits=1,2,3
+    - to get the second order correction, param = 2 for fits=2,3
+    - to get the third order correction, param = 3 for fit=3
+    - to get the constant, param = 1, fit = 0 ; param = 2, fit = 1 ; param = 3, fit = 2 ; param = 4, fit = 3
+    """
     pot, err = static_potential_varying_R(
         g, Rs, l, Ls, chis, bc, sector, h_i, h_f, npoints, path_tensor, cx, cy
     )
-    popt, errs = fitting(Rs, pot, err, fit)
-    term = popt[2]
-    term_err = errs[2]
-    return term, term_err
+    popt, errs = fitting(Rs, pot, err, fit, guess)
+    term = popt[param]
+    term_err = errs[param]
+    if V:
+        return term, term_err, pot
+    else:
+        return term, term_err
 
 
-def fit_string_tension_g(
-    g, Rs, l, Ls, chis, bc, sector, h_i, h_f, npoints, path_tensor, cx=None, cy=None, fit=1):
-    pot, err = static_potential_varying_R(
-        g, Rs, l, Ls, chis, bc, sector, h_i, h_f, npoints, path_tensor, cx, cy
-    )
-    popt, errs = fitting(Rs, pot, err, fit)
-    term = popt[0]
-    term_err = errs[0]
-    return term, term_err
-
-
-def fit_luscher(gs, Rs, l, Ls, chis, bc, sector, h_i, h_f, npoints, path_tensor, cx=None, cy=None, fit=1):
-    luschers = []
-    luscher_errs = []
+def get_fit_params(gs, Rs, l, Ls, chis, bc, sector, h_i, h_f, npoints, path_tensor, cx=None, cy=None, fit=1, param=2, guess=None, V=False):
+    terms = []
+    term_errs = []
+    pots = []
     for g in gs:
-        luscher, luscher_err = fit_luscher_term_g(
-            g, Rs, l, Ls, chis, bc, sector, h_i, h_f, npoints, path_tensor, cx, cy, fit
-        )
-        luschers.append(luscher)
-        luscher_errs.append(luscher_err)
-    return luschers, luscher_errs
-
-
-def fit_string_tension(gs, Rs, l, Ls, chis, bc, sector, h_i, h_f, npoints, path_tensor, cx=None, cy=None, fit=1):
-    sigmas = []
-    sigmas_errs = []
-    for g in gs:
-        sigma, luscher_err = fit_string_tension_g(
-            g, Rs, l, Ls, chis, bc, sector, h_i, h_f, npoints, path_tensor, cx, cy, fit
-        )
-        sigmas.append(sigma)
-        sigmas_errs.append(luscher_err)
-    return sigmas, sigmas_errs
+        if V:
+            term, term_err, pot = fit_correction_term_g(
+                g, Rs, l, Ls, chis, bc, sector, h_i, h_f, npoints, path_tensor, cx, cy, fit, param, guess, V=V
+            )
+            terms.append(term)
+            term_errs.append(term_err)
+            pots.append(pot)
+        else:
+            term, term_err = fit_correction_term_g(
+                g, Rs, l, Ls, chis, bc, sector, h_i, h_f, npoints, path_tensor, cx, cy, fit, param, guess
+            )
+            terms.append(term)
+            term_errs.append(term_err)
+    if V:
+        return terms, term_errs, pots
+    else:
+        return terms, term_errs
 
 
 def potential_first_discrete_derivative(
