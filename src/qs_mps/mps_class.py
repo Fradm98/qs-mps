@@ -17,6 +17,8 @@ from qs_mps.sparse_hamiltonians_and_operators import (
     sparse_ising_ground_state,
     U_evolution_sparse,
     sparse_Z2_dual_ham,
+    sparse_Z2_magnetic_dual_ham,
+    trott_Z2_dual,
     sparse_pauli_x,
     sparse_pauli_y,
     sparse_pauli_z,
@@ -342,7 +344,7 @@ class MPS:
                     [[1, 2], [1, 3, -1], [2, 3, -2]],
                 )
 
-            N = ncon([ten, a, a], [[1, 2], [1], [2]]).real
+            N = ncon([ten, a, a], [[1, 2], [1], [2]])
 
         else:
             array = self.sites
@@ -359,7 +361,7 @@ class MPS:
                     [[1, 2], [1, 3, -1], [2, 3, -2]],
                 )
 
-            N = ncon([ten, a, a], [[1, 2], [1], [2]]).real
+            N = ncon([ten, a, a], [[1, 2], [1], [2]])
 
         # print(f"-=-=-= Norm: {N}\n")
         return N
@@ -1213,7 +1215,7 @@ class MPS:
         self.clear_envs()
         return chain
 
-    def electric_field_Z2(self, E, cc: str="h"):
+    def electric_field_Z2(self, E, cc: str="h", extra_ancillary_site=None):
         """
         electric_field_Z2
 
@@ -1230,7 +1232,7 @@ class MPS:
             if mpo_site == 0:
                 E_v = []
                 for l in range(self.Z2.l):
-                    print(f"site: {mpo_site}, ladder: {l}")
+                    # print(f"site: {mpo_site}, ladder: {l}")
                     self.Z2.local_observable_Z2_dual(mpo_site=mpo_site, l=l)
                     coeff = 1
                     self.w = self.Z2.mpo.copy()
@@ -1243,7 +1245,7 @@ class MPS:
                 E_v = []
                 if self.bc == "obc":
                     for l in range(self.Z2.l):
-                        print(f"site: {mpo_site}, ladder: {l}")
+                        # print(f"site: {mpo_site}, ladder: {l}")
                         self.Z2.local_observable_Z2_dual(mpo_site=mpo_site, l=l)
                         if cc == "v":
                             coeff = np.prod(np.prod(self.Z2.charges, axis=1).tolist()[: l + 1])
@@ -1253,15 +1255,12 @@ class MPS:
                         E_v.append(coeff * self.mpo_first_moment().real)
                         # E_v.append(self.mpo_first_moment().real)
                 elif self.bc == "pbc":
-                    a = np.zeros((1,2))
-                    a[0,0] = 1
-                    extra_ancillary_site = a.reshape((1,2,1))
                     self.sites.append(extra_ancillary_site)
                     self.L = len(self.sites)
                     # self.Z2.L = self.L
                     
                     for l in range(self.Z2.l):
-                        print(f"site: {mpo_site}, ladder: {l}")
+                        # print(f"site: {mpo_site}, ladder: {l}")
                 #         self.Z2.zz_vertical_right_pbc_Z2_dual(
                 #     mpo_site=mpo_site, l=l
                 # )
@@ -1296,7 +1295,7 @@ class MPS:
             E_v = []
             E_v_pbc = []
             for mpo_site in range(self.L):
-                print(f"site: {mpo_site}, ladder: {l}")
+                # print(f"site: {mpo_site}, ladder: {l}")
                 if l == 0:
                     # the first horizontal links are bulk in pbc
                     if self.bc == "pbc":
@@ -1324,7 +1323,7 @@ class MPS:
         for l in range(self.Z2.l):
             E_h = []
             for mpo_site in range(self.L - 1):
-                print(f"site: {mpo_site}, ladder: {l}")
+                # print(f"site: {mpo_site}, ladder: {l}")
                 self.Z2.zz_observable_Z2_dual(
                     mpo_site=mpo_site, l=l, direction="horizontal" # interaction
                 )
@@ -1590,7 +1589,7 @@ class MPS:
                 ).reshape(
                     (
                         array[i].shape[0] * self.w[i].shape[0],
-                        self.d,
+                        array[i].shape[1],
                         array[i].shape[2] * self.w[i].shape[1],
                     )
                 )
@@ -1606,7 +1605,7 @@ class MPS:
                 ).reshape(
                     (
                         array[i].shape[0] * self.w[i].shape[0],
-                        self.d,
+                        array[i].shape[1],
                         array[i].shape[2] * self.w[i].shape[1],
                     )
                 )
@@ -2761,62 +2760,51 @@ class MPS:
         # entropy
         entropies = [[0]]
 
-        # electric field
-        if self.bc == "obc":
-            E_h = np.zeros((2 * self.Z2.l + 1, 2 * self.L + 1))
-        if self.bc == "pbc":
-            E_h = np.zeros((2 * self.Z2.l, 2 * self.L + 1))
+        # # electric field
+        # if self.bc == "obc":
+        #     E_h = np.zeros((2 * self.Z2.l + 1, 2 * self.L + 1))
+        # if self.bc == "pbc":
+        #     E_h = np.zeros((2 * self.Z2.l, 2 * self.L + 1))
         
-        E_h[:] = np.nan
-        E_h = self.electric_field_Z2(E_h)
-        E.append(E_h.copy())
+        # E_h[:] = np.nan
+        # E_h = self.electric_field_Z2(E_h, extra_ancillary_site=extra_ancillary_site)
+        # E.append(E_h.copy())
 
         # overlap
         if self.bc == "pbc":
-            self.sites.append(extra_ancillary_site.copy())
+            self.sites.append(extra_ancillary_site)
         
         psi_init = self.sites.copy()
         self.ancilla_sites = psi_init.copy()
         Ov.append(self._compute_norm(site=1, mixed=True))
         self.ancilla_sites = []
         
-        # exact
-        if exact:
-            vec_init = mps_to_vector(psi_init)
-            H_sc = sparse_Z2_dual_ham(self.Z2.l,self.L,self.h,cx,cy)
-            e, psi0 = diagonalization(H_sc, sparse=True)
-            psi0 = psi0[:,0]
-            print("overlap between initial state dmrg and initial state exact:")
-            print(vec_init.T.conjugate() @ psi0)
+        # # exact
+        # if exact:
+        #     vec_init = mps_to_vector(psi_init)
+        #     H_sc = sparse_Z2_dual_ham(self.Z2.l,self.L,self.h,cx,cy)
+        #     # H_ev = sparse_Z2_dual_ham(self.Z2.l,self.L,h_ev,cx,cy)
+        #     H_x = sparse_Z2_magnetic_dual_ham(self.Z2.l,self.L)
+        #     e, psi0 = diagonalization(H_sc, sparse=True)
+        #     psi0 = psi0[:,0]
+        #     print("Module between initial state dmrg and initial state exact:")
+        #     # print(vec_init.T.conjugate() @ psi0)
+        #     print(np.sqrt((vec_init @ psi0).real**2 + (vec_init @ psi0).imag**2))
 
-        if self.bc == "pbc":
-            self.sites.pop()
+        # if self.bc == "pbc":
+        #     self.sites.pop()
 
         # trotter error
         trotter_err = [0]
 
-        # # local dual mag
-        # self.order_param()
-        # mag = self.mpo_first_moment().real / (
-        #     len(self.Z2.latt.plaquettes()) - (2 * (self.Z2.L - 1) + 2 * (self.Z2.l - 2))
-        # )
-
-        # # wilson loop
-        # self.Z2.wilson_Z2_dual(mpo_sites=sites, ls=ladders)  # list(range(s))
-        # self.w = self.Z2.mpo.copy()
-        # loop = self.mpo_first_moment().real
-
-        # # t'hooft string
-        # self.Z2.thooft(site=[2], l=[2], direction="horizontal")
-        # self.w = self.Z2.mpo.copy()
-        # thooft = self.mpo_first_moment().real
-        
-        # E.append(E_h)
-        # M.append(mag)
-        # # W.append(loop)
-        # S.append(thooft)
-
         self.enlarge_chi()
+
+        if self.bc == "pbc":
+            self.sites.append(extra_ancillary_site.copy())
+            self.L = len(self.sites)
+
+        # self.canonical_form(trunc_chi=True, trunc_tol=False)
+
 
         for trott in range(trotter_steps):
             print(f"------ Trotter steps: {trott} -------")
@@ -2840,55 +2828,72 @@ class MPS:
             entropies.append(entropy)
 
             # electric field
+            if self.bc == "pbc":
+                ancillary_qubit = self.sites.pop()
+                self.L = len(self.sites)
             E_h[:] = np.nan
-            E_h = self.electric_field_Z2(E_h)
+            E_h = self.electric_field_Z2(E_h, extra_ancillary_site=ancillary_qubit)
             E.append(E_h.copy())
+            if self.bc == "pbc":
+                self.sites.append(ancillary_qubit)
+                self.L = len(self.sites)
 
             # overlap
-            if self.bc == "pbc":
-                self.sites.append(extra_ancillary_site.copy())
+            # if self.bc == "pbc":
+            #     self.sites.append(extra_ancillary_site.copy())
             
+            print("trotter ev wrt init mps:")
+            print(self._compute_norm(site=1))
             self.ancilla_sites = psi_init.copy()
             Ov.append(self._compute_norm(site=1, mixed=True))
             self.ancilla_sites = []
             
-            # exact
-            if exact:
-                t = (trott+1)*delta
-                print(f"Evolution at time: {t}")
-                H_ev = sparse_Z2_dual_ham(self.Z2.l,self.L,h_ev,cx,cy)
-                U_exact = expm(-1j*t*H_ev)
-                psi_ev_ex = U_exact @ psi0
-                print("overlap between initial state dmrg and initial state exact:")
-                psi_ev_mps = mps_to_vector(self.sites.copy())
-                trotter_err.append(norm(psi_ev_ex - psi_ev_mps))
-            if self.bc == "pbc":
-                self.sites.pop()
+            # # exact
+            # if exact:
+            #     t = (trott+1)*delta*1/h_ev
+            #     print(f"Exact Evolution at time: {t}")
+            #     U_exact = spla.expm(-1j*t*H_x)
+            #     psi_ev_ex = U_exact @ psi0
+            #     print("module between initial state dmrg and initial state exact:")
+            #     psi_ev_mps = mps_to_vector(self.sites.copy())
+            #     # norm_ev = norm(psi_ev_ex - psi_ev_mps)
+            #     norm_ev = (psi_ev_ex.conjugate() @ psi_ev_mps)
+            #     print("norm psi_ev_ex: ", norm(psi_ev_ex), "norm psi_ev_mps: ", norm(psi_ev_mps))
+            #     trotter_err.append(norm_ev)
+                
+                # mps = MPS(L=self.L, d=self.d, model=self.model, chi=self.chi)
+                # mps.vector_to_mps(psi_ev_ex)
+                # self.ancilla_sites = mps.sites.copy()
+                # trotter_err.append(self._compute_norm(site=1, mixed=True))
+                # self.ancilla_sites = []
             
-            # # local dual mag
-            # self.order_param()
-            # mag = self.mpo_first_moment().real / (
-            #     len(self.Z2.latt.plaquettes())
-            #     - (2 * (self.Z2.L - 1) + 2 * (self.Z2.l - 2))
-            # )
+                # if self.bc == "pbc":
+                #     self.sites.pop()
+                
+            # # # local dual mag
+            # # self.order_param()
+            # # mag = self.mpo_first_moment().real / (
+            # #     len(self.Z2.latt.plaquettes())
+            # #     - (2 * (self.Z2.L - 1) + 2 * (self.Z2.l - 2))
+            # # )
 
-            # # wilson loop
-            # self.Z2.wilson_Z2_dual(mpo_sites=sites, ls=ladders)  # list(range(s))
-            # self.w = self.Z2.mpo.copy()
-            # loop = self.mpo_first_moment().real
+            # # # wilson loop
+            # # self.Z2.wilson_Z2_dual(mpo_sites=sites, ls=ladders)  # list(range(s))
+            # # self.w = self.Z2.mpo.copy()
+            # # loop = self.mpo_first_moment().real
 
-            # # t'hooft string
-            # self.Z2.thooft(site=[2], l=[2], direction="horizontal")
-            # self.w = self.Z2.mpo.copy()
-            # thooft = self.mpo_first_moment().real
+            # # # t'hooft string
+            # # self.Z2.thooft(site=[2], l=[2], direction="horizontal")
+            # # self.w = self.Z2.mpo.copy()
+            # # thooft = self.mpo_first_moment().real
 
-            # vec_ev = mps_to_vector(self.sites.copy())
-            # Ov.append(vec_ev.T.conjugate() @ vec_init)
+            # # vec_ev = mps_to_vector(self.sites.copy())
+            # # Ov.append(vec_ev.T.conjugate() @ vec_init)
 
-            # E.append(E_h)
-            # M.append(mag)
-            # W.append(loop)
-            # S.append(thooft)
+            # # E.append(E_h)
+            # # M.append(mag)
+            # # W.append(loop)
+            # # S.append(thooft)
 
         return (
             errors,
@@ -2898,6 +2903,108 @@ class MPS:
             trotter_err,
         )
 
+    def TEBD_variational_Z2_debug(
+        self,
+        trotter_steps: int,
+        delta: float,
+        h_ev: float,
+        n_sweeps: int = 2,
+        conv_tol: float = 1e-7,
+        bond: bool = True,
+        where: int = -1,
+        exact: bool = False,
+        cx: list = None,
+        cy: list = None,
+    ):
+        """
+        variational_mps_evolution
+
+        This function computes the magnetization and (on demand) the fidelity
+        of the trotter evolved MPS by the MPO direct application.
+
+        trotter_steps: int - number of times we apply the mpo to the mps
+        delta: float - time interval which defines the evolution per step
+        h_ev: float - value of the external field in the evolving hamiltonian
+        flip: bool - flip the initial state middle qubit
+        quench: str - type of quench we want to execute. Available are 'flip', 'global'
+        fidelity: bool - we can compute the fidelity with the initial state
+                if the chain is small enough. By default False
+        err: bool - computes the distance error between the guess state and an
+                uncompressed state. If True it is used as a convergence criterion.
+                By default True
+
+        """
+        self.enlarge_chi()
+
+        if self.bc == "pbc":
+            a = np.zeros((1,2))
+            a[0,0] = 1
+            extra_ancillary_site = a.reshape((1,2,1))
+            self.sites.append(extra_ancillary_site.copy())
+            self.L = len(self.sites)
+
+        # init state mps
+        psi0_mps = mps_to_vector(self.sites)
+        print("\n## Norm of psi0_mps: ", self._compute_norm(site=1))
+        # init state exact
+        ladders = int(np.log2(self.d))
+        H_sp = sparse_Z2_dual_ham(l=ladders, L=self.L-1, g=self.h, cx=cx, cy=cy)
+        e, v = diagonalization(H_sp, sparse=True)
+        psi0_ex = v[:,0]
+        print("\n## Norm of psi0_ex: ", (psi0_ex.conjugate() @ psi0_ex))
+
+        # ham for exact evolution
+        H_ev = sparse_Z2_dual_ham(l=ladders, L=self.L-1, g=h_ev, cx=cx, cy=cy)
+        # trotter evolution operator at second order
+        U_ev_sp = trott_Z2_dual(l=ladders, L=self.L-1, cx=cx, cy=cy, delta=delta, coupling=h_ev, ord=2)
+        # init state sparse
+        psi0_sp = psi0_ex.copy()
+        psi_trott_sp = psi0_sp.copy()
+        print("\n## Norm of psi0_sp: ", (psi0_sp.conjugate() @ psi0_sp))
+
+        braket_ex_sp = [0]
+        braket_ex_mps = [0]
+        braket_mps_sp = [0]
+        for trott in range(trotter_steps):
+            print(f"------ Trotter steps: {trott} -------")
+
+            error, entropy, schmidt_vals = self.TEBD_variational_Z2_trotter_step(
+                delta=delta,
+                h_ev=h_ev,
+                n_sweeps=n_sweeps,
+                conv_tol=conv_tol,
+                bond=bond,
+                where=where
+            )
+
+            # trotter state mps
+            psi_trott_mps = mps_to_vector(self.sites)
+            print("\n****** Norm of psi_trott_mps: ", self._compute_norm(site=1))
+
+            # trotter state exact
+            U_ev = spla.expm(-1j*delta*(trott+1)*H_ev)
+            psi_trott_ex = U_ev @ psi0_ex
+            print("\n****** Norm of psi_trott_ex: ", (psi_trott_ex.conjugate() @ psi_trott_ex))
+
+            # trotter state sparse
+            psi_trott_sp = U_ev_sp @ psi_trott_sp
+            print("\n****** Norm of psi_trott_ex: ", (psi_trott_sp.conjugate() @ psi_trott_sp))
+
+            # exact vs sparse
+            ex_sp = psi_trott_ex.conjugate() @ psi_trott_sp
+            # ex_sp = la.norm(psi_trott_ex - psi_trott_sp)
+            braket_ex_sp.append(ex_sp)
+            # exact vs mps
+            ex_mps = psi_trott_ex.conjugate() @ psi_trott_mps
+            # ex_mps = la.norm(psi_trott_ex - psi_trott_mps)
+            braket_ex_mps.append(ex_mps)
+            # mps vs sparse
+            mps_sp = psi_trott_mps.conjugate() @ psi_trott_sp
+            # mps_sp = la.norm(psi_trott_mps - psi_trott_sp)
+            braket_mps_sp.append(mps_sp)
+
+        return braket_ex_sp, braket_ex_mps, braket_mps_sp
+
     def TEBD_variational_Z2_trotter_step(
         self,
         delta: float,
@@ -2906,6 +3013,7 @@ class MPS:
         conv_tol: float = 1e-7,
         bond: bool = True,
         where: int = -1,
+        ancillary_qubit: np.ndarray = None,
     ):
         """
         TEBD variational Z2 trotter step
@@ -2930,23 +3038,23 @@ class MPS:
                 By default True
 
         """
-        if self.bc == "pbc":
-            a = np.zeros((1,2))
-            a[0,0] = 1
-            extra_ancillary_site = a.reshape((1,2,1))
-
-        self.ancilla_sites = self.sites.copy()
+        # if self.bc == "pbc":
+        #     self.sites.append(ancillary_qubit.copy())
+        #     self.L = len(self.sites)
+        # self.ancilla_sites = self.sites.copy()
         
         # start with the half mu_x before the ladder interacton evolution operator
         self.Z2._initialize_finalize_quench_local(delta=delta, h_ev=h_ev)
         self.w = self.Z2.mpo.copy()
-        self.mpo_to_mps()
+        self.mpo_to_mps(ancilla=False)
 
-        if self.bc == "pbc":
-            self.sites.append(extra_ancillary_site.copy())
-            self.L = len(self.sites)
+        self.ancilla_sites = self.sites.copy()
 
-            self.ancilla_sites.append(extra_ancillary_site.copy())
+        # if self.bc == "pbc":
+        #     self.sites.append(extra_ancillary_site.copy())
+        #     self.L = len(self.sites)
+
+        #     self.ancilla_sites.append(extra_ancillary_site.copy())
 
         # apply the interaction operator one ladder per time
         for l in range(self.Z2.l):
@@ -2965,18 +3073,27 @@ class MPS:
                 bond=bond,
                 where=where,
             )
+        error = 0
+        entropy = 0
+        schmidt_values = 0
 
-        if self.bc == "pbc":
-            self.sites.pop()
-            self.L = len(self.sites)
-            self.ancilla_sites.pop()
+        # if self.bc == "pbc":
+        #     self.sites.pop()
+        #     self.L = len(self.sites)
+        #     self.ancilla_sites.pop()
 
         # finish with the other half mu_x after the ladder interacton evolution operator
         self.Z2._initialize_finalize_quench_local(delta=delta, h_ev=h_ev)
         self.w = self.Z2.mpo.copy()
-        self.mpo_to_mps()
+        self.mpo_to_mps(ancilla=False)
 
         # self.ancilla_sites = self.sites.copy()
+
+        print(f"\n\n--- ancillary site: {self.sites[-1]}\n\n")
+        # if self.bc == "pbc":
+        #     ancillary_qubit = self.sites.pop()
+        #     self.L = len(self.sites)
+        #     self.ancilla_sites.pop()
 
         return error, entropy, schmidt_values
 

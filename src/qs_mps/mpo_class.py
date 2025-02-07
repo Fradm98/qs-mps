@@ -911,6 +911,8 @@ class MPO_ladder:
                     [w_init_X_l, w_init_X], [[-1, -3, -5, 1], [-2, -4, 1, -6]]
                 ).reshape((1, 1, w_init_X.shape[2], w_init_X_l.shape[3]))
             w_tot.append(w_init_X)
+            
+        w_tot.append(np.array([[np.eye(2)]]))
         self.mpo = w_tot
         return self
 
@@ -973,7 +975,7 @@ class MPO_ladder:
         
         w_tot = []
         for mpo_site in range(self.L):
-            print(f"site: {mpo_site}, ladder: {l}")
+            # print(f"site: {mpo_site}, ladder: {l}")
 
             # left, bulk, and right vertical links
             Z = sparse_pauli_z(n=l, L=self.l).toarray()
