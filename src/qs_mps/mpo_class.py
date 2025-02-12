@@ -1026,7 +1026,7 @@ class MPO_ladder:
                                     ],
                                 ]
                             )
-                w_l = ncon([w_even_re,w_odd],
+                w_l = ncon([w_even_re, w_odd],
                         [[-1, -3, -5, 1],[-2, -4, 1, -6]],
                 ).reshape(
                             (
@@ -1036,7 +1036,6 @@ class MPO_ladder:
                                 w_odd.shape[-1],
                             )
                         )
-
             else:
                 # interactions of bulk vertical links
                 w_l = ncon(
@@ -1052,7 +1051,7 @@ class MPO_ladder:
                         )
 
             # horizontal bulk links
-            w_l = ncon([w_l,w_int_loc],[[-1,-2,1,-4],[-3,1]])
+            w_l = ncon([w_l, w_int_loc],[[-1,-2,1,-4],[-3,1]])
             w_tot.append(w_l)
 
         # finish interaction for right vertical links

@@ -118,17 +118,22 @@ def sparse_pauli_z(n: int, L: int):
 # ---------------------------------------------------------------------------------------
 def sparse_magnetization(L, op="X", staggered: bool = False):
     if op == "X":
-        op = sparse_pauli_x
+        ope = sparse_pauli_x
     elif op == "Z":
-        op = sparse_pauli_z
+        ope = sparse_pauli_z
 
-    m = 0
+    O = csc_array((2**L, 2**L), dtype=complex)
+    m = O
     c = [1 for _ in range(L)]
     if staggered:
         c = [(-1) ** (i // 2) for i in range(L)]
-    for i in range(L):
-        n_row_indices, n_col_indices = sparse_non_diag_paulis_indices(i, L)
-        m += c[i] * op(i, L, n_row_indices, n_col_indices)
+    if op == "X":
+        for i in range(L):
+            n_row_indices, n_col_indices = sparse_non_diag_paulis_indices(i, L)
+            m += c[i] * ope(i, L, n_row_indices, n_col_indices)
+    elif op == "Z":
+        for i in range(L):
+            m += ope(i,L)
     return m / L
 
 
