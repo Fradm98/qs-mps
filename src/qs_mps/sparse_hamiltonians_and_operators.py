@@ -118,17 +118,22 @@ def sparse_pauli_z(n: int, L: int):
 # ---------------------------------------------------------------------------------------
 def sparse_magnetization(L, op="X", staggered: bool = False):
     if op == "X":
-        op = sparse_pauli_x
+        ope = sparse_pauli_x
     elif op == "Z":
-        op = sparse_pauli_z
+        ope = sparse_pauli_z
 
-    m = 0
+    O = csc_array((2**L, 2**L), dtype=complex)
+    m = O
     c = [1 for _ in range(L)]
     if staggered:
         c = [(-1) ** (i // 2) for i in range(L)]
-    for i in range(L):
-        n_row_indices, n_col_indices = sparse_non_diag_paulis_indices(i, L)
-        m += c[i] * op(i, L, n_row_indices, n_col_indices)
+    if op == "X":
+        for i in range(L):
+            n_row_indices, n_col_indices = sparse_non_diag_paulis_indices(i, L)
+            m += c[i] * ope(i, L, n_row_indices, n_col_indices)
+    elif op == "Z":
+        for i in range(L):
+            m += ope(i,L)
     return m / L
 
 
@@ -368,7 +373,8 @@ def sparse_cluster_xy_hamiltonian(
         + h_y * hamiltonian_y
     )
 
-def sparse_Z2_electric_dual_ham(l: int, L: int, cx: list=[], cy: list=[]):
+
+def sparse_Z2_electric_dual_ham(l: int, L: int, cx: list=None, cy: list=None):
     dof = l*L + 1
     O = csc_array((2**dof, 2**dof), dtype=complex)
     H_sigmas = O
@@ -376,28 +382,32 @@ def sparse_Z2_electric_dual_ham(l: int, L: int, cx: list=[], cy: list=[]):
 
     # charges
     charges = np.ones((l,L+1))
-    if len(cx) != 0:
+    if cx is not None:
         charges[cy[0],cx[0]] = -1
         charges[cy[1],cx[1]] = -1
-    prod_charges = [1] + np.prod(charges[1:], axis=1).tolist()
 
-    # first column of sigma are local
+    prod_charges = np.prod(charges, axis=1).tolist()
+
+    # first column of sigmas are local
     for j in range(l):
-        H_sigmas += sparse_pauli_z(n=j*L, L=dof)
+        H_sigmas += sparse_pauli_z(n=j, L=dof)
     
     # horizontal zz interactions, we exclude the last column of sigmas
-    for j in range(l):
-        for i in range(L-1):
-            H_sigmas += sparse_pauli_z(n=i+j*L, L=dof) @ sparse_pauli_z(n=(i+1)+j*L, L=dof)
+    for i in range(L-1):
+        for j in range(l):
+            H_sigmas += sparse_pauli_z(n=j+i*l, L=dof) @ sparse_pauli_z(n=j+(i+1)*l, L=dof)
 
     # horizontal zz interactions, last column of sigmas
     for j in range(l):
-        H_sigmas += np.prod(prod_charges[:(j+1)]) * sparse_pauli_z(n=j*L+L-1, L=dof) @ sparse_pauli_z(n=l*L, L=dof)
+        # H_sigmas += sparse_pauli_z(n=j*L+L-1, L=dof) @ sparse_pauli_z(n=l*L, L=dof)
+        H_sigmas += np.prod(prod_charges[:(j+1)]) * sparse_pauli_z(n=j+(L-1)*l, L=dof) @ sparse_pauli_z(n=l*L, L=dof)
 
     # vertical zz interactions 
     for i in range(L):
         for j in range(l):
-            H_taus += np.prod(charges[(j+1)%l,:(i+1)]) * sparse_pauli_z(n=j*L+i, L=dof) @ sparse_pauli_z(n=((j+1)%l)*L+i, L=dof)
+            # coeff = charge_func(i,j,l,cx,cy)
+            # H_taus += coeff * sparse_pauli_z(n=j*L+i, L=dof) @ sparse_pauli_z(n=((j+1)%l)*L+i, L=dof)
+            H_taus += np.prod(charges[(j+1)%l,:(i+1)]) * sparse_pauli_z(n=j+i*l, L=dof) @ sparse_pauli_z(n=((j+1)%l)+i*l, L=dof)
 
     return H_sigmas + H_taus
 
@@ -411,7 +421,7 @@ def sparse_Z2_magnetic_dual_ham(l: int, L: int):
         H_plaquettes += sparse_pauli_x(n=i, L=dof)
     return H_plaquettes
 
-def sparse_Z2_dual_ham(l,L,g, cx: list=[], cy: list=[]):
+def sparse_Z2_dual_ham(l,L,g, cx: list=None, cy: list=None):
     # electric vertical and horizontal terms
     H_el = sparse_Z2_electric_dual_ham(l,L,cx,cy)
 
@@ -650,3 +660,25 @@ def exact_evolution_sparse(
         # total
         mag_exact_tot.append((psi_new.T.conjugate() @ mag_tot_op @ psi_new)[0, 0].real)
     return psi_new, mag_exact_loc_Z, mag_exact_loc_X, mag_exact_tot, entropy_tot
+
+def evolution_operator(delta, hamiltonian):
+    return spla.expm(-1j*delta*hamiltonian)
+
+def trott_Z2_dual_1(delta, coupling, H_loc, H_int):
+    U_loc = evolution_operator(delta=delta*(-1/coupling), hamiltonian=H_loc)    
+    U_int = evolution_operator(delta=delta*(-coupling), hamiltonian=H_int)
+    return U_loc @ U_int
+    
+def trott_Z2_dual_2(delta, coupling, H_loc, H_int):
+    U_loc = evolution_operator(delta=(delta/2)*(-1/coupling), hamiltonian=H_loc)    
+    U_int = evolution_operator(delta=delta*(-coupling), hamiltonian=H_int)
+    return U_loc @ U_int @ U_loc
+
+def trott_Z2_dual(l, L, cx, cy, delta, coupling, ord: int=1):
+    H_ev_el = sparse_Z2_electric_dual_ham(l, L, cx, cy) # zz dual interaction term
+    H_ev_mag = sparse_Z2_magnetic_dual_ham(l, L) # x dual local term
+    if ord == 1:
+        U_ev = trott_Z2_dual_1(delta, coupling, H_loc=H_ev_mag, H_int=H_ev_el)
+    if ord == 2:
+        U_ev = trott_Z2_dual_2(delta, coupling, H_loc=H_ev_mag, H_int=H_ev_el)
+    return U_ev
