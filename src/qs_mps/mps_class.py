@@ -3043,6 +3043,8 @@ class MPS:
         cx: list = None,
         cy: list = None,
         aux_qub: np.ndarray = None,
+        obs: list = None,
+        training: bool = False,
     ):
         """
         variational_mps_evolution
@@ -3071,32 +3073,40 @@ class MPS:
         # ============================
         # compression error
         # errors = [[0]*(n_sweeps*(self.L-1))]
-        errors = [0]
+        if training:
+            errors = []
+        else:
+            errors = [0]
         
         # entropy
         entropies = [[0]]
 
+        # schmidt_vals
+        svs = []
+
         # electric field
         electric_local_field = []
-        if self.bc == "obc":
-            E_h = np.zeros((2 * self.Z2.l + 1, 2 * self.L + 1))
-        if self.bc == "pbc":
-            E_h = np.zeros((2 * self.Z2.l, 2 * self.L + 1))
-        
-        E_h[:] = np.nan
-        E_h = self.electric_field_Z2(E_h, aux_qub=aux_qub)
-        electric_local_field.append(E_h.copy())
+        if "el" in obs:
+            if self.bc == "obc":
+                E_h = np.zeros((2 * self.Z2.l + 1, 2 * self.L + 1))
+            if self.bc == "pbc":
+                E_h = np.zeros((2 * self.Z2.l, 2 * self.L + 1))
+            
+            E_h[:] = np.nan
+            E_h = self.electric_field_Z2(E_h, aux_qub=aux_qub)
+            electric_local_field.append(E_h.copy())
 
         # overlap
         overlaps = []
-        if self.bc == "pbc":
-            self.sites.append(aux_qub)
-            self.L = len(self.sites)
-        
-        psi_init = self.sites.copy()
-        self.ancilla_sites = psi_init.copy()
-        overlaps.append(self._compute_norm(site=1, mixed=True))
-        self.ancilla_sites = []
+        if "losch" in obs:
+            if self.bc == "pbc":
+                self.sites.append(aux_qub)
+                self.L = len(self.sites)
+            
+            psi_init = self.sites.copy()
+            self.ancilla_sites = psi_init.copy()
+            overlaps.append(self._compute_norm(site=1, mixed=True))
+            self.ancilla_sites = []
 
         # exact
         braket_ex_sp = [1]
@@ -3146,28 +3156,36 @@ class MPS:
             # Observables
             # ============================
             # compression error
-            errors.append(error[-1])
+            if training:
+                errors.append(error)
+            else:
+                errors.append(error[-1])
             
             # entropy
             entropies.append(entropy)
 
+            # schmidt_vals
+            svs.append(schmidt_vals)
+            
             # electric field
-            if self.bc == "pbc":
-                self.sites.pop()
-                self.L = len(self.sites)
+            if "el" in obs:
+                if self.bc == "pbc":
+                    self.sites.pop()
+                    self.L = len(self.sites)
 
-            E_h[:] = np.nan
-            E_h = self.electric_field_Z2(E_h, aux_qub=aux_qub)
-            electric_local_field.append(E_h.copy())
+                E_h[:] = np.nan
+                E_h = self.electric_field_Z2(E_h, aux_qub=aux_qub)
+                electric_local_field.append(E_h.copy())
 
             # overlap
-            if self.bc == "pbc":
-                self.sites.append(aux_qub)
-                self.L = len(self.sites)
-            
-            self.ancilla_sites = psi_init.copy()
-            overlaps.append(self._compute_norm(site=1, mixed=True))
-            self.ancilla_sites = []
+            if "losch" in obs:
+                if self.bc == "pbc":
+                    self.sites.append(aux_qub)
+                    self.L = len(self.sites)
+                
+                self.ancilla_sites = psi_init.copy()
+                overlaps.append(self._compute_norm(site=1, mixed=True))
+                self.ancilla_sites = []
 
             # exact
             if exact:
@@ -3203,7 +3221,7 @@ class MPS:
                 # mps_sp = la.norm(psi_trott_mps - psi_trott_sp)
                 braket_mps_sp.append(mps_sp)
 
-        return errors, entropies, electric_local_field, overlaps, braket_ex_sp, braket_ex_mps, braket_mps_sp
+        return errors, entropies, svs, electric_local_field, overlaps, braket_ex_sp, braket_ex_mps, braket_mps_sp
     
     def TEBD_variational_Z2_trotter_step(
         self,
