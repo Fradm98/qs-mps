@@ -1100,13 +1100,14 @@ def plot_colormaps_evolution(
     d: bool = False,
     view_init: bool = False,
 ):
-    matrix = np.loadtxt(f"{path}/{fname}")
+    # matrix = np.loadtxt(f"{path}/{fname}")
+    matrix = np.load(f"{path}/{fname}")
     print(matrix.shape)
     print(X.shape)
     print(Y.shape)
     if d:
-        X = X[:-1, :]
-        Y = Y[:-1, :]
+        # X = X[:-1, :]
+        # Y = Y[:-1, :]
         fig = plt.figure()
         ax = fig.add_subplot(111, projection="3d")
         ax.set_title(title, fontsize=14)

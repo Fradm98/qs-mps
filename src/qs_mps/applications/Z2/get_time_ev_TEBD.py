@@ -175,6 +175,9 @@ if args.moment == 4:
 if args.obs == []:
     args.obs = ["el", "losch"]
 
+a = np.zeros((1,2))
+a[0,0] = 1
+aux_qub = a.reshape((1,2,1))
 
 for L in args.Ls:
     # define the sector by looking of the given charges
@@ -203,20 +206,20 @@ for L in args.Ls:
                 L=L, d=d, model=args.model, chi=chi, h=args.h_i, bc=args.boundcond
             )
 
-        if sector != "vacuum_sector":
-            lattice_mps.Z2.add_charges(charges_x, charges_y)
+        sector_vac = "vacuum_sector"
+        cx_vac = None
+        cy_vac = None
+        if sector_vac != "vacuum_sector":
+            lattice_mps.Z2.add_charges(cx_vac, cy_vac)
             lattice_mps.charges = lattice_mps.Z2.charges
             lattice_mps.Z2._define_sector()
         else:
             lattice_mps.Z2._define_sector()
         try:
             lattice_mps.load_sites(
-                path=path_tensor, precision=precision, cx=charges_x, cy=charges_y
+                path=path_tensor, precision=precision, cx=cx_vac, cy=cy_vac
             )
             print("State found!!")
-            a = np.zeros((1,2))
-            a[0,0] = 1
-            aux_qub = a.reshape((1,2,1))
         except:
             print("State not found! Computing DMRG")
             lattice_mps._random_state(seed=3, type_shape="rectangular", chi=chi)
@@ -231,7 +234,7 @@ for L in args.Ls:
             lattice_mps.order_param()
             mag = lattice_mps.mpo_first_moment()
             print(f"initial magentization is: {mag}")
-            lattice_mps.save_sites(path=path_tensor, precision=precision, cx=charges_x, cy=charges_y)
+            # lattice_mps.save_sites(path=path_tensor, precision=precision, cx=cx_vac, cy=cy_vac)
 
         # initialize the variables to save
         errors_tr = [[0, 0]]
@@ -315,6 +318,12 @@ for L in args.Ls:
         # ---------------------------------------------------------
         # Trotter Evolution
         # ---------------------------------------------------------
+        if sector != "vacuum_sector":
+            lattice_mps.Z2.add_charges(charges_x, charges_y)
+            lattice_mps.charges = lattice_mps.Z2.charges
+            lattice_mps.Z2._define_sector()
+        else:
+            lattice_mps.Z2._define_sector()
         (errs,
         entrs,
         svs,
@@ -328,6 +337,7 @@ for L in args.Ls:
             h_ev=args.h_ev,
             n_sweeps=8,
             conv_tol=1e-12,
+            bond=args.bond,
             where=L//2,
             aux_qub=aux_qub,
             cx=charges_x,
@@ -422,7 +432,7 @@ for L in args.Ls:
         #     )
         if "el" in args.obs:
             np.save(
-                f"{parent_path}/results/electric_field/electric_field_quench_dynamics_{args.model}_direct_lattice_{args.l}x{L}_{sector}_bc_{args.boundcond}_{args.length}_h_{args.h_i}-{args.h_ev}_delta_{args.delta}_trotter_steps_{args.npoints}_chi_{chi}.npy",
+                f"{parent_path}/results/electric_field/electric_field_quench_dynamics_{args.model}_direct_lattice_{args.l}x{L}_{sector}_bc_{args.boundcond}_R_{args.length}_h_{args.h_i}-{args.h_ev}_delta_{args.delta}_trotter_steps_{args.npoints}_chi_{chi}.npy",
                 efields,
             )
         # if "thooft" in args.obs:
@@ -451,54 +461,58 @@ for L in args.Ls:
 
         if args.training:
             save_list_of_lists(
-                f"{parent_path}/results/error_data/errors_tr_quench_dynamics_{args.model}_direct_lattice_{args.l}x{L}_{sector}_bc_{args.boundcond}_{args.length}_h_{args.h_i}-{args.h_ev}_delta_{args.delta}_trotter_steps_{args.npoints}_chi_{chi}.npy",
+                f"{parent_path}/results/error_data/errors_tr_quench_dynamics_{args.model}_direct_lattice_{args.l}x{L}_{sector}_bc_{args.boundcond}_R_{args.length}_h_{args.h_i}-{args.h_ev}_delta_{args.delta}_trotter_steps_{args.npoints}_chi_{chi}.npy",
                 errs,
             )
             last_errs = []
             for err in errs:
                 last_errs.append(err[-1])
             np.save(
-                f"{parent_path}/results/error_data/errors_quench_dynamics_{args.model}_direct_lattice_{args.l}x{L}_{sector}_bc_{args.boundcond}_{args.length}_h_{args.h_i}-{args.h_ev}_delta_{args.delta}_trotter_steps_{args.npoints}_chi_{chi}.npy",
+                f"{parent_path}/results/error_data/errors_quench_dynamics_{args.model}_direct_lattice_{args.l}x{L}_{sector}_bc_{args.boundcond}_R_{args.length}_h_{args.h_i}-{args.h_ev}_delta_{args.delta}_trotter_steps_{args.npoints}_chi_{chi}.npy",
                 last_errs,
             )
         else:
             np.save(
-                f"{parent_path}/results/error_data/errors_quench_dynamics_{args.model}_direct_lattice_{args.l}x{L}_{sector}_bc_{args.boundcond}_{args.length}_h_{args.h_i}-{args.h_ev}_delta_{args.delta}_trotter_steps_{args.npoints}_chi_{chi}.npy",
+                f"{parent_path}/results/error_data/errors_quench_dynamics_{args.model}_direct_lattice_{args.l}x{L}_{sector}_bc_{args.boundcond}_R_{args.length}_h_{args.h_i}-{args.h_ev}_delta_{args.delta}_trotter_steps_{args.npoints}_chi_{chi}.npy",
                 errs,
             )
 
-        save_list_of_lists(
-            f"{parent_path}/results/entropy_data/{args.where}_bond_entropy_quench_dynamics_{args.model}_direct_lattice_{args.l}x{L}_{sector}_bc_{args.boundcond}_{args.length}_h_{args.h_i}-{args.h_ev}_delta_{args.delta}_trotter_steps_{args.npoints}_chi_{chi}.npy",
+        print(entrs)
+        entrs = np.asarray(entrs)[:,1:]
+        entrs_mid = np.asarray(entrs)[:,L//2]
+        print(entrs)
+        np.save(
+            f"{parent_path}/results/entropy_data/{args.where}_bond_entropy_quench_dynamics_{args.model}_direct_lattice_{args.l}x{L}_{sector}_bc_{args.boundcond}_R_{args.length}_h_{args.h_i}-{args.h_ev}_delta_{args.delta}_trotter_steps_{args.npoints}_chi_{chi}.npy",
             entrs,
         )
         save_list_of_lists(
-            f"{parent_path}/results/entropy_data/{args.where}_schmidt_vals_quench_dynamics_{args.model}_direct_lattice_{args.l}x{L}_{sector}_bc_{args.boundcond}_{args.length}_h_{args.h_i}-{args.h_ev}_delta_{args.delta}_trotter_steps_{args.npoints}_chi_{chi}.npy",
+            f"{parent_path}/results/entropy_data/{args.where}_schmidt_vals_quench_dynamics_{args.model}_direct_lattice_{args.l}x{L}_{sector}_bc_{args.boundcond}_R_{args.length}_h_{args.h_i}-{args.h_ev}_delta_{args.delta}_trotter_steps_{args.npoints}_chi_{chi}.npy",
             svs,
         )
         if args.where == "all":
-            entropy_mid = access_txt(
-                f"{parent_path}/results/entropy_data/{args.where}_bond_entropy_quench_dynamics_{args.model}_direct_lattice_{args.l}x{L}_{sector}_bc_{args.boundcond}_{args.length}_h_{args.h_i}-{args.h_ev}_delta_{args.delta}_trotter_steps_{args.npoints}_chi_{chi}.npy",
-                (L - 1) // 2,
-            )
+            # entropy_mid = access_txt(
+            #     f"{parent_path}/results/entropy_data/{args.where}_bond_entropy_quench_dynamics_{args.model}_direct_lattice_{args.l}x{L}_{sector}_bc_{args.boundcond}_R_{args.length}_h_{args.h_i}-{args.h_ev}_delta_{args.delta}_trotter_steps_{args.npoints}_chi_{chi}.npy",
+            #     (L - 1) // 2,
+            # )
             np.save(
-                f"{parent_path}/results/entropy_data/{L // 2}_bond_entropy_quench_dynamics_{args.model}_direct_lattice_{args.l}x{L}_{sector}_bc_{args.boundcond}_{args.length}_h_{args.h_i}-{args.h_ev}_delta_{args.delta}_trotter_steps_{args.npoints}_chi_{chi}.npy",
-                entropy_mid,
+                f"{parent_path}/results/entropy_data/{L // 2}_bond_entropy_quench_dynamics_{args.model}_direct_lattice_{args.l}x{L}_{sector}_bc_{args.boundcond}_R_{args.length}_h_{args.h_i}-{args.h_ev}_delta_{args.delta}_trotter_steps_{args.npoints}_chi_{chi}.npy",
+                entrs_mid,
             )
         
         np.save(
-                f"{parent_path}/results/overlap/loschmidt_amplitudes_quench_dynamics_{args.model}_direct_lattice_{args.l}x{L}_{sector}_bc_{args.boundcond}_{args.length}_h_{args.h_i}-{args.h_ev}_delta_{args.delta}_trotter_steps_{args.npoints}_chi_{chi}.npy",
+                f"{parent_path}/results/overlap/loschmidt_amplitudes_quench_dynamics_{args.model}_direct_lattice_{args.l}x{L}_{sector}_bc_{args.boundcond}_R_{args.length}_h_{args.h_i}-{args.h_ev}_delta_{args.delta}_trotter_steps_{args.npoints}_chi_{chi}.npy",
                 losch,
             )
         if args.exact:
             np.save(
-                f"{parent_path}/results/exact/overlap/exact_vs_mps_quench_dynamics_{args.model}_direct_lattice_{args.l}x{L}_{sector}_bc_{args.boundcond}_{args.length}_h_{args.h_i}-{args.h_ev}_delta_{args.delta}_trotter_steps_{args.npoints}_chi_{chi}.npy",
+                f"{parent_path}/results/exact/overlap/exact_vs_mps_quench_dynamics_{args.model}_direct_lattice_{args.l}x{L}_{sector}_bc_{args.boundcond}_R_{args.length}_h_{args.h_i}-{args.h_ev}_delta_{args.delta}_trotter_steps_{args.npoints}_chi_{chi}.npy",
                 ex_mps,
             )
             np.save(
-                f"{parent_path}/results/exact/overlap/exact_vs_sparse_quench_dynamics_{args.model}_direct_lattice_{args.l}x{L}_{sector}_bc_{args.boundcond}_{args.length}_h_{args.h_i}-{args.h_ev}_delta_{args.delta}_trotter_steps_{args.npoints}_chi_{chi}.npy",
+                f"{parent_path}/results/exact/overlap/exact_vs_sparse_quench_dynamics_{args.model}_direct_lattice_{args.l}x{L}_{sector}_bc_{args.boundcond}_R_{args.length}_h_{args.h_i}-{args.h_ev}_delta_{args.delta}_trotter_steps_{args.npoints}_chi_{chi}.npy",
                 ex_sp,
             )
             np.save(
-                f"{parent_path}/results/exact/overlap/mps_vs_sparse_quench_dynamics_{args.model}_direct_lattice_{args.l}x{L}_{sector}_bc_{args.boundcond}_{args.length}_h_{args.h_i}-{args.h_ev}_delta_{args.delta}_trotter_steps_{args.npoints}_chi_{chi}.npy",
+                f"{parent_path}/results/exact/overlap/mps_vs_sparse_quench_dynamics_{args.model}_direct_lattice_{args.l}x{L}_{sector}_bc_{args.boundcond}_R_{args.length}_h_{args.h_i}-{args.h_ev}_delta_{args.delta}_trotter_steps_{args.npoints}_chi_{chi}.npy",
                 mps_sp,
             )

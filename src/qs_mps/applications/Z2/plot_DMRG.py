@@ -1,6 +1,6 @@
 import matplotlib.pyplot as plt
 import numpy as np
-from qs_mps.utils import plot_results_DMRG, plot_colormaps_evolution, get_precision
+from qs_mps.utils import plot_results_DMRG, plot_colormaps_evolution, get_precision, get_cx, get_cy
 import argparse
 
 # default parameters of the plot layout
@@ -48,6 +48,13 @@ parser.add_argument(
     "--charges_y",
     help="a list of the second index of the charges",
     nargs="*",
+    type=int,
+)
+parser.add_argument(
+    "-R",
+    "--length",
+    help="String length in the two particle sector. By default 0 means we are in the vacuum",
+    default=0,
     type=int,
 )
 parser.add_argument(
@@ -106,7 +113,7 @@ parser.add_argument(
 parser.add_argument(
     "-w",
     "--where",
-    help="Bond where we want to observe the Schmidt values, should be between 1 and (L-1)",
+    help="Bond where we want to observe the Schmidt values, should be between 1 and (L)",
     default=-1,
     type=int,
 )
@@ -164,6 +171,13 @@ parser.add_argument(
     help="Exact results to compare the mps ones. If True we compare - be default False",
     action="store_true",
 )
+parser.add_argument(
+    "-bc",
+    "--boundcond",
+    help="Type of boundary conditions. Available are 'obc', 'pbc'",
+    default="pbc",
+    type=str,
+)
 
 args = parser.parse_args()
 
@@ -206,15 +220,15 @@ elif args.moment == 4:
 plot_val = ["energy", "error", "entropy", "wilson_loop", "thooft", "mag"]
 plot_cmap = ["energy_tr", "error_tr", "entropy_tot"]
 
-if args.path == "pc":
+if args.loc == "pc":
     parent_path = f"C:/Users/HP/Desktop/projects/1_Z2"
     # parent_path = "G:/My Drive/projects/1_Z2"
     path_tensor = "D:/code/projects/1_Z2"
-elif args.path == "mac":
+elif args.loc == "mac":
     # parent_path = "/Users/fradm98/Google Drive/My Drive/projects/1_Z2"
     path_tensor = "/Users/fradm98/Desktop/projects/1_Z2"
     parent_path = path_tensor
-elif args.path == "marcos":
+elif args.loc == "marcos":
     # parent_path = "/Users/fradm/Google Drive/My Drive/projects/1_Z2"
     path_tensor = "/Users/fradm/Desktop/projects/1_Z2"
     parent_path = path_tensor
@@ -234,6 +248,11 @@ for L in args.Ls:
         charges_x = args.charges_x
         charges_y = args.charges_y
 
+    if args.length != 0:
+        charges_x = get_cx(L, args.length)
+        charges_y = get_cy(args.l, args.boundcond)
+        sector = f"{len(charges_x)}_particle(s)_sector"
+
     # where to look at for the entropy
     if args.where == -1:
         args.where = L // 2
@@ -241,7 +260,7 @@ for L in args.Ls:
         args.bond = "all"
 
     if args.obs == "energy":
-        title = f"Energy: lattice = ${args.l}$x${L-1}$ ; {sector}"
+        title = f"Energy: lattice = ${args.l}$x${L}$ ; {sector}"
         fname_obs = "energies"
         fname_ex_obs = "energies"
         path = parent_path + f"results/energy_data"
@@ -251,7 +270,7 @@ for L in args.Ls:
         txt = True
 
     elif args.obs == "error":
-        title = f"Error: lattice = ${args.l}$x${L-1}$ ; {sector}"
+        title = f"Error: lattice = ${args.l}$x${L}$ ; {sector}"
         if args.time:
             fname_obs = "errors_quench_dynamics"
             fname_ex_obs = "errors_quench_dynamics"
@@ -261,13 +280,13 @@ for L in args.Ls:
         path = parent_path + f"results/error_data"
         path_ex = parent_path + f"results/exact/error_data"
         path_save = parent_path + f"figures/error/"
-        ylabel = "$\\left|\\left|\\left| \psi\\right>- \\left| \hat{O}\phi\\right>\\right|\\right|^2$"
+        ylabel = "$\\left|\\left|\\left| \\psi\\right>- \\left| \\hat{O} \\phi\\right>\\right|\\right|^2$"
         yscale = "log"
         txt = True
 
     elif args.obs == "entropy":
         title = (
-            f" ${args.where}-th$ Bond Entanglement Entropy: lattice = ${args.l}$x${L-1}$ ; {sector}"
+            f" ${args.where}-th$ Bond Entanglement Entropy: lattice = ${args.l}$x${L}$ ; {sector}"
             # + f" $h \in ({args.h_i},{args.h_f})$"
         )
         if args.time:
@@ -280,11 +299,11 @@ for L in args.Ls:
         path = parent_path + f"results/entropy_data"
         path_ex = parent_path + f"results/exact/entropy_data"
         path_save = parent_path + f"figures/entropy/"
-        ylabel = "entanglement von neumann entropy $(S_{\chi})$"
+        ylabel = "entanglement von neumann entropy $(S_{\\chi})$"
         txt = True
 
     elif args.obs == "wilson_loop":
-        title = f"Wilson Loop: lattice = ${args.l}$x${L-1}$ ; {sector}"
+        title = f"Wilson Loop: lattice = ${args.l}$x${L}$ ; {sector}"
         fname_obs = f"wilson_loop_{moment}_moment"
         fname_ex_obs = f"wilson_loop_{moment}_moment"
         path = parent_path + f"results/wilson_loops"
@@ -295,8 +314,8 @@ for L in args.Ls:
 
     elif args.obs == "thooft":
         title = (
-            f"'t Hooft {direction} string: lattice = ${args.l}$x${L-1}$ ; {sector}"
-            + " $\mu^z$ for "
+            f"'t Hooft {direction} string: lattice = ${args.l}$x${L}$ ; {sector}"
+            + " $\\mu^z$ for "
             + f"L={args.sites[0]}, l={args.ladders[0]}"
             + " dual"
         )
@@ -305,40 +324,40 @@ for L in args.Ls:
         path = parent_path + f"results/thooft"
         path_ex = parent_path + f"results/exact/thooft"
         path_save = parent_path + f"figures/thooft/"
-        ylabel = "$\\langle \sigma^x \dots \sigma^x \\rangle$"
+        ylabel = "$\\langle \\sigma^x \\dots \\sigma^x \\rangle$"
         txt = False
 
     elif args.obs == "mag":
-        title = f"Dual Magnetization: lattice = ${args.l}$x${L-1}$ ; {sector}"
+        title = f"Dual Magnetization: lattice = ${args.l}$x${L}$ ; {sector}"
         fname_obs = f"dual_mag_{moment}_moment"
         fname_ex_obs = f"dual_mag_{moment}_moment"
         path = parent_path + f"results/mag_data"
         path_ex = parent_path + f"results/exact/mag_data"
         path_save = parent_path + f"figures/magnetization/"
-        ylabel = "$\\langle \sigma^x \dots \sigma^x \\rangle$"
+        ylabel = "$\\langle \\sigma^x \\dots \\sigma^x \\rangle$"
         txt = False
 
     elif args.obs == "entropy_tot":
         title = (
-            f"All Bonds Entanglement Entropy: $lattice = {args.l}x{L}$ ; {sector}"
-            + f" $h \in ({args.h_i},{args.h_f})$"
+            f"All Bonds Entanglement Entropy: lattice = ${args.l}$x${L}$ ; "
+            + f" $h_i = {args.h_i}, h_{{ev}} = {args.h_ev}$"
         )
-        fname_obs = f"{args.where}_bond_entropy"
-        path = parent_path + f"results/entropy_data"
-        path_save = parent_path + f"figures/entropy/"
+        fname_obs = f"{args.bond}_bond_entropy_quench_dynamics"
+        path = parent_path + f"/results/entropy_data"
+        path_save = parent_path + f"/figures/entropy"
         xlabel = "bonds"
-        x_ticks = range(args.L - 1)
-        labels = range(1, args.L - 1 + 1)
+        x_ticks = range(L-1)
+        labels = range(1, L-1+1)
         steps = len(x_ticks) // 5
         xticks = x_ticks[::steps]
         steps = len(labels) // 5
         xlabels = labels[::steps]
-        y_ticks = np.arange(args.trotter_steps + 1)
-        # labels = delta * y_ticks
+        y_ticks = np.arange(args.npoints + 1)
+        labels = args.delta * y_ticks
         steps = len(y_ticks) // 5
         yticks = y_ticks[::steps]
-        steps = len(labels) // 5
-        ylabels = labels[::steps]
+        # steps = len(labels) // 5
+        ylabels = [round(lab,2) for lab in labels[::steps]]
         X, Y = np.meshgrid(x_ticks, y_ticks)
         view_init = False
 
@@ -349,13 +368,13 @@ for L in args.Ls:
 
     if args.obs in plot_val:
         if args.time:
-            fname = f"{fname_obs}_{args.model}_direct_lattice_{args.l}x{L-1}_{sector}_{args.charges_x}-{args.charges_y}_h_i_{args.h_i}_h_ev_{args.h_ev}_delta_{args.delta}_trotter_steps_{args.npoints}"
-            fname_ex = f"{fname_ex_obs}_{args.model}_direct_lattice_{args.l}x{L-1}_{sector}_{args.charges_x}-{args.charges_y}_h_i_{args.h_i}_h_ev_{args.h_ev}_delta_{args.delta}_trotter_steps_{args.npoints}"
-            fname_save = f"{args.obs}_{args.model}_direct_lattice_{args.l}x{L-1}_{sector}_{args.charges_x}-{args.charges_y}_h_i_{args.h_i}_h_ev_{args.h_ev}_delta_{args.delta}_trotter_steps_{args.npoints}"
+            fname = f"{fname_obs}_{args.model}_direct_lattice_{args.l}x{L}_{sector}_{args.charges_x}-{args.charges_y}_h_i_{args.h_i}_h_ev_{args.h_ev}_delta_{args.delta}_trotter_steps_{args.npoints}"
+            fname_ex = f"{fname_ex_obs}_{args.model}_direct_lattice_{args.l}x{L}_{sector}_{args.charges_x}-{args.charges_y}_h_i_{args.h_i}_h_ev_{args.h_ev}_delta_{args.delta}_trotter_steps_{args.npoints}"
+            fname_save = f"{args.obs}_{args.model}_direct_lattice_{args.l}x{L}_{sector}_{args.charges_x}-{args.charges_y}_h_i_{args.h_i}_h_ev_{args.h_ev}_delta_{args.delta}_trotter_steps_{args.npoints}"
         else:
-            fname = f"{fname_obs}_{args.model}_direct_lattice_{args.l}x{L-1}_{sector}_{args.charges_x}-{args.charges_y}_h_{args.h_i}-{args.h_f}_delta_{args.npoints}"
-            fname_ex = f"{fname_ex_obs}_{args.model}_direct_lattice_{args.l}x{L-1}_{sector}_{args.charges_x}-{args.charges_y}_h_{args.h_i}-{args.h_f}_delta_{args.npoints}"
-            fname_save = f"{args.obs}_{args.model}_direct_lattice_{args.l}x{L-1}_{sector}_{args.charges_x}-{args.charges_y}_h_{args.h_i}-{args.h_f}_delta_{args.npoints}"
+            fname = f"{fname_obs}_{args.model}_direct_lattice_{args.l}x{L}_{sector}_{args.charges_x}-{args.charges_y}_h_{args.h_i}-{args.h_f}_delta_{args.npoints}"
+            fname_ex = f"{fname_ex_obs}_{args.model}_direct_lattice_{args.l}x{L}_{sector}_{args.charges_x}-{args.charges_y}_h_{args.h_i}-{args.h_f}_delta_{args.npoints}"
+            fname_save = f"{args.obs}_{args.model}_direct_lattice_{args.l}x{L}_{sector}_{args.charges_x}-{args.charges_y}_h_{args.h_i}-{args.h_f}_delta_{args.npoints}"
         plot_results_DMRG(
             title,
             for_array=args.chis,
@@ -385,9 +404,11 @@ for L in args.Ls:
 
     if args.obs in plot_cmap:
         for chi in args.chis:
-            title_fin = title + f" ; $\chi = {chi}$"
-            fname = f"{fname_obs}_{args.model}_L_{args.L}_h_{args.h_i}-{args.h_f}_delta_{args.npoints}_chi_{chi}"
-            fname_save = f"{args.obs}_{args.model}_L_{args.L}_h_{args.h_i}-{args.h_f}_delta_{args.npoints}_chi_{chi}"
+            title_fin = title + f" ; $\\chi = {chi}$"
+            fname = f"{fname_obs}_{args.model}_direct_lattice_{args.l}x{L}_{sector}_bc_{args.boundcond}_R_{args.length}_h_{args.h_i}-{args.h_ev}_delta_{args.delta}_trotter_steps_{args.npoints}_chi_{chi}.npy"
+            # fname = f"{fname_obs}_{args.model}_L_{args.L}_h_{args.h_i}-{args.h_f}_delta_{args.npoints}_chi_{chi}"
+            fname_save = f"{fname_obs}_{args.model}_direct_lattice_{args.l}x{L}_{sector}_bc_{args.boundcond}_R_{args.length}_h_{args.h_i}-{args.h_ev}_delta_{args.delta}_trotter_steps_{args.npoints}_chi_{chi}.npy"
+            # fname_save = f"{args.obs}_{args.model}_L_{args.L}_h_{args.h_i}-{args.h_f}_delta_{args.npoints}_chi_{chi}"
             plot_colormaps_evolution(
                 title=title_fin,
                 fname=fname,

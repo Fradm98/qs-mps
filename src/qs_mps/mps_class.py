@@ -2483,6 +2483,8 @@ class MPS:
                         entr = von_neumann_entropy(s)
                         entropy.append(entr)
                 else:
+                    if sites[i] - 1 == where:
+                        s_mid = s
                     entr = von_neumann_entropy(s)
                     entropy.append(entr)
                 # self.update_envs_ev(sweeps[0], sites[i])
@@ -3079,7 +3081,10 @@ class MPS:
             errors = [0]
         
         # entropy
-        entropies = [[0]]
+        if bond:
+            entropies = [[0]]
+        else:
+            entropies = [[0]*(self.L)]
 
         # schmidt_vals
         svs = []
