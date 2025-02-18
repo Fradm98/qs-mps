@@ -131,7 +131,7 @@ d = int(2 ** (args.l))
 
 # define the precision to load the mps
 # precision = get_precision(args.h_i)
-precision = 3
+precision = 2
 
 # take the path and precision to save files
 # if we want to save the tensors we save them locally because they occupy a lot of memory
@@ -207,8 +207,8 @@ for L in args.Ls:
             )
 
         sector_vac = "vacuum_sector"
-        cx_vac = None
-        cy_vac = None
+        cx_vac = np.nan
+        cy_vac = np.nan
         if sector_vac != "vacuum_sector":
             lattice_mps.Z2.add_charges(cx_vac, cy_vac)
             lattice_mps.charges = lattice_mps.Z2.charges
@@ -234,7 +234,9 @@ for L in args.Ls:
             lattice_mps.order_param()
             mag = lattice_mps.mpo_first_moment()
             print(f"initial magentization is: {mag}")
-            # lattice_mps.save_sites(path=path_tensor, precision=precision, cx=cx_vac, cy=cy_vac)
+
+            # lattice_mps.sites = [tensor.astype(np.complex128) for tensor in lattice_mps.sites]
+            lattice_mps.save_sites(path=path_tensor, precision=precision, cx=cx_vac, cy=cy_vac)
 
         # initialize the variables to save
         errors_tr = [[0, 0]]
@@ -458,7 +460,11 @@ for L in args.Ls:
 
         if args.bond == False:
             args.where = "all"
-
+            entrs = np.asarray(entrs)[:,1:]
+            entrs_mid = np.asarray(entrs)[:,L//2]
+        else:
+            entrs = np.asarray(entrs)
+    
         if args.training:
             save_list_of_lists(
                 f"{parent_path}/results/error_data/errors_tr_quench_dynamics_{args.model}_direct_lattice_{args.l}x{L}_{sector}_bc_{args.boundcond}_R_{args.length}_h_{args.h_i}-{args.h_ev}_delta_{args.delta}_trotter_steps_{args.npoints}_chi_{chi}.npy",
@@ -476,11 +482,7 @@ for L in args.Ls:
                 f"{parent_path}/results/error_data/errors_quench_dynamics_{args.model}_direct_lattice_{args.l}x{L}_{sector}_bc_{args.boundcond}_R_{args.length}_h_{args.h_i}-{args.h_ev}_delta_{args.delta}_trotter_steps_{args.npoints}_chi_{chi}.npy",
                 errs,
             )
-
-        print(entrs)
-        entrs = np.asarray(entrs)[:,1:]
-        entrs_mid = np.asarray(entrs)[:,L//2]
-        print(entrs)
+        
         np.save(
             f"{parent_path}/results/entropy_data/{args.where}_bond_entropy_quench_dynamics_{args.model}_direct_lattice_{args.l}x{L}_{sector}_bc_{args.boundcond}_R_{args.length}_h_{args.h_i}-{args.h_ev}_delta_{args.delta}_trotter_steps_{args.npoints}_chi_{chi}.npy",
             entrs,
@@ -490,6 +492,7 @@ for L in args.Ls:
             svs,
         )
         if args.where == "all":
+            
             # entropy_mid = access_txt(
             #     f"{parent_path}/results/entropy_data/{args.where}_bond_entropy_quench_dynamics_{args.model}_direct_lattice_{args.l}x{L}_{sector}_bc_{args.boundcond}_R_{args.length}_h_{args.h_i}-{args.h_ev}_delta_{args.delta}_trotter_steps_{args.npoints}_chi_{chi}.npy",
             #     (L - 1) // 2,

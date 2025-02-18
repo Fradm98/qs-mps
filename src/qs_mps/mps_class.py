@@ -3735,6 +3735,7 @@ class MPS:
         with h5py.File(f"{path}{filename}.h5", "w") as f:
             # Save scalar metadata as file attributes
             for key, value in metadata.items():
+                print(key, type(value))
                 f.attrs[
                     key
                 ] = value  # This is good for small, scalar data like strings or numbers
@@ -3744,6 +3745,7 @@ class MPS:
 
             # Store each tensor as a separate dataset within the group
             for i, tensor in enumerate(self.sites):
+                print(tensor.dtype)
                 tensors_group.create_dataset(
                     f"tensor_{i}", data=tensor, compression="gzip"
                 )
