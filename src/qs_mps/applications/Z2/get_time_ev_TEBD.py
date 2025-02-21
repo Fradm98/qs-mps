@@ -220,13 +220,29 @@ for L in args.Ls:
                 path=path_tensor, precision=precision, cx=cx_vac, cy=cy_vac
             )
             print("State found!!")
+            if args.bond:
+                try:
+                    entropy = load_list_of_lists(f"{parent_path}/results/entropy_data/{args.where}_bond_entropy_{args.model}_direct_lattice_{args.l}x{L}_{sector}_bc_{args.boundcond}_{cx_vac}-{cy_vac}_h_{args.h_i}_delta_{args.npoints}_chi_{chi}")
+                except:
+                    # lattice_mps.canonical_form(svd_direction="right", trunc_chi=True, trunc_tol=False)
+                    lattice_mps.canonical_form(svd_direction="left", trunc_chi=True, trunc_tol=False)
+                    entropy = von_neumann_entropy(lattice_mps.bonds[L//2])
+                    print(entropy)
+            else:
+                try:
+                    entropy = load_list_of_lists(f"{parent_path}/results/entropy_data/all_bond_entropy_{args.model}_direct_lattice_{args.l}x{L}_{sector}_bc_{args.boundcond}_{cx_vac}-{cy_vac}_h_{args.h_i}_delta_{args.npoints}_chi_{chi}")
+                except:
+                    lattice_mps.canonical_form(svd_direction="right", trunc_chi=True, trunc_tol=False)
+                    entropy = [von_neumann_entropy(lattice_mps.bonds[i]) for i in range(L-1)]
+                    print(entropy)
+
         except:
             print("State not found! Computing DMRG")
             lattice_mps._random_state(seed=3, type_shape="rectangular", chi=chi)
             lattice_mps.canonical_form()
             lattice_mps.sites.append(np.random.rand(1,2,1))
             lattice_mps.L = len(lattice_mps.sites)
-            lattice_mps.DMRG(trunc_chi=True, trunc_tol=False, where=L//2, long="Z", trans="X")
+            energy, entropy, schmidt_vals, t_dmrg = lattice_mps.DMRG(trunc_chi=True, trunc_tol=False, where=L//2, long="Z", trans="X")
             lattice_mps.check_canonical(site=1)
             aux_qub = lattice_mps.sites.pop()
             lattice_mps.L -= 1

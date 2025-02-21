@@ -352,7 +352,7 @@ for L in args.Ls:
         xticks = x_ticks[::steps]
         steps = len(labels) // 5
         xlabels = labels[::steps]
-        y_ticks = np.arange(args.npoints + 1)
+        y_ticks = np.arange(args.npoints)
         labels = args.delta * y_ticks
         steps = len(y_ticks) // 5
         yticks = y_ticks[::steps]

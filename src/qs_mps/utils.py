@@ -1101,7 +1101,7 @@ def plot_colormaps_evolution(
     view_init: bool = False,
 ):
     # matrix = np.loadtxt(f"{path}/{fname}")
-    matrix = np.load(f"{path}/{fname}")
+    matrix = np.load(f"{path}/{fname}")[1:,:]
     print(matrix.shape)
     print(X.shape)
     print(Y.shape)
