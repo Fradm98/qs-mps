@@ -1230,4 +1230,5 @@ def get_cy(l, bc, cy: list=None):
         elif bc == "obc":
             return [l // 2, l // 2]
     else:
+        print(f"cy given: {cy}")
         return cy
