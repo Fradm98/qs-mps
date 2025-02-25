@@ -294,9 +294,9 @@ def potential_fit_3(R, a, b, c, d, e):
     return a * R - b * (1 / R) - c * (1 / (R**3)) + d * (1 / (R**5)) + e
 
 def fitting(Rs, potentials, errors, fit=1, guess=None):
+    # Rs = [R+2 for R in Rs]
     if fit == 0:
         popt, pcov = curve_fit(potential_fit_0, Rs, potentials, sigma=errors, p0=guess)
-        print()
     if fit == 1:
         popt, pcov = curve_fit(potential_fit_0, Rs, potentials, sigma=errors, p0=guess)
         guess = np.append(popt,0)
