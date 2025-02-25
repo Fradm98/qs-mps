@@ -184,7 +184,7 @@ else:
 # ---------------------------------------------------------
 for L in args.Ls:
     # define the sector by looking of the given charges
-    if args.charges_x == []:
+    if args.charges_x == [] and args.charges_y == []:
         sector = "vacuum_sector"
         charges_x = np.nan
         charges_y = np.nan
@@ -200,7 +200,7 @@ for L in args.Ls:
 
     if args.length != 0:
         charges_x = get_cx(L, args.length)
-        charges_y = get_cy(args.l, args.boundcond)
+        charges_y = get_cy(args.l, args.boundcond, args.charges_y)
         sector = f"{len(charges_x)}_particle(s)_sector"
     # init_state = np.zeros((d))
     # init_state[0] = 1
