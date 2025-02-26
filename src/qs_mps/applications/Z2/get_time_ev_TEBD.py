@@ -123,6 +123,13 @@ parser.add_argument(
     default="pbc",
     type=str,
 )
+parser.add_argument(
+    "-Dmax",
+    "--chi_max",
+    help="Bond dimension for the initial DMRG",
+    default=128,
+    type=int,
+)
 
 args = parser.parse_args()
 
@@ -203,7 +210,7 @@ for L in args.Ls:
 
     for chi in args.chis:
         lattice_mps = MPS(
-                L=L, d=d, model=args.model, chi=chi, h=args.h_i, bc=args.boundcond
+                L=L, d=d, model=args.model, chi=args.chi_max, h=args.h_i, bc=args.boundcond
             )
 
         sector_vac = "vacuum_sector"
@@ -238,7 +245,7 @@ for L in args.Ls:
 
         except:
             print("State not found! Computing DMRG")
-            lattice_mps._random_state(seed=3, type_shape="rectangular", chi=chi)
+            lattice_mps._random_state(seed=3, type_shape="rectangular", chi=args.chi_max)
             lattice_mps.canonical_form()
             lattice_mps.sites.append(np.random.rand(1,2,1))
             lattice_mps.L = len(lattice_mps.sites)
@@ -342,6 +349,8 @@ for L in args.Ls:
             lattice_mps.Z2._define_sector()
         else:
             lattice_mps.Z2._define_sector()
+
+        lattice_mps.chi = chi
         (errs,
         entrs,
         svs,

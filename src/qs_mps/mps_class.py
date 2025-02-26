@@ -589,6 +589,7 @@ class MPS:
         trunc_tol: bool = False,
         chi: int = 1,
         schmidt_tol: float = 1e-15,
+        ancilla: bool = False,
     ):
         """
         vector_to_mps
@@ -631,8 +632,12 @@ class MPS:
 
         sites.reverse()
         bonds.reverse()
-        self.sites = sites.copy()
-        self.bonds = bonds.copy()
+        if ancilla:
+            self.ancilla_sites = sites.copy()
+            self.ancilla_bonds = bonds.copy()
+        else:
+            self.sites = sites.copy()
+            self.bonds = bonds.copy()
         return self
 
     # -------------------------------------------------
