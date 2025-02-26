@@ -3052,6 +3052,7 @@ class MPS:
         aux_qub: np.ndarray = None,
         obs: list = None,
         training: bool = False,
+        chi_max: int = 128,
     ):
         """
         variational_mps_evolution
@@ -3071,8 +3072,9 @@ class MPS:
                 By default True
 
         """
-        self.enlarge_chi()
-        self.canonical_form(trunc_chi=True, trunc_tol=False)
+        if chi_max < self.chi:
+            self.enlarge_chi()
+            self.canonical_form(trunc_chi=True, trunc_tol=False)
         
 
         # ============================

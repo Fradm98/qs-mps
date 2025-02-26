@@ -372,6 +372,7 @@ for L in args.Ls:
             exact=args.exact,
             obs=args.obs,
             training=args.training,
+            chi_max=args.chi_max
             )
 
             # ---------------------------------------------------------
