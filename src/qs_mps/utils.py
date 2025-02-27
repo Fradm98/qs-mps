@@ -1,6 +1,6 @@
 import numpy as np
 from scipy.optimize import curve_fit
-from scipy.sparse.linalg import expm, eigsh, expm_multiply, svds
+from scipy.sparse.linalg import expm, eigsh, expm_multiply, svds, logm
 from scipy.sparse import csr_matrix, csc_matrix, csc_array, kron as spkron
 import os
 from ncon import ncon
@@ -374,7 +374,7 @@ def ground_state(L):
 # ---------------------------------------------------------------------------------------
 # Von Neumann Entropy
 # ---------------------------------------------------------------------------------------
-def von_neumann_entropy(s):
+def von_neumann_entropy(s, dm: bool=False):
     """
     von_neumann_entropy
 
@@ -384,6 +384,8 @@ def von_neumann_entropy(s):
     s: np.ndarray - array of Schmidt values of a system
 
     """
+    if dm:
+        return - (s @ logm(s)).trace() 
     return -np.sum((s**2) * np.log2(s**2))
 
 
