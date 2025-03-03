@@ -2,7 +2,7 @@ import os
 
 # Define the directory containing the files
 directory = "/Users/fradm/Desktop/projects/1_Z2/results/energy_data"
-directory = "/Users/fradm/Desktop/projects/1_Z2/results/tensors"
+# directory = "/Users/fradm/Desktop/projects/1_Z2/results/tensors"s
 
 # # Loop through all files in the directory
 # for filename in os.listdir(directory):
@@ -33,25 +33,11 @@ directory = "/Users/fradm/Desktop/projects/1_Z2/results/tensors"
 #         os.rename(old_path, new_path)
 #         print(f"Renamed: {filename} -> {new_filename}")
 
-# for filename in os.listdir(directory):
-#     # Check if the filename contains both "vacuum_sector" and "[]"
-#     if "[]" in filename:
-#         # Construct the new filename
-#         new_filename = filename.replace("[]", "[0, 0]")
-        
-#         # Full paths
-#         old_path = os.path.join(directory, filename)
-#         new_path = os.path.join(directory, new_filename)
-
-#         # Rename the file
-#         os.rename(old_path, new_path)
-#         print(f"Renamed: {filename} -> {new_filename}")
-
 for filename in os.listdir(directory):
     # Check if the filename contains both "vacuum_sector" and "[]"
-    if "0.72.h5" in filename:
+    if "[]" in filename:
         # Construct the new filename
-        new_filename = filename.replace("0.72.h5", "0.725.h5")
+        new_filename = filename.replace("[]", "[0, 0]")
         
         # Full paths
         old_path = os.path.join(directory, filename)
@@ -60,3 +46,17 @@ for filename in os.listdir(directory):
         # Rename the file
         os.rename(old_path, new_path)
         print(f"Renamed: {filename} -> {new_filename}")
+
+# for filename in os.listdir(directory):
+#     # Check if the filename contains both "vacuum_sector" and "[]"
+#     if "0.72.h5" in filename:
+#         # Construct the new filename
+#         new_filename = filename.replace("0.72.h5", "0.725.h5")
+        
+#         # Full paths
+#         old_path = os.path.join(directory, filename)
+#         new_path = os.path.join(directory, new_filename)
+
+#         # Rename the file
+#         os.rename(old_path, new_path)
+#         print(f"Renamed: {filename} -> {new_filename}")
