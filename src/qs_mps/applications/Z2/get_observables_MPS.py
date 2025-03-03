@@ -325,9 +325,9 @@ for L in args.Ls:
                 )
 
             if "entr" in args.obs:
-                lattice_mps.canonical_form(svd_direction="right", trunc_chi=True, trunc_tol=False)
+                lattice_mps.mixed_canonical_form(site=L//2, trunc_chi=True, trunc_tol=False, schmidt_tol=1e-12)
                 entropy = von_neumann_entropy(lattice_mps.bonds[L//2])
-                print(entropy, lattice_mps.bonds[L//2])
+                print(entropy, lattice_mps.check_canonical(site=L//2), np.sum([lattice_mps.bonds[L//2][i]**2 for i in range(len(lattice_mps.bonds[L//2]))]))
 
             if "pot" in args.obs:
                 potr = []

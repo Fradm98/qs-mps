@@ -387,7 +387,7 @@ def von_neumann_entropy(s, dm: bool=False):
     """
     if dm:
         return - (s @ logm(s)).trace() 
-    return -np.sum((s**2) * np.log2(s**2))
+    return - np.sum((s**2) * np.log2(s**2))
 
 
 # ---------------------------------------------------------------------------------------

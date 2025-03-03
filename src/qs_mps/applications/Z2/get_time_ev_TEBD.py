@@ -249,7 +249,7 @@ for L in args.Ls:
             lattice_mps.canonical_form()
             lattice_mps.sites.append(np.random.rand(1,2,1))
             lattice_mps.L = len(lattice_mps.sites)
-            energy, entropy, schmidt_vals, t_dmrg = lattice_mps.DMRG(trunc_chi=True, trunc_tol=False, where=L//2, long="Z", trans="X")
+            energy, entropy, schmidt_vals, t_dmrg = lattice_mps.DMRG(trunc_chi=True, trunc_tol=False, bond=False, long="Z", trans="X")
             lattice_mps.check_canonical(site=1)
             aux_qub = lattice_mps.sites.pop()
             lattice_mps.L -= 1
@@ -264,10 +264,11 @@ for L in args.Ls:
         # initialize the variables to save
         errors_tr = [[0, 0]]
         errors = [0]
-        entropies = [[0]]
-        schmidt_vals = np.array([0] * chi)
-        schmidt_vals[0] = 1
-        schmidt_vals = [schmidt_vals]
+        entropies_ev = [entropy]
+        schmidt_vals_ev = [schmidt_vals]
+        # schmidt_vals = np.array([0] * chi)
+        # schmidt_vals[0] = 1
+        # schmidt_vals = [schmidt_vals]
         # ---------------------------------------------------------
         # Initial Observables
         # ---------------------------------------------------------
