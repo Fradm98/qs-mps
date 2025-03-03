@@ -1,6 +1,7 @@
 import numpy as np
 from scipy.optimize import curve_fit
-from scipy.sparse.linalg import expm, eigsh, expm_multiply, svds, logm
+from scipy.linalg import logm
+from scipy.sparse.linalg import expm, eigsh, expm_multiply, svds
 from scipy.sparse import csr_matrix, csc_matrix, csc_array, kron as spkron
 import os
 from ncon import ncon
@@ -1224,14 +1225,14 @@ def anim(
 
 def get_cx(L, R, cx: list=None):
     assert 0 <= R < L, "The fluxtube is longer than the lattice length"
-    if cx == None:
+    if cx == None or len(cx) == 0:
         return [int(L / 2 - R / 2), int(L / 2 + R / 2)]
     else:
         print(f"cx given: {cx}")
         return cx
 
 def get_cy(l, bc, cy: list=None):
-    if cy == None:
+    if cy == None or len(cy) == 0:
         if bc == "pbc":
             return [0,0]
         elif bc == "obc":
