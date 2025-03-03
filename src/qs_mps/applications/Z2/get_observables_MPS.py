@@ -327,8 +327,8 @@ for L in args.Ls:
             if "entr" in args.obs:
                 lattice_mps.canonical_form(svd_direction="left", trunc_chi=True, trunc_tol=False)
                 entropy = von_neumann_entropy(lattice_mps.bonds[L//2])
-                print(entropy)
-                
+                print(entropy, lattice_mps.bonds[L//2])
+
             if "pot" in args.obs:
                 potr = []
                 for R in args.Rs:
