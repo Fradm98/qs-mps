@@ -125,7 +125,7 @@ parser.add_argument(
     "-bc",
     "--boundcond",
     help="Type of boundary conditions. Available are 'obc', 'pbc'",
-    default="obc",
+    default="pbc",
     type=str,
 )
 parser.add_argument(
