@@ -8,13 +8,13 @@ import matplotlib.pyplot as plt
 def get_cx(L: int, R: int):
     assert 0 <= R < L, f"The fluxtube spans for {R} lattice links but the lattice length is {L}"
     if R == 0:
-        return [np.nan,np.nan]
+        return np.nan
     else:
         return [int(L/2-R/2),int(L/2+R/2)]
 
 def get_cy(l: int, bc: str="obc", R: int=0):
     if R == 0:
-        return [np.nan,np.nan]
+        return np.nan
     else:
         if bc == "obc":
             return [l//2,l//2]

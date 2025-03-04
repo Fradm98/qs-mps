@@ -318,6 +318,118 @@ class MPS:
         # np.savetxt(f"results/times_data/svd_canonical_form_h_{self.h:.2f}", [time.perf_counter()-time_cf])
         return self
 
+    def mixed_canonical_form(self, site: int, trunc_chi: bool, trunc_tol: bool, schmidt_tol: float):
+        s_init = np.array([1])
+        psi = np.diag(s_init)
+
+        sites = self.sites
+        bonds = self.bonds
+        
+        bonds.append(s_init)
+        # time_cf = time.perf_counter()
+        for i in range(self.L - 1, site-1, -1):
+            new_site = ncon(
+                [sites[i], psi],
+                [
+                    [-1, -2, 1],
+                    [1, -3],
+                ],
+            )
+            new_site = new_site.reshape(new_site.shape[0], self.d * new_site.shape[2])
+
+            original_matrix = new_site
+            scaled_matrix = original_matrix / np.max(np.abs(original_matrix))
+            lambda_ = 1e-15
+            regularized_matrix = scaled_matrix + lambda_ * np.eye(
+                scaled_matrix.shape[0], scaled_matrix.shape[1]
+            )
+            u, s, v = la.svd(
+                regularized_matrix,
+                full_matrices=False,
+            )
+
+            bond_r = v.shape[1] // self.d
+            v = v.reshape((v.shape[0], self.d, bond_r))
+            if trunc_chi:
+                if v.shape[0] > self.chi:
+                    v = v[: self.chi, :, :]
+                    s = s[: self.chi]
+                    u = u[:, : self.chi]
+                    s = s / la.norm(s)
+            if trunc_tol:
+                condition = s >= schmidt_tol
+                s_trunc = np.extract(condition, s)
+                s = s_trunc / la.norm(s_trunc)
+                v = v[: len(s), :, :]
+                bonds.append(s)
+                u = u[:, : len(s)]
+
+            sites[i] = v
+            bonds.append(s)
+            psi = ncon(
+                [u, np.diag(s)],
+                [
+                    [-1, 1],
+                    [1, -2],
+                ],
+            )
+
+        bonds.append(s_init)
+        bonds.reverse()
+
+        s_init = np.array([1])
+        psi = np.diag(s_init)
+
+        for i in range(site-1):
+            new_site = ncon(
+                [psi, sites[i]],
+                [
+                    [-1, 1],
+                    [1, -2, -3],
+                ],
+            )
+            new_site = new_site.reshape(new_site.shape[0] * self.d, new_site.shape[2])
+
+            original_matrix = new_site
+            scaled_matrix = original_matrix / np.max(np.abs(original_matrix))
+            lambda_ = 1e-15
+            regularized_matrix = scaled_matrix + lambda_ * np.eye(
+                scaled_matrix.shape[0], scaled_matrix.shape[1]
+            )
+            u, s, v = la.svd(
+                regularized_matrix,
+                full_matrices=False,
+            )
+
+            bond_l = u.shape[0] // self.d
+            u = u.reshape(bond_l, self.d, u.shape[1])
+            if trunc_chi:
+                if u.shape[0] > self.chi:
+                    u = u[:, :, : self.chi]
+                    s = s[: self.chi]
+                    v = v[: self.chi, :]
+                    s = s / la.norm(s)
+            if trunc_tol:
+                condition = s >= schmidt_tol
+                s_trunc = np.extract(condition, s)
+                s = s_trunc / la.norm(s_trunc)
+                u = u[:, :, : len(s)]
+                v = v[: len(s), :]
+
+            sites[i] = u
+            bonds.append(s)
+            psi = ncon(
+                [np.diag(s), v],
+                [
+                    [-1, 1],
+                    [1, -2],
+                ],
+            )
+
+        self.sites = sites
+        self.bonds = bonds
+        return self
+
     def _compute_norm(self, site, ancilla=False, mixed=False):
         """
         _compute_norm
@@ -589,6 +701,7 @@ class MPS:
         trunc_tol: bool = False,
         chi: int = 1,
         schmidt_tol: float = 1e-15,
+        ancilla: bool = False,
     ):
         """
         vector_to_mps
@@ -631,8 +744,12 @@ class MPS:
 
         sites.reverse()
         bonds.reverse()
-        self.sites = sites.copy()
-        self.bonds = bonds.copy()
+        if ancilla:
+            self.ancilla_sites = sites.copy()
+            self.ancilla_bonds = bonds.copy()
+        else:
+            self.sites = sites.copy()
+            self.bonds = bonds.copy()
         return self
 
     # -------------------------------------------------
@@ -3047,6 +3164,7 @@ class MPS:
         aux_qub: np.ndarray = None,
         obs: list = None,
         training: bool = False,
+        chi_max: int = 128,
     ):
         """
         variational_mps_evolution
@@ -3066,8 +3184,9 @@ class MPS:
                 By default True
 
         """
-        self.enlarge_chi()
-        self.canonical_form(trunc_chi=True, trunc_tol=False)
+        if chi_max < self.chi:
+            self.enlarge_chi()
+            self.canonical_form(trunc_chi=True, trunc_tol=False)
         
 
         # ============================

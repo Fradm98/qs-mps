@@ -1,5 +1,6 @@
 import numpy as np
 from scipy.optimize import curve_fit
+from scipy.linalg import logm
 from scipy.sparse.linalg import expm, eigsh, expm_multiply, svds
 from scipy.sparse import csr_matrix, csc_matrix, csc_array, kron as spkron
 import os
@@ -11,7 +12,7 @@ from matplotlib.patches import Ellipse
 from matplotlib.animation import FuncAnimation
 from typing import Union
 from functools import partial
-
+import pickle
 
 # ---------------------------------------------------------------------------------------
 # Tensor shapes
@@ -374,7 +375,7 @@ def ground_state(L):
 # ---------------------------------------------------------------------------------------
 # Von Neumann Entropy
 # ---------------------------------------------------------------------------------------
-def von_neumann_entropy(s):
+def von_neumann_entropy(s, dm: bool=False):
     """
     von_neumann_entropy
 
@@ -384,7 +385,9 @@ def von_neumann_entropy(s):
     s: np.ndarray - array of Schmidt values of a system
 
     """
-    return -np.sum((s**2) * np.log2(s**2))
+    if dm:
+        return - (s @ logm(s)).trace() 
+    return - np.sum((s**2) * np.log2(s**2))
 
 
 # ---------------------------------------------------------------------------------------
@@ -1099,9 +1102,13 @@ def plot_colormaps_evolution(
     interpolation: str = "antialiased",
     d: bool = False,
     view_init: bool = False,
+    conn: str = None,
 ):
     # matrix = np.loadtxt(f"{path}/{fname}")
     matrix = np.load(f"{path}/{fname}")[1:,:]
+    if conn is not None:
+        matrix_vac = np.load(f"{path}/{conn}")[1:,:]
+        matrix = matrix - matrix_vac
     print(matrix.shape)
     print(X.shape)
     print(Y.shape)
@@ -1120,7 +1127,6 @@ def plot_colormaps_evolution(
             ax.view_init(20, 80)
         if save:
             fig.savefig(f"{path_save}/{fname_save}_3D.png")
-        fig.show()
     else:
         plt.title(title, fontsize=14)
         plt.imshow(matrix, cmap=cmap, aspect="auto", interpolation=interpolation)
@@ -1133,7 +1139,6 @@ def plot_colormaps_evolution(
     if save:
         plt.savefig(f"{path_save}/{fname_save}.png")
     plt.show()
-
 
 def anim(
     frames: int,
@@ -1218,13 +1223,16 @@ def anim(
     return animation
 
 
-def get_cx(L, R):
-    assert 0 < R < L, "The fluxtube is longer than the lattice length"
-    return [int(L / 2 - R / 2), int(L / 2 + R / 2)]
-
+def get_cx(L, R, cx: list=None):
+    assert 0 <= R < L, "The fluxtube is longer than the lattice length"
+    if cx == None or len(cx) == 0:
+        return [int(L / 2 - R / 2), int(L / 2 + R / 2)]
+    else:
+        print(f"cx given: {cx}")
+        return cx
 
 def get_cy(l, bc, cy: list=None):
-    if cy == None:
+    if cy == None or len(cy) == 0:
         if bc == "pbc":
             return [0,0]
         elif bc == "obc":

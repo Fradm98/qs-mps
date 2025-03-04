@@ -178,6 +178,12 @@ parser.add_argument(
     default="pbc",
     type=str,
 )
+parser.add_argument(
+    "-conn",
+    "--connected",
+    help="Compute a connected quantity by subtracting the vacuum. Available for 'entropy_tot'. By default False",
+    action="store_true",
+)
 
 args = parser.parse_args()
 
@@ -406,8 +412,13 @@ for L in args.Ls:
         for chi in args.chis:
             title_fin = title + f" ; $\\chi = {chi}$"
             fname = f"{fname_obs}_{args.model}_direct_lattice_{args.l}x{L}_{sector}_bc_{args.boundcond}_R_{args.length}_h_{args.h_i}-{args.h_ev}_delta_{args.delta}_trotter_steps_{args.npoints}_chi_{chi}.npy"
+            if args.connected:
+                conn = f"{fname_obs}_{args.model}_direct_lattice_{args.l}x{L}_vacuum_sector_bc_{args.boundcond}_R_0_h_{args.h_i}-{args.h_ev}_delta_{args.delta}_trotter_steps_{args.npoints}_chi_{chi}.npy"
+                fname_save = f"{fname_obs}_connected_{args.model}_direct_lattice_{args.l}x{L}_{sector}_bc_{args.boundcond}_R_{args.length}_h_{args.h_i}-{args.h_ev}_delta_{args.delta}_trotter_steps_{args.npoints}_chi_{chi}.npy"
+            else:
+                conn = None
             # fname = f"{fname_obs}_{args.model}_L_{args.L}_h_{args.h_i}-{args.h_f}_delta_{args.npoints}_chi_{chi}"
-            fname_save = f"{fname_obs}_{args.model}_direct_lattice_{args.l}x{L}_{sector}_bc_{args.boundcond}_R_{args.length}_h_{args.h_i}-{args.h_ev}_delta_{args.delta}_trotter_steps_{args.npoints}_chi_{chi}.npy"
+                fname_save = f"{fname_obs}_{args.model}_direct_lattice_{args.l}x{L}_{sector}_bc_{args.boundcond}_R_{args.length}_h_{args.h_i}-{args.h_ev}_delta_{args.delta}_trotter_steps_{args.npoints}_chi_{chi}.npy"
             # fname_save = f"{args.obs}_{args.model}_L_{args.L}_h_{args.h_i}-{args.h_f}_delta_{args.npoints}_chi_{chi}"
             plot_colormaps_evolution(
                 title=title_fin,
@@ -427,4 +438,5 @@ for L in args.Ls:
                 interpolation=args.interpolation,
                 d=args.dim,
                 view_init=view_init,
+                conn=conn,
             )

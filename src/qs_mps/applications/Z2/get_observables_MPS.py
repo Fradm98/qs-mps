@@ -83,7 +83,7 @@ parser.add_argument(
     "-bc",
     "--boundcond",
     help="Type of boundary conditions. Available are 'obc', 'pbc'",
-    default="obc",
+    default="pbc",
     type=str,
 )
 parser.add_argument(
@@ -323,6 +323,12 @@ for L in args.Ls:
                 End.append(
                     lattice_mps.mpo_Z2_column_electric_energy_density(site=L // 2)
                 )
+
+            if "entr" in args.obs:
+                lattice_mps.canonical_form(svd_direction="right", trunc_chi=False, trunc_tol=True, schmidt_tol=1e-15)
+                entropy = von_neumann_entropy(lattice_mps.bonds[L//2])
+                print(entropy)
+
             if "pot" in args.obs:
                 potr = []
                 for R in args.Rs:

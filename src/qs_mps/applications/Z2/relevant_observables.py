@@ -6,6 +6,191 @@ from qs_mps.applications.Z2.utils import get_cx, get_cy, arithmetic_average
 from qs_mps.utils import von_neumann_entropy
 
 
+def n_order_kink_mass(
+    g: float,
+    R: int,
+    l: int,
+    L: int,
+    chi: int,
+    bc: str = None,
+    sector: str = None,
+    h_i: float = None,
+    h_f: float = None,
+    npoints: int = None,
+    path_tensor: str = None,
+    cx: list = None,
+    cy: list = None,
+    cy_off_axis: list = None,
+    vacuum: bool = False
+):
+    """
+    n order kink mass
+
+    This function computes the n-th order kink mass of the string. It corresponds to 
+    the energy difference between the string lying on one axis of the lattice
+    and the same string displaced in the transversal direction of n lattice spacings.
+    For n equals to 1, we have basically one string excitation. Then, in the roughening
+    phase, the excitations should become massless and the energy to excite this string
+    should be zero. Hence the kink mass is zero as well.
+
+
+    g: float - value of the electric field coupling
+    R: int - string length formed by the separation of two charges
+    l: int - number of ladders in the direct lattice
+    L: int - number of plaquettes per ladder in the direct lattice (rungs-1)
+    chi: int - bond dimension used to approximate DMRG computations of the ground state
+    bc: str - boundary conditions of the lattice
+    sector: str - sector of the ground state
+    h_i: float - starting point for computations spanning the coupling phase space
+    h_f: float - ending point for computations spanning the coupling phase space
+    npoints: int - number of points for computations spanning the coupling phase space
+    path_tensor: str - path name for retrieving the ground state energy values
+    cx: list - list of charges x-coordinates
+    cy: list - list of charges y-coordinates
+    cy_off_axis: list - list of charges y-coordinates off axis
+
+    """
+    if cx == None:
+        cx = get_cx(L,R)
+    if cy == None:
+        cy = get_cy(l,bc=bc,R=R)
+    interval = np.linspace(h_i,h_f,npoints)
+    energy_charges_on_axis = np.load(
+        f"{path_tensor}/results/energy_data/energy_Z2_dual_direct_lattice_{l}x{L}_{sector}_bc_{bc}_{cx}-{cy}_h_{h_i}-{h_f}_delta_{npoints}_chi_{chi}.npy"
+    )
+    energy_charges_off_axis = np.load(
+        f"{path_tensor}/results/energy_data/energy_Z2_dual_direct_lattice_{l}x{L}_{sector}_bc_{bc}_{cx}-{cy_off_axis}_h_{h_i}-{h_f}_delta_{npoints}_chi_{chi}.npy"
+    )
+
+    if vacuum:
+        try:
+            energy_vacuum = np.load(
+            f"{path_tensor}/results/energy_data/energy_Z2_dual_direct_lattice_{l}x{L}_vacuum_sector_bc_{bc}_None-None_h_{h_i}-{h_f}_delta_{npoints}_chi_{chi}.npy"
+        )
+        except:
+            energy_vacuum = np.load(
+            f"{path_tensor}/results/energy_data/energy_Z2_dual_direct_lattice_{l}x{L}_vacuum_sector_bc_{bc}_nan-nan_h_{h_i}-{h_f}_delta_{npoints}_chi_{chi}.npy"
+        )
+        energy_difference = (energy_charges_on_axis - energy_vacuum) - (energy_charges_off_axis - energy_vacuum)
+    else:
+        energy_difference = energy_charges_on_axis - energy_charges_off_axis
+
+    for i, val in enumerate(energy_difference):
+        if round(g, 3) == round(interval[i], 3):
+            return val
+        
+def n_order_kink_mass_chis(
+    g: float,
+    R: int,
+    l: int,
+    L: int,
+    chis: list,
+    bc: str = None,
+    sector: str = None,
+    h_i: float = None,
+    h_f: float = None,
+    npoints: int = None,
+    path_tensor: str = None,
+    cx: list = None,
+    cy: list = None,
+    cy_off_axis: list = None,
+    vacuum: bool = False
+):
+    """
+    n order kink mass chis
+
+    This function collects the static potentials computed for different bond dimensions chis.
+
+    g: float - value of the electric field coupling
+    R: int - string length formed by the separation of two charges
+    l: int - number of ladders in the direct lattice
+    L: int - number of plaquettes per ladder in the direct lattice (rungs-1)
+    chis: list - bond dimensions used to approximate DMRG computations of the ground state
+    bc: str - boundary conditions of the lattice
+    sector: str - sector of the ground state
+    h_i: float - starting point for computations spanning the coupling phase space
+    h_f: float - ending point for computations spanning the coupling phase space
+    npoints: int - number of points for computations spanning the coupling phase space
+    path_tensor: str - path name for retrieving the ground state energy values
+    cx: list - list of charges x-coordinates
+    cy: list - list of charges y-coordinates
+    cy_off_axis: list - list of charges y-coordinates off axis
+
+    """
+    kink_masses = []
+    for chi in chis:
+        km_chi = n_order_kink_mass(
+            g, R, l, L, chi, bc, sector, h_i, h_f, npoints, path_tensor, cx, cy, cy_off_axis, vacuum
+        )
+        kink_masses.append(km_chi)
+    return kink_masses
+
+
+def n_order_kink_mass_exact_chi(
+    g: float,
+    R: int,
+    l: int,
+    L: int,
+    chis: list,
+    bc: str = None,
+    sector: str = None,
+    h_i: float = None,
+    h_f: float = None,
+    npoints: int = None,
+    path_tensor: str = None,
+    cx: list = None,
+    cy: list = None,
+    cy_off_axis: list = None,
+    vacuum: bool = False,
+    g_thr: float = 10,
+):
+    """
+    TODO: implement asymtotic model for bond dimension
+    """
+
+    kms = n_order_kink_mass_chis(
+        g, R, l, L, chis, bc, sector, h_i, h_f, npoints, path_tensor, cx, cy, cy_off_axis, vacuum
+    )
+    # if g > g_thr:
+    #     pot_exact, err = get_exact_potential_chis(chis, kms)
+    # else:
+    km_exact = kms[-1]
+    err = np.abs(kms[-1] - kms[-2])
+    return km_exact, err
+
+
+def n_order_kink_mass_varying_R(
+    g, Rs, l, L, chis, bc, sector, h_i, h_f, npoints, path_tensor, cx=None, cy=None, cy_off_axis: list = None, vacuum: bool = False
+):
+    kms = []
+    err_kms = []
+    for R in Rs:
+        print(f"R: {R}")
+        km, err = n_order_kink_mass_exact_chi(
+            g, R, l, L, chis, bc, sector, h_i, h_f, npoints, path_tensor, cx, cy, cy_off_axis, vacuum
+        )
+        kms.append(km)
+        err_kms.append(err)
+
+    return kms, err_kms
+
+
+def n_order_kink_mass_varying_g(
+    gs, R, l, L, chis, bc, sector, h_i, h_f, npoints, path_tensor, cx, cy, cy_off_axis: list = None, vacuum: bool = False
+):
+    kms = []
+    err_kms = []
+    for g in gs:
+        print(f"g: {g}")
+        km, err = n_order_kink_mass_exact_chi(
+            g, R, l, L, chis, bc, sector, h_i, h_f, npoints, path_tensor, cx, cy, cy_off_axis, vacuum
+        )
+        kms.append(km)
+        err_kms.append(err)
+
+    return kms, err_kms
+
+
 def static_potential(
     g: float,
     R: int,
@@ -294,9 +479,9 @@ def potential_fit_3(R, a, b, c, d, e):
     return a * R - b * (1 / R) - c * (1 / (R**3)) + d * (1 / (R**5)) + e
 
 def fitting(Rs, potentials, errors, fit=1, guess=None):
+    # Rs = [R+2 for R in Rs]
     if fit == 0:
         popt, pcov = curve_fit(potential_fit_0, Rs, potentials, sigma=errors, p0=guess)
-        print()
     if fit == 1:
         popt, pcov = curve_fit(potential_fit_0, Rs, potentials, sigma=errors, p0=guess)
         guess = np.append(popt,0)
@@ -655,7 +840,7 @@ def string_width_exact_chi(
     h_f: float = None,
     npoints: int = None,
     path_tensor: str = None,
-    g_thr: float = 1,
+    g_thr: float = 10,
 ):
     strings = string_width_chis(
         g, R, l, L, chis, bc, sector, h_i, h_f, npoints, path_tensor

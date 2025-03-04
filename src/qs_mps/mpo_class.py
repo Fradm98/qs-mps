@@ -757,14 +757,13 @@ class MPO_ladder:
                     if self.bc == "obc":
                         # local Z interaction for boundary link 2
                         self.mpo[0, -1] += (
-                            -self.lamb
-                            * coeff
+                            coeff
                             * sparse_pauli_z(n=ladder, L=self.l).toarray()
                         )  # link 2 boundary is just in one plaquette
                     elif self.bc == "pbc":
                         # "local" ZZ interaction for bulk link 2
                         self.mpo[0, -1] += (
-                            -self.lamb
+                            -(1 / 2)
                             * coeff
                             * sparse_pauli_z(
                                 n=(ladder - 1) % self.l, L=self.l
@@ -775,7 +774,6 @@ class MPO_ladder:
                     coeff = np.prod(self.charges[ladder + 1, : c + 1])
                     self.mpo[0, -1] += (
                         -(1 / 2)
-                        * self.lamb
                         * coeff
                         * sparse_pauli_z(n=ladder, L=self.l).toarray()
                         @ sparse_pauli_z(n=ladder + 1, L=self.l).toarray()
@@ -786,7 +784,6 @@ class MPO_ladder:
                     coeff = np.prod(self.charges[ladder, : c + 1])
                     self.mpo[0, -1] += (
                         -(1 / 2)
-                        * self.lamb
                         * coeff
                         * sparse_pauli_z(n=ladder - 1, L=self.l).toarray()
                         @ sparse_pauli_z(n=ladder, L=self.l).toarray()
@@ -795,7 +792,6 @@ class MPO_ladder:
                     coeff = np.prod(self.charges[ladder + 1, : c + 1])
                     self.mpo[0, -1] += (
                         -(1 / 2)
-                        * self.lamb
                         * coeff
                         * sparse_pauli_z(n=ladder, L=self.l).toarray()
                         @ sparse_pauli_z(n=ladder + 1, L=self.l).toarray()
@@ -806,7 +802,6 @@ class MPO_ladder:
                     coeff = np.prod(self.charges[ladder, : c + 1])
                     self.mpo[0, -1] += (
                         -(1 / 2)
-                        * self.lamb
                         * coeff
                         * sparse_pauli_z(n=ladder - 1, L=self.l).toarray()
                         @ sparse_pauli_z(n=ladder, L=self.l).toarray()
@@ -831,7 +826,7 @@ class MPO_ladder:
                             coeff = self.charge_coeff_v(mpo_site=c, l=ladder)
                         # "local" ZZ interaction for bulk link 4
                         self.mpo[0, -1] += (
-                            -self.lamb
+                            -(1 / 2)
                             * coeff
                             * sparse_pauli_z(n=ladder, L=self.l).toarray()
                             @ sparse_pauli_z(

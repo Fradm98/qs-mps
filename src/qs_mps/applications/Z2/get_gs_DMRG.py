@@ -125,7 +125,7 @@ parser.add_argument(
     "-bc",
     "--boundcond",
     help="Type of boundary conditions. Available are 'obc', 'pbc'",
-    default="obc",
+    default="pbc",
     type=str,
 )
 parser.add_argument(
@@ -157,6 +157,9 @@ if args.interval == "lin":
     interval = np.linspace(args.h_i, args.h_f, args.npoints)
     num = (interval[-1] - interval[0]) / args.npoints
     precision = get_precision(num)
+    if args.npoints == 1:
+        precision = len(str(args.h_i).split(".")[1])
+        print(precision)
 elif args.interval == "log":
     interval = np.logspace(args.h_i, args.h_f, args.npoints)
     precision = int(np.max([np.abs(args.h_f), np.abs(args.h_i)]))

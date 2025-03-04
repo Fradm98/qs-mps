@@ -123,6 +123,13 @@ parser.add_argument(
     default="pbc",
     type=str,
 )
+parser.add_argument(
+    "-Dmax",
+    "--chi_max",
+    help="Bond dimension for the initial DMRG",
+    default=128,
+    type=int,
+)
 
 args = parser.parse_args()
 
@@ -203,7 +210,7 @@ for L in args.Ls:
 
     for chi in args.chis:
         lattice_mps = MPS(
-                L=L, d=d, model=args.model, chi=chi, h=args.h_i, bc=args.boundcond
+                L=L, d=d, model=args.model, chi=args.chi_max, h=args.h_i, bc=args.boundcond
             )
 
         sector_vac = "vacuum_sector"
@@ -238,11 +245,11 @@ for L in args.Ls:
 
         except:
             print("State not found! Computing DMRG")
-            lattice_mps._random_state(seed=3, type_shape="rectangular", chi=chi)
+            lattice_mps._random_state(seed=3, type_shape="rectangular", chi=args.chi_max)
             lattice_mps.canonical_form()
             lattice_mps.sites.append(np.random.rand(1,2,1))
             lattice_mps.L = len(lattice_mps.sites)
-            energy, entropy, schmidt_vals, t_dmrg = lattice_mps.DMRG(trunc_chi=True, trunc_tol=False, where=L//2, long="Z", trans="X")
+            energy, entropy, schmidt_vals, t_dmrg = lattice_mps.DMRG(trunc_chi=True, trunc_tol=False, bond=False, long="Z", trans="X")
             lattice_mps.check_canonical(site=1)
             aux_qub = lattice_mps.sites.pop()
             lattice_mps.L -= 1
@@ -257,10 +264,11 @@ for L in args.Ls:
         # initialize the variables to save
         errors_tr = [[0, 0]]
         errors = [0]
-        entropies = [[0]]
-        schmidt_vals = np.array([0] * chi)
-        schmidt_vals[0] = 1
-        schmidt_vals = [schmidt_vals]
+        entropies_ev = [entropy]
+        schmidt_vals_ev = [schmidt_vals]
+        # schmidt_vals = np.array([0] * chi)
+        # schmidt_vals[0] = 1
+        # schmidt_vals = [schmidt_vals]
         # ---------------------------------------------------------
         # Initial Observables
         # ---------------------------------------------------------
@@ -342,6 +350,8 @@ for L in args.Ls:
             lattice_mps.Z2._define_sector()
         else:
             lattice_mps.Z2._define_sector()
+
+        lattice_mps.chi = chi
         (errs,
         entrs,
         svs,
@@ -363,6 +373,7 @@ for L in args.Ls:
             exact=args.exact,
             obs=args.obs,
             training=args.training,
+            chi_max=args.chi_max
             )
 
             # ---------------------------------------------------------
