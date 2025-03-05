@@ -868,6 +868,20 @@ def string_width_varying_g(
 
     return strings, err_strings
 
+def string_width_varying_R(
+    g, Rs, l, L, chis, bc, sector, h_i, h_f, npoints, path_tensor
+):
+    strings = []
+    err_strings = []
+    for R in Rs:
+        print(f"g: {g}")
+        string, err = string_width_exact_chi(
+            g, R, l, L, chis, bc, sector, h_i, h_f, npoints, path_tensor
+        )
+        strings.append(string)
+        err_strings.append(err)
+
+    return strings, err_strings
 
 def entropy(
     R: int,

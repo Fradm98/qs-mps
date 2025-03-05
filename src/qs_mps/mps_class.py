@@ -1633,6 +1633,7 @@ class MPS:
             self.w = self.Z2.mpo.copy()
             tot_ed.append(self.mpo_first_moment().real)  # energy density for plaquette
 
+        print(tot_ed)
         return tot_ed
 
     def mpo_Z2_column_magnetic_energy_density(self, site: int, cc: str = "h"):

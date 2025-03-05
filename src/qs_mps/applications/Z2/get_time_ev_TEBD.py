@@ -138,7 +138,11 @@ d = int(2 ** (args.l))
 
 # define the precision to load the mps
 # precision = get_precision(args.h_i)
-precision = 2
+if args.npoints == 1:
+    precision = len(str(args.h_i).split(".")[1])
+    print(precision)
+else:
+    precision = 3
 
 # take the path and precision to save files
 # if we want to save the tensors we save them locally because they occupy a lot of memory
@@ -229,18 +233,19 @@ for L in args.Ls:
             print("State found!!")
             if args.bond:
                 try:
-                    entropy = load_list_of_lists(f"{parent_path}/results/entropy_data/{args.where}_bond_entropy_{args.model}_direct_lattice_{args.l}x{L}_{sector}_bc_{args.boundcond}_{cx_vac}-{cy_vac}_h_{args.h_i}_delta_{args.npoints}_chi_{chi}")
+                    entropy = load_list_of_lists(f"{parent_path}/results/entropy_data/{args.where}_bond_entropy_{args.model}_direct_lattice_{args.l}x{L}_{sector_vac}_bc_{args.boundcond}_{cx_vac}-{cy_vac}_h_{args.h_i}_delta_{args.npoints}_chi_{chi}")
                 except:
-                    # lattice_mps.canonical_form(svd_direction="right", trunc_chi=True, trunc_tol=False)
-                    lattice_mps.canonical_form(svd_direction="left", trunc_chi=True, trunc_tol=False)
+                    lattice_mps.canonical_form(svd_direction="right", trunc_chi=False, trunc_tol=True, schmidt_tol=1e-15)
                     entropy = von_neumann_entropy(lattice_mps.bonds[L//2])
+                    print("Entropy of initial state for the middle MPS bond")
                     print(entropy)
             else:
                 try:
-                    entropy = load_list_of_lists(f"{parent_path}/results/entropy_data/all_bond_entropy_{args.model}_direct_lattice_{args.l}x{L}_{sector}_bc_{args.boundcond}_{cx_vac}-{cy_vac}_h_{args.h_i}_delta_{args.npoints}_chi_{chi}")
+                    entropy = load_list_of_lists(f"{parent_path}/results/entropy_data/all_bond_entropy_{args.model}_direct_lattice_{args.l}x{L}_{sector_vac}_bc_{args.boundcond}_{cx_vac}-{cy_vac}_h_{args.h_i}_delta_{args.npoints}_chi_{chi}")
                 except:
-                    lattice_mps.canonical_form(svd_direction="right", trunc_chi=True, trunc_tol=False)
+                    lattice_mps.canonical_form(svd_direction="right", trunc_chi=False, trunc_tol=True, schmidt_tol=1e-15)
                     entropy = [von_neumann_entropy(lattice_mps.bonds[i]) for i in range(L-1)]
+                    print("Entropy of initial state for all of the MPS bonds")
                     print(entropy)
 
         except:
@@ -258,88 +263,12 @@ for L in args.Ls:
             mag = lattice_mps.mpo_first_moment()
             print(f"initial magentization is: {mag}")
 
-            # lattice_mps.sites = [tensor.astype(np.complex128) for tensor in lattice_mps.sites]
             lattice_mps.save_sites(path=path_tensor, precision=precision, cx=cx_vac, cy=cy_vac)
 
         # initialize the variables to save
         errors_tr = [[0, 0]]
         errors = [0]
         entropies_ev = [entropy]
-        schmidt_vals_ev = [schmidt_vals]
-        # schmidt_vals = np.array([0] * chi)
-        # schmidt_vals[0] = 1
-        # schmidt_vals = [schmidt_vals]
-        # ---------------------------------------------------------
-        # Initial Observables
-        # ---------------------------------------------------------
-        # if "wl" in args.obs:
-        #     print(f"wilson loop before trotter - L:{L}, chi:{chi}")
-        #     lattice_mps.Z2.wilson_Z2_dual(
-        #         mpo_sites=args.sites, ls=args.ladders
-        #     )  # list(range(s))
-        #     lattice_mps.w = lattice_mps.Z2.mpo.copy()
-        #     if args.moment == 1:
-        #         W.append(lattice_mps.mpo_first_moment().real)
-        #     elif args.moment == 2:
-        #         W.append(lattice_mps.mpo_second_moment().real)
-        #     elif args.moment == 4:
-        #         W.append(lattice_mps.mpo_fourth_moment().real)
-
-        # if "el" in args.obs:
-        #     print(f"electric field before trotter - L:{L}, chi:{chi}")
-        #     E_h = np.zeros((2 * args.l + 1, 2 * L - 1))
-        #     E_h[:] = np.nan
-        #     E_h = lattice_mps.electric_field_Z2(E_h)
-        #     El.append(E_h)
-
-        # if "thooft" in args.obs:
-        #     print(f"'t Hooft string before trotter - L:{L}, chi:{chi}")
-        #     lattice_mps.Z2.thooft(site=args.sites, l=args.ladders, direction=direction)
-        #     lattice_mps.w = lattice_mps.Z2.mpo.copy()
-        #     S.append(lattice_mps.mpo_first_moment().real)
-
-        # if "mag" in args.obs:
-        #     print(f"Magnetization before trotter - L:{L}, chi:{chi}")
-        #     lattice_mps.order_param()
-        #     if args.moment == 1:
-        #         M.append(
-        #             lattice_mps.mpo_first_moment().real
-        #             / (
-        #                 len(lattice_mps.Z2.latt.plaquettes())
-        #                 - (2 * (L - 3) + 2 * (args.l))
-        #             )
-        #         )
-        #     elif args.moment == 2:
-        #         M.append(
-        #             lattice_mps.mpo_second_moment().real
-        #             / (
-        #                 len(lattice_mps.Z2.latt.plaquettes())
-        #                 - (2 * (L - 3) + 2 * (args.l))
-        #             )
-        #             ** 2
-        #         )
-        #     elif args.moment == 4:
-        #         M.append(
-        #             lattice_mps.mpo_fourth_moment().real
-        #             / (
-        #                 len(lattice_mps.Z2.latt.plaquettes())
-        #                 - (2 * (L - 3) + 2 * (args.l))
-        #             )
-        #             ** 4
-        #         )
-
-        # if "corr" in args.obs:
-        #     s = (charges_x[0] + charges_x[1]) // 2
-        #     lad = np.min(charges_y)
-        #     print(f"connected correlator before trotter - L:{L}, chi:{chi}")
-        #     corr = lattice_mps.connected_correlator(site=s, lad=lad)
-        #     C.append(corr)
-
-        # if "eed" in args.obs:
-        #     s = (charges_x[0] + charges_x[1]) // 2
-        #     print(f"electric energy density before trotter - L:{L}, chi:{chi}")
-        #     ed = lattice_mps.electric_energy_density_Z2(site=s)
-        #     Ed.append(ed)
 
         # ---------------------------------------------------------
         # Trotter Evolution
@@ -352,6 +281,82 @@ for L in args.Ls:
             lattice_mps.Z2._define_sector()
 
         lattice_mps.chi = chi
+
+        # quantify quench
+        print("==============================")
+        print("Quantify the quench")
+        lattice_mps.sites.append(aux_qub)
+        lattice_mps.L = len(lattice_mps.sites)
+        lattice_mps.mpo()
+        E_init = lattice_mps.mpo_first_moment().real
+        aux_qub = lattice_mps.sites.pop()
+        lattice_mps.L -= 1
+        
+        
+        mps_gs_quench = MPS(
+                L=L, d=d, model=args.model, chi=args.chi_max, h=args.h_i, bc=args.boundcond
+            )
+
+        if sector != "vacuum_sector":
+            mps_gs_quench.Z2.add_charges(charges_x, charges_y)
+            mps_gs_quench.charges = mps_gs_quench.Z2.charges
+            mps_gs_quench.Z2._define_sector()
+        else:
+            mps_gs_quench.Z2._define_sector()
+        try:
+            mps_gs_quench.load_sites(
+                path=path_tensor, precision=precision, cx=charges_x, cy=charges_y
+            )
+            print("State found!!")
+            if args.bond:
+                try:
+                    entropy = load_list_of_lists(f"{parent_path}/results/entropy_data/{args.where}_bond_entropy_{args.model}_direct_lattice_{args.l}x{L}_{sector}_bc_{args.boundcond}_{charges_x}-{charges_y}_h_{args.h_i}_delta_{args.npoints}_chi_{chi}")
+                except:
+                    mps_gs_quench.canonical_form(svd_direction="right", trunc_chi=False, trunc_tol=True, schmidt_tol=1e-15)
+                    entropy = von_neumann_entropy(mps_gs_quench.bonds[L//2])
+                    print("Entropy of initial state for the middle MPS bond")
+                    print(entropy)
+            else:
+                try:
+                    entropy = load_list_of_lists(f"{parent_path}/results/entropy_data/all_bond_entropy_{args.model}_direct_lattice_{args.l}x{L}_{sector}_bc_{args.boundcond}_{charges_x}-{charges_y}_h_{args.h_i}_delta_{args.npoints}_chi_{chi}")
+                except:
+                    mps_gs_quench.canonical_form(svd_direction="right", trunc_chi=False, trunc_tol=True, schmidt_tol=1e-15)
+                    entropy = [von_neumann_entropy(mps_gs_quench.bonds[i]) for i in range(L-1)]
+                    print("Entropy of initial state for all of the MPS bonds")
+                    print(entropy)
+
+        except:
+            print("State not found! Computing DMRG")
+            mps_gs_quench._random_state(seed=3, type_shape="rectangular", chi=args.chi_max)
+            mps_gs_quench.canonical_form()
+            mps_gs_quench.sites.append(np.random.rand(1,2,1))
+            mps_gs_quench.L = len(mps_gs_quench.sites)
+            energy, entropy, schmidt_vals, t_dmrg = mps_gs_quench.DMRG(trunc_chi=True, trunc_tol=False, bond=False)
+            mps_gs_quench.check_canonical(site=1)
+            aux_qub_quench = mps_gs_quench.sites.pop()
+            mps_gs_quench.L -= 1
+
+            mps_gs_quench.order_param()
+            mag = mps_gs_quench.mpo_first_moment()
+            print(f"initial magentization is: {mag}")
+
+            mps_gs_quench.save_sites(path=path_tensor, precision=precision, cx=charges_x, cy=charges_y)
+
+        mps_gs_quench.sites.append(aux_qub)
+        mps_gs_quench.L = len(mps_gs_quench.sites)
+        mps_gs_quench.mpo()
+        E_1 = mps_gs_quench.mpo_first_moment().real
+        aux_qub = mps_gs_quench.sites.pop()
+        mps_gs_quench.L -= 1
+
+        lattice_mps.ancilla_sites = mps_gs_quench.sites.copy()
+        fidelity = lattice_mps._compute_norm(site=1, mixed=True)
+        lattice_mps.ancilla_sites = []
+        print("Energy of H_1 over psi_0: ",E_init, ", Energy of H_1 over psi_1", E_1)
+        print(f"Relative Difference (wrt E_1): {(E_1 - E_init)/E_1} \n\n")
+        print(f"Fidelity between the two ground states is: {fidelity}")
+
+        # trotter evolution
         (errs,
         entrs,
         svs,
@@ -376,114 +381,12 @@ for L in args.Ls:
             chi_max=args.chi_max
             )
 
-            # ---------------------------------------------------------
-            # Trotter Observables
-            # ---------------------------------------------------------
-            # if "wl" in args.obs:
-            #     print(f"wilson loop for trotter step:{t},L:{L}, chi:{chi}")
-            #     lattice_mps.Z2.wilson_Z2_dual(
-            #         mpo_sites=args.sites, ls=args.ladders
-            #     )  # list(range(s))
-            #     lattice_mps.w = lattice_mps.Z2.mpo.copy()
-            #     if args.moment == 1:
-            #         W.append(lattice_mps.mpo_first_moment().real)
-            #     elif args.moment == 2:
-            #         W.append(lattice_mps.mpo_second_moment().real)
-            #     elif args.moment == 4:
-            #         W.append(lattice_mps.mpo_fourth_moment().real)
 
-            # if "el" in args.obs:
-            #     print(f"electric field for trotter step:{t}, L:{L}, chi:{chi}")
-            #     E_h = np.zeros((2 * args.l + 1, 2 * L - 1))
-            #     E_h[:] = np.nan
-            #     E_h = lattice_mps.electric_field_Z2(E_h)
-            #     El.append(E_h)
-
-            # if "thooft" in args.obs:
-            #     print(f"'t Hooft string for trotter step:{t}, L:{L}, chi:{chi}")
-            #     lattice_mps.Z2.thooft(
-            #         site=args.sites, l=args.ladders, direction=direction
-            #     )
-            #     lattice_mps.w = lattice_mps.Z2.mpo.copy()
-            #     S.append(lattice_mps.mpo_first_moment().real)
-
-            # if "mag" in args.obs:
-            #     print(f"Magnetization for trotter step:{t}, L:{L}, chi:{chi}")
-            #     lattice_mps.order_param()
-            #     if args.moment == 1:
-            #         M.append(
-            #             lattice_mps.mpo_first_moment().real
-            #             / (
-            #                 len(lattice_mps.Z2.latt.plaquettes())
-            #                 - (2 * (L - 3) + 2 * (args.l))
-            #             )
-            #         )
-            #     elif args.moment == 2:
-            #         M.append(
-            #             lattice_mps.mpo_second_moment().real
-            #             / (
-            #                 len(lattice_mps.Z2.latt.plaquettes())
-            #                 - (2 * (L - 3) + 2 * (args.l))
-            #             )
-            #             ** 2
-            #         )
-            #     elif args.moment == 4:
-            #         M.append(
-            #             lattice_mps.mpo_fourth_moment().real
-            #             / (
-            #                 len(lattice_mps.Z2.latt.plaquettes())
-            #                 - (2 * (L - 3) + 2 * (args.l))
-            #             )
-            #             ** 4
-            #         )
-
-            # if "corr" in args.obs:
-            #     print(f"connected correlator for trotter step:{t}, L:{L}, chi:{chi}")
-            #     corr = lattice_mps.connected_correlator(site=s, lad=lad)
-            #     C.append(corr)
-
-            # if "eed" in args.obs:
-            #     s = (charges_x[0] + charges_x[1]) // 2
-            #     print(f"electric energy density before trotter - L:{L}, chi:{chi}")
-            #     ed = lattice_mps.electric_energy_density_Z2(site=s)
-            #     Ed.append(ed)
-
-            # print(f"\nError at trotter step: {t} is: {error}\n")
-            # errors_tr.append(error)
-            # errors.append(error[-1])
-            # entropies.append(entropy)
-            # schmidt_vals.append(schmidt_values)
-
-        # if "wl" in args.obs:
-        #     np.save(
-        #         f"{parent_path}/results/wilson_loops/wilson_loop_{moment}_moment_{args.model}_direct_lattice_{args.l}x{L}_{sector}_{args.charges_x}-{args.charges_y}_h_i_{args.h_i}_h_ev_{args.h_ev}_delta_{args.delta}_trotter_steps_{args.npoints}_chi_{chi}.npy",
-        #         W,
-        #     )
         if "el" in args.obs:
             np.save(
                 f"{parent_path}/results/electric_field/electric_field_quench_dynamics_{args.model}_direct_lattice_{args.l}x{L}_{sector}_bc_{args.boundcond}_R_{args.length}_h_{args.h_i}-{args.h_ev}_delta_{args.delta}_trotter_steps_{args.npoints}_chi_{chi}.npy",
                 efields,
             )
-        # if "thooft" in args.obs:
-        #     np.save(
-        #         f"{parent_path}/results/thooft/thooft_string_{moment}_moment_{args.sites[0]}-{args.ladders[0]}_{direction}_{args.model}_direct_lattice_{args.l}x{L}_{sector}_{args.charges_x}-{args.charges_y}_h_i_{args.h_i}_h_ev_{args.h_ev}_delta_{args.delta}_trotter_steps_{args.npoints}_chi_{chi}.npy",
-        #         S,
-        #     )
-        # if "mag" in args.obs:
-        #     np.save(
-        #         f"{parent_path}/results/mag_data/dual_mag_{moment}_moment_{args.model}_direct_lattice_{args.l}x{L}_{sector}_{args.charges_x}-{args.charges_y}_h_i_{args.h_i}_h_ev_{args.h_ev}_delta_{args.delta}_trotter_steps_{args.npoints}_chi_{chi}.npy",
-        #         M,
-        #     )
-        # if "corr" in args.obs:
-        #     np.save(
-        #         f"{parent_path}/results/mag_data/connected_correlator_s_{s}_l_{lad}_{args.model}_direct_lattice_{args.l}x{L}_{sector}_{args.charges_x}-{args.charges_y}_h_i_{args.h_i}_h_ev_{args.h_ev}_delta_{args.delta}_trotter_steps_{args.npoints}_chi_{chi}.npy",
-        #         C,
-        #     )
-        # if "eed" in args.obs:
-        #     np.save(
-        #         f"{parent_path}/results/electric_field/electric_energy_density_s_{s}_{args.model}_direct_lattice_{args.l}x{L}_{sector}_{args.charges_x}-{args.charges_y}_h_i_{args.h_i}_h_ev_{args.h_ev}_delta_{args.delta}_trotter_steps_{args.npoints}_chi_{chi}.npy",
-        #         Ed,
-        #     )
 
         if args.bond == False:
             args.where = "all"
