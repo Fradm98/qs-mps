@@ -3212,6 +3212,8 @@ class MPS:
         # electric field
         electric_local_field = []
         if "el" in obs:
+            date_start = dt.datetime.now()
+            print(f"\n*** Computing electric field density in date: {dt.datetime.now()} ***\n")
             if self.bc == "obc":
                 E_h = np.zeros((2 * self.Z2.l + 1, 2 * self.L + 1))
             if self.bc == "pbc":
@@ -3220,7 +3222,14 @@ class MPS:
             E_h[:] = np.nan
             E_h = self.electric_field_Z2(E_h, aux_qub=aux_qub)
             electric_local_field.append(E_h.copy())
+            t_final = dt.datetime.now() - date_start
+            print(f"Total time for the electric field density is: {t_final}")
 
+        # electric energy density of a column/cylinder
+        local_column = []
+        if "end" in obs:
+            local_column.append(self.mpo_Z2_column_electric_energy_density(site=self.L // 2))
+        
         # overlap
         overlaps = []
         if "losch" in obs:
@@ -3232,6 +3241,9 @@ class MPS:
             self.ancilla_sites = psi_init.copy()
             overlaps.append(self._compute_norm(site=1, mixed=True))
             self.ancilla_sites = []
+            if self.bc == "pbc":
+                aux_qub = self.sites.pop(-1)
+                self.L = len(self.sites)
 
         # exact
         braket_ex_sp = [1]
@@ -3261,12 +3273,17 @@ class MPS:
             psi0_sp = psi0_ex.copy()
             psi_trott_sp = psi0_sp.copy()
 
+        if self.bc == "pbc":
+            self.sites.append(aux_qub)
+            self.L = len(self.sites)
+            
 
         self.ancilla_sites = self.sites.copy()
 
         for trott in range(trotter_steps):
-            print(f"------ Trotter steps: {trott} -------")
 
+            date_start = dt.datetime.now()
+            print(f"\n*** Starting the {trott}-th trotter step in date: {dt.datetime.now()} ***\n")
             error, entropy, schmidt_vals, matrix_mpo = self.TEBD_variational_Z2_trotter_step(
                 delta=delta,
                 h_ev=h_ev,
@@ -3276,6 +3293,8 @@ class MPS:
                 where=where,
                 exact=exact,
             )
+            t_final = dt.datetime.now() - date_start
+            print(f"Total time for the {trott}-th trotter step is: {t_final}")
 
             # ============================
             # Observables
@@ -3292,16 +3311,24 @@ class MPS:
             # schmidt_vals
             svs.append(schmidt_vals)
             
+            if self.bc == "pbc":
+                self.sites.pop()
+                self.L = len(self.sites)
+            
             # electric field
             if "el" in obs:
-                if self.bc == "pbc":
-                    self.sites.pop()
-                    self.L = len(self.sites)
-
+                date_start = dt.datetime.now()
+                print(f"\n*** Computing electric field density in date: {dt.datetime.now()} ***\n")
                 E_h[:] = np.nan
                 E_h = self.electric_field_Z2(E_h, aux_qub=aux_qub)
                 electric_local_field.append(E_h.copy())
+                t_final = dt.datetime.now() - date_start
+                print(f"Total time for the electric field density is: {t_final}")
 
+            # electric energy density of a column/cylinder
+            if "end" in obs:
+                local_column.append(self.mpo_Z2_column_electric_energy_density(site=self.L // 2))
+            
             # overlap
             if "losch" in obs:
                 if self.bc == "pbc":
@@ -3311,6 +3338,9 @@ class MPS:
                 self.ancilla_sites = psi_init.copy()
                 overlaps.append(self._compute_norm(site=1, mixed=True))
                 self.ancilla_sites = []
+                if self.bc == "pbc":
+                    aux_qub = self.sites.pop(-1)
+                    self.L = len(self.sites)
 
             # exact
             if exact:
@@ -3345,6 +3375,10 @@ class MPS:
                 mps_sp = psi_trott_mps.conjugate() @ psi_trott_sp
                 # mps_sp = la.norm(psi_trott_mps - psi_trott_sp)
                 braket_mps_sp.append(mps_sp)
+
+            if self.bc == "pbc":
+                self.sites.append(aux_qub)
+                self.L = len(self.sites)
 
         return errors, entropies, svs, electric_local_field, overlaps, braket_ex_sp, braket_ex_mps, braket_mps_sp
     
@@ -3387,10 +3421,15 @@ class MPS:
         else:
             matrix_mpo = None
         
+        date_start = dt.datetime.now()
         # start with the half mu_x before the ladder interacton evolution operator
         self.Z2._initialize_finalize_quench_local(delta=delta, h_ev=h_ev)
         self.w = self.Z2.mpo.copy()
         self.mpo_to_mps(ancilla=False)
+
+        t_final = dt.datetime.now() - date_start
+        print(f"Create and contract the first half of local operator: {t_final}")
+        
         self.ancilla_sites = self.sites.copy()
 
         if exact:
@@ -3399,6 +3438,7 @@ class MPS:
 
         # apply the interaction operator one ladder per time
         for l in range(self.Z2.l):
+            date_start = dt.datetime.now()
             self.Z2.mpo_Z2_ladder_quench_int(delta=delta, h_ev=h_ev, l=l)
             self.w = self.Z2.mpo.copy()
 
@@ -3416,14 +3456,21 @@ class MPS:
             )
             self.ancilla_sites = self.sites.copy()
 
+            t_final = dt.datetime.now() - date_start
+            print(f"Create and variational compress the {l} ladder interaction operator: {t_final}")
+
             if exact:
                 mpo_ladder = mpo_to_matrix(self.w)
                 matrix_mpo = matrix_mpo @ mpo_ladder
 
-        # finish with the other half mu_x after the ladder interacton evolution operator
+        date_start = dt.datetime.now()
+        # finish with the other half mu_x before the ladder interacton evolution operator
         self.Z2._initialize_finalize_quench_local(delta=delta, h_ev=h_ev)
         self.w = self.Z2.mpo.copy()
         self.mpo_to_mps(ancilla=False)
+
+        t_final = dt.datetime.now() - date_start
+        print(f"Create and contract the second half of local operator: {t_final}")
 
         if exact:
             mpo_loc_2 = mpo_to_matrix(self.w)

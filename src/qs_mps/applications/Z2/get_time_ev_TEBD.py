@@ -11,6 +11,8 @@ import argparse
 from qs_mps.mps_class import MPS
 from qs_mps.utils import *
 
+import datetime as dt
+
 parser = argparse.ArgumentParser(prog="Time Ev")
 parser.add_argument("l", help="Number of ladders in the direct lattice", type=int)
 parser.add_argument(
@@ -129,6 +131,14 @@ parser.add_argument(
     help="Bond dimension for the initial DMRG",
     default=128,
     type=int,
+)
+parser.add_argument(
+    "-qq",
+    "--quantify_quench",
+    help="""Before doing the evolution we want to evaluate qualitatively the quench. 
+        Compute the overlap of ground states and the energy evaluated in the with the quench hamiltonian.
+        By default False""",
+    action="store_true",
 )
 
 args = parser.parse_args()
@@ -283,79 +293,84 @@ for L in args.Ls:
         lattice_mps.chi = chi
 
         # quantify quench
-        print("==============================")
-        print("Quantify the quench")
-        lattice_mps.sites.append(aux_qub)
-        lattice_mps.L = len(lattice_mps.sites)
-        lattice_mps.mpo()
-        E_init = lattice_mps.mpo_first_moment().real
-        aux_qub = lattice_mps.sites.pop()
-        lattice_mps.L -= 1
+        if args.quantify_quench:
+            print("==============================")
+            print("Quantify the quench")
+            lattice_mps.sites.append(aux_qub)
+            lattice_mps.L = len(lattice_mps.sites)
+            lattice_mps.mpo()
+            E_init = lattice_mps.mpo_first_moment().real
+            aux_qub = lattice_mps.sites.pop()
+            lattice_mps.L -= 1
         
-        
-        mps_gs_quench = MPS(
-                L=L, d=d, model=args.model, chi=args.chi_max, h=args.h_i, bc=args.boundcond
-            )
+        if args.quantify_quench:
+            mps_gs_quench = MPS(
+                    L=L, d=d, model=args.model, chi=args.chi_max, h=args.h_i, bc=args.boundcond
+                )
 
-        if sector != "vacuum_sector":
-            mps_gs_quench.Z2.add_charges(charges_x, charges_y)
-            mps_gs_quench.charges = mps_gs_quench.Z2.charges
-            mps_gs_quench.Z2._define_sector()
-        else:
-            mps_gs_quench.Z2._define_sector()
-        try:
-            mps_gs_quench.load_sites(
-                path=path_tensor, precision=precision, cx=charges_x, cy=charges_y
-            )
-            print("State found!!")
-            if args.bond:
-                try:
-                    entropy = load_list_of_lists(f"{parent_path}/results/entropy_data/{args.where}_bond_entropy_{args.model}_direct_lattice_{args.l}x{L}_{sector}_bc_{args.boundcond}_{charges_x}-{charges_y}_h_{args.h_i}_delta_{args.npoints}_chi_{chi}")
-                except:
-                    mps_gs_quench.canonical_form(svd_direction="right", trunc_chi=False, trunc_tol=True, schmidt_tol=1e-15)
-                    entropy = von_neumann_entropy(mps_gs_quench.bonds[L//2])
-                    print("Entropy of initial state for the middle MPS bond")
-                    print(entropy)
+            if sector != "vacuum_sector":
+                mps_gs_quench.Z2.add_charges(charges_x, charges_y)
+                mps_gs_quench.charges = mps_gs_quench.Z2.charges
+                mps_gs_quench.Z2._define_sector()
             else:
-                try:
-                    entropy = load_list_of_lists(f"{parent_path}/results/entropy_data/all_bond_entropy_{args.model}_direct_lattice_{args.l}x{L}_{sector}_bc_{args.boundcond}_{charges_x}-{charges_y}_h_{args.h_i}_delta_{args.npoints}_chi_{chi}")
-                except:
-                    mps_gs_quench.canonical_form(svd_direction="right", trunc_chi=False, trunc_tol=True, schmidt_tol=1e-15)
-                    entropy = [von_neumann_entropy(mps_gs_quench.bonds[i]) for i in range(L-1)]
-                    print("Entropy of initial state for all of the MPS bonds")
-                    print(entropy)
+                mps_gs_quench.Z2._define_sector()
+            try:
+                mps_gs_quench.load_sites(
+                    path=path_tensor, precision=precision, cx=charges_x, cy=charges_y
+                )
+                print("State found!!")
+                if args.bond:
+                    try:
+                        entropy = load_list_of_lists(f"{parent_path}/results/entropy_data/{args.where}_bond_entropy_{args.model}_direct_lattice_{args.l}x{L}_{sector}_bc_{args.boundcond}_{charges_x}-{charges_y}_h_{args.h_i}_delta_{args.npoints}_chi_{chi}")
+                    except:
+                        mps_gs_quench.canonical_form(svd_direction="right", trunc_chi=False, trunc_tol=True, schmidt_tol=1e-15)
+                        entropy = von_neumann_entropy(mps_gs_quench.bonds[L//2])
+                        print("Entropy of initial state for the middle MPS bond")
+                        print(entropy)
+                else:
+                    try:
+                        entropy = load_list_of_lists(f"{parent_path}/results/entropy_data/all_bond_entropy_{args.model}_direct_lattice_{args.l}x{L}_{sector}_bc_{args.boundcond}_{charges_x}-{charges_y}_h_{args.h_i}_delta_{args.npoints}_chi_{chi}")
+                    except:
+                        mps_gs_quench.canonical_form(svd_direction="right", trunc_chi=False, trunc_tol=True, schmidt_tol=1e-15)
+                        entropy = [von_neumann_entropy(mps_gs_quench.bonds[i]) for i in range(L-1)]
+                        print("Entropy of initial state for all of the MPS bonds")
+                        print(entropy)
 
-        except:
-            print("State not found! Computing DMRG")
-            mps_gs_quench._random_state(seed=3, type_shape="rectangular", chi=args.chi_max)
-            mps_gs_quench.canonical_form()
-            mps_gs_quench.sites.append(np.random.rand(1,2,1))
+            except:
+                print("State not found! Computing DMRG")
+                mps_gs_quench._random_state(seed=3, type_shape="rectangular", chi=args.chi_max)
+                mps_gs_quench.canonical_form()
+                mps_gs_quench.sites.append(np.random.rand(1,2,1))
+                mps_gs_quench.L = len(mps_gs_quench.sites)
+                energy, entropy, schmidt_vals, t_dmrg = mps_gs_quench.DMRG(trunc_chi=True, trunc_tol=False, bond=False)
+                mps_gs_quench.check_canonical(site=1)
+                aux_qub_quench = mps_gs_quench.sites.pop()
+                mps_gs_quench.L -= 1
+
+                mps_gs_quench.order_param()
+                mag = mps_gs_quench.mpo_first_moment()
+                print(f"initial magentization is: {mag}")
+
+                mps_gs_quench.save_sites(path=path_tensor, precision=precision, cx=charges_x, cy=charges_y)
+
+            mps_gs_quench.sites.append(aux_qub)
             mps_gs_quench.L = len(mps_gs_quench.sites)
-            energy, entropy, schmidt_vals, t_dmrg = mps_gs_quench.DMRG(trunc_chi=True, trunc_tol=False, bond=False)
-            mps_gs_quench.check_canonical(site=1)
-            aux_qub_quench = mps_gs_quench.sites.pop()
+            mps_gs_quench.mpo()
+            E_1 = mps_gs_quench.mpo_first_moment().real
+            aux_qub = mps_gs_quench.sites.pop()
             mps_gs_quench.L -= 1
 
-            mps_gs_quench.order_param()
-            mag = mps_gs_quench.mpo_first_moment()
-            print(f"initial magentization is: {mag}")
+            lattice_mps.ancilla_sites = mps_gs_quench.sites.copy()
+            fidelity = lattice_mps._compute_norm(site=1, mixed=True)
+            lattice_mps.ancilla_sites = []
+            print("Energy of H_1 over psi_0: ",E_init, ", Energy of H_1 over psi_1", E_1)
+            print(f"Relative Difference (wrt E_1): {(E_1 - E_init)/E_1} \n\n")
+            print(f"Fidelity between the two ground states is: {fidelity}")
+            break
 
-            mps_gs_quench.save_sites(path=path_tensor, precision=precision, cx=charges_x, cy=charges_y)
-
-        mps_gs_quench.sites.append(aux_qub)
-        mps_gs_quench.L = len(mps_gs_quench.sites)
-        mps_gs_quench.mpo()
-        E_1 = mps_gs_quench.mpo_first_moment().real
-        aux_qub = mps_gs_quench.sites.pop()
-        mps_gs_quench.L -= 1
-
-        lattice_mps.ancilla_sites = mps_gs_quench.sites.copy()
-        fidelity = lattice_mps._compute_norm(site=1, mixed=True)
-        lattice_mps.ancilla_sites = []
-        print("Energy of H_1 over psi_0: ",E_init, ", Energy of H_1 over psi_1", E_1)
-        print(f"Relative Difference (wrt E_1): {(E_1 - E_init)/E_1} \n\n")
-        print(f"Fidelity between the two ground states is: {fidelity}")
-
+        
+        date_start = dt.datetime.now()
+        print(f"\n*** Starting TEBD evolution in {dt.datetime.now()} ***\n")
         # trotter evolution
         (errs,
         entrs,
@@ -381,7 +396,9 @@ for L in args.Ls:
             chi_max=args.chi_max
             )
 
-
+        t_final = dt.datetime.now() - date_start
+        print(f"Total time for TEBD evolution of {args.npoints} trotter steps is: {t_final}")
+        
         if "el" in args.obs:
             np.save(
                 f"{parent_path}/results/electric_field/electric_field_quench_dynamics_{args.model}_direct_lattice_{args.l}x{L}_{sector}_bc_{args.boundcond}_R_{args.length}_h_{args.h_i}-{args.h_ev}_delta_{args.delta}_trotter_steps_{args.npoints}_chi_{chi}.npy",

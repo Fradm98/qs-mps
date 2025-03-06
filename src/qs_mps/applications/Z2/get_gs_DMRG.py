@@ -236,7 +236,6 @@ for L in args.Ls:
         }
 
         if __name__ == "__main__":
-            t_init = time.monotonic()
             date_start = dt.datetime.now()
             energy_chi, entropy_chi, schmidt_vals_chi, t_chi = ground_state_Z2(
                 args_mps=args_mps, interval=interval, multpr=args.multpr

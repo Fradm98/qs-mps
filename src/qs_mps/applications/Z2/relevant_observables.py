@@ -451,14 +451,14 @@ def static_potential_varying_R(
 
 
 def static_potential_varying_g(
-    gs, R, l, Ls, chis, bc, sector, h_i, h_f, npoints, path_tensor
+    gs, R, l, Ls, chis, bc, sector, h_i, h_f, npoints, path_tensor, cx=None, cy=None
 ):
     potentials = []
     err_potentials = []
     for g in gs:
         print(f"g: {g}")
         pot, err = static_potential_exact_L(
-            g, R, l, Ls, chis, bc, sector, h_i, h_f, npoints, path_tensor
+            g, R, l, Ls, chis, bc, sector, h_i, h_f, npoints, path_tensor, cx, cy
         )
         potentials.append(pot)
         err_potentials.append(err)
@@ -504,7 +504,7 @@ def fitting(Rs, potentials, errors, fit=1, guess=None):
     return popt, errs
 
 
-def fit_correction_term_g(g, Rs, l, Ls, chis, bc, sector, h_i, h_f, npoints, path_tensor, cx=None, cy=None, fit=1, param=2, guess=None, V=False):
+def fit_correction_term_g(g, Rs, l, Ls, chis, bc, sector, h_i, h_f, npoints, path_tensor, cx=None, cy=None, fit=1, param=1, guess=None, V=False):
     """
     - to get the string tension, param = 0 for all fits
     - to get the luscher term, param = 1 for fits=1,2,3
@@ -524,7 +524,7 @@ def fit_correction_term_g(g, Rs, l, Ls, chis, bc, sector, h_i, h_f, npoints, pat
         return term, term_err
 
 
-def get_fit_params(gs, Rs, l, Ls, chis, bc, sector, h_i, h_f, npoints, path_tensor, cx=None, cy=None, fit=1, param=2, guess=None, V=False):
+def get_fit_params(gs, Rs, l, Ls, chis, bc, sector, h_i, h_f, npoints, path_tensor, cx=None, cy=None, fit=1, param=1, guess=None, V=False):
     terms = []
     term_errs = []
     pots = []
@@ -915,15 +915,18 @@ def entropy(
     cx = get_cx(L, R)
     cy = get_cy(l, R=R, bc=bc)
 
+    if L % 2 == 0:
+        where = L // 2
+    elif L % 2 == 1:
+        where = L // 2 + 1
     try:
-        vac = None
         schmidt_values = np.load(
-            f"{path_tensor}/results/entropy_data/{L//2}_schmidt_vals_Z2_dual_direct_lattice_{l}x{L}_{sector}_bc_{bc}_{cx}-{cy}_h_{h_i}-{h_f}_delta_{npoints}_chi_{chi}.npy"
+            f"{path_tensor}/results/entropy_data/{where}_schmidt_vals_Z2_dual_direct_lattice_{l}x{L}_{sector}_bc_{bc}_{cx}-{cy}_h_{h_i}-{h_f}_delta_{npoints}_chi_{chi}.npy"
         )
     except:
-        vac = np.nan
+        vac = None
         schmidt_values = np.load(
-            f"{path_tensor}/results/entropy_data/{L//2}_schmidt_vals_Z2_dual_direct_lattice_{l}x{L}_{sector}_bc_{bc}_{cx}-{cy}_h_{h_i}-{h_f}_delta_{npoints}_chi_{chi}.npy"
+            f"{path_tensor}/results/entropy_data/{where}_schmidt_vals_Z2_dual_direct_lattice_{l}x{L}_{sector}_bc_{bc}_{vac}-{vac}_h_{h_i}-{h_f}_delta_{npoints}_chi_{chi}.npy"
         )
 
     entropies = []
