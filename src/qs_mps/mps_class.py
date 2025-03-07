@@ -1332,7 +1332,7 @@ class MPS:
         self.clear_envs()
         return chain
 
-    def electric_field_Z2(self, E, cc: str="h", aux_qub: np.ndarray = None):
+    def electric_field_Z2(self, E, cc: str="h", aux_qub: np.ndarray = None, reduced: bool=True):
         """
         electric_field_Z2
 
@@ -1341,114 +1341,149 @@ class MPS:
         borders and the bulk fields, weighted for the appropriate charges.
 
         """
-        # let us find the observables for the boudary fields
-        i = 0
-        for mpo_site in range(self.Z2.L):
-            j = 0
-            # vertical left
-            if mpo_site == 0:
+
+        if reduced:
+            # horizontal links
+            for l in range(self.Z2.l - 1):
                 E_v = []
-                for l in range(self.Z2.l):
-                    # print(f"site: {mpo_site}, ladder: {l}")
-                    self.Z2.local_observable_Z2_dual(mpo_site=mpo_site, l=l)
-                    coeff = 1
-                    self.w = self.Z2.mpo.copy()
-                    E_v.append(coeff * self.mpo_first_moment().real)
-                    # E_v.append(self.mpo_first_moment().real)
-                E[1::2, (mpo_site + i) * 2] = E_v
-                i = 1
-            # vertical right
-            if mpo_site == (self.Z2.L - 1):
-                E_v = []
-                if self.bc == "obc":
+                E_v_pbc = []
+                for mpo_site in range(self.L):
+
+                    if mpo_site == self.L//2:
+                        # print(f"site: {mpo_site}, ladder: {l}")
+                        if l == 0:
+                            # the first horizontal links are bulk in pbc
+                            if self.bc == "pbc":
+                                self.Z2.zz_observable_Z2_dual(
+                                    mpo_site=mpo_site, l=l-1, direction="vertical" # interaction
+                                )
+                                coeff = np.prod(self.Z2.charges[0, : mpo_site + 1])
+                                self.w = self.Z2.mpo.copy()
+                                E_v_pbc.append(coeff * self.mpo_first_moment().real)
+                        
+                        self.Z2.zz_observable_Z2_dual(
+                            mpo_site=mpo_site, l=l, direction="vertical" # interaction
+                        )
+                        if cc == "v":
+                            coeff = self.Z2.charge_coeff_interaction(n=l + 1, mpo_site=mpo_site)
+                        elif cc == "h":
+                            coeff = np.prod(self.Z2.charges[l + 1, : mpo_site + 1])
+                        self.w = self.Z2.mpo.copy()
+                        E_v.append(coeff * self.mpo_first_moment().real)
+                
+                E[(l + 1) * 2, 2*(self.L//2)+1] = E_v[0]
+                if l == 0:
+                    if self.bc == "pbc":
+                        E[0, 2*(self.L//2)+1] = E_v_pbc[0]
+        else:
+            # let us find the observables for the boudary fields
+            i = 0
+            for mpo_site in range(self.Z2.L):
+                j = 0
+                # vertical left
+                if mpo_site == 0:
+                    E_v = []
                     for l in range(self.Z2.l):
                         # print(f"site: {mpo_site}, ladder: {l}")
                         self.Z2.local_observable_Z2_dual(mpo_site=mpo_site, l=l)
-                        if cc == "v":
-                            coeff = np.prod(np.prod(self.Z2.charges, axis=1).tolist()[: l + 1])
-                        elif cc == "h":
-                            coeff = np.prod(self.Z2.charges[: l + 1, : self.L + 1])
+                        coeff = 1
                         self.w = self.Z2.mpo.copy()
                         E_v.append(coeff * self.mpo_first_moment().real)
                         # E_v.append(self.mpo_first_moment().real)
-                elif self.bc == "pbc":
-                    self.sites.append(aux_qub)
-                    self.L = len(self.sites)
-                    # self.Z2.L = self.L
-                    
-                    for l in range(self.Z2.l):
-                        # print(f"site: {mpo_site}, ladder: {l}")
-                #         self.Z2.zz_vertical_right_pbc_Z2_dual(
-                #     mpo_site=mpo_site, l=l
-                # )
-                        self.Z2.mpo_Z2_vertical_right_edges_pbc(file=l)
-                        prod_charges = np.prod(self.Z2.charges, axis=1).tolist()
-                        coeff = np.prod(prod_charges[: l + 1])
+                    E[1::2, (mpo_site + i) * 2] = E_v
+                    i = 1
+                # vertical right
+                if mpo_site == (self.Z2.L - 1):
+                    E_v = []
+                    if self.bc == "obc":
+                        for l in range(self.Z2.l):
+                            # print(f"site: {mpo_site}, ladder: {l}")
+                            self.Z2.local_observable_Z2_dual(mpo_site=mpo_site, l=l)
+                            if cc == "v":
+                                coeff = np.prod(np.prod(self.Z2.charges, axis=1).tolist()[: l + 1])
+                            elif cc == "h":
+                                coeff = np.prod(self.Z2.charges[: l + 1, : self.L + 1])
+                            self.w = self.Z2.mpo.copy()
+                            E_v.append(coeff * self.mpo_first_moment().real)
+                            # E_v.append(self.mpo_first_moment().real)
+                    elif self.bc == "pbc":
+                        self.sites.append(aux_qub)
+                        self.L = len(self.sites)
+                        # self.Z2.L = self.L
+                        
+                        for l in range(self.Z2.l):
+                            # print(f"site: {mpo_site}, ladder: {l}")
+                    #         self.Z2.zz_vertical_right_pbc_Z2_dual(
+                    #     mpo_site=mpo_site, l=l
+                    # )
+                            self.Z2.mpo_Z2_vertical_right_edges_pbc(file=l)
+                            prod_charges = np.prod(self.Z2.charges, axis=1).tolist()
+                            coeff = np.prod(prod_charges[: l + 1])
+                            self.w = self.Z2.mpo.copy()
+                            E_v.append(coeff * self.mpo_first_moment().real)
+                        
+                        self.sites.pop(-1)
+                        self.L = len(self.sites)
+                        # self.Z2.L = self.L
+
+                    E[1::2, (mpo_site + i) * 2] = E_v
+
+                # horizontal top and bottom
+                if self.bc == "obc":
+                    for l in [0, self.Z2.l - 1]:
+                        self.Z2.local_observable_Z2_dual(mpo_site=mpo_site, l=l)
+                        if cc == "v":
+                            coeff = self.Z2.charge_coeff_v(mpo_site=mpo_site, l=l)
+                        elif cc == "h":
+                            coeff = np.prod(self.Z2.charges[l + j, : mpo_site + 1])
                         self.w = self.Z2.mpo.copy()
-                        E_v.append(coeff * self.mpo_first_moment().real)
+                        E[(l + j) * 2, mpo_site * 2 + 1] = coeff * self.mpo_first_moment().real
+                        # E[(l+j)*2,mpo_site*2+1] = self.mpo_first_moment().real
+                        j = 1
+
+            # now we can obtain the bulk values given by the zz interactions
+            # horizontal links
+            for l in range(self.Z2.l - 1):
+                E_v = []
+                E_v_pbc = []
+                for mpo_site in range(self.L):
+                    # print(f"site: {mpo_site}, ladder: {l}")
+                    if l == 0:
+                        # the first horizontal links are bulk in pbc
+                        if self.bc == "pbc":
+                            self.Z2.zz_observable_Z2_dual(
+                                mpo_site=mpo_site, l=l-1, direction="vertical" # interaction
+                            )
+                            coeff = np.prod(self.Z2.charges[0, : mpo_site + 1])
+                            self.w = self.Z2.mpo.copy()
+                            E_v_pbc.append(coeff * self.mpo_first_moment().real)
                     
-                    self.sites.pop(-1)
-                    self.L = len(self.sites)
-                    # self.Z2.L = self.L
-
-                E[1::2, (mpo_site + i) * 2] = E_v
-
-            # horizontal top and bottom
-            if self.bc == "obc":
-                for l in [0, self.Z2.l - 1]:
-                    self.Z2.local_observable_Z2_dual(mpo_site=mpo_site, l=l)
+                    self.Z2.zz_observable_Z2_dual(
+                        mpo_site=mpo_site, l=l, direction="vertical" # interaction
+                    )
                     if cc == "v":
-                        coeff = self.Z2.charge_coeff_v(mpo_site=mpo_site, l=l)
+                        coeff = self.Z2.charge_coeff_interaction(n=l + 1, mpo_site=mpo_site)
                     elif cc == "h":
-                        coeff = np.prod(self.Z2.charges[l + j, : mpo_site + 1])
+                        coeff = np.prod(self.Z2.charges[l + 1, : mpo_site + 1])
                     self.w = self.Z2.mpo.copy()
-                    E[(l + j) * 2, mpo_site * 2 + 1] = coeff * self.mpo_first_moment().real
-                    # E[(l+j)*2,mpo_site*2+1] = self.mpo_first_moment().real
-                    j = 1
-
-        # now we can obtain the bulk values given by the zz interactions
-        # horizontal links
-        for l in range(self.Z2.l - 1):
-            E_v = []
-            E_v_pbc = []
-            for mpo_site in range(self.L):
-                # print(f"site: {mpo_site}, ladder: {l}")
+                    E_v.append(coeff * self.mpo_first_moment().real)
+                E[(l + 1) * 2, 1::2] = E_v
                 if l == 0:
-                    # the first horizontal links are bulk in pbc
                     if self.bc == "pbc":
-                        self.Z2.zz_observable_Z2_dual(
-                            mpo_site=mpo_site, l=l-1, direction="vertical" # interaction
-                        )
-                        coeff = np.prod(self.Z2.charges[0, : mpo_site + 1])
-                        self.w = self.Z2.mpo.copy()
-                        E_v_pbc.append(coeff * self.mpo_first_moment().real)
-                
-                self.Z2.zz_observable_Z2_dual(
-                    mpo_site=mpo_site, l=l, direction="vertical" # interaction
-                )
-                if cc == "v":
-                    coeff = self.Z2.charge_coeff_interaction(n=l + 1, mpo_site=mpo_site)
-                elif cc == "h":
-                    coeff = np.prod(self.Z2.charges[l + 1, : mpo_site + 1])
-                self.w = self.Z2.mpo.copy()
-                E_v.append(coeff * self.mpo_first_moment().real)
-            E[(l + 1) * 2, 1::2] = E_v
-            if l == 0:
-                if self.bc == "pbc":
-                    E[0, 1::2] = E_v_pbc
-        # vertical links
-        for l in range(self.Z2.l):
-            E_h = []
-            for mpo_site in range(self.L - 1):
-                # print(f"site: {mpo_site}, ladder: {l}")
-                self.Z2.zz_observable_Z2_dual(
-                    mpo_site=mpo_site, l=l, direction="horizontal" # interaction
-                )
-                coeff = 1
-                self.w = self.Z2.mpo.copy()
-                E_h.append(coeff * self.mpo_first_moment().real)
-            E_h.append(E[(l * 2 + 1), -1])
-            E[(l * 2 + 1), 2::2] = E_h
+                        E[0, 1::2] = E_v_pbc
+            # vertical links
+            for l in range(self.Z2.l):
+                E_h = []
+                for mpo_site in range(self.L - 1):
+                    # print(f"site: {mpo_site}, ladder: {l}")
+                    self.Z2.zz_observable_Z2_dual(
+                        mpo_site=mpo_site, l=l, direction="horizontal" # interaction
+                    )
+                    coeff = 1
+                    self.w = self.Z2.mpo.copy()
+                    E_h.append(coeff * self.mpo_first_moment().real)
+                E_h.append(E[(l * 2 + 1), -1])
+                E[(l * 2 + 1), 2::2] = E_h
 
         return E
 
@@ -3164,6 +3199,7 @@ class MPS:
         cy: list = None,
         aux_qub: np.ndarray = None,
         obs: list = None,
+        obs_freq: float = 0.3,
         training: bool = False,
         chi_max: int = 128,
     ):
@@ -3185,6 +3221,8 @@ class MPS:
                 By default True
 
         """
+        obs_trotter = [int(val) for val in np.linspace(0, trotter_steps-1, int((trotter_steps*obs_freq)))]
+
         if chi_max < self.chi:
             self.enlarge_chi()
             self.canonical_form(trunc_chi=True, trunc_tol=False)
@@ -3296,9 +3334,6 @@ class MPS:
             t_final = dt.datetime.now() - date_start
             print(f"Total time for the {trott}-th trotter step is: {t_final}")
 
-            # ============================
-            # Observables
-            # ============================
             # compression error
             if training:
                 errors.append(error)
@@ -3311,74 +3346,82 @@ class MPS:
             # schmidt_vals
             svs.append(schmidt_vals)
             
-            if self.bc == "pbc":
-                self.sites.pop()
-                self.L = len(self.sites)
-            
-            # electric field
-            if "el" in obs:
-                date_start = dt.datetime.now()
-                print(f"\n*** Computing electric field density in date: {dt.datetime.now()} ***\n")
-                E_h[:] = np.nan
-                E_h = self.electric_field_Z2(E_h, aux_qub=aux_qub)
-                electric_local_field.append(E_h.copy())
-                t_final = dt.datetime.now() - date_start
-                print(f"Total time for the electric field density is: {t_final}")
+            # ============================
+            # Observables
+            # ============================
+            if trott in obs_trotter:
+                print("==========================================")
+                print("Computing observables for this trotter step")
+                
+                if self.bc == "pbc":
+                    self.sites.pop()
+                    self.L = len(self.sites)
+                
+                # electric field
+                if "el" in obs:
+                    date_start = dt.datetime.now()
+                    print(f"\n*** Computing electric field density in date: {dt.datetime.now()} ***\n")
+                    E_h[:] = np.nan
+                    E_h = self.electric_field_Z2(E_h, aux_qub=aux_qub)
+                    electric_local_field.append(E_h.copy())
+                    t_final = dt.datetime.now() - date_start
+                    print(f"Total time for the electric field density is: {t_final}")
 
-            # electric energy density of a column/cylinder
-            if "end" in obs:
-                local_column.append(self.mpo_Z2_column_electric_energy_density(site=self.L // 2))
+                # electric energy density of a column/cylinder
+                if "end" in obs:
+                    local_column.append(self.mpo_Z2_column_electric_energy_density(site=self.L // 2))
+                
+                # overlap
+                if "losch" in obs:
+                    if self.bc == "pbc":
+                        self.sites.append(aux_qub)
+                        self.L = len(self.sites)
+                    
+                    self.ancilla_sites = psi_init.copy()
+                    overlaps.append(self._compute_norm(site=1, mixed=True))
+                    self.ancilla_sites = []
+                    if self.bc == "pbc":
+                        aux_qub = self.sites.pop(-1)
+                        self.L = len(self.sites)
+
+                # exact
+                if exact:
+                    difference = np.linalg.norm(matrix_mpo - U_ev_sp.toarray())
+                    if difference < 1e-10:  # Threshold for numerical precision
+                        print("MPO matches the sparse matrix representation!")
+                    else:
+                        print(f"Mismatch found! Difference: {difference}")
+
+                    # trotter state mps
+                    psi_trott_mps = mps_to_vector(self.sites)
+                    # print("\n****** Norm of psi_trott_mps: ", self._compute_norm(site=1))
+
+                    # trotter state exact
+                    U_ev = spla.expm(-1j*delta*(trott+1)*H_ev)
+                    psi_trott_ex = U_ev @ psi0_ex
+                    # print("\n****** Norm of psi_trott_ex: ", (psi_trott_ex.conjugate() @ psi_trott_ex))
+
+                    # trotter state sparse
+                    psi_trott_sp = U_ev_sp @ psi_trott_sp
+                    # print("\n****** Norm of psi_trott_ex: ", (psi_trott_sp.conjugate() @ psi_trott_sp))
+
+                    # exact vs sparse
+                    ex_sp = psi_trott_ex.conjugate() @ psi_trott_sp
+                    # ex_sp = la.norm(psi_trott_ex - psi_trott_sp)
+                    braket_ex_sp.append(ex_sp)
+                    # exact vs mps
+                    ex_mps = psi_trott_ex.conjugate() @ psi_trott_mps
+                    # ex_mps = la.norm(psi_trott_ex - psi_trott_mps)
+                    braket_ex_mps.append(ex_mps)
+                    # mps vs sparse
+                    mps_sp = psi_trott_mps.conjugate() @ psi_trott_sp
+                    # mps_sp = la.norm(psi_trott_mps - psi_trott_sp)
+                    braket_mps_sp.append(mps_sp)
+                
             
-            # overlap
-            if "losch" in obs:
                 if self.bc == "pbc":
                     self.sites.append(aux_qub)
                     self.L = len(self.sites)
-                
-                self.ancilla_sites = psi_init.copy()
-                overlaps.append(self._compute_norm(site=1, mixed=True))
-                self.ancilla_sites = []
-                if self.bc == "pbc":
-                    aux_qub = self.sites.pop(-1)
-                    self.L = len(self.sites)
-
-            # exact
-            if exact:
-                difference = np.linalg.norm(matrix_mpo - U_ev_sp.toarray())
-                if difference < 1e-10:  # Threshold for numerical precision
-                    print("MPO matches the sparse matrix representation!")
-                else:
-                    print(f"Mismatch found! Difference: {difference}")
-
-                # trotter state mps
-                psi_trott_mps = mps_to_vector(self.sites)
-                # print("\n****** Norm of psi_trott_mps: ", self._compute_norm(site=1))
-
-                # trotter state exact
-                U_ev = spla.expm(-1j*delta*(trott+1)*H_ev)
-                psi_trott_ex = U_ev @ psi0_ex
-                # print("\n****** Norm of psi_trott_ex: ", (psi_trott_ex.conjugate() @ psi_trott_ex))
-
-                # trotter state sparse
-                psi_trott_sp = U_ev_sp @ psi_trott_sp
-                # print("\n****** Norm of psi_trott_ex: ", (psi_trott_sp.conjugate() @ psi_trott_sp))
-
-                # exact vs sparse
-                ex_sp = psi_trott_ex.conjugate() @ psi_trott_sp
-                # ex_sp = la.norm(psi_trott_ex - psi_trott_sp)
-                braket_ex_sp.append(ex_sp)
-                # exact vs mps
-                ex_mps = psi_trott_ex.conjugate() @ psi_trott_mps
-                # ex_mps = la.norm(psi_trott_ex - psi_trott_mps)
-                braket_ex_mps.append(ex_mps)
-                # mps vs sparse
-                mps_sp = psi_trott_mps.conjugate() @ psi_trott_sp
-                # mps_sp = la.norm(psi_trott_mps - psi_trott_sp)
-                braket_mps_sp.append(mps_sp)
-
-            if self.bc == "pbc":
-                self.sites.append(aux_qub)
-                self.L = len(self.sites)
 
         return errors, entropies, svs, electric_local_field, overlaps, braket_ex_sp, braket_ex_mps, braket_mps_sp
     

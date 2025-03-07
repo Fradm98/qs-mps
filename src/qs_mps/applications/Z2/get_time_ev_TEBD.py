@@ -140,6 +140,13 @@ parser.add_argument(
         By default False""",
     action="store_true",
 )
+parser.add_argument(
+    "-of",
+    "--obs_freq",
+    help="Frequency of sampling observables during our time evolution. It is expressend in percentage of trotter steps",
+    default=0.3, # this means the 30% of the trotter steps we will measure the observables
+    type=float,
+)
 
 args = parser.parse_args()
 
@@ -194,7 +201,7 @@ if args.moment == 4:
 
 # define all observables
 if args.obs == []:
-    args.obs = ["el", "losch"]
+    args.obs = ["el", "end", "losch"]
 
 a = np.zeros((1,2))
 a[0,0] = 1
@@ -392,6 +399,7 @@ for L in args.Ls:
             cy=charges_y,
             exact=args.exact,
             obs=args.obs,
+            obs_freq=args.obs_freq,
             training=args.training,
             chi_max=args.chi_max
             )
