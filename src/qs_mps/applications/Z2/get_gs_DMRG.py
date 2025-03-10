@@ -142,6 +142,13 @@ parser.add_argument(
     default="h",
     type=str,
 )
+parser.add_argument(
+    "-p",
+    "--precision",
+    help="Precision to load and save tensors and observables. By default True will take the number of decimals in h_i",
+    action="store_false",
+)
+
 args = parser.parse_args()
 
 # # Redirect stdout and stderr to the log file
@@ -157,7 +164,7 @@ if args.interval == "lin":
     interval = np.linspace(args.h_i, args.h_f, args.npoints)
     num = (interval[-1] - interval[0]) / args.npoints
     precision = get_precision(num)
-    if args.npoints == 1:
+    if args.precision:
         precision = len(str(args.h_i).split(".")[1])
         print(precision)
 elif args.interval == "log":

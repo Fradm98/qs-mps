@@ -46,18 +46,20 @@ def find_closest_value(interval, g):
 
     # Initialize closest variable to hold the result
     closest = interval[0]
-
+    closest_index = 0
     # Traverse the interval to find the closest value
-    for value in interval:
+    for index, value in enumerate(interval):
         # If the current value is closer to the g, update closest
         if abs(value - g) < abs(closest - g):
             closest = value
+            closest_index = index
         # If the distance is the same but g is between values, choose the smaller one
         elif abs(value - g) == abs(closest - g) and value < closest:
             closest = value
+            closest_index = index
 
     print(f"we search for g={closest}")
-    return closest
+    return closest, closest_index
 
 
 def weighted_average(data: list, err_data: list):

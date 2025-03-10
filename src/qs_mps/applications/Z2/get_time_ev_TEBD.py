@@ -147,6 +147,12 @@ parser.add_argument(
     default=0.3, # this means the 30% of the trotter steps we will measure the observables
     type=float,
 )
+parser.add_argument(
+    "-p",
+    "--precision",
+    help="Precision to load and save tensors and observables. By default True will take the number of decimals in h_i",
+    action="store_false",
+)
 
 args = parser.parse_args()
 
@@ -155,11 +161,11 @@ d = int(2 ** (args.l))
 
 # define the precision to load the mps
 # precision = get_precision(args.h_i)
-if args.npoints == 1:
+if args.precision:
     precision = len(str(args.h_i).split(".")[1])
-    print(precision)
 else:
-    precision = 3
+    precision = int(np.max([np.abs(args.h_f), np.abs(args.h_i)]))
+print(precision)
 
 # take the path and precision to save files
 # if we want to save the tensors we save them locally because they occupy a lot of memory
