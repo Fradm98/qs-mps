@@ -151,21 +151,14 @@ parser.add_argument(
     "-p",
     "--precision",
     help="Precision to load and save tensors and observables. By default True will take the number of decimals in h_i",
-    action="store_false",
+    default=3,
+    type=int,
 )
 
 args = parser.parse_args()
 
 # define the physical dimension
 d = int(2 ** (args.l))
-
-# define the precision to load the mps
-# precision = get_precision(args.h_i)
-if args.precision:
-    precision = len(str(args.h_i).split(".")[1])
-else:
-    precision = int(np.max([np.abs(args.h_f), np.abs(args.h_i)]))
-print(precision)
 
 # take the path and precision to save files
 # if we want to save the tensors we save them locally because they occupy a lot of memory
@@ -251,7 +244,7 @@ for L in args.Ls:
             lattice_mps.Z2._define_sector()
         try:
             lattice_mps.load_sites(
-                path=path_tensor, precision=precision, cx=cx_vac, cy=cy_vac
+                path=path_tensor, precision=args.precision, cx=cx_vac, cy=cy_vac
             )
             print("State found!!")
             if args.bond:
@@ -286,7 +279,7 @@ for L in args.Ls:
             mag = lattice_mps.mpo_first_moment()
             print(f"initial magentization is: {mag}")
 
-            lattice_mps.save_sites(path=path_tensor, precision=precision, cx=cx_vac, cy=cy_vac)
+            lattice_mps.save_sites(path=path_tensor, precision=args.precision, cx=cx_vac, cy=cy_vac)
 
         # initialize the variables to save
         errors_tr = [[0, 0]]
@@ -329,7 +322,7 @@ for L in args.Ls:
                 mps_gs_quench.Z2._define_sector()
             try:
                 mps_gs_quench.load_sites(
-                    path=path_tensor, precision=precision, cx=charges_x, cy=charges_y
+                    path=path_tensor, precision=args.precision, cx=charges_x, cy=charges_y
                 )
                 print("State found!!")
                 if args.bond:
@@ -364,7 +357,7 @@ for L in args.Ls:
                 mag = mps_gs_quench.mpo_first_moment()
                 print(f"initial magentization is: {mag}")
 
-                mps_gs_quench.save_sites(path=path_tensor, precision=precision, cx=charges_x, cy=charges_y)
+                mps_gs_quench.save_sites(path=path_tensor, precision=args.precision, cx=charges_x, cy=charges_y)
 
             mps_gs_quench.sites.append(aux_qub)
             mps_gs_quench.L = len(mps_gs_quench.sites)
