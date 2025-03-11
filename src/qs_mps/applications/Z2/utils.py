@@ -103,8 +103,8 @@ def arithmetic_average(data: list, err_data: list):
     # Error propagation in the arithmetic average
     av_err = np.sqrt(np.sum(weights)) / len(weights)
 
-    print(f"Arithmetic Average: {av}")
-    print(f"Error propagation in the Average: {av_err}")
+    # print(f"Arithmetic Average: {av}")
+    # print(f"Error propagation in the Average: {av_err}")
     return av, av_err
 
 

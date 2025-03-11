@@ -318,7 +318,7 @@ def get_exact_potential_chis(chis, potentials):
     # Extract fitted parameters and their errors
     y0_fit, A_fit, B_fit = popt
     y0_err, A_err, B_err = np.sqrt(np.diag(pcov))
-    print(f"y0 (asymptotic value in 1/chi) = {y0_fit:.6f} ± {y0_err:.6f}")
+    # print(f"y0 (asymptotic value in 1/chi) = {y0_fit:.6f} ± {y0_err:.6f}")
     return y0_fit, y0_err
 
 
@@ -393,7 +393,7 @@ def get_exact_potential_Ls(Ls, potentials, y_errs):
     # Extract fitted parameters and their errors
     y0_fit = popt[1]
     y0_err = errs[1]
-    print(f"y0 (asymptotic value in 1/L) = {y0_fit:.6f} ± {y0_err:.6f}")
+    # print(f"y0 (asymptotic value in 1/L) = {y0_fit:.6f} ± {y0_err:.6f}")
     return y0_fit, y0_err
 
 
@@ -427,8 +427,8 @@ def static_potential_exact_L(
         print(f"Consider taking smaller Rs, computing the potential with linear fit")
         pot_exact, err = get_exact_potential_Ls(Ls, potentials, pot_errs)
     elif flag == 0:
-        print(f"Negligible boundary effects in L\n")
-        print(f"Computing the potential with arithmetic average")
+        # print(f"Negligible boundary effects in L\n")
+        # print(f"Computing the potential with arithmetic average")
         pot_exact, err = arithmetic_average(potentials, pot_errs)
 
     return pot_exact, err
@@ -440,7 +440,7 @@ def static_potential_varying_R(
     potentials = []
     err_potentials = []
     for R in Rs:
-        print(f"R: {R}")
+        # print(f"R: {R}")
         pot, err = static_potential_exact_L(
             g, R, l, Ls, chis, bc, sector, h_i, h_f, npoints, path_tensor, cx, cy
         )
@@ -456,7 +456,7 @@ def static_potential_varying_g(
     potentials = []
     err_potentials = []
     for g in gs:
-        print(f"g: {g}")
+        # print(f"g: {g}")
         pot, err = static_potential_exact_L(
             g, R, l, Ls, chis, bc, sector, h_i, h_f, npoints, path_tensor, cx, cy
         )
