@@ -3185,7 +3185,7 @@ class MPS:
 
         return braket_ex_sp, braket_ex_mps, braket_mps_sp
 
-    def TEBD_variational_Z2_exact(
+    def     TEBD_variational_Z2_exact(
         self,
         trotter_steps: int,
         delta: float,
@@ -3423,7 +3423,7 @@ class MPS:
                     self.sites.append(aux_qub)
                     self.L = len(self.sites)
 
-        return errors, entropies, svs, electric_local_field, overlaps, braket_ex_sp, braket_ex_mps, braket_mps_sp
+        return errors, entropies, svs, electric_local_field, local_column, overlaps, braket_ex_sp, braket_ex_mps, braket_mps_sp
     
     def TEBD_variational_Z2_trotter_step(
         self,

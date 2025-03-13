@@ -382,6 +382,7 @@ for L in args.Ls:
         entrs,
         svs,
         efields,
+        transversal_fields_string,
         losch,
         ex_sp,
         ex_mps,
@@ -409,6 +410,12 @@ for L in args.Ls:
         if "el" in args.obs:
             np.save(
                 f"{parent_path}/results/electric_field/electric_field_quench_dynamics_{args.model}_direct_lattice_{args.l}x{L}_{sector}_bc_{args.boundcond}_R_{args.length}_h_{args.h_i}-{args.h_ev}_delta_{args.delta}_trotter_steps_{args.npoints}_chi_{chi}.npy",
+                efields,
+            )
+
+        if "end" in args.obs:
+            np.save(
+                f"{parent_path}/results/electric_field/electric_field_energy_density_middle_column_quench_dynamics_{args.model}_direct_lattice_{args.l}x{L}_{sector}_bc_{args.boundcond}_R_{args.length}_h_{args.h_i}-{args.h_ev}_delta_{args.delta}_trotter_steps_{args.npoints}_chi_{chi}.npy",
                 efields,
             )
 
