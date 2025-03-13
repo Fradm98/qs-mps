@@ -416,7 +416,7 @@ for L in args.Ls:
         if "end" in args.obs:
             np.save(
                 f"{parent_path}/results/electric_field/electric_field_energy_density_middle_column_quench_dynamics_{args.model}_direct_lattice_{args.l}x{L}_{sector}_bc_{args.boundcond}_R_{args.length}_h_{args.h_i}-{args.h_ev}_delta_{args.delta}_trotter_steps_{args.npoints}_chi_{chi}.npy",
-                efields,
+                transversal_fields_string,
             )
 
         if args.bond == False:
