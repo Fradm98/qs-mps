@@ -643,6 +643,133 @@ def potential_second_discrete_derivative_varying_g(
         luschers_err.append(luscher_err)
     return luschers, luschers_err
 
+
+def time_ev_electric_energy_density(
+    g: float,
+    R: int,
+    l: int,
+    L: int,
+    chi: int,
+    bc: str = None,
+    sector: str = None,
+    h_i: float = None,
+    h_f: float = None,
+    npoints: int = None,
+    delta: float = None,
+    trotter: int = None,
+    path_tensor: str = None,
+    cx: list = None,
+    cy: list = None,
+):
+    """
+    connected electric energy density
+
+    This function computes the electric energy density as the difference between the electric energy densities of the two-charge sector and vacuum sector.
+    The list of energy densities indicates the central ladder distribution of energy for a static pair of charges separated by R for a lattice lxL at a specific value of the coupling g
+    and a certain bond dimension chi.
+
+    g: float - value of the electric field coupling
+    R: int - string length formed by the separation of two charges
+    l: int - number of ladders in the direct lattice
+    L: int - number of plaquettes per ladder in the direct lattice (rungs-1)
+    chi: int - bond dimension used to approximate DMRG computations of the ground state
+    bc: str - boundary conditions of the lattice
+    sector: str - sector of the ground state
+    h_i: float - starting point for computations spanning the coupling phase space
+    h_f: float - ending point for computations spanning the coupling phase space
+    npoints: int - number of points for computations spanning the coupling phase space
+    path_tensor: str - path name for retrieving the energy densities values
+
+    """
+    if cx == None:
+        cx = get_cx(L, R)
+    if cy == None:
+        cy = get_cy(l, R=R, bc=bc)
+
+    try:
+        vac = None
+        energy_densities_charges = np.load(
+            f"{path_tensor}/results/electric_field/electric_field_energy_density_middle_column_quench_dynamics_Z2_dual_direct_lattice_{l}x{L}_{sector}_bc_{bc}_R_{R}_h_{h_i}-{h_f}_delta_{delta}_trotter_steps_{trotter}_chi_{chi}.npy"
+        )
+        energy_densities_vacuum = np.load(
+            f"{path_tensor}/results/energy_data/electric_energy_density_Z2_dual_direct_lattice_{l}x{L}_vacuum_sector_bc_{bc}_{vac}-{vac}_h_{h_i}-{h_f}_delta_{npoints}_chi_{chi}.npy"
+        )
+    except:
+        vac = np.nan
+        energy_densities_charges = np.load(
+            f"{path_tensor}/results/electric_field/electric_field_energy_density_middle_column_quench_dynamics_Z2_dual_direct_lattice_{l}x{L}_{sector}_bc_{bc}_R_{R}_h_{h_i}-{h_f}_delta_{delta}_trotter_steps_{trotter}_chi_{chi}.npy"
+        )
+        energy_densities_vacuum = np.load(
+            f"{path_tensor}/results/energy_data/electric_energy_density_Z2_dual_direct_lattice_{l}x{L}_vacuum_sector_bc_{bc}_{vac}-{vac}_h_{h_i}-{h_f}_delta_{npoints}_chi_{chi}.npy"
+        )
+    
+    energy_density_difference = [(energy_charges - energy_densities_vacuum[0]) for energy_charges in energy_densities_charges]
+    return energy_density_difference
+
+
+def time_ev_string_width(
+    g: float,
+    R: int,
+    l: int,
+    L: int,
+    chi: int,
+    bc: str = None,
+    sector: str = None,
+    h_i: float = None,
+    h_f: float = None,
+    npoints: int = None,
+    delta: float = None,
+    trotter: int = None,
+    path_tensor: str = None,
+    cx: list = None,
+    cy: list = None,
+):
+    """
+    string width electric energy density
+
+    This function computes the string width by taking the connected electric energy density of a plaquette and weighting it for the distance
+    of the plaquette to the axis of the string (fluxtube). This value is relative to a specific electric coupling g.
+
+    eed_conn_lad: numpy.ndarray - array of connected energy densities for a ladder in the middle of the string
+
+    """
+    if cx == None:
+        cx = get_cx(L, R)
+    if cy == None:
+        cy = get_cy(l, R=R, bc=bc)
+
+    eed_conn_time = time_ev_electric_energy_density(
+        g, R, l, L, chi, bc, sector, h_i, h_f, npoints, delta, trotter, path_tensor, cx, cy
+    )
+    l = len(eed_conn_time[0])
+    if bc == "obc":
+        x0 = cy[0]
+        xs = [
+            i
+            for i in range(
+                -x0,
+                (l - x0) + 1,
+            )
+            if i != 0
+        ]
+
+    # correctly "translate" the coordinates
+    elif bc == "pbc":
+        x0 = l // 2
+        xs = [i for i in range(-x0,(l - x0) + 1,)if i != 0]
+        xs = [xs[i - (l - (l // 2))] for i in range(len(xs))]
+
+    eed_sum_time = []
+    for eed_conn_lad in eed_conn_time:
+        eed_sum_lad = 0
+        for x, eed_x in zip(xs, eed_conn_lad):
+            eed_sum_lad += eed_x * ((x) ** 2)
+        eed_sum_lad = eed_sum_lad / sum(eed_conn_lad)
+        eed_sum_time.append(eed_sum_lad)
+
+    return np.asarray(eed_sum_time)
+
+
 def connected_electric_energy_density(
     g: float,
     R: int,
@@ -682,6 +809,7 @@ def connected_electric_energy_density(
         cx = get_cx(L, R)
     if cy == None:
         cy = get_cy(l, R=R, bc=bc)
+    
     interval = np.linspace(h_i, h_f, npoints)
     try:
         vac = None
@@ -699,7 +827,7 @@ def connected_electric_energy_density(
         energy_densities_vacuum = np.load(
             f"{path_tensor}/results/energy_data/electric_energy_density_Z2_dual_direct_lattice_{l}x{L}_vacuum_sector_bc_{bc}_{vac}-{vac}_h_{h_i}-{h_f}_delta_{npoints}_chi_{chi}.npy"
         )
-
+    
     energy_density_difference = energy_densities_charges - energy_densities_vacuum
 
     for i, val in enumerate(energy_density_difference):
@@ -778,6 +906,8 @@ def string_width_chis(
     path_tensor: str = None,
     cx: list = None,
     cy: list = None,
+    delta: float = None,
+    trotter: int = None,
 ):
     """
     static potential
@@ -799,9 +929,14 @@ def string_width_chis(
     """
     ws_chi = []
     for chi in chis:
-        w = string_width_electric_energy_density(
-            g, R, l, L, chi, bc, sector, h_i, h_f, npoints, path_tensor, cx, cy
-        )
+        if trotter == None:
+            w = string_width_electric_energy_density(
+                g, R, l, L, chi, bc, sector, h_i, h_f, npoints, path_tensor, cx, cy
+            )
+        else:
+            w = time_ev_string_width(
+                g, R, l, L, chi, bc, sector, h_i, h_f, npoints, delta, trotter, path_tensor, cx, cy,
+            )
         ws_chi.append(w)
     return ws_chi
 
@@ -841,9 +976,11 @@ def string_width_exact_chi(
     npoints: int = None,
     path_tensor: str = None,
     g_thr: float = 10,
+    delta: float = None,
+    trotter: int = None,
 ):
     strings = string_width_chis(
-        g, R, l, L, chis, bc, sector, h_i, h_f, npoints, path_tensor
+        g, R, l, L, chis, bc, sector, h_i, h_f, npoints, path_tensor, delta=delta, trotter=trotter
     )
     if g > g_thr:
         str_exact, err = get_exact_string_chis(chis, strings)
