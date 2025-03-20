@@ -4,18 +4,18 @@ from scp import SCPClient, SCPException
 from datetime import datetime
 
 device = "marcos2"
-# device = "pc"
+device = "pc"
 # device = "mac"
 observable = "energy_data"
 # observable = "entropy_data"
 # observable = "error_data"
-# observable = "overlap"
+observable = "overlap"
 # observable = "electric_field"
 
 # List of server information
 all_servers = [
-    {"hostname": "158.227.6.203", "username": "fradm", "key_filename": None},
-    {"hostname": "158.227.46.38", "username": "fradm", "key_filename": None},
+    # {"hostname": "158.227.6.203", "username": "fradm", "key_filename": None},
+    # {"hostname": "158.227.46.38", "username": "fradm", "key_filename": None},
     {"hostname": "158.227.47.136", "username": "fradm", "key_filename": None},
 ]
 
@@ -48,7 +48,7 @@ for server in all_servers:
 
 
 def get_remote_files(client, remote_dir):
-    stdin, stdout, stderr = client.exec_command(f"ls -l {remote_dir}")
+    stdin, stdout, stderr = client.exec_command(f"ls -lTot {remote_dir}")
     files = {}
 
     for line in stdout:
@@ -60,15 +60,16 @@ def get_remote_files(client, remote_dir):
         else:
             # Extract the filename and modification time
             filename = " ".join(parts[8:])  # Join any spaces in the filename
-
             # Parse the date string to a timestamp
             # Determine if the date has a time or just a year
-            if ":" in parts[7]:  # If there's a colon, the format is like 'Sep 19 11:54'
-                date_str = f"{parts[5]} {parts[6]} {parts[7]} {datetime.now().year}"
-                date_format = "%b %d %H:%M %Y"
-            else:  # Otherwise, it's in the 'Dec 18 2023' format
-                date_str = f"{parts[5]} {parts[6]} {parts[7]}"
-                date_format = "%b %d %Y"
+            # if ":" in parts[7]:  # If there's a colon, the format is like 'Sep 19 11:54'
+            #     date_str = f"{parts[5]} {parts[6]} {parts[7]} {datetime.now().year}"
+            #     date_format = "%b %d %H:%M %Y"
+            # else:  # Otherwise, it's in the 'Dec 18 2023' format
+            #     date_str = f"{parts[5]} {parts[6]} {parts[7]}"
+            #     date_format = "%b %d %Y"
+            date_str = f"{parts[4]} {parts[5]} {parts[6]} {parts[7]}"
+            date_format = "%b %d %H:%M:%S %Y"
             try:
                 timestamp = int(datetime.strptime(date_str, date_format).timestamp())
             except ValueError as e:
