@@ -2,8 +2,8 @@ import numpy as np
 
 from scipy.optimize import curve_fit
 
-from qs_mps.applications.Z2.utils import get_cx, get_cy, arithmetic_average
-from qs_mps.utils import von_neumann_entropy
+from qs_mps.applications.Z2.utils import arithmetic_average
+from qs_mps.utils import von_neumann_entropy, get_cx, get_cy
 
 
 def n_order_kink_mass(
@@ -1050,24 +1050,86 @@ def entropy(
 
     """
     cx = get_cx(L, R)
-    cy = get_cy(l, R=R, bc=bc)
+    cy = get_cy(l, bc=bc)
 
     if L % 2 == 0:
         where = L // 2
     elif L % 2 == 1:
         where = L // 2 + 1
-    try:
-        schmidt_values = np.load(
-            f"{path_tensor}/results/entropy_data/{where}_schmidt_vals_Z2_dual_direct_lattice_{l}x{L}_{sector}_bc_{bc}_{cx}-{cy}_h_{h_i}-{h_f}_delta_{npoints}_chi_{chi}.npy"
-        )
-    except:
-        vac = None
-        schmidt_values = np.load(
-            f"{path_tensor}/results/entropy_data/{where}_schmidt_vals_Z2_dual_direct_lattice_{l}x{L}_{sector}_bc_{bc}_{vac}-{vac}_h_{h_i}-{h_f}_delta_{npoints}_chi_{chi}.npy"
-        )
+    # try:
+    schmidt_values = np.load(
+        f"{path_tensor}/results/entropy_data/{where}_schmidt_vals_Z2_dual_direct_lattice_{l}x{L}_{sector}_bc_{bc}_{cx}-{cy}_h_{h_i}-{h_f}_delta_{npoints}_chi_{chi}.npy"
+    )
+    # except:
+    #     entropies = np.load(
+    #         f"{path_tensor}/results/entropy_data/{where}_bond_entropy_Z2_dual_direct_lattice_{l}x{L}_{sector}_bc_{bc}_{cx}-{cy}_h_{h_i}-{h_f}_delta_{npoints}_chi_{chi}.npy"
+    #     )
+
+        # vac = None
+        # schmidt_values = np.load(
+        #     f"{path_tensor}/results/entropy_data/{where}_schmidt_vals_Z2_dual_direct_lattice_{l}x{L}_{sector}_bc_{bc}_{vac}-{vac}_h_{h_i}-{h_f}_delta_{npoints}_chi_{chi}.npy"
+        # )
 
     entropies = []
     for sm in schmidt_values:
         entropies.append(von_neumann_entropy(sm))
 
     return entropies
+
+
+def time_entropy(
+        R: int,
+    l: int,
+    L: int,
+    chi: int,
+    bc: str = None,
+    sector: str = None,
+    h_i: float = None,
+    h_f: float = None,
+    path_tensor: str = None,
+    delta: float = None,
+    trotter: int = None,
+):
+    
+    entr = np.load(
+                    f"{path_tensor}/results/entropy_data/{L//2}_bond_entropy_quench_dynamics_Z2_Dual_direct_lattice_{l}x{L}_{sector}_bc_{bc}_R_{R}_h_{h_i}-{h_f}_delta_{delta}_trotter_steps_{trotter}_chi_{chi}.npy")
+    return entr
+
+def time_entropy_chis(
+    R: int,
+    l: int,
+    L: int,
+    chis: list,
+    bc: str = None,
+    sector: str = None,
+    h_i: float = None,
+    h_f: float = None,
+    path_tensor: str = None,
+    delta: float = None,
+    trotter: int = None,
+):
+    chis = np.sort(chis)
+    entrs = []
+    for chi in chis:
+        entr_chi = time_entropy(R,l,L,chi,bc,sector,h_i,h_f,path_tensor,delta,trotter)
+        entrs.append(entr_chi)
+
+    return entrs
+
+def time_entropy_exact(
+    R: int,
+    l: int,
+    L: int,
+    chis: list,
+    bc: str = None,
+    sector: str = None,
+    h_i: float = None,
+    h_f: float = None,
+    path_tensor: str = None,
+    delta: float = None,
+    trotter: int = None,
+):
+    entropies = time_entropy_chis(R,l,L,chis,bc,sector,h_i,h_f,path_tensor,delta,trotter)
+    entr_exact = entropies[-1]
+    err = np.abs(entropies[-1] - entropies[-2])
+    return entr_exact, err
