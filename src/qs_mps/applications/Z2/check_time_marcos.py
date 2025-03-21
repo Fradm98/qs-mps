@@ -221,7 +221,7 @@ for L in args.Ls:
         args.bond = False
 
     times = []
-    for rep in args.reps:
+    for rep in range(args.reps):
         lattice_mps = MPS(
                 L=L, d=d, model=args.model, chi=args.chi_max, h=args.h_i, bc=args.boundcond
             )
