@@ -1231,7 +1231,9 @@ def get_cx(L, R, cx: list=None):
         print(f"cx given: {cx}")
         return cx
 
-def get_cy(l, bc, cy: list=None):
+def get_cy(l, bc, cy: list=None, R: int=None):
+    if R == 0:
+        return np.nan
     if cy == None or len(cy) == 0:
         if bc == "pbc":
             return [0,0]

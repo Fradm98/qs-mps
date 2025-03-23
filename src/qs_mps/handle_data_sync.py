@@ -7,16 +7,16 @@ device = "marcos2"
 device = "pc"
 # device = "mac"
 observable = "energy_data"
-# observable = "entropy_data"
-# observable = "error_data"
-# observable = "overlap"
-# observable = "electric_field"
+observable = "entropy_data"
+observable = "error_data"
+observable = "overlap"
+observable = "electric_field"
 
 # List of server information
 all_servers = [
-    # {"hostname": "158.227.6.203", "username": "fradm", "key_filename": None},
+    {"hostname": "158.227.6.203", "username": "fradm", "key_filename": None},
     {"hostname": "158.227.46.38", "username": "fradm", "key_filename": None},
-    # {"hostname": "158.227.47.136", "username": "fradm", "key_filename": None},
+    {"hostname": "158.227.47.136", "username": "fradm", "key_filename": None},
 ]
 
 # Local and remote result directories
