@@ -181,7 +181,7 @@ def n_order_kink_mass_varying_g(
     kms = []
     err_kms = []
     for g in gs:
-        print(f"g: {g}")
+        # print(f"g: {g}")
         km, err = n_order_kink_mass_exact_chi(
             g, R, l, L, chis, bc, sector, h_i, h_f, npoints, path_tensor, cx, cy, cy_off_axis, vacuum
         )

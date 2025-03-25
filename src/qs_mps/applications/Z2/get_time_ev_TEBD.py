@@ -391,7 +391,7 @@ for L in args.Ls:
             delta=args.delta,
             h_ev=args.h_ev,
             n_sweeps=8,
-            conv_tol=1e-12,
+            conv_tol=1e-8,
             bond=args.bond,
             where=L//2,
             aux_qub=aux_qub,

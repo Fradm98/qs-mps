@@ -145,8 +145,9 @@ parser.add_argument(
 parser.add_argument(
     "-p",
     "--precision",
-    help="Precision to load and save tensors and observables. By default True will take the number of decimals in h_i",
-    action="store_false",
+    help="Precision to load and save tensors and observables. By default True 3",
+    default=3,
+    type=int,
 )
 
 args = parser.parse_args()
@@ -162,14 +163,12 @@ d = int(2 ** (args.l))
 # define the interval of equally spaced values of external field
 if args.interval == "lin":
     interval = np.linspace(args.h_i, args.h_f, args.npoints)
-    num = (interval[-1] - interval[0]) / args.npoints
-    precision = get_precision(num)
-    if args.precision:
-        precision = len(str(args.h_i).split(".")[1])
-        print(precision)
+    # num = (interval[-1] - interval[0]) / args.npoints
+    # precision = get_precision(num)
+    
 elif args.interval == "log":
     interval = np.logspace(args.h_i, args.h_f, args.npoints)
-    precision = int(np.max([np.abs(args.h_f), np.abs(args.h_i)]))
+    # precision = int(np.max([np.abs(args.h_f), np.abs(args.h_i)]))
 
 # take the path and precision to save files
 # if we want to save the tensors we save them locally because they occupy a lot of memory
@@ -230,7 +229,7 @@ for L in args.Ls:
             "bond": args.bond,
             "path": path_tensor,
             "save": args.save,
-            "precision": precision,
+            "precision": args.precision,
             "sector": sector,
             "charges_x": charges_x,
             "charges_y": charges_y,
