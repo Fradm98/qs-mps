@@ -93,6 +93,19 @@ parser.add_argument(
     default=None,
     type=int,
 )
+parser.add_argument(
+    "-w",
+    "--where",
+    help="Where to compute on the lattice, e.g. in the middle is L//2. By default -1. where equals to -2 selects all the bonds",
+    default=-1,
+    type=int,
+)
+parser.add_argument(
+    "-b",
+    "--bond",
+    help="Save the schmidt values for one bond. If False save for each bond. By default True",
+    action="store_false",
+)
 
 args = parser.parse_args()
 
@@ -161,6 +174,12 @@ for L in args.Ls:
         charges_x = args.charges_x
         charges_y = args.charges_y
     
+    # where to look at for the entropy
+    if args.where == -1:
+        args.where = L // 2
+    elif args.where == -2:
+        args.bond = False
+
 
     for chi in args.chis:
         W = []
@@ -328,9 +347,15 @@ for L in args.Ls:
 
             if "entr" in args.obs:
                 lattice_mps.canonical_form(svd_direction="right", trunc_chi=False, trunc_tol=True, schmidt_tol=1e-15)
-                entropy = von_neumann_entropy(lattice_mps.bonds[L//2])
+                if args.bond:
+                    entropy = von_neumann_entropy(lattice_mps.bonds[args.where])
+                    smi = lattice_mps.bonds[args.where]
+                else:
+                    entropy = np.array([von_neumann_entropy(lattice_mps.bonds[i]) for i in range(L-1)])
+                    smi = [lattice_mps.bonds[i] for i in range(L-1)]
+
                 Entr.append(entropy)
-                Smi.append(lattice_mps.bonds[L//2])
+                Smi.append(smi)
 
             if "pot" in args.obs:
                 potr = []
@@ -426,14 +451,26 @@ for L in args.Ls:
                 End,
             )
         if "entr" in args.obs:
-            np.save(
-                f"{parent_path}/results/entropy_data/{L//2}_bond_entropy_{args.model}_direct_lattice_{args.l}x{L}_{sector}_bc_{args.boundcond}_{charges_x}-{charges_y}_h_{args.h_i}-{args.h_f}_delta_{args.npoints}_chi_{chi}.npy",
-                Entr,
-            )
-            np.save(
-                f"{parent_path}/results/entropy_data/{L//2}_schmidt_vals_{args.model}_direct_lattice_{args.l}x{L}_{sector}_bc_{args.boundcond}_{charges_x}-{charges_y}_h_{args.h_i}-{args.h_f}_delta_{args.npoints}_chi_{chi}.npy",
-                Smi,
-            )
+            if args.bond:
+                np.save(
+                    f"{parent_path}/results/entropy_data/{args.where}_bond_entropy_{args.model}_direct_lattice_{args.l}x{L}_{sector}_bc_{args.boundcond}_{charges_x}-{charges_y}_h_{args.h_i}-{args.h_f}_delta_{args.npoints}_chi_{chi}.npy",
+                    Entr,
+                )
+                np.save(
+                    f"{parent_path}/results/entropy_data/{args.where}_schmidt_vals_{args.model}_direct_lattice_{args.l}x{L}_{sector}_bc_{args.boundcond}_{charges_x}-{charges_y}_h_{args.h_i}-{args.h_f}_delta_{args.npoints}_chi_{chi}.npy",
+                    Smi,
+                )
+            else:
+                args.where = "all"
+                np.save(
+                    f"{parent_path}/results/entropy_data/{args.where}_bond_entropy_{args.model}_direct_lattice_{args.l}x{L}_{sector}_bc_{args.boundcond}_{charges_x}-{charges_y}_h_{args.h_i}-{args.h_f}_delta_{args.npoints}_chi_{chi}.npy",
+                    Entr,
+                )
+                save_list_of_lists(
+                    f"{parent_path}/results/entropy_data/{args.where}_schmidt_vals_{args.model}_direct_lattice_{args.l}x{L}_{sector}_bc_{args.boundcond}_{charges_x}-{charges_y}_h_{args.h_i}-{args.h_f}_delta_{args.npoints}_chi_{chi}.npy",
+                    Smi,
+                )
+
         if "pot" in args.obs:
             np.save(
                 f"{parent_path}/results/energy_data/string_potential_vacuum_ham_on_charge_state_{args.model}_direct_lattice_{args.l}x{L}_{sector}_bc_{args.boundcond}_{args.Rs}_h_{args.h_i}-{args.h_f}_delta_{args.npoints}_chi_{chi}.npy",

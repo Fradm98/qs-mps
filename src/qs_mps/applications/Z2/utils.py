@@ -39,10 +39,10 @@ def find_closest_value(interval, g):
     # Edge cases for targets outside the interval bounds
     if g <= interval[0]:
         print(f"we search for g={interval[0]}")
-        return interval[0]
+        return interval[0], 0
     if g >= interval[-1]:
         print(f"we search for g={interval[-1]}")
-        return interval[-1]
+        return interval[-1], len(interval)-1
 
     # Initialize closest variable to hold the result
     closest = interval[0]
