@@ -3,7 +3,7 @@ import numpy as np
 from scipy.optimize import curve_fit
 
 from qs_mps.applications.Z2.utils import arithmetic_average
-from qs_mps.utils import von_neumann_entropy, get_cx, get_cy
+from qs_mps.utils import von_neumann_entropy, get_cx, get_cy, load_list_of_lists
 
 
 def n_order_kink_mass(
@@ -73,7 +73,7 @@ def n_order_kink_mass(
         )
         energy_difference = (energy_charges_on_axis - energy_vacuum) - (energy_charges_off_axis - energy_vacuum)
     else:
-        energy_difference = energy_charges_on_axis - energy_charges_off_axis
+        energy_difference = np.abs(energy_charges_on_axis - energy_charges_off_axis)
 
     for i, val in enumerate(energy_difference):
         if round(g, 3) == round(interval[i], 3):
@@ -1031,6 +1031,7 @@ def entropy(
     h_f: float = None,
     npoints: int = None,
     path_tensor: str = None,
+    all_bonds: bool = False,
 ):
     """
     entropy
@@ -1056,14 +1057,17 @@ def entropy(
         where = L // 2
     elif L % 2 == 1:
         where = L // 2 + 1
-    # try:
-    schmidt_values = np.load(
-        f"{path_tensor}/results/entropy_data/{where}_schmidt_vals_Z2_dual_direct_lattice_{l}x{L}_{sector}_bc_{bc}_{cx}-{cy}_h_{h_i}-{h_f}_delta_{npoints}_chi_{chi}.npy"
-    )
-    # except:
-    #     entropies = np.load(
-    #         f"{path_tensor}/results/entropy_data/{where}_bond_entropy_Z2_dual_direct_lattice_{l}x{L}_{sector}_bc_{bc}_{cx}-{cy}_h_{h_i}-{h_f}_delta_{npoints}_chi_{chi}.npy"
-    #     )
+    
+    if all_bonds:
+        where = "all"
+    try:
+        schmidt_values = np.load(
+            f"{path_tensor}/results/entropy_data/{where}_schmidt_vals_Z2_dual_direct_lattice_{l}x{L}_{sector}_bc_{bc}_{cx}-{cy}_h_{h_i}-{h_f}_delta_{npoints}_chi_{chi}.npy"
+        )
+    except:
+        schmidt_values = load_list_of_lists(
+            f"{path_tensor}/results/entropy_data/{where}_schmidt_vals_Z2_dual_direct_lattice_{l}x{L}_{sector}_bc_{bc}_{cx}-{cy}_h_{h_i}-{h_f}_delta_{npoints}_chi_{chi}.npy"
+        )
 
         # vac = None
         # schmidt_values = np.load(

@@ -353,6 +353,7 @@ for L in args.Ls:
                 else:
                     entropy = np.array([von_neumann_entropy(lattice_mps.bonds[i]) for i in range(L-1)])
                     smi = [lattice_mps.bonds[i] for i in range(L-1)]
+                    print(smi)
 
                 Entr.append(entropy)
                 Smi.append(smi)
