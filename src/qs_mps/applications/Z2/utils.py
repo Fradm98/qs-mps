@@ -4,6 +4,8 @@ from scipy.optimize import curve_fit
 from typing import Literal, Union
 
 import matplotlib.pyplot as plt
+from qs_mps.mps_class import MPS as mps
+import torch
 
 def get_cx(L: int, R: int):
     assert 0 <= R < L, f"The fluxtube spans for {R} lattice links but the lattice length is {L}"
@@ -248,3 +250,113 @@ def plot_asymptotic_fit(
     plt.grid(True)
 
     plt.show()
+
+
+def get_rdm_qs_mps(psi: mps, *, sites, d=2) -> np.ndarray:
+    """Obtain the reduced density matrix from the input MPS
+    on the selected sites."""
+    # get_rho_segment assumes the sites are sorted.
+    sites = np.sort(sites)
+    state = mps(L=len(psi), d=d, model="Z2_dual")
+    state.sites = psi
+    rdm = state.reduced_density_matrix_debug(sites)
+    sz = int(np.sqrt(np.product(rdm.shape)))
+    return np.reshape(rdm, (sz, sz))
+
+def projh_psd(m) -> np.ndarray:
+    """Project a given hermitian matrix into the cone
+    of positive semidefinite and hermitian matrices."""
+    d, u = np.linalg.eigh(m)
+    d = np.where(d >= 0, d, 0)
+    return u @ np.diag(d) @ np.conj(u).T
+
+def gstates_to_rdms_matrix_qs_mps(gstates, *, sites=None, shape=None, proj_psd=False, d=2):
+    """Given a list of ground states (qs-mps MPS) ordered corresponding
+    to a flattened lattice of ground states (row-major ordering),
+    obtain a matrix of RDMs."""
+    if shape is None:
+        shape = (int(np.sqrt(len(gstates))), ) * 2
+    if sites is None:
+        # Default to the middle site.
+        sites = (len(gstates[0]) // 2, )
+    rdms = [get_rdm_qs_mps(psi, sites=sites, d=d) for psi in gstates]
+    if proj_psd:
+        # Project on PSD cone to correct minor numerical errors
+        # that induce small negative eigenvalues.
+        rdms = [projh_psd(rdm) for rdm in rdms]
+    rdms = np.array(rdms)
+    rdms = rdms.reshape(shape + rdms.shape[1:])
+    return rdms
+
+
+###########################################
+
+
+def mps_overlap(bs, *, squeeze_end=True):
+    t = torch.tensor(bs[0])
+    t = torch.einsum("ipa,jpb->ijab", t, torch.conj(t))
+    t = torch.squeeze(torch.squeeze(torch.tensor(t), dim=0), dim=0)
+
+    for b in bs[1:]:
+
+        b = torch.tensor(b)
+        t = torch.einsum("ij,ipa,jpb->ab", t, b, torch.conj(b))
+
+    if squeeze_end:
+        t = torch.squeeze(torch.squeeze(t, dim=0), dim=0)
+    return t
+
+
+def mps_overlap_b(bs, *, squeeze_end=True):
+    t = torch.tensor(bs[0])
+    t = torch.einsum("ipa,jpb->ijab", t, torch.conj(t))
+    t = torch.squeeze(torch.squeeze(torch.tensor(t), dim=-1), dim=-1)
+
+    for b in bs[1:]:
+
+        b = torch.tensor(b)
+        t = torch.einsum("ij,api,bpj->ab", t, b, torch.conj(b))
+    if squeeze_end:
+        t = torch.squeeze(torch.squeeze(t, dim=-1), dim=-1)
+    return t
+
+
+def mps_contract_open(bs, *, squeeze_ends=True):
+    t = torch.tensor(bs[0])
+    for b in bs[1:]:
+
+        t = torch.einsum("ijk,kab->ijab", t, torch.tensor(b))
+        # Merge the physical legs
+        t = torch.flatten(t, start_dim=1, end_dim=2)
+    if squeeze_ends:
+        # Squeeze first and last legs since we have open boundary conditions.
+        t = torch.squeeze(torch.squeeze(t, dim=0), dim=-1)
+    return t
+
+
+def single_rdm_n(mps, sites, L):
+    bs = mps
+    top = mps_overlap(bs[: sites[0]], squeeze_end=False)
+
+    # print("Top")
+    # for idx, tensor in enumerate(bs[: self.sites[0]]):
+    #     print("Number: ", idx, "Shape: ", np.shape(tensor))
+
+    # print("Bottom")
+    # for idx, tensor in enumerate(bs[self.sites[-1] :]):
+    #     print("Number: ", idx, "Shape: ", np.shape(tensor))
+
+    bottom = mps_overlap_b(bs[sites[-1] :][::-1], squeeze_end=False)
+
+    # RDM for the middle 2 sites
+    t = mps_contract_open(bs[sites[0] : sites[-1]], squeeze_ends=False)
+    t = np.einsum("apb,iqj->aipqbj", t, np.conj(t))
+
+    # Put all together and obtain a RDM
+    t = np.einsum("ai,aipqbj,bj->pq", top, t, bottom)
+    return t
+
+
+def partial_rdm_n(mps_list, sites, L) -> np.array:
+    rdm_list = [single_rdm_n(mps_list[i], sites, L) for i in range(len(mps_list))]
+    return np.array(rdm_list)
