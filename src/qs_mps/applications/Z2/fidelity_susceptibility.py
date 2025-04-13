@@ -66,7 +66,7 @@ def fidelity_susceptibility(l, L, chi, R, bc, model, h_i, h_f, npoints):
     return np.gradient(np.gradient(fidelities))
 
 def plot_fidelity_susceptibility(fidelities, l, L, R, chi, h_i, h_f, npoints, color):
-    gs = np.linspace(h_i, h_f, npoints)
+    gs = np.linspace(h_i, h_f, npoints-1)
     plt.plot(gs, fidelities, color=color, label=f"$R: {R}$")
 
 L = 30
