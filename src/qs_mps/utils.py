@@ -1227,12 +1227,14 @@ def get_cx(L, R, cx: list=None):
     assert 0 <= R < L, "The fluxtube is longer than the lattice length"
     if cx == None or len(cx) == 0:
         return [int(L / 2 - R / 2), int(L / 2 + R / 2)]
+    elif R == 0:
+        return np.nan
     else:
         print(f"cx given: {cx}")
         return cx
 
 def get_cy(l, bc, cy: list=None, R: int=None):
-    if R == 0:
+    if R == 0 or R == None:
         return np.nan
     if cy == None or len(cy) == 0:
         if bc == "pbc":

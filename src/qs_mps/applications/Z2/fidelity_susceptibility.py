@@ -122,7 +122,7 @@ chi = 128
 # plt.savefig(f"{path_figures}/fluxtube/fidelity_susceptibility_log_{log}_{model}_{l}x{L}_bc_{bc}_Rs_{Rs}_npoints_{npoints}_h_{h_i}-{h_f}_chi_{chi}.png")
 # plt.close()
 
-Rs = [None,11,13,15,17,19]
+Rs = [0,11,13,15,17,19]
 colors = create_sequential_colors(len(Rs))
 log = False
 h_i, h_f, npoints = 0.8, 1.0, 41
