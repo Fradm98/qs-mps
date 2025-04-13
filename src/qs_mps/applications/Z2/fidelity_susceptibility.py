@@ -76,27 +76,27 @@ L = 30
 R = 20
 
 
-Rs = [19,21]
-colors = create_sequential_colors(len(Rs))
-l = 6
-chi = 256
-log = True
-h_i, h_f, npoints = 0.6, 0.95, 15
-plt.title(f"$\\chi_{{\\mathcal{{F}}}} = d^2 \\langle \\psi (g) | \\psi(g+dg) \\rangle / dg^2$ for $l \\times L: {l} \\times {L}$, $D:{chi}$, $log: {log}$")
-plt.xlabel("electric coupling $(g)$")
-plt.ylabel("fidelity susceptibility $(\\chi_{\\mathcal{F}} = d^2 \\langle \\psi (g) | \\psi(g+dg) \\rangle / dg^2)$")
-for i, R in enumerate(Rs):
-    fidelities = fidelity_susceptibility(l, L, chi, R, bc, model, h_i, h_f, npoints, log=log)
-    plot_fidelity_susceptibility(fidelities, l, L, R, chi, h_i, h_f, npoints, colors[i])
-plt.legend()
-plt.savefig(f"{path_figures}/fluxtube/fidelity_susceptibility_log_{log}_{model}_{l}x{L}_bc_{bc}_Rs_{Rs}_npoints_{npoints}_h_{h_i}-{h_f}_chi_{chi}.png")
-plt.close()
+# Rs = [19,21]
+# colors = create_sequential_colors(len(Rs))
+# l = 6
+# chi = 256
+# log = True
+# h_i, h_f, npoints = 0.6, 0.95, 15
+# plt.title(f"$\\chi_{{\\mathcal{{F}}}} = d^2 \\langle \\psi (g) | \\psi(g+dg) \\rangle / dg^2$ for $l \\times L: {l} \\times {L}$, $D:{chi}$, $log: {log}$")
+# plt.xlabel("electric coupling $(g)$")
+# plt.ylabel("fidelity susceptibility $(\\chi_{\\mathcal{F}} = d^2 \\langle \\psi (g) | \\psi(g+dg) \\rangle / dg^2)$")
+# for i, R in enumerate(Rs):
+#     fidelities = fidelity_susceptibility(l, L, chi, R, bc, model, h_i, h_f, npoints, log=log)
+#     plot_fidelity_susceptibility(fidelities, l, L, R, chi, h_i, h_f, npoints, colors[i])
+# plt.legend()
+# plt.savefig(f"{path_figures}/fluxtube/fidelity_susceptibility_log_{log}_{model}_{l}x{L}_bc_{bc}_Rs_{Rs}_npoints_{npoints}_h_{h_i}-{h_f}_chi_{chi}.png")
+# plt.close()
 
 Rs = [18,20]
 colors = create_sequential_colors(len(Rs))
 l = 5
 chi = 128
-log = False
+log = True
 h_i, h_f, npoints = 0.4, 1.0, 61
 plt.title(f"$\\chi_{{\\mathcal{{F}}}} = d^2 \\langle \\psi (g) | \\psi(g+dg) \\rangle / dg^2$ for $l \\times L: {l} \\times {L}$, $D:{chi}$, $log: {log}$")
 plt.xlabel("electric coupling $(g)$")
@@ -108,7 +108,7 @@ plt.legend()
 plt.savefig(f"{path_figures}/fluxtube/fidelity_susceptibility_log_{log}_{model}_{l}x{L}_bc_{bc}_Rs_{Rs}_npoints_{npoints}_h_{h_i}-{h_f}_chi_{chi}.png")
 plt.close()
 
-Rs = [10,11,12,13,14,15,16,17,18,19,20]
+Rs = [10,12,14,16,18,20]
 colors = create_sequential_colors(len(Rs))
 log = False
 h_i, h_f, npoints = 0.8, 1.0, 41
@@ -121,3 +121,17 @@ for i, R in enumerate(Rs):
 plt.legend()
 plt.savefig(f"{path_figures}/fluxtube/fidelity_susceptibility_log_{log}_{model}_{l}x{L}_bc_{bc}_Rs_{Rs}_npoints_{npoints}_h_{h_i}-{h_f}_chi_{chi}.png")
 plt.close()
+
+# Rs = [0,11,13,15,17,19]
+# colors = create_sequential_colors(len(Rs))
+# log = False
+# h_i, h_f, npoints = 0.8, 1.0, 41
+# plt.title(f"$\\chi_{{\\mathcal{{F}}}} = d^2 \\langle \\psi (g) | \\psi(g+dg) \\rangle / dg^2$ for $l \\times L: {l} \\times {L}$, $D:{chi}$, $log: {log}$")
+# plt.xlabel("electric coupling $(g)$")
+# plt.ylabel("fidelity susceptibility $(\\chi_{\\mathcal{F}} = d^2 \\langle \\psi (g) | \\psi(g+dg) \\rangle / dg^2)$")
+# for i, R in enumerate(Rs):
+#     fidelities = fidelity_susceptibility(l, L, chi, R, bc, model, h_i, h_f, npoints, log=log)
+#     plot_fidelity_susceptibility(fidelities, l, L, R, chi, h_i, h_f, npoints, colors[i])
+# plt.legend()
+# plt.savefig(f"{path_figures}/fluxtube/fidelity_susceptibility_log_{log}_{model}_{l}x{L}_bc_{bc}_Rs_{Rs}_npoints_{npoints}_h_{h_i}-{h_f}_chi_{chi}.png")
+# plt.close()
