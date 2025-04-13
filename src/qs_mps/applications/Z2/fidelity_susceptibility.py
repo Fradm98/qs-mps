@@ -10,7 +10,7 @@ path_figures = "/Users/fradm/Google Drive/My Drive/projects/1_Z2/figures"
 path_tensor = "/Users/fradm/Desktop/projects/1_Z2"
 
 # default parameters of the plot layout
-plt.rcParams["text.usetex"] = True  # use latex
+# plt.rcParams["text.usetex"] = True  # use latex
 plt.rcParams["font.size"] = 10
 plt.rcParams["figure.dpi"] = 300
 plt.rcParams["figure.constrained_layout.use"] = True
@@ -123,6 +123,7 @@ chi = 128
 # plt.close()
 
 Rs = [0,11,13,15,17,19]
+Rs = [0,11]
 colors = create_sequential_colors(len(Rs))
 log = False
 h_i, h_f, npoints = 0.8, 1.0, 41
