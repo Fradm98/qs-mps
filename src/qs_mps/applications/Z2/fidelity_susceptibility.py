@@ -89,7 +89,6 @@ for i, R in enumerate(Rs):
     plot_fidelity_susceptibility(fidelities, l, L, R, chi, h_i, h_f, npoints, colors[i])
 plt.savefig(f"{path_figures}/fluxtube/fidelity_susceptibility_{model}_{l}x{L}_bc_{bc}_Rs_{Rs}_npoints_{npoints}_h_{h_i}-{h_f}_chi_{chi}.png")
 plt.legend()
-plt.show()
 plt.close()
 
 Rs = [10,11,12,13,14,15,16,17,18,19,20]
@@ -105,7 +104,6 @@ for i, R in enumerate(Rs):
     plot_fidelity_susceptibility(fidelities, l, L, R, chi, h_i, h_f, npoints, colors[i])
 plt.savefig(f"{path_figures}/fluxtube/fidelity_susceptibility_{model}_{l}x{L}_bc_{bc}_Rs_{Rs}_npoints_{npoints}_h_{h_i}-{h_f}_chi_{chi}.png")
 plt.legend()
-plt.show()
 plt.close()
 
 h_i, h_f, npoints = 0.8, 1.0, 41
@@ -117,5 +115,4 @@ for i, R in enumerate(Rs):
     plot_fidelity_susceptibility(fidelities, l, L, R, chi, h_i, h_f, npoints, colors[i])
 plt.savefig(f"{path_figures}/fluxtube/fidelity_susceptibility_{model}_{l}x{L}_bc_{bc}_Rs_{Rs}_npoints_{npoints}_h_{h_i}-{h_f}_chi_{chi}.png")
 plt.legend()
-plt.show()
 plt.close()
