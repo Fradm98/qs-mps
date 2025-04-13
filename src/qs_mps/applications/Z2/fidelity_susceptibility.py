@@ -23,7 +23,7 @@ def fidelity_susceptibility(l, L, chi, R, bc, model, h_i, h_f, npoints, log: boo
     cx = get_cx(L, R)
     cy = get_cy(l, bc)
     
-    if len(cx) == 0 and R == 0:
+    if R == 0:
         sector = "vacuum_sector"
         cx = None
         cy = None
