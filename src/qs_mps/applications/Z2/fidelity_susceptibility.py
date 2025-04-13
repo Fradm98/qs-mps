@@ -21,7 +21,7 @@ plt.rcParams.update({'font.family': font['family'], 'font.size': font['size']})
 def fidelity_susceptibility(l, L, chi, R, bc, model, h_i, h_f, npoints, log: bool = False):
     gs = np.linspace(h_i,h_f,npoints)
     cx = get_cx(L, R)
-    cy = get_cy(l, bc)
+    cy = get_cy(l, bc, R=R)
     
     if R == 0:
         sector = "vacuum_sector"
@@ -130,6 +130,8 @@ plt.title(f"$\\chi_{{\\mathcal{{F}}}} = d^2 \\langle \\psi (g) | \\psi(g+dg) \\r
 plt.xlabel("electric coupling $(g)$")
 plt.ylabel("fidelity susceptibility $(\\chi_{\\mathcal{F}} = d^2 \\langle \\psi (g) | \\psi(g+dg) \\rangle / dg^2)$")
 for i, R in enumerate(Rs):
+    if R != 0:
+        cy = None
     fidelities = fidelity_susceptibility(l, L, chi, R, bc, model, h_i, h_f, npoints, log=log)
     plot_fidelity_susceptibility(fidelities, l, L, R, chi, h_i, h_f, npoints, colors[i])
 plt.legend()
