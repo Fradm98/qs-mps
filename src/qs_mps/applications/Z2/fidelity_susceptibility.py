@@ -6,7 +6,7 @@ import matplotlib.pyplot as plt
 bc = "pbc"
 model = "Z2_dual"
 precision = 3
-path_figures = "/Users/fradm/Google Drive/My Drive/projects/1_Z2"
+path_figures = "/Users/fradm/Google Drive/My Drive/projects/1_Z2/figures"
 path_tensor = "/Users/fradm/Desktop/projects/1_Z2"
 
 # default parameters of the plot layout
@@ -18,7 +18,7 @@ plt.rcParams["figure.constrained_layout.use"] = True
 font = {'family': 'serif', 'size': 12}
 plt.rcParams.update({'font.family': font['family'], 'font.size': font['size']})
 
-def fidelity_susceptibility(l, L, chi, R, bc, model, h_i, h_f, npoints):
+def fidelity_susceptibility(l, L, chi, R, bc, model, h_i, h_f, npoints, log: bool = False):
     gs = np.linspace(h_i,h_f,npoints)
     cx = get_cx(L, R)
     cy = get_cy(l, bc)
@@ -62,7 +62,10 @@ def fidelity_susceptibility(l, L, chi, R, bc, model, h_i, h_f, npoints):
         )
         mps_g.ancilla_sites = mps_g_dg.sites.copy()
         fid = mps_g._compute_norm(site=1, mixed=True)
-        fidelities.append(fid)
+        if log:
+            fidelities.append(np.log(np.sqrt(fid.real**2 + fid.imag**2)))
+        else:
+            fidelities.append(np.sqrt(fid.real**2 + fid.imag**2))
     return np.gradient(np.gradient(fidelities))
 
 def plot_fidelity_susceptibility(fidelities, l, L, R, chi, h_i, h_f, npoints, color):
