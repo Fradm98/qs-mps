@@ -92,7 +92,7 @@ plt.savefig(f"{path_figures}/fluxtube/fidelity_susceptibility_log_{log}_{model}_
 plt.legend()
 plt.close()
 
-Rs = [18,20,22,24]
+Rs = [18,20]
 colors = create_sequential_colors(len(Rs))
 l = 5
 chi = 128
