@@ -1,5 +1,6 @@
 from qs_mps.mps_class import MPS
 from qs_mps.utils import get_cx, get_cy, create_sequential_colors
+from ncon import ncon
 import numpy as np
 import matplotlib.pyplot as plt
 
@@ -19,11 +20,11 @@ plt.rcParams["figure.constrained_layout.use"] = True
 font = {'family': 'serif', 'size': 12}
 plt.rcParams.update({'font.family': font['family'], 'font.size': font['size']})
 
-def fidelity_susceptibility(l, L, chi, R, bc, model, h_i, h_f, npoints, log: bool = False):
+def fidelity_susceptibility(l, L, chi, R, bc, model, h_i, h_f, npoints, log: bool = False, rdm: bool=False):
     gs = np.linspace(h_i,h_f,npoints)
     cx = get_cx(L, R)
     cy = get_cy(l, bc, R=R)
-    
+    sites = [L//2, L//2+1]
     if R == 0:
         sector = "vacuum_sector"
         cx = None
@@ -62,14 +63,31 @@ def fidelity_susceptibility(l, L, chi, R, bc, model, h_i, h_f, npoints, log: boo
             path=path_tensor, precision=precision, cx=cx, cy=cy
         )
         mps_g.ancilla_sites = mps_g_dg.sites.copy()
-        fid = mps_g._compute_norm(site=1, mixed=True)
-        if log:
-            fidelities.append(np.log(np.sqrt(fid.real**2 + fid.imag**2)))
+
+        if rdm:
+            fid = ncon([mps_g.sites[sites[0]],
+                        mps_g.sites[sites[1]], 
+                        mps_g.sites[sites[0]].conjugate(),
+                        mps_g.sites[sites[1]].conjugate(), 
+                        mps_g_dg.sites[sites[0]],
+                        mps_g_dg.sites[sites[1]],
+                        mps_g_dg.sites[sites[0]].conjugate(),
+                        mps_g_dg.sites[sites[1]].conjugate()],
+                        [[1,2,3],[3,4,5],
+                         [1,7,6],[6,8,5],
+                         [9,7,10],[10,8,11],
+                         [9,2,12],[12,4,11]])
+            fidelities.append(np.sqrt(fid))
+            
         else:
-            fidelities.append(np.sqrt(fid.real**2 + fid.imag**2))
+            fid = mps_g._compute_norm(site=1, mixed=True)
+            if log:
+                fidelities.append(np.log(np.sqrt(fid.real**2 + fid.imag**2)))
+            else:
+                fidelities.append(np.sqrt(fid.real**2 + fid.imag**2))
     return np.gradient(np.gradient(fidelities))
 
-def plot_fidelity_susceptibility(fidelities, l, L, R, chi, h_i, h_f, npoints, color):
+def plot_fidelity_susceptibility(fidelities, R, h_i, h_f, npoints, color):
     gs = np.linspace(h_i, h_f, npoints-1)
     plt.plot(gs, fidelities, color=color, label=f"$R: {R}$")
 
@@ -127,6 +145,7 @@ Rs = [0,11,13,15,17,19]
 Rs = [0,11]
 colors = create_sequential_colors(len(Rs))
 log = False
+rdm = False
 h_i, h_f, npoints = 0.8, 1.0, 41
 plt.title(f"$\\chi_{{\\mathcal{{F}}}} = d^2 \\langle \\psi (g) | \\psi(g+dg) \\rangle / dg^2$ for $l \\times L: {l} \\times {L}$, $D:{chi}$, $log: {log}$")
 plt.xlabel("electric coupling $(g)$")
@@ -134,7 +153,7 @@ plt.ylabel("fidelity susceptibility $(\\chi_{\\mathcal{F}} = d^2 \\langle \\psi 
 for i, R in enumerate(Rs):
     if R != 0:
         cy = None
-    fidelities = fidelity_susceptibility(l, L, chi, R, bc, model, h_i, h_f, npoints, log=log)
+    fidelities = fidelity_susceptibility(l, L, chi, R, bc, model, h_i, h_f, npoints, log=log, rdm=rdm)
     plot_fidelity_susceptibility(fidelities, l, L, R, chi, h_i, h_f, npoints, colors[i])
 plt.legend()
 plt.savefig(f"{path_figures}/fluxtube/fidelity_susceptibility_log_{log}_{model}_{l}x{L}_bc_{bc}_Rs_{Rs}_npoints_{npoints}_h_{h_i}-{h_f}_chi_{chi}.png")
