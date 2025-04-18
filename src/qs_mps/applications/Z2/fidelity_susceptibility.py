@@ -101,7 +101,6 @@ colors = create_sequential_colors(len(Rs))
 l = 6
 chi = 256
 chi = 64
-chi = 32
 log = True
 rdm = False
 h_i, h_f, npoints = 0.6, 0.95, 15
