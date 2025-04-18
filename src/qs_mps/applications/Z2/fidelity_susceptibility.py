@@ -9,7 +9,7 @@ model = "Z2_dual"
 precision = 3
 path_figures = "/Users/fradm/Google Drive/My Drive/projects/1_Z2/figures"
 path_tensor = "/Users/fradm/Desktop/projects/1_Z2"
-# path_figures = "/Users/fradm/Desktop/projects/1_Z2/figures"
+path_figures = "/Users/fradm/Desktop/projects/1_Z2/figures"
 
 # default parameters of the plot layout
 # plt.rcParams["text.usetex"] = True  # use latex
@@ -146,8 +146,8 @@ R = 20
 # plt.close()
 
 Rs = [0,11,13,15,17,19]
-Rs = [0,11]
-Rs = [10,12,14,16,18,20]
+# Rs = [0,11]
+# Rs = [10,12,14,16,18,20]
 l = 5
 chi = 128
 colors = create_sequential_colors(len(Rs))
