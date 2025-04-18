@@ -152,7 +152,7 @@ l = 5
 chi = 64
 colors = create_sequential_colors(len(Rs))
 log = False
-rdm = True
+rdm = False
 h_i, h_f, npoints = 0.8, 1.0, 41
 plt.title(f"$\\chi_{{\\mathcal{{F}}}} = d^2 \\langle \\psi (g) | \\psi(g+dg) \\rangle / dg^2$ for $l \\times L: {l} \\times {L}$, $D:{chi}$, $log: {log}$")
 plt.xlabel("electric coupling $(g)$")
