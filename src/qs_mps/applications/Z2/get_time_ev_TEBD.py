@@ -219,7 +219,7 @@ for L in args.Ls:
 
     if args.length != 0:
         charges_x = get_cx(L, args.length)
-        charges_y = get_cy(args.l, args.boundcond)
+        charges_y = get_cy(args.l, args.boundcond, R=args.length)
         sector = f"{len(charges_x)}_particle(s)_sector"
 
     # where to look at for the entropy
