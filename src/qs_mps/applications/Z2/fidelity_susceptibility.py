@@ -131,6 +131,7 @@ for i, R in enumerate(Rs):
     fidelities = fidelity_susceptibility(l, L, chi, R, bc, model, h_i, h_f, npoints, log=log, rdm=rdm)
     plot_fidelity_susceptibility(fidelities, R, h_i, h_f, npoints, colors[i])
 plt.legend()
+plt.yscale('log')
 plt.savefig(f"{path_figures}/fluxtube/fidelity_susceptibility_log_{log}_rdm_{rdm}_{model}_{l}x{L}_bc_{bc}_Rs_{Rs}_npoints_{npoints}_h_{h_i}-{h_f}_chi_{chi}.png")
 plt.close()
 
@@ -148,23 +149,23 @@ plt.close()
 # plt.savefig(f"{path_figures}/fluxtube/fidelity_susceptibility_log_{log}_{model}_{l}x{L}_bc_{bc}_Rs_{Rs}_npoints_{npoints}_h_{h_i}-{h_f}_chi_{chi}.png")
 # plt.close()
 
-Rs = [0,11,13,15,17,19]
-# Rs = [0,11]
-# Rs = [10,12,14,16,18,20]
-l = 5
-chi = 128
-colors = create_sequential_colors(len(Rs))
-log = False
-rdm = False
-h_i, h_f, npoints = 0.8, 1.0, 41
-plt.title(f"$\\chi_{{\\mathcal{{F}}}} = d^2 \\langle \\psi (g) | \\psi(g+dg) \\rangle / dg^2$ for $l \\times L: {l} \\times {L}$, $D:{chi}$, $log: {log}$")
-plt.xlabel("electric coupling $(g)$")
-plt.ylabel("fidelity susceptibility $(\\chi_{\\mathcal{F}} = d^2 \\langle \\psi (g) | \\psi(g+dg) \\rangle / dg^2)$")
-for i, R in enumerate(Rs):
-    if R != 0:
-        cy = None
-    fidelities = fidelity_susceptibility(l, L, chi, R, bc, model, h_i, h_f, npoints, log=log, rdm=rdm)
-    plot_fidelity_susceptibility(fidelities, R, h_i, h_f, npoints, colors[i])
-plt.legend()
-plt.savefig(f"{path_figures}/fluxtube/fidelity_susceptibility_log_{log}_rdm_{rdm}_{model}_{l}x{L}_bc_{bc}_Rs_{Rs}_npoints_{npoints}_h_{h_i}-{h_f}_chi_{chi}.png")
-plt.close()
+# Rs = [0,11,13,15,17,19]
+# # Rs = [0,11]
+# # Rs = [10,12,14,16,18,20]
+# l = 5
+# chi = 128
+# colors = create_sequential_colors(len(Rs))
+# log = False
+# rdm = False
+# h_i, h_f, npoints = 0.8, 1.0, 41
+# plt.title(f"$\\chi_{{\\mathcal{{F}}}} = d^2 \\langle \\psi (g) | \\psi(g+dg) \\rangle / dg^2$ for $l \\times L: {l} \\times {L}$, $D:{chi}$, $log: {log}$")
+# plt.xlabel("electric coupling $(g)$")
+# plt.ylabel("fidelity susceptibility $(\\chi_{\\mathcal{F}} = d^2 \\langle \\psi (g) | \\psi(g+dg) \\rangle / dg^2)$")
+# for i, R in enumerate(Rs):
+#     if R != 0:
+#         cy = None
+#     fidelities = fidelity_susceptibility(l, L, chi, R, bc, model, h_i, h_f, npoints, log=log, rdm=rdm)
+#     plot_fidelity_susceptibility(fidelities, R, h_i, h_f, npoints, colors[i])
+# plt.legend()
+# plt.savefig(f"{path_figures}/fluxtube/fidelity_susceptibility_log_{log}_rdm_{rdm}_{model}_{l}x{L}_bc_{bc}_Rs_{Rs}_npoints_{npoints}_h_{h_i}-{h_f}_chi_{chi}.png")
+# plt.close()
