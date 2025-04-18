@@ -114,11 +114,11 @@ vac_fid = fidelity_susceptibility(l, L, chi, 0, bc, model, h_i, h_f, npoints, lo
 for i, R in enumerate(Rs):
     fidelities = fidelity_susceptibility(l, L, chi, R, bc, model, h_i, h_f, npoints, log=log, rdm=rdm)
     if vacuum:
-        fidelities = (fidelities - vac_fid)
+        fidelities = np.abs(fidelities - vac_fid)
     plot_fidelity_susceptibility(fidelities, R, h_i, h_f, npoints, colors[i])
 plt.legend()
-# plt.yscale('log')
-plt.savefig(f"{path_figures}/fluxtube/fidelity_susceptibility_log_{log}_rdm_{rdm}_{model}_{l}x{L}_bc_{bc}_Rs_{Rs[0]}-{Rs[-1]}_npoints_{npoints}_h_{h_i}-{h_f}_chi_{chi}_on_vacuum_{vacuum}.png")
+plt.yscale('log')
+plt.savefig(f"{path_figures}/fluxtube/fidelity_susceptibility_log_scale_log_{log}_rdm_{rdm}_{model}_{l}x{L}_bc_{bc}_Rs_{Rs[0]}-{Rs[-1]}_npoints_{npoints}_h_{h_i}-{h_f}_chi_{chi}_on_vacuum_{vacuum}.png")
 plt.close()
 
 # Rs = [0]
