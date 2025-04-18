@@ -89,7 +89,7 @@ def fidelity_susceptibility(l, L, chi, R, bc, model, h_i, h_f, npoints, log: boo
 
 def plot_fidelity_susceptibility(fidelities, R, h_i, h_f, npoints, color):
     gs = np.linspace(h_i, h_f, npoints-1)
-    plt.plot(gs, np.abs(fidelities), color=color, label=f"$R: {R}$")
+    plt.plot(gs, fidelities, color=color, label=f"$R: {R}$")
 
 L = 30
 R = 20
@@ -103,18 +103,22 @@ chi = 256
 chi = 128
 log = True
 rdm = False
+vacuum = True
 h_i, h_f, npoints = 0.6, 0.95, 15
 h_i, h_f, npoints = 0.6, 0.9, 31
 # h_i, h_f, npoints = 0.7, 0.9, 21
 plt.title(f"$\\chi_{{\\mathcal{{F}}}} = d^2 \\langle \\psi (g) | \\psi(g+dg) \\rangle / dg^2$ for $l \\times L: {l} \\times {L}$, $D:{chi}$, $log: {log}$")
 plt.xlabel("electric coupling $(g)$")
 plt.ylabel("fidelity susceptibility $(\\chi_{\\mathcal{F}} = d^2 \\langle \\psi (g) | \\psi(g+dg) \\rangle / dg^2)$")
+vac_fid = fidelity_susceptibility(l, L, chi, 0, bc, model, h_i, h_f, npoints, log=log, rdm=rdm)
 for i, R in enumerate(Rs):
     fidelities = fidelity_susceptibility(l, L, chi, R, bc, model, h_i, h_f, npoints, log=log, rdm=rdm)
+    if vacuum:
+        fidelities = (fidelities - vac_fid)
     plot_fidelity_susceptibility(fidelities, R, h_i, h_f, npoints, colors[i])
 plt.legend()
-plt.yscale('log')
-plt.savefig(f"{path_figures}/fluxtube/fidelity_susceptibility_log_scale_log_{log}_rdm_{rdm}_{model}_{l}x{L}_bc_{bc}_Rs_{Rs}_npoints_{npoints}_h_{h_i}-{h_f}_chi_{chi}.png")
+# plt.yscale('log')
+plt.savefig(f"{path_figures}/fluxtube/fidelity_susceptibility_log_{log}_rdm_{rdm}_{model}_{l}x{L}_bc_{bc}_Rs_{Rs[0]}-{Rs[-1]}_npoints_{npoints}_h_{h_i}-{h_f}_chi_{chi}_on_vacuum_{vacuum}.png")
 plt.close()
 
 # Rs = [0]
