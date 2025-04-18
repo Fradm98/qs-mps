@@ -161,7 +161,7 @@ for i, R in enumerate(Rs):
     if R != 0:
         cy = None
     fidelities = fidelity_susceptibility(l, L, chi, R, bc, model, h_i, h_f, npoints, log=log, rdm=rdm)
-    plot_fidelity_susceptibility(fidelities, l, L, R, chi, h_i, h_f, npoints, colors[i])
+    plot_fidelity_susceptibility(fidelities, R, h_i, h_f, npoints, colors[i])
 plt.legend()
 plt.savefig(f"{path_figures}/fluxtube/fidelity_susceptibility_log_{log}_rdm_{rdm}_{model}_{l}x{L}_bc_{bc}_Rs_{Rs}_npoints_{npoints}_h_{h_i}-{h_f}_chi_{chi}.png")
 plt.close()
