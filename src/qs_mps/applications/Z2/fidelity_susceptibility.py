@@ -95,30 +95,30 @@ L = 30
 R = 20
 
 
-Rs = [19,21]
-Rs = [0,10,12,13,14,15,16,17,18,19,20]
-colors = create_sequential_colors(len(Rs))
-l = 6
-chi = 256
-chi = 128
-log = True
-rdm = False
-h_i, h_f, npoints = 0.6, 0.95, 15
-h_i, h_f, npoints = 0.6, 0.9, 31
-plt.title(f"$\\chi_{{\\mathcal{{F}}}} = d^2 \\langle \\psi (g) | \\psi(g+dg) \\rangle / dg^2$ for $l \\times L: {l} \\times {L}$, $D:{chi}$, $log: {log}$")
-plt.xlabel("electric coupling $(g)$")
-plt.ylabel("fidelity susceptibility $(\\chi_{\\mathcal{F}} = d^2 \\langle \\psi (g) | \\psi(g+dg) \\rangle / dg^2)$")
-for i, R in enumerate(Rs):
-    fidelities = fidelity_susceptibility(l, L, chi, R, bc, model, h_i, h_f, npoints, log=log, rdm=rdm)
-    plot_fidelity_susceptibility(fidelities, R, h_i, h_f, npoints, colors[i])
-plt.legend()
-plt.savefig(f"{path_figures}/fluxtube/fidelity_susceptibility_log_{log}_rdm_{rdm}_{model}_{l}x{L}_bc_{bc}_Rs_{Rs}_npoints_{npoints}_h_{h_i}-{h_f}_chi_{chi}.png")
-plt.close()
+# Rs = [19,21]
+# Rs = [0,10,12,13,14,15,16,17,18,19,20]
+# colors = create_sequential_colors(len(Rs))
+# l = 6
+# chi = 256
+# chi = 128
+# log = True
+# rdm = False
+# h_i, h_f, npoints = 0.6, 0.95, 15
+# h_i, h_f, npoints = 0.6, 0.9, 31
+# plt.title(f"$\\chi_{{\\mathcal{{F}}}} = d^2 \\langle \\psi (g) | \\psi(g+dg) \\rangle / dg^2$ for $l \\times L: {l} \\times {L}$, $D:{chi}$, $log: {log}$")
+# plt.xlabel("electric coupling $(g)$")
+# plt.ylabel("fidelity susceptibility $(\\chi_{\\mathcal{F}} = d^2 \\langle \\psi (g) | \\psi(g+dg) \\rangle / dg^2)$")
+# for i, R in enumerate(Rs):
+#     fidelities = fidelity_susceptibility(l, L, chi, R, bc, model, h_i, h_f, npoints, log=log, rdm=rdm)
+#     plot_fidelity_susceptibility(fidelities, R, h_i, h_f, npoints, colors[i])
+# plt.legend()
+# plt.savefig(f"{path_figures}/fluxtube/fidelity_susceptibility_log_{log}_rdm_{rdm}_{model}_{l}x{L}_bc_{bc}_Rs_{Rs}_npoints_{npoints}_h_{h_i}-{h_f}_chi_{chi}.png")
+# plt.close()
 
 # Rs = [18,20]
 # colors = create_sequential_colors(len(Rs))
-l = 5
-chi = 128
+# l = 5
+# chi = 128
 # log = True
 # h_i, h_f, npoints = 0.4, 1.0, 61
 # plt.title(f"$\\chi_{{\\mathcal{{F}}}} = d^2 \\langle \\psi (g) | \\psi(g+dg) \\rangle / dg^2$ for $l \\times L: {l} \\times {L}$, $D:{chi}$, $log: {log}$")
@@ -148,6 +148,7 @@ chi = 128
 Rs = [0,11,13,15,17,19]
 Rs = [0,11]
 Rs = [10,12,14,16,18,20]
+l = 5
 chi = 64
 colors = create_sequential_colors(len(Rs))
 log = False
