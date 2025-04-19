@@ -178,12 +178,12 @@ R = 20
 # plt.close()
 
 
-h_i, h_f, npoints = 0.4, 1.0, 61
+h_i, h_f, npoints = 0.8, 1.0, 41
 Rs = [11,13,15,17,19]
 Rs = [10,12,14,16,18,20]
+h_i, h_f, npoints = 0.4, 1.0, 61
+Rs = [18,20,22,24]
 l = 5
-chi = 64
-chi = 128
 colors = create_sequential_colors(len(Rs))
 log = False
 rdm = False
