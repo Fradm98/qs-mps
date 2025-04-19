@@ -192,7 +192,7 @@ l = 6
 h_i, h_f, npoints = 0.6, 0.95, 15
 Rs = [10,11,12,13,14,15,16,17,18,19,20,21]
 chis = [256]
-precision = 2
+# precision = 2 not for vacuum, 19, 21
 
 # l = 6
 # h_i, h_f, npoints = 0.4, 0.6, 21
