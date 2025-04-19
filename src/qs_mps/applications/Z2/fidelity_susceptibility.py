@@ -188,7 +188,7 @@ colors = create_sequential_colors(len(Rs))
 log = False
 rdm = False
 
-for chi in [64,128]:        
+for chi in [128]:        
     vac_fid = fidelity_susceptibility(l, L, chi, 0, bc, model, h_i, h_f, npoints, log=log, rdm=rdm)
     np.save(f"{path_tensor}/results/overlap/fidelity_susceptibility_log_{log}_rdm_{rdm}_{model}_{l}x{L}_bc_{bc}_R_{R}_npoints_{npoints}_h_{h_i}-{h_f}_chi_{chi}", vac_fid)
 
