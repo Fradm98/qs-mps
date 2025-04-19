@@ -182,7 +182,7 @@ h_i, h_f, npoints = 0.8, 1.0, 41
 Rs = [11,13,15,17,19]
 Rs = [10,12,14,16,18,20]
 h_i, h_f, npoints = 0.4, 1.0, 61
-Rs = [20,22,24]
+Rs = [18,20,22,24]
 l = 5
 colors = create_sequential_colors(len(Rs))
 log = False
@@ -193,10 +193,12 @@ for chi in [128]:
         vac_fid = fidelity_susceptibility(l, L, chi, 0, bc, model, h_i, h_f, npoints, log=log, rdm=rdm)
         np.save(f"{path_tensor}/results/overlap/fidelity_susceptibility_log_{log}_rdm_{rdm}_{model}_{l}x{L}_bc_{bc}_R_{R}_npoints_{npoints}_h_{h_i}-{h_f}_chi_{chi}", vac_fid)
     except:
+        print(f"vacuum for chi: {chi} not found! Continue...")
         continue
     for i, R in enumerate(Rs):
         try:
             fidelities = fidelity_susceptibility(l, L, chi, R, bc, model, h_i, h_f, npoints, log=log, rdm=rdm)
             np.save(f"{path_tensor}/results/overlap/fidelity_susceptibility_log_{log}_rdm_{rdm}_{model}_{l}x{L}_bc_{bc}_R_{R}_npoints_{npoints}_h_{h_i}-{h_f}_chi_{chi}", fidelities)
         except:
+            print(f"R: {R} for chi: {chi} not found! Continue...")
             continue
