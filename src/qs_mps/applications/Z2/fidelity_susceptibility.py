@@ -95,33 +95,34 @@ L = 30
 R = 20
 
 
-Rs = [19,21]
-# Rs = [10,11,12,13,14,15,16,17,18,19,20]
-colors = create_sequential_colors(len(Rs))
-l = 6
-chi = 256
-# chi = 128
-log = True
-rdm = False
-vacuum = True
-h_i, h_f, npoints = 0.6, 0.95, 15
+# Rs = [19,21]
+# # Rs = [10,11,12,13,14,15,16,17,18,19,20]
+# colors = create_sequential_colors(len(Rs))
+# l = 6
+# chi = 256
+# # chi = 128
+# log = False
+# rdm = False
+# vacuum = True
+# h_i, h_f, npoints = 0.6, 0.95, 15
 # h_i, h_f, npoints = 0.6, 0.9, 31
 # h_i, h_f, npoints = 0.9, 1.0, 11
 # h_i, h_f, npoints = 0.7, 0.9, 21
-plt.title(f"$\\chi_{{\\mathcal{{F}}}} = d^2 \\langle \\psi (g) | \\psi(g+dg) \\rangle / dg^2$ for $l \\times L: {l} \\times {L}$, $D:{chi}$, $log: {log}$")
-plt.xlabel("electric coupling $(g)$")
-plt.ylabel("fidelity susceptibility $(\\chi_{\\mathcal{F}} = d^2 \\langle \\psi (g) | \\psi(g+dg) \\rangle / dg^2)$")
-vac_fid = fidelity_susceptibility(l, L, chi, 0, bc, model, h_i, h_f, npoints, log=log, rdm=rdm)
-for i, R in enumerate(Rs):
-    fidelities = fidelity_susceptibility(l, L, chi, R, bc, model, h_i, h_f, npoints, log=log, rdm=rdm)
-    if vacuum:
-        fidelities = np.abs(fidelities - vac_fid)
-    plot_fidelity_susceptibility(fidelities, R, h_i, h_f, npoints, colors[i])
-plot_fidelity_susceptibility(vac_fid, R, h_i, h_f, npoints, 'k')
-plt.legend()
-plt.yscale('log')
-plt.savefig(f"{path_figures}/fluxtube/fidelity_susceptibility_log_scale_log_{log}_rdm_{rdm}_{model}_{l}x{L}_bc_{bc}_Rs_{Rs[0]}-{Rs[-1]}_npoints_{npoints}_h_{h_i}-{h_f}_chi_{chi}_on_vacuum_{vacuum}.png")
-plt.close()
+# plt.title(f"$\\chi_{{\\mathcal{{F}}}} = d^2 \\langle \\psi (g) | \\psi(g+dg) \\rangle / dg^2$ for $l \\times L: {l} \\times {L}$, $D:{chi}$, $log: {log}$")
+# plt.xlabel("electric coupling $(g)$")
+# plt.ylabel("fidelity susceptibility $(\\chi_{\\mathcal{F}} = d^2 \\langle \\psi (g) | \\psi(g+dg) \\rangle / dg^2)$")
+# vac_fid = fidelity_susceptibility(l, L, chi, 0, bc, model, h_i, h_f, npoints, log=log, rdm=rdm)
+# for i, R in enumerate(Rs):
+#     fidelities = fidelity_susceptibility(l, L, chi, R, bc, model, h_i, h_f, npoints, log=log, rdm=rdm)
+#     if vacuum:
+#         fidelities = np.abs(fidelities - vac_fid)
+#     np.save(f"{path_tensor}/overlap/fidelity_susceptibility_log_{log}_rdm_{rdm}_{model}_{l}x{L}_bc_{bc}_R_{R}_npoints_{npoints}_h_{h_i}-{h_f}_chi_{chi}_on_vacuum_{vacuum}", fidelities)
+#     plot_fidelity_susceptibility(fidelities, R, h_i, h_f, npoints, colors[i])
+# plot_fidelity_susceptibility(vac_fid, R, h_i, h_f, npoints, 'k')
+# plt.legend()
+# plt.yscale('log')
+# plt.savefig(f"{path_figures}/fluxtube/fidelity_susceptibility_log_scale_log_{log}_rdm_{rdm}_{model}_{l}x{L}_bc_{bc}_Rs_{Rs[0]}-{Rs[-1]}_npoints_{npoints}_h_{h_i}-{h_f}_chi_{chi}_on_vacuum_{vacuum}.png")
+# plt.close()
 
 # Rs = [0]
 # colors = create_sequential_colors(len(Rs))
@@ -175,3 +176,25 @@ plt.close()
 # plt.legend()
 # plt.savefig(f"{path_figures}/fluxtube/fidelity_susceptibility_log_{log}_rdm_{rdm}_{model}_{l}x{L}_bc_{bc}_Rs_{Rs}_npoints_{npoints}_h_{h_i}-{h_f}_chi_{chi}.png")
 # plt.close()
+
+
+h_i, h_f, npoints = 0.4, 1.0, 61
+Rs = [0,11,13,15,17,19]
+# Rs = [0,11]
+# Rs = [10,12,14,16,18,20]
+l = 5
+chi = 64
+chi = 128
+colors = create_sequential_colors(len(Rs))
+log = False
+rdm = False
+
+for chi in [64,128]:
+    for vacuum in [True, False]:
+        if vacuum:
+            vac_fid = fidelity_susceptibility(l, L, chi, 0, bc, model, h_i, h_f, npoints, log=log, rdm=rdm)
+        for i, R in enumerate(Rs):
+            fidelities = fidelity_susceptibility(l, L, chi, R, bc, model, h_i, h_f, npoints, log=log, rdm=rdm)
+            if vacuum:
+                fidelities = np.abs(fidelities - vac_fid)
+            np.save(f"{path_tensor}/overlap/fidelity_susceptibility_log_{log}_rdm_{rdm}_{model}_{l}x{L}_bc_{bc}_R_{R}_npoints_{npoints}_h_{h_i}-{h_f}_chi_{chi}_on_vacuum_{vacuum}", fidelities)
