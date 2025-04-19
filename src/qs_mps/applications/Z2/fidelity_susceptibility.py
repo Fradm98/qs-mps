@@ -191,12 +191,12 @@ rdm = False
 for chi in [128]:        
     try:
         vac_fid = fidelity_susceptibility(l, L, chi, 0, bc, model, h_i, h_f, npoints, log=log, rdm=rdm)
-        np.save(f"{path_tensor}/results/overlap/fidelity_susceptibility_log_{log}_rdm_{rdm}_{model}_{l}x{L}_bc_{bc}_R_{R}_npoints_{npoints}_h_{h_i}-{h_f}_chi_{chi}", vac_fid)
+        np.save(f"{path_tensor}/results/overlap/fidelity_susceptibility_log_{log}_rdm_{rdm}_{model}_{l}x{L}_bc_{bc}_R_{0}_npoints_{npoints}_h_{h_i}-{h_f}_chi_{chi}", vac_fid)
     except:
         print(f"vacuum for chi: {chi} not found! Continue...")
-    for i, R in enumerate(Rs):
-        try:
-            fidelities = fidelity_susceptibility(l, L, chi, R, bc, model, h_i, h_f, npoints, log=log, rdm=rdm)
-            np.save(f"{path_tensor}/results/overlap/fidelity_susceptibility_log_{log}_rdm_{rdm}_{model}_{l}x{L}_bc_{bc}_R_{R}_npoints_{npoints}_h_{h_i}-{h_f}_chi_{chi}", fidelities)
-        except:
-            print(f"R: {R} for chi: {chi} not found! Continue...")
+    # for i, R in enumerate(Rs):
+    #     try:
+    #         fidelities = fidelity_susceptibility(l, L, chi, R, bc, model, h_i, h_f, npoints, log=log, rdm=rdm)
+    #         np.save(f"{path_tensor}/results/overlap/fidelity_susceptibility_log_{log}_rdm_{rdm}_{model}_{l}x{L}_bc_{bc}_R_{R}_npoints_{npoints}_h_{h_i}-{h_f}_chi_{chi}", fidelities)
+    #     except:
+    #         print(f"R: {R} for chi: {chi} not found! Continue...")
