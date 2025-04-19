@@ -96,17 +96,17 @@ R = 20
 
 
 Rs = [19,21]
-Rs = [10,11,12,13,14,15,16,17,18,19,20]
+# Rs = [10,11,12,13,14,15,16,17,18,19,20]
 colors = create_sequential_colors(len(Rs))
 l = 6
 chi = 256
-chi = 128
+# chi = 128
 log = True
 rdm = False
 vacuum = True
 h_i, h_f, npoints = 0.6, 0.95, 15
-h_i, h_f, npoints = 0.6, 0.9, 31
-h_i, h_f, npoints = 0.9, 1.0, 11
+# h_i, h_f, npoints = 0.6, 0.9, 31
+# h_i, h_f, npoints = 0.9, 1.0, 11
 # h_i, h_f, npoints = 0.7, 0.9, 21
 plt.title(f"$\\chi_{{\\mathcal{{F}}}} = d^2 \\langle \\psi (g) | \\psi(g+dg) \\rangle / dg^2$ for $l \\times L: {l} \\times {L}$, $D:{chi}$, $log: {log}$")
 plt.xlabel("electric coupling $(g)$")
