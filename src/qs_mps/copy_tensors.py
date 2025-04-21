@@ -12,6 +12,7 @@ remote_dir = "/Users/fradm/Desktop/projects/1_Z2/results/tensors/"
 L, l = 30, 6
 Rs = [10,11,12,13,14,15,16,17,18,19,20]
 h_i, h_f, npoints = 0.4, 0.6, 21
+h_i, h_f, npoints = 0.6, 0.9, 31
 precision = 3
 chi = 64
 bc = "pbc"
@@ -27,13 +28,13 @@ from scp import SCPClient, SCPException
 from datetime import datetime
 
 # Choose the observable and tensor list
-device = "marcos3"  # or "pc", "mac", "marcos1", etc.
+device = "pc"  # or "pc", "mac", "marcos1", etc.
 observable = "tensors"
 
 # List of server information
 all_servers = [
-    {"hostname": "158.227.6.203", "username": "fradm", "key_filename": None},  # marcos1
-    {"hostname": "158.227.46.38", "username": "fradm", "key_filename": None},   # marcos2
+    # {"hostname": "158.227.6.203", "username": "fradm", "key_filename": None},  # marcos1
+    # {"hostname": "158.227.46.38", "username": "fradm", "key_filename": None},   # marcos2
     {"hostname": "158.227.47.136", "username": "fradm", "key_filename": None},  # marcos3
 ]
 
@@ -43,6 +44,7 @@ remote_results_dir = f"/Users/fradm/Desktop/projects/1_Z2/results/{observable}"
 if device == "pc":
     key_filename = "C:/Users/HP/.ssh/id_rsa_marcos"
     local_results_dir = f"C:/Users/HP/Desktop/projects/1_Z2/results/{observable}"
+    local_results_dir = f"D:/code/projects/1_Z2/results/{observable}"
 elif device == "mac":
     key_filename = "/Users/fradm98/.ssh/id_rsa_mac"
     local_results_dir = f"/Users/fradm98/Desktop/projects/1_Z2/results/{observable}"

@@ -9,6 +9,8 @@ model = "Z2_dual"
 precision = 3
 path_figures = "/Users/fradm/Google Drive/My Drive/projects/1_Z2/figures"
 path_tensor = "/Users/fradm/Desktop/projects/1_Z2"
+path_tensor = "D:/code/projects/1_Z2"
+path_save = "C:/Users/HP/Desktop/projects/1_Z2"
 # path_figures = "/Users/fradm/Desktop/projects/1_Z2/figures"
 
 # default parameters of the plot layout
@@ -183,45 +185,49 @@ Rs = [18,20,22,24]
 l = 5
 chis = [64,128]
 
-h_i, h_f, npoints = 0.8, 1.0, 41
-Rs = [10,11,12,13,14,15,16,17,18,19,20]
-l = 5
-chis = [64,128]
+# h_i, h_f, npoints = 0.8, 1.0, 41
+# Rs = [10,11,12,13,14,15,16,17,18,19,20]
+# l = 5
+# chis = [64,128]
 
-l = 6
-h_i, h_f, npoints = 0.6, 0.95, 15
-Rs = [10,11,12,13,14,15,16,17,18,19,20,21]
-chis = [256]
-precision = 3  # not for vacuum, 19, 21
+# l = 6
+# h_i, h_f, npoints = 0.6, 0.95, 15
+# Rs = [10,11,12,13,14,15,16,17,18,19,20,21]
+# chis = [256]
+# precision = 3  # not for vacuum, 19, 21
 
 # l = 6
 # h_i, h_f, npoints = 0.4, 0.6, 21
 # Rs = [10,11,12,13,14,15,16,17,18,19,20]
 # chis = [64,128]
 
-l = 6
-h_i, h_f, npoints = 0.6, 0.9, 31
-Rs = [10,11,12,13,14,15,16,17,18,19,20]
-chis = [64,128]
+# l = 6
+# h_i, h_f, npoints = 0.6, 0.9, 31
+# Rs = [10,11,12,13,14,15,16,17,18,19,20]
+# chis = [64,128]
 
 # l = 6
 # h_i, h_f, npoints = 0.9, 1.0, 11
 # Rs = [10,11,12,13,14,15,16,17,18,19,20]
 # chis = [64,128]
 
-colors = create_sequential_colors(len(Rs))
+h_i, h_f, npoints = 0.4, 1.0, 61
+Rs = [17,18,19,20]
+l = 6
+chis = [128]
+
 log = False
 rdm = False
 
 for chi in chis:        
     try:
         vac_fid = fidelity_susceptibility(l, L, chi, 0, bc, model, h_i, h_f, npoints, log=log, rdm=rdm)
-        np.save(f"{path_tensor}/results/overlap/fidelity_susceptibility_log_{log}_rdm_{rdm}_{model}_{l}x{L}_bc_{bc}_R_{0}_npoints_{npoints}_h_{h_i}-{h_f}_chi_{chi}", vac_fid)
+        np.save(f"{path_save}/results/overlap/fidelity_susceptibility_log_{log}_rdm_{rdm}_{model}_{l}x{L}_bc_{bc}_R_{0}_npoints_{npoints}_h_{h_i}-{h_f}_chi_{chi}", vac_fid)
     except:
         print(f"vacuum for chi: {chi} not found! Continue...")
     for i, R in enumerate(Rs):
         try:
             fidelities = fidelity_susceptibility(l, L, chi, R, bc, model, h_i, h_f, npoints, log=log, rdm=rdm)
-            np.save(f"{path_tensor}/results/overlap/fidelity_susceptibility_log_{log}_rdm_{rdm}_{model}_{l}x{L}_bc_{bc}_R_{R}_npoints_{npoints}_h_{h_i}-{h_f}_chi_{chi}", fidelities)
+            np.save(f"{path_save}/results/overlap/fidelity_susceptibility_log_{log}_rdm_{rdm}_{model}_{l}x{L}_bc_{bc}_R_{R}_npoints_{npoints}_h_{h_i}-{h_f}_chi_{chi}", fidelities)
         except:
             print(f"R: {R} for chi: {chi} not found! Continue...")

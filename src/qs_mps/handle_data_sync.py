@@ -4,12 +4,12 @@ from scp import SCPClient, SCPException
 from datetime import datetime
 
 device = "marcos2"
-# device = "pc"
+device = "pc"
 # device = "mac"
 observable = "energy_data"
 # observable = "entropy_data"
 # observable = "error_data"
-# observable = "overlap"
+observable = "overlap"
 # observable = "electric_field"
 
 # List of server information
@@ -147,6 +147,7 @@ def sync_files(server, max_attempts=3):
 # Sync files from each server
 for server in servers:
     sync_files(server)
+
 
 
 # import subprocess
