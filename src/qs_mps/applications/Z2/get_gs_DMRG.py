@@ -209,7 +209,7 @@ for L in args.Ls:
 
     if args.length != 0:
         charges_x = get_cx(L, args.length)
-        charges_y = get_cy(args.l, args.boundcond, args.charges_y)
+        charges_y = get_cy(args.l, args.boundcond, args.charges_y, R=args.length)
         sector = f"{len(charges_x)}_particle(s)_sector"
     # init_state = np.zeros((d))
     # init_state[0] = 1
