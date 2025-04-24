@@ -706,6 +706,49 @@ def time_ev_electric_energy_density(
     energy_density_difference = [(energy_charges - energy_densities_vacuum[0]) for energy_charges in energy_densities_charges]
     return energy_density_difference
 
+def time_ev_string_width_occupation(
+    R: int,
+    l: int,
+    L: int,
+    chi: int,
+    bc: str = None,
+    sector: str = None,
+    h_i: float = None,
+    h_f: float = None,
+    npoints: int = None,
+    delta: float = None,
+    trotter: int = None,
+    obs_freq: float = 0.2,
+    path_tensor: str = None,
+):
+    efields = np.load(
+        f"{path_tensor}/results/electric_field/electric_field_quench_dynamics_Z2_dual_direct_lattice_{l}x{L}_{sector}_bc_{bc}_R_{R}_h_{h_i}-{h_f}_delta_{delta}_trotter_steps_{trotter}_chi_{chi}.npy")
+
+    try:
+        vac = None
+        efields_vacuum = np.load(
+                    f"{path_tensor}/results/electric_field/electric_field_Z2_dual_direct_lattice_{l}x{L}_vacuum_sector_bc_{bc}_{vac}-{vac}_h_{h_i}-{h_f}_delta_{npoints}_chi_{chi}.npy"
+                )
+    except:
+        vac = np.nan
+        efields_vacuum = np.load(
+                    f"{path_tensor}/results/electric_field/electric_field_Z2_dual_direct_lattice_{l}x{L}_vacuum_sector_bc_{bc}_{vac}-{vac}_h_{h_i}-{h_f}_delta_{npoints}_chi_{chi}.npy"
+                )
+    arr = [*range(-(l - 1)//2, l//2 + 1)]
+
+    if (l%2) == 0:
+        arr.pop(l//2)
+        arr.pop(0)
+    elif (l%2) == 1:
+        arr.pop(l//2)
+    print(arr)
+
+    string_arr = [[(1-np.asarray(efields[i][0::2,2*(L//2) + 1])[x])/2 for x in arr] for i in range(int(trotter*obs_freq)+1)]
+    string_arr_vacuum = [(1-np.asarray(efields_vacuum[0][0::2,2*(L//2) + 1])[x])/2 for x in arr]    
+    w_t = []
+    for k, ladd in enumerate(string_arr):
+        w_t.append(np.sum([(x**2) * (ladd[i] - string_arr_vacuum[i]) for i, x in enumerate(arr)]) / (np.sum(ladd) - np.sum(string_arr_vacuum)))
+    return w_t
 
 def time_ev_string_width(
     g: float,
@@ -891,6 +934,55 @@ def string_width_electric_energy_density(
     eed_sum_lad = eed_sum_lad / sum(eed_conn_lad)
     return eed_sum_lad
 
+def string_width_occupation(
+    g: int,
+    R: int,
+    l: int,
+    L: int,
+    chi: int,
+    bc: str = None,
+    sector: str = None,
+    h_i: float = None,
+    h_f: float = None,
+    npoints: int = None,
+    path_tensor: str = None,
+    cx: list = None,
+    cy: list = None,
+):
+    if cx == None:
+        cx = get_cx(L, R)
+    if cy == None:
+        cy = get_cy(l, R=R, bc=bc)
+
+    idxs = [1 if round(g, 3) == round(np.linspace(h_i,h_f,npoints)[i], 3) else 0 for i in range(npoints)]
+    g_idx = np.argwhere(idxs)[0,0]
+
+    efields = np.load(
+        f"{path_tensor}/results/electric_field/electric_field_Z2_dual_direct_lattice_{l}x{L}_{sector}_bc_{bc}_{cx}-{cy}_h_{h_i}-{h_f}_delta_{npoints}_chi_{chi}.npy")
+
+    try:
+        vac = None
+        efields_vacuum = np.load(
+                    f"{path_tensor}/results/electric_field/electric_field_Z2_dual_direct_lattice_{l}x{L}_vacuum_sector_bc_{bc}_{vac}-{vac}_h_{h_i}-{h_f}_delta_{npoints}_chi_{chi}.npy"
+                )
+    except:
+        vac = np.nan
+        efields_vacuum = np.load(
+                    f"{path_tensor}/results/electric_field/electric_field_Z2_dual_direct_lattice_{l}x{L}_vacuum_sector_bc_{bc}_{vac}-{vac}_h_{h_i}-{h_f}_delta_{npoints}_chi_{chi}.npy"
+                )
+    arr = [*range(-(l - 1)//2, l//2 + 1)]
+
+    if (l%2) == 0:
+        arr.pop(l//2)
+        arr.pop(0)
+    elif (l%2) == 1:
+        arr.pop(l//2)
+    print(arr)
+
+    string_arr = [(1-np.asarray(efields[g_idx][0::2,2*(L//2) + 1])[x])/2 for x in arr]
+    string_arr_vacuum = [(1-np.asarray(efields_vacuum[g_idx][0::2,2*(L//2) + 1])[x])/2 for x in arr]
+    print([(np.asarray(efields_vacuum[g_idx][0::2,2*(L//2) + 1])[x] < 0) for x in arr])
+    return np.sum([(x**2) * (string_arr[i] - string_arr_vacuum[i]) for i, x in enumerate(arr)]) / (np.sum(string_arr) - np.sum(string_arr_vacuum))
 
 def string_width_chis(
     g: float,
@@ -908,6 +1000,7 @@ def string_width_chis(
     cy: list = None,
     delta: float = None,
     trotter: int = None,
+    occupation: bool = False,
 ):
     """
     static potential
@@ -930,13 +1023,20 @@ def string_width_chis(
     ws_chi = []
     for chi in chis:
         if trotter == None:
-            w = string_width_electric_energy_density(
-                g, R, l, L, chi, bc, sector, h_i, h_f, npoints, path_tensor, cx, cy
-            )
+            if occupation:
+                w = string_width_occupation(g, R, l, L, chi, bc, sector, h_i, h_f, npoints, path_tensor, cx, cy)
+            else:
+                w = string_width_electric_energy_density(
+                    g, R, l, L, chi, bc, sector, h_i, h_f, npoints, path_tensor, cx, cy
+                )
+
         else:
+            w = time_ev_string_width_occupation(R,l,L,chi,bc,sector,h_i,h_f,npoints,delta,trotter,path_tensor=path_tensor)
+        
             w = time_ev_string_width(
                 g, R, l, L, chi, bc, sector, h_i, h_f, npoints, delta, trotter, path_tensor, cx, cy,
             )
+
         ws_chi.append(w)
     return ws_chi
 
@@ -978,9 +1078,10 @@ def string_width_exact_chi(
     g_thr: float = 10,
     delta: float = None,
     trotter: int = None,
+    occupation: bool = False,
 ):
     strings = string_width_chis(
-        g, R, l, L, chis, bc, sector, h_i, h_f, npoints, path_tensor, delta=delta, trotter=trotter
+        g, R, l, L, chis, bc, sector, h_i, h_f, npoints, path_tensor, delta=delta, trotter=trotter, occupation=occupation
     )
     if g > g_thr:
         str_exact, err = get_exact_string_chis(chis, strings)
@@ -991,14 +1092,14 @@ def string_width_exact_chi(
 
 
 def string_width_varying_g(
-    gs, R, l, L, chis, bc, sector, h_i, h_f, npoints, path_tensor
+    gs, R, l, L, chis, bc, sector, h_i, h_f, npoints, path_tensor, occupation: bool=False
 ):
     strings = []
     err_strings = []
     for g in gs:
-        print(f"g: {g}")
+        # print(f"g: {g}")
         string, err = string_width_exact_chi(
-            g, R, l, L, chis, bc, sector, h_i, h_f, npoints, path_tensor
+            g, R, l, L, chis, bc, sector, h_i, h_f, npoints, path_tensor, occupation=occupation
         )
         strings.append(string)
         err_strings.append(err)
@@ -1006,12 +1107,12 @@ def string_width_varying_g(
     return strings, err_strings
 
 def string_width_varying_R(
-    g, Rs, l, L, chis, bc, sector, h_i, h_f, npoints, path_tensor
+    g, Rs, l, L, chis, bc, sector, h_i, h_f, npoints, path_tensor, occupation: bool=False
 ):
     strings = []
     err_strings = []
     for R in Rs:
-        print(f"g: {g}")
+        # print(f"g: {g}")
         string, err = string_width_exact_chi(
             g, R, l, L, chis, bc, sector, h_i, h_f, npoints, path_tensor
         )
@@ -1051,7 +1152,7 @@ def entropy(
 
     """
     cx = get_cx(L, R)
-    cy = get_cy(l, bc=bc)
+    cy = get_cy(l, bc=bc, R=R)
 
     if L % 2 == 0:
         where = L // 2
