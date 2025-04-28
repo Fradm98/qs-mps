@@ -5,10 +5,11 @@ import shutil
 
 # Define the folder where your data is stored
 destination_folder = "C:/Users/HP/Desktop/vanilla_data/results/energy_density_data"
+destination_folder = "C:/Users/HP/Desktop/vanilla_data/results/kink_mass_data"
 data_folder = "C:/Users/HP/Desktop/projects/1_Z2/results/energy_data"
 
-destination_folder = "/Users/fradm/Desktop/vanilla_data/results/kink_mass_data"
-data_folder = "/Users/fradm/Desktop/projects/1_Z2/results/energy_data"
+# destination_folder = "/Users/fradm/Desktop/vanilla_data/results/kink_mass_data"
+# data_folder = "/Users/fradm/Desktop/projects/1_Z2/results/energy_data"
 
 L = 30
 cy = [0,0]
@@ -108,7 +109,6 @@ params = dict(
         chis = [64,128],
         Rs = ["vac",10,11,12,13,14,15,16,17,18,19,20]
 ))
-
 for key, param in params.items():
     # Create an empty DataFrame
     table = pd.DataFrame(index=param["chis"], columns=param["Rs"])
@@ -118,8 +118,8 @@ for key, param in params.items():
         for R in param['Rs']:
             if R == "vac":
                 sector = "vacuum_sector"
-                cx = None
-                cy = None
+                cx = "nan"
+                cy = "nan"
             else:
                 sector = "2_particle(s)_sector"
                 cx = get_cx(L,R)
@@ -144,15 +144,15 @@ for key, param in params.items():
     print(table)
 
     # Optionally, save to a CSV file
-    table.to_csv(f"/Users/fradm/Desktop/vanilla_data/results/output_table_on_axis_{param['l']}x{L}_h_{param['h_i']}-{param['h_f']}_npoints_{param['npoints']}.csv")
+    # table.to_csv(f"/Users/fradm/Desktop/vanilla_data/results/output_table_on_axis_{param['l']}x{L}_h_{param['h_i']}-{param['h_f']}_npoints_{param['npoints']}.csv")
 
     # Iterate over all combinations of sweep variables
     for chi in param['chis']:
         for R in param['Rs']:
             if R == "vac":
                 sector = "vacuum_sector"
-                cx = None
-                cy = None
+                cx = "nan"
+                cy = "nan"
             else:
                 sector = "2_particle(s)_sector"
                 cx = get_cx(L,R)
@@ -177,5 +177,5 @@ for key, param in params.items():
     print(table)
 
     # Optionally, save to a CSV file
-    table.to_csv(f"/Users/fradm/Desktop/vanilla_data/results/output_table_off_axis_{param['l']}x{L}_h_{param['h_i']}-{param['h_f']}_npoints_{param['npoints']}.csv")
+    # table.to_csv(f"/Users/fradm/Desktop/vanilla_data/results/output_table_off_axis_{param['l']}x{L}_h_{param['h_i']}-{param['h_f']}_npoints_{param['npoints']}.csv")
 
