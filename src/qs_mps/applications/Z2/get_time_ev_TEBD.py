@@ -229,6 +229,8 @@ for L in args.Ls:
         args.bond = False
 
     for chi in args.chis:
+        if args.chi_max < chi:
+            args.chi_max = chi
         lattice_mps = MPS(
                 L=L, d=d, model=args.model, chi=args.chi_max, h=args.h_i, bc=args.boundcond
             )
