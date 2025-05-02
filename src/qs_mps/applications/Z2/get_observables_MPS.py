@@ -139,8 +139,10 @@ elif args.path == "mac":
     parent_path = path_tensor
 elif args.path == "marcos":
     # parent_path = "/Users/fradm/Google Drive/My Drive/projects/1_Z2"
+    # path_tensor = "/Volumes/EXTERNAL_USB/code/projects/1_Z2"
+    parent_path = "/Users/fradm/Desktop/projects/1_Z2"
     path_tensor = "/Users/fradm/Desktop/projects/1_Z2"
-    parent_path = path_tensor
+    # parent_path = path_tensor
 else:
     raise SyntaxError("Path not valid. Choose among 'pc', 'mac', 'marcos'")
 

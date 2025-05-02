@@ -737,21 +737,14 @@ def time_ev_string_width_occupation(
     arr = [*range(-(l - 1)//2, l//2 + 1)]
 
     if (l%2) == 0:
-        arr.pop(l//2)
         arr.pop(0)
-    elif (l%2) == 1:
-        arr.pop(l//2)
     print(arr)
 
-    # string_arr = [[(1-np.asarray(efields[i][0::2,2*(L//2) + 1])[x])/2 for x in arr] for i in range(int(trotter*obs_freq)+1)]
     string_arr = [[np.asarray(efields[i][0::2,2*(L//2) + 1])[x] for x in arr] for i in range(int(trotter*obs_freq)+1)]
-    # string_arr_vacuum = [(1-np.asarray(efields_vacuum[0][0::2,2*(L//2) + 1])[x])/2 for x in arr]    
     string_arr_vacuum = [np.asarray(efields_vacuum[0][0::2,2*(L//2) + 1])[x] for x in arr]    
-    print([(np.asarray(efields_vacuum[0][0::2,2*(L//2) + 1])[x] < 0) for x in arr])
     w_t = []
     for k, ladd in enumerate(string_arr):
         w_t.append(np.sum([(x**2) * (-1/2) * (ladd[i] - string_arr_vacuum[i]) for i, x in enumerate(arr)]) / ((-1/2) * (np.sum(ladd) - np.sum(string_arr_vacuum))))
-        # w_t.append(np.sum([(x**2) * (ladd[i] - string_arr_vacuum[i]) for i, x in enumerate(arr)]) / (np.sum(ladd) - np.sum(string_arr_vacuum)))
     return w_t
 
 def time_ev_string_width(
@@ -977,18 +970,11 @@ def string_width_occupation(
     arr = [*range(-(l - 1)//2, l//2 + 1)]
 
     if (l%2) == 0:
-        arr.pop(l//2)
         arr.pop(0)
-    elif (l%2) == 1:
-        arr.pop(l//2)
     print(arr)
 
-    # string_arr = [(1-np.asarray(efields[g_idx][0::2,2*(L//2) + 1])[x])/2 for x in arr]
     string_arr = [np.asarray(efields[g_idx][0::2,2*(L//2) + 1])[x] for x in arr]
-    # string_arr_vacuum = [(1-np.asarray(efields_vacuum[g_idx][0::2,2*(L//2) + 1])[x])/2 for x in arr]
     string_arr_vacuum = [np.asarray(efields_vacuum[g_idx][0::2,2*(L//2) + 1])[x] for x in arr]
-    print([(np.asarray(efields_vacuum[g_idx][0::2,2*(L//2) + 1])[x] < 0) for x in arr])
-    # return np.sum([(x**2) * (string_arr[i] - string_arr_vacuum[i]) for i, x in enumerate(arr)]) / (np.sum(string_arr) - np.sum(string_arr_vacuum))
     return np.sum([(x**2) * (-1/2) * (string_arr[i] - string_arr_vacuum[i]) for i, x in enumerate(arr)]) / ((-1/2)*(np.sum(string_arr) - np.sum(string_arr_vacuum)))
 
 def string_width_chis(
