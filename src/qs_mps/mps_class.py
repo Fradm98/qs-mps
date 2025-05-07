@@ -2290,7 +2290,7 @@ class MPS:
 
         # if self.bc == "pbc":
         #     self.L = self.L - 1
-        t_start = time.perf_counter()
+        t_start = dt.datetime.now()
         for n in range(n_sweeps):
             print(f"Sweep n: {n}\n")
             entropy = []
@@ -2336,7 +2336,7 @@ class MPS:
             sweeps.reverse()
             sites.reverse()
 
-        t_dmrg = abs(time.perf_counter() - t_start)
+        t_dmrg = abs(dt.datetime.now() - t_start)
         if energy_dist < conv_tol:
             # print("##############################")
             # print(

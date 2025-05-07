@@ -55,10 +55,10 @@ def ground_state_Z2_param(params):
         n_sweeps=args_mps["n_sweeps"],
         conv_tol=args_mps["conv_tol"],
     )
-    t_final = np.sum(t_dmrg)
-    t_final_gen = dt.timedelta(seconds=t_final)
+    # t_final = np.sum(t_dmrg)
+    # t_final_gen = dt.timedelta(seconds=t_final)
     print(
-        f"time of the whole search for h={param:.{precision}f}, chi={chi} is: {t_final_gen} in date {dt.datetime.now()}"
+        f"time of the whole search for h={param:.{precision}f}, chi={chi} is: {t_dmrg} in date {dt.datetime.now()}"
     )
 
     if not args_mps["training"]:
