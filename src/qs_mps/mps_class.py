@@ -3308,7 +3308,7 @@ class MPS:
                 E_h = np.zeros((2 * self.Z2.l, 2 * self.L + 1))
             
             E_h[:] = np.nan
-            E_h = self.electric_field_Z2(E_h, aux_qub=aux_qub)
+            E_h = self.electric_field_Z2(E_h, aux_qub=aux_qub, reduced=False)
             electric_local_field.append(E_h.copy())
             t_final = dt.datetime.now() - date_start
             print(f"Total time for the electric field density is: {t_final}")
@@ -3412,7 +3412,10 @@ class MPS:
                     date_start = dt.datetime.now()
                     print(f"\n*** Computing electric field density in date: {dt.datetime.now()} ***\n")
                     E_h[:] = np.nan
-                    E_h = self.electric_field_Z2(E_h, aux_qub=aux_qub)
+                    if (trott == (trotter_steps//2 - 1)) or (trott == (trotter_steps - 1)):
+                        E_h = self.electric_field_Z2(E_h, aux_qub=aux_qub, reduced=False)
+                    else:
+                        E_h = self.electric_field_Z2(E_h, aux_qub=aux_qub)
                     electric_local_field.append(E_h.copy())
                     t_final = dt.datetime.now() - date_start
                     print(f"Total time for the electric field density is: {t_final}")
