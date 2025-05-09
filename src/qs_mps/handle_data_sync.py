@@ -7,9 +7,9 @@ device = "marcos2"
 # device = "pc"
 # device = "mac"
 observable = "energy_data"
-# observable = "entropy_data"
+observable = "entropy_data"
 # observable = "error_data"
-# observable = "overlap"
+observable = "overlap"
 # observable = "electric_field"
 
 # List of server information
