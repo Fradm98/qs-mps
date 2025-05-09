@@ -2,7 +2,7 @@ import numpy as np
 
 from scipy.optimize import curve_fit
 
-from qs_mps.applications.Z2.utils import arithmetic_average
+from qs_mps.applications.Z2.utils import arithmetic_average, weighted_average
 from qs_mps.utils import von_neumann_entropy, get_cx, get_cy, load_list_of_lists
 
 
@@ -548,6 +548,74 @@ def get_fit_params(gs, Rs, l, Ls, chis, bc, sector, h_i, h_f, npoints, path_tens
         return terms, term_errs
 
 
+def fit_params_sys(Rss, l, L, chis, bc, sector, h_i, h_f, npoints, path, cx, cy, param: int=0, fit: int=1, euclidean: bool=False, manhatten: bool=False, ris: bool=False):
+    if euclidean:
+        cy = [0,1]
+
+    ## method 1
+    list_Rs = []
+    Rs  = Rss.copy()
+    for R in Rs:
+        print(Rss)
+        list_Rs.append(Rss.copy())
+        if len(Rss) > 4+fit:
+            Rss.pop(0)
+        else:
+            break
+
+    ## method 2
+    # list_Rs = [Rss.copy()]
+    # for i in range(3):
+    #     list_Rs.append(list_Rs[i]+[list_Rs[i][-1]+1])
+    #     print(list_Rs)
+
+    # interval
+    gs = np.linspace(h_i,h_f,npoints)
+
+    sigmas_tot = []
+    sigmas_tot_err = []
+    sigmas_ri = np.zeros((len(list_Rs), len(gs)))
+    for j, g in enumerate(gs):
+        sigma_g_ri_chi = []
+        sigma_g_ri_chi_err = []
+        for i, Rs in enumerate(list_Rs):        
+            potentials = []
+            for R in Rs:
+                pots = static_potential_chis(
+                        g, R, l, L, chis, bc, sector, h_i, h_f, npoints, path, cx, cy
+                    )
+                potentials.append(pots)
+
+            potentials = np.asarray(potentials).T
+            
+            if euclidean:
+                Rs = [np.sqrt(R**2+1) for R in Rs]
+            if manhatten:
+                Rs = [R+1 for R in Rs]
+
+            sigma_chis = []
+            sigma_chis_err = []
+            for k, chi in enumerate(chis):
+                popt, errs = fitting(Rs, potentials[k], errors=None, fit=fit, guess=None)
+                term = popt[param]
+                term_err = errs[param]
+                sigma_chis.append(term)
+                sigma_chis_err.append(term_err)
+
+            if len(chis) > 1:
+                sigma_g_ri_chi_err.append(np.abs(sigma_chis[0]-sigma_chis[1]) + sigma_chis_err[0] + sigma_chis_err[1])
+            else:
+                sigma_g_ri_chi_err.append(sigma_chis_err[-1])
+            sigma_g_ri_chi.append(sigma_chis[-1])
+            sigmas_ri[i,j] = sigma_chis[-1]
+        av, av_err = weighted_average(sigma_g_ri_chi, sigma_g_ri_chi_err)
+        sigmas_tot.append(av)
+        sigmas_tot_err.append(av_err)
+    if ris:
+        return sigmas_tot, sigmas_tot_err, sigmas_ri, list_Rs
+    else:
+        return sigmas_tot, sigmas_tot_err
+    
 def potential_first_discrete_derivative(
     g: float,
     R: int,

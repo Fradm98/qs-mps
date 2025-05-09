@@ -22,7 +22,7 @@ plt.rcParams["figure.constrained_layout.use"] = True
 font = {'family': 'serif', 'size': 12}
 plt.rcParams.update({'font.family': font['family'], 'font.size': font['size']})
 
-def fidelity_susceptibility(l, L, chi, R, bc, model, h_i, h_f, npoints, log: bool = False, rdm: bool=False):
+def fidelity_susceptibility(l, L, chi, R, bc, model, h_i, h_f, npoints, log: bool = False, rdm: bool=False, der: bool=True):
     gs = np.linspace(h_i,h_f,npoints)
     cx = get_cx(L, R)
     cy = get_cy(l, bc, R=R)
@@ -87,14 +87,13 @@ def fidelity_susceptibility(l, L, chi, R, bc, model, h_i, h_f, npoints, log: boo
                 fidelities.append(np.log(np.sqrt(fid.real**2 + fid.imag**2)))
             else:
                 fidelities.append(np.sqrt(fid.real**2 + fid.imag**2))
-    return np.gradient(np.gradient(fidelities))
-
-def plot_fidelity_susceptibility(fidelities, R, h_i, h_f, npoints, color):
-    gs = np.linspace(h_i, h_f, npoints-1)
-    plt.plot(gs, fidelities, color=color, label=f"$R: {R}$")
+    if der:
+        return np.gradient(np.gradient(fidelities))
+    else:
+        return fidelities
+    
 
 L = 30
-R = 20
 
 
 # Rs = [19,21]
@@ -180,11 +179,6 @@ R = 20
 # plt.close()
 
 
-h_i, h_f, npoints = 0.4, 1.0, 61
-Rs = [18,20,22,24]
-l = 5
-chis = [64,128]
-
 # h_i, h_f, npoints = 0.8, 1.0, 41
 # Rs = [10,11,12,13,14,15,16,17,18,19,20]
 # l = 5
@@ -211,10 +205,10 @@ chis = [64,128]
 # Rs = [10,11,12,13,14,15,16,17,18,19,20]
 # chis = [64,128]
 
-h_i, h_f, npoints = 0.4, 1.0, 61
-Rs = [17,18,19,20]
+h_i, h_f, npoints = 0.8, 0.92, 13
+Rs = [15,16,17,18,19,20]
 l = 6
-chis = [128]
+chis = [256]
 
 log = False
 rdm = False
