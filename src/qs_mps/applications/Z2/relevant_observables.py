@@ -575,12 +575,15 @@ def fit_params_sys(Rss, l, L, chis, bc, sector, h_i, h_f, npoints, path, cx, cy,
     sigmas_tot = []
     sigmas_tot_err = []
     sigmas_ri = np.zeros((len(list_Rs), len(gs)))
+    sigmas_ri_err = np.zeros((len(list_Rs), len(gs)))
     for j, g in enumerate(gs):
         sigma_g_ri_chi = []
         sigma_g_ri_chi_err = []
         for i, Rs in enumerate(list_Rs):        
             potentials = []
             for R in Rs:
+                # if R >= 25:
+                #     L = 50
                 pots = static_potential_chis(
                         g, R, l, L, chis, bc, sector, h_i, h_f, npoints, path, cx, cy
                     )
@@ -590,8 +593,8 @@ def fit_params_sys(Rss, l, L, chis, bc, sector, h_i, h_f, npoints, path, cx, cy,
             
             if euclidean:
                 Rs = [np.sqrt(R**2+1) for R in Rs]
-            if manhatten:
-                Rs = [R+1 for R in Rs]
+            # if manhatten:
+            #     Rs = [R+1 for R in Rs]
 
             sigma_chis = []
             sigma_chis_err = []
@@ -608,11 +611,12 @@ def fit_params_sys(Rss, l, L, chis, bc, sector, h_i, h_f, npoints, path, cx, cy,
                 sigma_g_ri_chi_err.append(sigma_chis_err[-1])
             sigma_g_ri_chi.append(sigma_chis[-1])
             sigmas_ri[i,j] = sigma_chis[-1]
+            sigmas_ri_err[i,j] = sigma_chis_err[-1]
         av, av_err = weighted_average(sigma_g_ri_chi, sigma_g_ri_chi_err)
         sigmas_tot.append(av)
         sigmas_tot_err.append(av_err)
     if ris:
-        return sigmas_tot, sigmas_tot_err, sigmas_ri, list_Rs
+        return sigmas_tot, sigmas_tot_err, sigmas_ri, sigmas_ri_err, list_Rs
     else:
         return sigmas_tot, sigmas_tot_err
     
@@ -1194,6 +1198,8 @@ def entropy(
     npoints: int = None,
     path_tensor: str = None,
     all_bonds: bool = False,
+    cx: list = None,
+    cy: list = None,
 ):
     """
     entropy
@@ -1212,8 +1218,8 @@ def entropy(
     path_tensor: str - path name for retrieving the energy density values
 
     """
-    cx = get_cx(L, R)
-    cy = get_cy(l, bc=bc, R=R)
+    cx = get_cx(L, R, cx=cx)
+    cy = get_cy(l, bc=bc, R=R, cy=cy)
 
     if L % 2 == 0:
         where = L // 2
