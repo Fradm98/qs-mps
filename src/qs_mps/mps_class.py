@@ -3415,7 +3415,7 @@ class MPS:
                     if (trott == (trotter_steps//2 - 1)) or (trott == (trotter_steps - 1)):
                         E_h = self.electric_field_Z2(E_h, aux_qub=aux_qub, reduced=False)
                     else:
-                        E_h = self.electric_field_Z2(E_h, aux_qub=aux_qub)
+                        E_h = self.electric_field_Z2(E_h, aux_qub=aux_qub, reduced=False)
                     electric_local_field.append(E_h.copy())
                     t_final = dt.datetime.now() - date_start
                     print(f"Total time for the electric field density is: {t_final}")

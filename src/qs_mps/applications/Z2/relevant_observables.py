@@ -606,7 +606,7 @@ def fit_params_sys(Rss, l, L, chis, bc, sector, h_i, h_f, npoints, path, cx, cy,
                 sigma_chis_err.append(term_err)
 
             if len(chis) > 1:
-                sigma_g_ri_chi_err.append(np.abs(sigma_chis[0]-sigma_chis[1]) + sigma_chis_err[0] + sigma_chis_err[1])
+                sigma_g_ri_chi_err.append(np.abs(sigma_chis[-2]-sigma_chis[-1]) + sigma_chis_err[-2] + sigma_chis_err[-1])
             else:
                 sigma_g_ri_chi_err.append(sigma_chis_err[-1])
             sigma_g_ri_chi.append(sigma_chis[-1])
@@ -1152,7 +1152,10 @@ def string_width_exact_chi(
         str_exact, err = get_exact_string_chis(chis, strings)
     else:
         str_exact = strings[-1]
-        err = np.abs(strings[-1] - strings[-2])
+        if len(chis) > 1:
+            err = np.abs(strings[-1] - strings[-2])
+        else:
+            err = 0
     return str_exact, err
 
 

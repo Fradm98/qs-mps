@@ -10,6 +10,7 @@ import matplotlib.pyplot as plt
 from matplotlib import gridspec
 from matplotlib.patches import Ellipse
 from matplotlib.animation import FuncAnimation
+from mpl_toolkits.axes_grid1 import make_axes_locatable
 from typing import Union
 from functools import partial
 import pickle
@@ -1153,7 +1154,7 @@ def anim(
 ):
     # Create a figure and axis
     fig, ax = plt.subplots(dpi=300)
-    title = ax.set_title("")
+    title = ax.set_title("$g = $")
 
     # create the lattice
     hlines = list(range(data[0].shape[0]))[::2]
@@ -1202,7 +1203,96 @@ def anim(
         im.set_data(data_frame)
         # im.imshow(data_frame, vmin=0, vmax=1, cmap=cmap, interpolation="nearest")
         if time:
-            title.set_text(f"Trotter step: {param_frame:.{precision}f}")
+            title.set_text(f"Time: {param_frame:.{precision}f}")
+        else:
+            title.set_text(f"$g: {param_frame:.{precision}f}$")
+        # Set colorbar
+        # cbar.set(im, ax=ax)
+
+    # Create the animation
+    animation = FuncAnimation(
+        fig,
+        partial(update, data=data, params=params, precision=precision, time=time),
+        frames=frames,
+        interval=interval,
+        repeat=False,
+    )
+
+    # Show the animation
+    if show:
+        plt.show()
+    return animation
+
+
+def anim_no_lattice(
+    frames: int,
+    interval: int,
+    data: np.ndarray,
+    params: np.ndarray,
+    show: bool,
+    charges_x: list,
+    charges_y: list,
+    precision: int,
+    time: bool,
+):
+    # Create a figure and axis
+    fig, ax = plt.subplots(dpi=300)
+    title = ax.set_title("$g = 0.8$")
+
+    # # create the lattice
+    # hlines = list(range(data[0].shape[0]))[::2]
+    # vlines = list(range(data[0].shape[1]))[::2]
+    # ax.hlines(y=hlines, xmin=0, xmax=data[0].shape[1] - 1, colors="k", linewidth=0.8)
+    # ax.vlines(x=vlines, ymin=0, ymax=data[0].shape[0] - 1, colors="k", linewidth=0.8)
+
+    # add the links expectation values
+    cmap = plt.get_cmap("inferno")
+    im = ax.imshow(data[0], vmin=0, vmax=1, cmap=cmap, interpolation="nearest")
+        # Create a divider and append the colorbar to the right of ax
+    divider = make_axes_locatable(ax)
+    cax = divider.append_axes("right", size="3%", pad=0.1)  # size and padding
+
+    # Create colorbar
+    cbar = fig.colorbar(im, cax=cax)
+    # cbar = plt.colorbar(im, ax=ax)
+    cbar.set_label("Electric field")
+
+    # # add vacuum
+    # for i in vlines:
+    #     for j in hlines:
+    #         circle = Ellipse(
+    #             (i, j), 0.1, 0.1, edgecolor="blue", facecolor="none", linewidth=1
+    #         )
+    #         ax.add_patch(circle)
+
+    # add charges
+    if charges_x != None:
+        for i in range(len(charges_x)):
+            ax.text(
+                x=charges_x[i]+0.1, y=charges_y[i]-0.1, s="-1", color="red"
+            )
+            circle = Ellipse(
+                (charges_x[i], charges_y[i]),
+                0.1,
+                0.1,
+                edgecolor="red",
+                facecolor="none",
+                linewidth=1,
+            )
+            ax.add_patch(circle)
+
+    # Function to update the colormap in each frame
+    def update(frame, data: np.ndarray, params: np.ndarray, precision: int, time: bool):
+        # print(frame, type(frame))
+        # Generate some example data
+        data_frame = data[frame]
+        param_frame = params[frame]
+
+        # Update the colormap
+        im.set_data(data_frame)
+        # im.imshow(data_frame, vmin=0, vmax=1, cmap=cmap, interpolation="nearest")
+        if time:
+            title.set_text(f"Time: {param_frame:.{precision}f}")
         else:
             title.set_text(f"$g: {param_frame:.{precision}f}$")
         # Set colorbar

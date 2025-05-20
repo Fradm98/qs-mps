@@ -302,7 +302,7 @@ for L in args.Ls:
             fname_obs = f"{args.where}_bond_entropy"
             fname_ex_obs = f"{args.where}_bond_entropy"
 
-        path = parent_path + f"results/entropy_data"
+        path = parent_path + f"/results/entropy_data"
         path_ex = parent_path + f"results/exact/entropy_data"
         path_save = parent_path + f"figures/entropy/"
         ylabel = "entanglement von neumann entropy $(S_{\\chi})$"
