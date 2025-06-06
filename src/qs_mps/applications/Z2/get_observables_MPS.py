@@ -106,6 +106,12 @@ parser.add_argument(
     help="Save the schmidt values for one bond. If False save for each bond. By default True",
     action="store_false",
 )
+parser.add_argument(
+    "-red",
+    "--red",
+    help="Reduced observables in the middle of the cylinder. If False save for each link. By default True",
+    action="store_false",
+)
 
 args = parser.parse_args()
 
@@ -259,8 +265,12 @@ for L in args.Ls:
                 )
                 if lattice_mps.bc == "obc":
                     E_h = np.zeros((2 * args.l + 1, 2 * L + 1))
+                    aux_qub = None
                 if lattice_mps.bc == "pbc":
                     E_h = np.zeros((2 * args.l, 2 * L + 1))
+                    a = np.zeros((1,2))
+                    a[0,0] = 1
+                    aux_qub = a.reshape((1,2,1))
                     # a = np.zeros((1,2))
                     # a[0,0] = 1
                     # extra_ancillary_site = a.reshape((1,2,1))
@@ -268,7 +278,7 @@ for L in args.Ls:
                     # lattice_mps.L = len(lattice_mps.sites)
 
                 E_h[:] = np.nan
-                E_h = lattice_mps.electric_field_Z2(E_h)
+                E_h = lattice_mps.electric_field_Z2(E_h, aux_qub=aux_qub, reduced=args.red)
                 E.append(E_h)
 
             if "thooft" in args.obs:
