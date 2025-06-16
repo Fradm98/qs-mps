@@ -150,9 +150,9 @@ elif args.path == "mac":
     path_tensor = "/Users/fradm98/Desktop/projects/1_Z2"
     parent_path = path_tensor
 elif args.path == "marcos":
-    # parent_path = "/Users/fradm/Google Drive/My Drive/projects/1_Z2"
-    path_tensor = "/Users/fradm/Desktop/projects/1_Z2"
-    parent_path = path_tensor
+    path_save = "/Users/fradm/Google Drive/My Drive/projects/1_Z2"
+    parent_path = "/Users/fradm/Desktop/projects/1_Z2"
+    # parent_path = path_tensor
 else:
     raise SyntaxError("Path not valid. Choose among 'pc', 'mac', 'marcos'")
 
@@ -179,11 +179,11 @@ for L in args.Ls:
             elif args.time:
                 path_file = f"electric_field_{args.model}_direct_lattice_{args.l}x{L}_{sector}_bc_{args.boundcond}_{args.charges_x}-{args.charges_y}_h_i_{args.h_i}_h_ev_{args.h_ev}_delta_{args.delta}_trotter_steps_{args.npoints}_chi_{chi}"
                 dataname = f"{parent_path}/results/electric_field/{path_file}.npy"
-                savename = f"{parent_path}/figures/animations/animation_{path_file}.mp4"
+                savename = f"{path_save}/figures/animations/animation_{path_file}.mp4"
             else:
                 path_file = f"electric_field_{args.model}_direct_lattice_{args.l}x{L}_{sector}_bc_{args.boundcond}_{args.charges_x}-{args.charges_y}_h_{args.h_i}-{args.h_f}_delta_{args.npoints}_chi_{chi}"
                 dataname = f"{parent_path}/results/electric_field/{path_file}.npy"
-                savename = f"{parent_path}/figures/animations/animation_{path_file}.gif"
+                savename = f"{path_save}/figures/animations/animation_{path_file}.gif"
 
             data = np.load(dataname)
             if args.rev:
@@ -195,7 +195,7 @@ for L in args.Ls:
                 intlist.reverse()
                 interval = np.asarray(intlist)
 
-                savename = f"{parent_path}/figures/animations/animation_reversed_{path_file}.gif"
+                savename = f"{path_save}/figures/animations/animation_reversed_{path_file}.gif"
 
 
         movie = anim(

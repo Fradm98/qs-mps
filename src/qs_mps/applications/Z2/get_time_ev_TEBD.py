@@ -403,7 +403,8 @@ for L in args.Ls:
             obs=args.obs,
             obs_freq=args.obs_freq,
             training=args.training,
-            chi_max=args.chi_max
+            chi_max=args.chi_max,
+            path=path_tensor,
             )
 
         t_final = dt.datetime.now() - date_start

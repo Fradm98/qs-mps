@@ -3235,13 +3235,13 @@ class MPS:
 
         return braket_ex_sp, braket_ex_mps, braket_mps_sp
 
-    def     TEBD_variational_Z2_exact(
+    def TEBD_variational_Z2_exact(
         self,
         trotter_steps: int,
         delta: float,
         h_ev: float,
         n_sweeps: int = 2,
-        conv_tol: float = 1e-7,
+        conv_tol: float = 1e-8,
         bond: bool = True,
         where: int = -1,
         exact: bool = False,
@@ -3252,6 +3252,8 @@ class MPS:
         obs_freq: float = 0.3,
         training: bool = False,
         chi_max: int = 128,
+        path: str = None,
+        precision: int = 3
     ):
         """
         variational_mps_evolution
@@ -3313,11 +3315,6 @@ class MPS:
             t_final = dt.datetime.now() - date_start
             print(f"Total time for the electric field density is: {t_final}")
 
-        # electric energy density of a column/cylinder
-        local_column = []
-        if "end" in obs:
-            local_column.append(self.mpo_Z2_column_electric_energy_density(site=self.L // 2))
-        
         # overlap
         overlaps = []
         if "losch" in obs:
@@ -3384,6 +3381,11 @@ class MPS:
             t_final = dt.datetime.now() - date_start
             print(f"Total time for the {trott}-th trotter step is: {t_final}")
 
+            ## saving the temp mps
+            print(f"saving temporarily the mps at {trott}-th trotter step...")
+            filename = f"/results/tensors/time_evolved_tensor_sites_{self.model}_direct_lattice_{self.Z2.l}x{self.Z2.L}_bc_{self.bc}_{self.Z2.sector}_{cx}-{cy}_chi_{self.chi}_h_{self.h:.{precision}f}_delta_{delta}_trotter_{trotter_steps}"
+            self.save_sites_Z2(path, precision, cx, cy, filename=filename)
+
             # compression error
             if training:
                 errors.append(error)
@@ -3420,10 +3422,6 @@ class MPS:
                     t_final = dt.datetime.now() - date_start
                     print(f"Total time for the electric field density is: {t_final}")
 
-                # electric energy density of a column/cylinder
-                if "end" in obs:
-                    local_column.append(self.mpo_Z2_column_electric_energy_density(site=self.L // 2))
-                
                 # overlap
                 if "losch" in obs:
                     if self.bc == "pbc":
@@ -3476,7 +3474,7 @@ class MPS:
                     self.sites.append(aux_qub)
                     self.L = len(self.sites)
 
-        return errors, entropies, svs, electric_local_field, local_column, overlaps, braket_ex_sp, braket_ex_mps, braket_mps_sp
+        return errors, entropies, svs, electric_local_field, overlaps, braket_ex_sp, braket_ex_mps, braket_mps_sp
     
     def TEBD_variational_Z2_trotter_step(
         self,
@@ -3964,7 +3962,7 @@ class MPS:
         return self
 
     def save_sites_Z2(
-        self, path, precision: int = 2, cx: list = np.nan, cy: list = np.nan
+        self, path, precision: int = 2, cx: list = np.nan, cy: list = np.nan, filename: str = None,
     ):
         # shapes of the tensors
         # shapes = tensor_shapes(self.sites)
@@ -3994,7 +3992,9 @@ class MPS:
             chi=self.chi,
             h=self.h,
         )
-        filename = f"/results/tensors/tensor_sites_{self.model}_direct_lattice_{self.Z2.l}x{self.Z2.L}_bc_{self.bc}_{self.Z2.sector}_{cx}-{cy}_chi_{self.chi}_h_{self.h:.{precision}f}"
+        if filename is None:
+            filename = f"/results/tensors/tensor_sites_{self.model}_direct_lattice_{self.Z2.l}x{self.Z2.L}_bc_{self.bc}_{self.Z2.sector}_{cx}-{cy}_chi_{self.chi}_h_{self.h:.{precision}f}"
+        
         with h5py.File(f"{path}{filename}.h5", "w") as f:
             # Save scalar metadata as file attributes
             for key, value in metadata.items():
