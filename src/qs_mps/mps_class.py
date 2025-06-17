@@ -2680,14 +2680,12 @@ class MPS:
                 )
                 threshold = 1e-15
                 s = s[s >= threshold]
-                if bond:
-                    if sites[i] - 1 == where:
-                        s_mid = s
-                        entr = von_neumann_entropy(s)
-                        entropy.append(entr)
+                if sites[i] - 1 == where:
+                    s_mid = s
+                if bond:    
+                    entr = von_neumann_entropy(s)
+                    entropy.append(entr)
                 else:
-                    if sites[i] - 1 == where:
-                        s_mid = s
                     entr = von_neumann_entropy(s)
                     entropy.append(entr)
                 # self.update_envs_ev(sweeps[0], sites[i])
@@ -3253,7 +3251,9 @@ class MPS:
         training: bool = False,
         chi_max: int = 128,
         path: str = None,
-        precision: int = 3
+        precision: int = 3,
+        run_group: str = None,
+        save_file: str = None,
     ):
         """
         variational_mps_evolution
@@ -3286,15 +3286,14 @@ class MPS:
         # compression error
         # errors = [[0]*(n_sweeps*(self.L-1))]
         if training:
-            errors = []
+            errors = np.zeros((self.L-1)*n_sweeps)
         else:
-            errors = [0]
-        
+            errors = np.array([0])
         # entropy
         if bond:
-            entropies = [[0]]
+            entropies = np.array([0])
         else:
-            entropies = [[0]*(self.L)]
+            entropies = np.zeros((self.L-1))
 
         # schmidt_vals
         svs = []
@@ -3387,16 +3386,46 @@ class MPS:
             self.save_sites_Z2(path, precision, cx, cy, filename=filename)
 
             # compression error
+            # if training:
+                # errors.append(error)                
+            # else:
+                # errors.append(error[-1])
+            
+            # save compression error
             if training:
-                errors.append(error)
+                errors = np.array(error)
+                shape_err = (self.L - 1)*n_sweeps
+                name_err = f'errors_trunc/D_{self.chi}/trotter_step_{(trott+1):03d}'
             else:
-                errors.append(error[-1])
+                errors = np.array(error[-1])
+                shape_err = trotter_steps + 1
+                name_err = f'errors_trunc/D_{self.chi}'
+            create_observable_group(save_file, run_group, name_err)
+            prepare_observable_group(save_file, run_group, name_err, shape=shape_err)
+            update_observable(save_file, run_group, name_err, data=errors, attr=trott+1)
+
+            if bond:
+                shape_entr = trotter_steps + 1
+                name_entr = f'entropies/D_{self.chi}'
+            else:
+                shape_entr = (self.L - 1)
+                name_entr = f'entropies/D_{self.chi}/trotter_step_{(trott+1):03d}'
+            entropies = np.array(entropy)
+            create_observable_group(save_file, run_group, name_entr)
+            prepare_observable_group(save_file, run_group, name_entr, shape=shape_entr)
+            update_observable(save_file, run_group, name_entr, data=entropies, attr=trott+1)
             
             # entropy
-            entropies.append(entropy)
+            # entropies.append(entropy)
+            
 
             # schmidt_vals
-            svs.append(schmidt_vals)
+            # svs.append(schmidt_vals)
+            shape_sm = self.chi
+            name_sm = f'schmidt_values/D_{self.chi}/trotter_step_{(trott+1):03d}'
+            create_observable_group(save_file, run_group, name_sm)
+            prepare_observable_group(save_file, run_group, name_sm, shape=shape_sm)
+            update_observable(save_file, run_group, name_sm, data=schmidt_vals, attr=trott+1)
             
             # ============================
             # Observables

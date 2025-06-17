@@ -228,6 +228,13 @@ for L in args.Ls:
     elif args.where == -2:
         args.bond = False
 
+    # create a run group for saving observables
+    h5file = f"{parent_path}/results/results_time.hdf5"
+    params = dict(N=args.l, L=L, R=args.length, cx=charges_x, cy=charges_y, delta=args.delta, 
+                T=args.npoints, of=args.obs_freq, h_i=args.h_i, h_ev=args.h_ev, bc=args.boundcond, chis=args.chis)
+    
+    run_group = create_run_group(h5file, params)
+
     for chi in args.chis:
         if args.chi_max < chi:
             args.chi_max = chi
@@ -255,6 +262,7 @@ for L in args.Ls:
                 except:
                     lattice_mps.canonical_form(svd_direction="right", trunc_chi=False, trunc_tol=True, schmidt_tol=1e-15)
                     entropy = von_neumann_entropy(lattice_mps.bonds[L//2])
+                    schmidt_vals = lattice_mps.bonds[L//2]
                     print("Entropy of initial state for the middle MPS bond")
                     print(entropy)
             else:
@@ -263,6 +271,7 @@ for L in args.Ls:
                 except:
                     lattice_mps.canonical_form(svd_direction="right", trunc_chi=False, trunc_tol=True, schmidt_tol=1e-15)
                     entropy = [von_neumann_entropy(lattice_mps.bonds[i]) for i in range(L-1)]
+                    schmidt_vals = lattice_mps.bonds[L//2]
                     print("Entropy of initial state for all of the MPS bonds")
                     print(entropy)
 
@@ -287,6 +296,44 @@ for L in args.Ls:
         errors_tr = [[0, 0]]
         errors = [0]
         entropies_ev = [entropy]
+
+        n_sweeps = 8
+        if args.training:
+            errors = np.zeros((L-1+1)*n_sweeps) # should be L-1 but we have an ancillary qubit on the right
+        else:
+            errors = np.array([0])
+
+        entropies = np.array(entropy)
+        
+        # create observables group and save them
+
+        
+        if args.training:
+            shape_err = (L - 1 + 1)*n_sweeps
+            name_err = f'errors_trunc/D_{chi}/trotter_step_{0:03d}'
+        else:
+            shape_err = args.npoints + 1
+            name_err = f'errors_trunc/D_{chi}'
+        create_observable_group(h5file, run_group, name_err)
+        prepare_observable_group(h5file, run_group, name_err, shape=shape_err)
+        update_observable(h5file, run_group, name_err, data=errors, attr=0)
+
+        if args.bond:
+            shape_entr = args.npoints + 1
+            name_entr = f'entropies/D_{chi}'
+        else:
+            shape_entr = (L - 1)
+            name_entr = f'entropies/D_{chi}/trotter_step_{0:03d}'
+        create_observable_group(h5file, run_group, name_entr)
+        prepare_observable_group(h5file, run_group, name_entr, shape=shape_entr)
+        update_observable(h5file, run_group, name_entr, data=entropies, attr=0)
+
+        shape_sm = len(schmidt_vals)
+        print(schmidt_vals)
+        name_sm = f'schmidt_values/D_{chi}/trotter_step_{0:03d}'
+        create_observable_group(h5file, run_group, name_sm)
+        prepare_observable_group(h5file, run_group, name_sm, shape=shape_sm)
+        update_observable(h5file, run_group, name_sm, data=schmidt_vals, attr=0)
 
         # ---------------------------------------------------------
         # Trotter Evolution
@@ -379,6 +426,7 @@ for L in args.Ls:
         
         date_start = dt.datetime.now()
         print(f"\n*** Starting TEBD evolution in {dt.datetime.now()} ***\n")
+
         # trotter evolution
         (errs,
         entrs,
@@ -392,8 +440,8 @@ for L in args.Ls:
             trotter_steps=args.npoints,
             delta=args.delta,
             h_ev=args.h_ev,
-            n_sweeps=8,
-            conv_tol=1e-8,
+            n_sweeps=n_sweeps,
+            conv_tol=1e-15,
             bond=args.bond,
             where=L//2,
             aux_qub=aux_qub,
@@ -405,6 +453,8 @@ for L in args.Ls:
             training=args.training,
             chi_max=args.chi_max,
             path=path_tensor,
+            run_group=run_group,
+            save_file=h5file
             )
 
         t_final = dt.datetime.now() - date_start

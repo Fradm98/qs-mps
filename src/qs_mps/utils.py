@@ -13,7 +13,11 @@ from matplotlib.animation import FuncAnimation
 from mpl_toolkits.axes_grid1 import make_axes_locatable
 from typing import Union
 from functools import partial
+import h5py
 import pickle
+import json
+import hashlib
+import time
 
 # ---------------------------------------------------------------------------------------
 # Tensor shapes
@@ -1334,3 +1338,76 @@ def get_cy(l, bc, cy: list=None, R: int=None):
     else:
         print(f"cy given: {cy}")
         return cy
+    
+
+def get_run_group_name(params: dict) -> str:
+    timestamp = time.strftime('%Y%m%d-%H%M%S')
+    hash_part = hashlib.md5(json.dumps(params, sort_keys=True).encode()).hexdigest()[:6]
+    return f"{timestamp}_{hash_part}"
+
+def create_run_group(h5file, params: dict):
+    group_name = get_run_group_name(params)
+    with h5py.File(h5file, 'a') as f:
+        grp = f.create_group(group_name)
+        for key, value in params.items():
+            grp.attrs[key] = value
+    return group_name
+
+def create_observable_group(h5file, run_group, obs_name):
+    with h5py.File(h5file, 'a') as f:
+        run_grp = f[run_group]
+        obs_grp = run_grp.create_group(obs_name)
+
+def prepare_observable_group(h5file, run_group, obs_name, shape):
+    with h5py.File(h5file, 'a') as f:
+        run_grp = f[run_group]
+        obs_grp = run_grp[obs_name]
+        obs_grp.create_dataset('values', shape=shape, maxshape=shape, chunks=True)
+
+def prepare_observable_subgroup(h5file, run_group, obs_name, subname, attr, shape):
+    with h5py.File(h5file, 'a') as f:
+        run_grp = f[run_group]
+        obs_grp = run_grp[obs_name]
+        sub_grp = obs_grp.create_group(f'{subname}_{attr}')
+        sub_grp.attrs[subname] = attr
+        sub_grp.create_dataset('values', shape=shape, maxshape=shape, chunks=True)
+
+def update_observable(h5file, run_group, obs_name, data, attr):
+    with h5py.File(h5file, 'a') as f:
+        dset = f[f"{run_group}/{obs_name}/values"]
+        old_shape = dset.shape
+        print("old shape", old_shape[0])
+        print("data shape", data.shape[0])
+        print(old_shape[0] == data.shape[0])
+        try:
+            assert (old_shape[0] == data.shape[0]), "Maximum shape and data shape are not matching, resizing..."
+        except:
+            dset.resize(data.shape)
+        print("dataset shape", dset.shape)
+        print("data shape", data.shape)
+        print(f"updating {obs_name} at {attr}...")
+        dset[:] = data
+
+
+def observable_subgroup(h5file, run_group, obs_name, subgroup_attr, attr):
+    with h5py.File(h5file, 'a') as f:
+        run_grp = f[run_group]
+        obs_grp = run_grp.create_group(obs_name+f"/{attr}")
+        obs_grp.attrs[subgroup_attr] = attr
+    return obs_grp
+
+def append_observable(h5file, run_group, obs_name, data):
+    with h5py.File(h5file, 'a') as f:
+        dset = f[f"{run_group}/{obs_name}/values"]
+        old_size = dset.shape[0]
+        new_size = old_size + data.shape[0]
+        dset.resize((new_size,) + dset.shape[1:])
+        dset[old_size:new_size] = data
+
+def find_run_by_params(h5file, query_params: dict):
+    with h5py.File(h5file, 'r') as f:
+        for group_name in f:
+            grp = f[group_name]
+            if all(grp.attrs.get(k) == v for k, v in query_params.items()):
+                return group_name
+    return None
