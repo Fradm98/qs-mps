@@ -29,6 +29,17 @@ def ground_state_Z2_param(params):
                 rows=args_mps["charges_x"], columns=args_mps["charges_y"]
             )
             ladder.Z2._define_sector()
+    
+    if args_mps["excited"]:
+        ladder.load_sites(
+            args_mps["path"],
+            args_mps["precision"],
+            args_mps["charges_x"],
+            args_mps["charges_y"],
+        )
+        ladder.ancilla_sites = ladder.sites.copy()
+        ladder.sites = []
+        
     if args_mps["guess"] == []:
         print("Running with random state")
         ladder._random_state(
@@ -47,6 +58,7 @@ def ground_state_Z2_param(params):
         ladder.sites.append(extra_ancillary_site)
         ladder.L = len(ladder.sites)
 
+
     energy, entropy, schmidt_vals, t_dmrg = ladder.DMRG(
         trunc_tol=args_mps["trunc_tol"],
         trunc_chi=args_mps["trunc_chi"],
@@ -54,6 +66,7 @@ def ground_state_Z2_param(params):
         bond=args_mps["bond"],
         n_sweeps=args_mps["n_sweeps"],
         conv_tol=args_mps["conv_tol"],
+        excited=args_mps["excited"],
     )
     # t_final = np.sum(t_dmrg)
     # t_final_gen = dt.timedelta(seconds=t_final)

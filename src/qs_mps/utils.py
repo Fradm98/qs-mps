@@ -1358,35 +1358,40 @@ def create_observable_group(h5file, run_group, obs_name):
         run_grp = f[run_group]
         obs_grp = run_grp.create_group(obs_name)
 
-def prepare_observable_group(h5file, run_group, obs_name, shape):
+def prepare_observable_group(h5file, run_group, obs_name, shape, dtype=None):
     with h5py.File(h5file, 'a') as f:
         run_grp = f[run_group]
         obs_grp = run_grp[obs_name]
-        obs_grp.create_dataset('values', shape=shape, maxshape=shape, chunks=True)
+        obs_grp.create_dataset('values', shape=shape, maxshape=shape, chunks=True, dtype=dtype)
 
-def prepare_observable_subgroup(h5file, run_group, obs_name, subname, attr, shape):
+def prepare_observable_subgroup(h5file, run_group, obs_name, subname, attr, shape, dtype=None):
     with h5py.File(h5file, 'a') as f:
         run_grp = f[run_group]
         obs_grp = run_grp[obs_name]
         sub_grp = obs_grp.create_group(f'{subname}_{attr}')
         sub_grp.attrs[subname] = attr
-        sub_grp.create_dataset('values', shape=shape, maxshape=shape, chunks=True)
+        sub_grp.create_dataset('values', shape=shape, maxshape=shape, chunks=True, dtype=dtype)
 
-def update_observable(h5file, run_group, obs_name, data, attr):
+def update_observable(h5file, run_group, obs_name, data, attr, assign_all: bool=True):
     with h5py.File(h5file, 'a') as f:
         dset = f[f"{run_group}/{obs_name}/values"]
         old_shape = dset.shape
         print("old shape", old_shape[0])
         print("data shape", data.shape[0])
-        print(old_shape[0] == data.shape[0])
-        try:
-            assert (old_shape[0] == data.shape[0]), "Maximum shape and data shape are not matching, resizing..."
-        except:
-            dset.resize(data.shape)
-        print("dataset shape", dset.shape)
-        print("data shape", data.shape)
-        print(f"updating {obs_name} at {attr}...")
-        dset[:] = data
+        if assign_all:
+            try:
+                assert (old_shape[0] == data.shape[0]), "Maximum shape and data shape are not matching, resizing..."
+            except:
+                dset.resize(data.shape)
+            print("dataset shape", dset.shape)
+            print("data shape", data.shape)
+            print(f"updating {obs_name} at {attr}...")
+            dset[:] = data
+        else:
+            print("dataset shape", dset.shape)
+            print("data shape", data.shape)
+            print(f"updating {obs_name} at {attr}...")
+            dset[attr] = data
 
 
 def observable_subgroup(h5file, run_group, obs_name, subgroup_attr, attr):

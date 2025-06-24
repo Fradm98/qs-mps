@@ -62,6 +62,7 @@ class MPS:
         self.k = k  # (take positive values for annni model)
         self.charges = charges
         self.site = 1
+        self.grnd_st = 0
         self.sites = []
         self.bonds = []
         self.ancilla_sites = []
@@ -1995,6 +1996,41 @@ class MPS:
                 self.env_right.append(E_r)
         return self
 
+    def envs_first_excited(self, site: int=1):
+        aux = self.sites[0].shape[0]
+        l = np.zeros(aux)
+        l[0] = 1
+        r = np.zeros(aux)
+        r[-1] = 1
+
+        E_r = ncon([r.T, r.T, r.T, r.T], [[-1], [-2], [-3], [-4]])
+        E_l = ncon([l, l, l, l], [[-1], [-2], [-3], [-4]])
+        self.env_right_sm.append(E_r)
+        self.env_left_sm.append(E_l)
+        array = self.sites.copy()
+        ancilla = self.ancilla_sites.copy()
+
+        # left
+        for i in range(1, site):
+            E_l = ncon([E_l, array[i - 1]], [[1, -3, -4, -5], [1, -2, -1]])
+            E_l = ncon([E_l, ancilla[i - 1].conjugate()], [[-1, 1, 2, -3, -4], [2, 1, -2]])
+            E_l = ncon(
+                [E_l, ancilla[i - 1]], [[-1, -2, 1, -5], [1, -4, -3]]
+            )
+            E_l = ncon([E_l, array[i - 1].conjugate()], [[-1, -2, -3, 1, 2], [2, 1, -4]])
+            self.env_left_sm.append(E_l)
+
+        # right
+        for i in range(self.L, site, -1):
+            E_r = ncon([E_r, array[i - 1]], [[1, -3, -4, -5], [-1, -2, 1]])
+            E_r = ncon([E_r, ancilla[i - 1].conjugate()], [[-1, 1, 2, -3, -4], [-2, 1, 2]])
+            E_r = ncon(
+                [E_r, ancilla[i - 1]], [[-1, -2, 1, -5], [-3, -4, 1]]
+            )
+            E_r = ncon([E_r, array[i - 1].conjugate()], [[-1, -2, -3, 1, 2], [-4, 1, 2]])
+            self.env_left_sm.append(E_r)
+        return self
+    
     def H_eff(self, site):
         """
         H_eff
@@ -2030,7 +2066,7 @@ class MPS:
 
         return H
 
-    def eigensolver(self, v0: np.ndarray = None, H_eff: np.ndarray = None):
+    def eigensolver(self, v0: np.ndarray = None, H_eff: np.ndarray = None, excited: bool = False):
         """
         eigensolver
 
@@ -2047,18 +2083,32 @@ class MPS:
         """
         # time_eig = time.perf_counter()
         if type(H_eff) == type(None):
-            A = TensorMultiplierOperator(
-                (
-                    self.env_left[-1].shape[0]
-                    * self.sites[self.site - 1].shape[1]
-                    * self.env_right[-1].shape[0],
-                    self.env_left[-1].shape[2]
-                    * self.sites[self.site - 1].shape[1]
-                    * self.env_right[-1].shape[2],
-                ),
-                matvec=self.mv,
-                dtype=np.complex128,
-            )
+            if not excited:
+                A = TensorMultiplierOperator(
+                    (
+                        self.env_left[-1].shape[0]
+                        * self.sites[self.site - 1].shape[1]
+                        * self.env_right[-1].shape[0],
+                        self.env_left[-1].shape[2]
+                        * self.sites[self.site - 1].shape[1]
+                        * self.env_right[-1].shape[2],
+                    ),
+                    matvec=self.mv,
+                    dtype=np.complex128,
+                )
+            else:
+                A = TensorMultiplierOperator(
+                    (
+                        self.env_left[-1].shape[0]
+                        * self.sites[self.site - 1].shape[1]
+                        * self.env_right[-1].shape[0],
+                        self.env_left[-1].shape[2]
+                        * self.sites[self.site - 1].shape[1]
+                        * self.env_right[-1].shape[2],
+                    ),
+                    matvec=self.mv_ex,
+                    dtype=np.complex128,
+                )
             # print(f"shape of A: {A.shape}")
             if A.shape[0] == 2:
                 H = self.H_eff(site=self.site)
@@ -2247,6 +2297,45 @@ class MPS:
 
         return self
 
+    def update_envs_excited(self, sweep, site):
+        """
+        update_envs
+
+        This function updates the left and right environments for the next
+        site optimization performed by the eigensolver. After the update of the mps
+        in LCF and RCF we can compute the new environment and throw the one we do not need.
+
+        sweep: string - direction of the sweeping. Could be "left" or "right"
+        site: int - site we are optimizing
+
+        """
+        if sweep == "right":
+            # time_upd_env = time.perf_counter()
+            array = self.sites[site - 1]
+            ancilla_array = array
+            w = self.w[site - 1]
+            E_l = self.env_left_sm[-1]
+            E_l = ncon([E_l, ancilla_array], [[1, -3, -4, -5], [1, -2, -1]])
+            E_l = ncon([E_l, self.ancilla_sites[site - 1].conjugate()], [[-1, 1, 2, -3, -4], [2, 1, -2]])
+            E_l = ncon([E_l, self.ancilla_sites[site - 1]], [[-1, -2, 1, -5], [1, -4, -3]])
+            E_l = ncon([E_l, array.conjugate()], [[-1, -2, -3, 1, 2], [2, 1, -4]])
+            self.env_left_sm.append(E_l)
+            self.env_right_sm.pop(-1)
+
+        if sweep == "left":
+            array = self.sites[site - 1]
+            ancilla_array = array
+            w = self.w[site - 1]
+            E_r = self.env_right_sm[-1]
+            E_r = ncon([E_r, ancilla_array], [[1, -3, -4, -5], [-1, -2, 1]])
+            E_r = ncon([E_r, self.ancilla_sites[site - 1].conjugate()], [[-1, 1, 2, -3, -4], [-2, 1, 2]])
+            E_r = ncon([E_r, self.ancilla_sites[site - 1]], [[-1, -2, 1, -5], [-3, -4, 1]])
+            E_r = ncon([E_r, array.conjugate()], [[-1, -2, -3, 1, 2], [-4, 1, 2]])
+            self.env_right_sm.append(E_r)
+            self.env_left_sm.pop(-1)
+
+        return self
+    
     def mv(self, v):
         v = v.reshape(
             self.env_left[-1].shape[0],
@@ -2257,6 +2346,25 @@ class MPS:
         res = ncon([res, self.w[self.site - 1]], [[-1, 1, 2, -4], [2, -2, 1, -3]])
         res = ncon([res, self.env_right[-1]], [[1, 2, -2, -1], [1, 2, -3]])
         res = res.flatten()
+        return res
+    
+    def mv_ex(self, v):
+        v = v.reshape(
+            self.env_left[-1].shape[0],
+            self.sites[self.site - 1].shape[1],
+            self.env_right[-1].shape[0],
+        )
+        vec_eff = ncon([self.env_left[-1], v], [[1, -3, -4], [1, -2, -1]])
+        vec_eff = ncon([vec_eff, self.w[self.site - 1]], [[-1, 1, 2, -4], [2, -2, 1, -3]])
+        vec_eff = ncon([vec_eff, self.env_right[-1]], [[1, 2, -2, -1], [1, 2, -3]])
+        
+        vec_prj = ncon([self.env_left_sm[-1], v], [[1, -3, -4, -5], [1, -2, -1]])
+        vec_prj = ncon([vec_prj, self.ancilla_sites[self.site - 1].conjugate(), self.ancilla_sites[self.site - 1]], [[-1, 1, 2, 3, -5], [2, 1, -2], [3, -4, -3]])
+        vec_prj = ncon([vec_prj, self.env_right_sm[-1]], [[1, 2, 3, -2, -1], [1, 2, 3, -3]])
+        
+        vec_eff = vec_eff.flatten()
+        vec_prj = vec_prj.flatten()
+        res = vec_eff - self.grnd_st*vec_prj
         return res
 
     def DMRG(
@@ -2270,6 +2378,7 @@ class MPS:
         n_sweeps: int = 2,
         bond: bool = True,
         where: int = -1,
+        excited: bool = False,
     ):
         energies = []
         sweeps = ["right", "left"]
@@ -2283,6 +2392,14 @@ class MPS:
         if self.w == None:
             self.mpo(long=long, trans=trans)
         self.envs()
+
+        if excited:
+            self.grnd_st = self.mpo_first_moment(ancilla=True).real
+            a = np.zeros((1, 2))
+            a[0, 0] = 1
+            extra_ancillary_site = a.reshape((1, 2, 1))
+            self.ancilla_sites.append(extra_ancillary_site)
+            self.envs_first_excited()
 
         iter = 1
         H = None
@@ -2303,7 +2420,7 @@ class MPS:
                 # print(f"Time effective Ham: {abs(time.perf_counter()-t_start)}")
                 # t_start = time.perf_counter()
                 self.site = sites[i]
-                energy = self.eigensolver(v0=v0, H_eff=H)  # , v0=v0
+                energy = self.eigensolver(v0=v0, H_eff=H, excited=excited)  # , v0=v0
                 # energy = self.eigensolver(H_eff=H, site=sites[i], v0=v0) # , v0=v0
                 # print(f"Time eigensolver: {abs(time.perf_counter()-t_start)}")
                 energies.append(energy)
@@ -2324,6 +2441,8 @@ class MPS:
 
                 # t_start = time.perf_counter()
                 self.update_envs(sweeps[0], sites[i])
+                if excited:
+                    self.update_envs_excited(sweeps[0], sites[i])
                 # print(f"Time update envs: {abs(time.perf_counter()-t_start)}")
                 iter += 1
 
@@ -2680,12 +2799,14 @@ class MPS:
                 )
                 threshold = 1e-15
                 s = s[s >= threshold]
-                if sites[i] - 1 == where:
-                    s_mid = s
-                if bond:    
-                    entr = von_neumann_entropy(s)
-                    entropy.append(entr)
+                if bond:
+                    if sites[i] - 1 == where:
+                        s_mid = s
+                        entr = von_neumann_entropy(s)
+                        entropy.append(entr)
                 else:
+                    if sites[i] - 1 == where:
+                        s_mid = s    
                     entr = von_neumann_entropy(s)
                     entropy.append(entr)
                 # self.update_envs_ev(sweeps[0], sites[i])
@@ -3304,9 +3425,11 @@ class MPS:
             date_start = dt.datetime.now()
             print(f"\n*** Computing electric field density in date: {dt.datetime.now()} ***\n")
             if self.bc == "obc":
-                E_h = np.zeros((2 * self.Z2.l + 1, 2 * self.L + 1))
+                shape_el_field = (2 * self.Z2.l + 1, 2 * self.L + 1)
+                E_h = np.zeros(shape_el_field)
             if self.bc == "pbc":
-                E_h = np.zeros((2 * self.Z2.l, 2 * self.L + 1))
+                shape_el_field = (2 * self.Z2.l, 2 * self.L + 1)
+                E_h = np.zeros(shape_el_field)
             
             E_h[:] = np.nan
             E_h = self.electric_field_Z2(E_h, aux_qub=aux_qub, reduced=False)
@@ -3314,8 +3437,13 @@ class MPS:
             t_final = dt.datetime.now() - date_start
             print(f"Total time for the electric field density is: {t_final}")
 
+            name_el_field = f'electric_fields/D_{self.chi}/trotter_step_{0:03d}'
+            create_observable_group(save_file, run_group, name_el_field)
+            prepare_observable_group(save_file, run_group, name_el_field, shape=shape_el_field)
+            update_observable(save_file, run_group, name_el_field, data=E_h, attr=0)
+
         # overlap
-        overlaps = []
+        # overlaps = []
         if "losch" in obs:
             if self.bc == "pbc":
                 self.sites.append(aux_qub)
@@ -3323,12 +3451,19 @@ class MPS:
             
             psi_init = self.sites.copy()
             self.ancilla_sites = psi_init.copy()
-            overlaps.append(self._compute_norm(site=1, mixed=True))
+            # overlaps.append(self._compute_norm(site=1, mixed=True))
+            overlaps = np.array([self._compute_norm(site=1, mixed=True)])
+            print('overlap', overlaps, overlaps.shape)
             self.ancilla_sites = []
             if self.bc == "pbc":
                 aux_qub = self.sites.pop(-1)
                 self.L = len(self.sites)
 
+            name_ov = f'overlaps/D_{self.chi}'
+            create_observable_group(save_file, run_group, name_ov)
+            prepare_observable_group(save_file, run_group, name_ov, shape=trotter_steps + 1, dtype=np.complex128)
+            update_observable(save_file, run_group, name_ov, data=overlaps, attr=0, assign_all=False)
+            
         # exact
         braket_ex_sp = [1]
         braket_ex_mps = [1]
@@ -3360,8 +3495,7 @@ class MPS:
         if self.bc == "pbc":
             self.sites.append(aux_qub)
             self.L = len(self.sites)
-            
-
+        
         self.ancilla_sites = self.sites.copy()
 
         for trott in range(trotter_steps):
@@ -3384,43 +3518,35 @@ class MPS:
             print(f"saving temporarily the mps at {trott}-th trotter step...")
             filename = f"/results/tensors/time_evolved_tensor_sites_{self.model}_direct_lattice_{self.Z2.l}x{self.Z2.L}_bc_{self.bc}_{self.Z2.sector}_{cx}-{cy}_chi_{self.chi}_h_{self.h:.{precision}f}_delta_{delta}_trotter_{trotter_steps}"
             self.save_sites_Z2(path, precision, cx, cy, filename=filename)
-
-            # compression error
-            # if training:
-                # errors.append(error)                
-            # else:
-                # errors.append(error[-1])
             
             # save compression error
             if training:
                 errors = np.array(error)
                 shape_err = (self.L - 1)*n_sweeps
                 name_err = f'errors_trunc/D_{self.chi}/trotter_step_{(trott+1):03d}'
+                create_observable_group(save_file, run_group, name_err)
+                prepare_observable_group(save_file, run_group, name_err, shape=shape_err)
+                update_observable(save_file, run_group, name_err, data=errors, attr=trott+1)
             else:
-                errors = np.array(error[-1])
-                shape_err = trotter_steps + 1
+                errors = np.array([error[-1]])
                 name_err = f'errors_trunc/D_{self.chi}'
-            create_observable_group(save_file, run_group, name_err)
-            prepare_observable_group(save_file, run_group, name_err, shape=shape_err)
-            update_observable(save_file, run_group, name_err, data=errors, attr=trott+1)
+                update_observable(save_file, run_group, name_err, data=errors, attr=trott+1, assign_all=False)
 
+            # save entropy
             if bond:
-                shape_entr = trotter_steps + 1
+                entropies = np.array([entropy])
+                print(entropies)
                 name_entr = f'entropies/D_{self.chi}'
+                update_observable(save_file, run_group, name_entr, data=entropies, attr=trott+1, assign_all=False)
             else:
+                entropies = np.array(entropy)
                 shape_entr = (self.L - 1)
                 name_entr = f'entropies/D_{self.chi}/trotter_step_{(trott+1):03d}'
-            entropies = np.array(entropy)
-            create_observable_group(save_file, run_group, name_entr)
-            prepare_observable_group(save_file, run_group, name_entr, shape=shape_entr)
-            update_observable(save_file, run_group, name_entr, data=entropies, attr=trott+1)
-            
-            # entropy
-            # entropies.append(entropy)
-            
+                create_observable_group(save_file, run_group, name_entr)
+                prepare_observable_group(save_file, run_group, name_entr, shape=shape_entr)
+                update_observable(save_file, run_group, name_entr, data=entropies, attr=trott+1)
 
             # schmidt_vals
-            # svs.append(schmidt_vals)
             shape_sm = self.chi
             name_sm = f'schmidt_values/D_{self.chi}/trotter_step_{(trott+1):03d}'
             create_observable_group(save_file, run_group, name_sm)
@@ -3451,6 +3577,11 @@ class MPS:
                     t_final = dt.datetime.now() - date_start
                     print(f"Total time for the electric field density is: {t_final}")
 
+                    name_el_field = f'electric_fields/D_{self.chi}/trotter_step_{(trott+1):03d}'
+                    create_observable_group(save_file, run_group, name_el_field)
+                    prepare_observable_group(save_file, run_group, name_el_field, shape=shape_el_field)
+                    update_observable(save_file, run_group, name_el_field, data=E_h, attr=trott+1)
+                
                 # overlap
                 if "losch" in obs:
                     if self.bc == "pbc":
@@ -3458,12 +3589,17 @@ class MPS:
                         self.L = len(self.sites)
                     
                     self.ancilla_sites = psi_init.copy()
-                    overlaps.append(self._compute_norm(site=1, mixed=True))
+                    # overlaps.append(self._compute_norm(site=1, mixed=True))
+                    overlaps = np.array([self._compute_norm(site=1, mixed=True)])
                     self.ancilla_sites = []
                     if self.bc == "pbc":
                         aux_qub = self.sites.pop(-1)
                         self.L = len(self.sites)
 
+                    # overlap
+                    name_ov = f'overlaps/D_{self.chi}'
+                    update_observable(save_file, run_group, name_ov, data=overlaps, attr=trott+1, assign_all=False)
+                
                 # exact
                 if exact:
                     difference = np.linalg.norm(matrix_mpo - U_ev_sp.toarray())

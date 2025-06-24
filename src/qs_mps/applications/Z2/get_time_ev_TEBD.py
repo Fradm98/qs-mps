@@ -298,38 +298,40 @@ for L in args.Ls:
         entropies_ev = [entropy]
 
         n_sweeps = 8
-        if args.training:
-            errors = np.zeros((L-1+1)*n_sweeps) # should be L-1 but we have an ancillary qubit on the right
-        else:
-            errors = np.array([0])
-
-        entropies = np.array(entropy)
         
         # create observables group and save them
-
         
         if args.training:
+            errors = np.zeros((L-1+1)*n_sweeps) # should be L-1 but we have an ancillary qubit on the right
             shape_err = (L - 1 + 1)*n_sweeps
             name_err = f'errors_trunc/D_{chi}/trotter_step_{0:03d}'
+            create_observable_group(h5file, run_group, name_err)
+            prepare_observable_group(h5file, run_group, name_err, shape=shape_err)
+            update_observable(h5file, run_group, name_err, data=errors, attr=0)
         else:
+            errors = np.array([0])
             shape_err = args.npoints + 1
             name_err = f'errors_trunc/D_{chi}'
-        create_observable_group(h5file, run_group, name_err)
-        prepare_observable_group(h5file, run_group, name_err, shape=shape_err)
-        update_observable(h5file, run_group, name_err, data=errors, attr=0)
+            create_observable_group(h5file, run_group, name_err)
+            prepare_observable_group(h5file, run_group, name_err, shape=shape_err)
+            update_observable(h5file, run_group, name_err, data=errors, attr=0, assign_all=False)
 
         if args.bond:
+            entropies = np.array([entropy])
             shape_entr = args.npoints + 1
             name_entr = f'entropies/D_{chi}'
+            create_observable_group(h5file, run_group, name_entr)
+            prepare_observable_group(h5file, run_group, name_entr, shape=shape_entr)
+            update_observable(h5file, run_group, name_entr, data=entropies, attr=0, assign_all=False)
         else:
+            entropies = np.array(entropy)
             shape_entr = (L - 1)
             name_entr = f'entropies/D_{chi}/trotter_step_{0:03d}'
-        create_observable_group(h5file, run_group, name_entr)
-        prepare_observable_group(h5file, run_group, name_entr, shape=shape_entr)
-        update_observable(h5file, run_group, name_entr, data=entropies, attr=0)
+            create_observable_group(h5file, run_group, name_entr)
+            prepare_observable_group(h5file, run_group, name_entr, shape=shape_entr)
+            update_observable(h5file, run_group, name_entr, data=entropies, attr=0)
 
         shape_sm = len(schmidt_vals)
-        print(schmidt_vals)
         name_sm = f'schmidt_values/D_{chi}/trotter_step_{0:03d}'
         create_observable_group(h5file, run_group, name_sm)
         prepare_observable_group(h5file, run_group, name_sm, shape=shape_sm)
