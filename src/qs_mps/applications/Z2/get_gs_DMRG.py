@@ -149,6 +149,12 @@ parser.add_argument(
     default=3,
     type=int,
 )
+parser.add_argument(
+    "-exc",
+    "--excited",
+    help="First excited state. By default False",
+    action="store_true",
+)
 
 args = parser.parse_args()
 
@@ -239,6 +245,7 @@ for L in args.Ls:
             "guess": init_tensor,
             "bc": args.boundcond,
             "cc": args.chargeconv,
+            "excited": args.excited,
         }
 
         if __name__ == "__main__":

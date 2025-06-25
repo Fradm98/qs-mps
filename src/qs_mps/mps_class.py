@@ -2028,7 +2028,7 @@ class MPS:
                 [E_r, ancilla[i - 1]], [[-1, -2, 1, -5], [-3, -4, 1]]
             )
             E_r = ncon([E_r, array[i - 1].conjugate()], [[-1, -2, -3, 1, 2], [-4, 1, 2]])
-            self.env_left_sm.append(E_r)
+            self.env_right_sm.append(E_r)
         return self
     
     def H_eff(self, site):
@@ -2313,7 +2313,6 @@ class MPS:
             # time_upd_env = time.perf_counter()
             array = self.sites[site - 1]
             ancilla_array = array
-            w = self.w[site - 1]
             E_l = self.env_left_sm[-1]
             E_l = ncon([E_l, ancilla_array], [[1, -3, -4, -5], [1, -2, -1]])
             E_l = ncon([E_l, self.ancilla_sites[site - 1].conjugate()], [[-1, 1, 2, -3, -4], [2, 1, -2]])
@@ -2325,7 +2324,6 @@ class MPS:
         if sweep == "left":
             array = self.sites[site - 1]
             ancilla_array = array
-            w = self.w[site - 1]
             E_r = self.env_right_sm[-1]
             E_r = ncon([E_r, ancilla_array], [[1, -3, -4, -5], [-1, -2, 1]])
             E_r = ncon([E_r, self.ancilla_sites[site - 1].conjugate()], [[-1, 1, 2, -3, -4], [-2, 1, 2]])
@@ -2391,15 +2389,12 @@ class MPS:
 
         if self.w == None:
             self.mpo(long=long, trans=trans)
-        self.envs()
 
         if excited:
             self.grnd_st = self.mpo_first_moment(ancilla=True).real
-            a = np.zeros((1, 2))
-            a[0, 0] = 1
-            extra_ancillary_site = a.reshape((1, 2, 1))
-            self.ancilla_sites.append(extra_ancillary_site)
             self.envs_first_excited()
+
+        self.envs()
 
         iter = 1
         H = None

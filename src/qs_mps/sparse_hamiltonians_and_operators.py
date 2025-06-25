@@ -489,10 +489,10 @@ def electric_field(l: int, L: int, statevector: np.ndarray, cx: list=[], cy: lis
 # Diagonalization
 # ---------------------------------------------------------------------------------------
 def diagonalization(
-    H: csc_matrix, sparse: bool, v0: np.ndarray = None, k: int = 1, which: str = "SA"
+    H: csc_matrix, sparse: bool, v0: np.ndarray = None, k: int = 1, which: str = "SA", maxiter: int = None
 ):
     if sparse:
-        e, v = spla.eigsh(H, k=k, which=which, v0=v0)
+        e, v = spla.eigsh(H, k=k, which=which, v0=v0, maxiter=maxiter)
     else:
         e, v = la.eigh(H.toarray())
     return e, v

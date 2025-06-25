@@ -39,7 +39,7 @@ def ground_state_Z2_param(params):
         )
         ladder.ancilla_sites = ladder.sites.copy()
         ladder.sites = []
-        
+
     if args_mps["guess"] == []:
         print("Running with random state")
         ladder._random_state(
@@ -57,7 +57,9 @@ def ground_state_Z2_param(params):
         extra_ancillary_site = a.reshape((1, 2, 1))
         ladder.sites.append(extra_ancillary_site)
         ladder.L = len(ladder.sites)
-
+        if args_mps["excited"]:
+            ladder.ancilla_sites.append(extra_ancillary_site)
+            
 
     energy, entropy, schmidt_vals, t_dmrg = ladder.DMRG(
         trunc_tol=args_mps["trunc_tol"],
