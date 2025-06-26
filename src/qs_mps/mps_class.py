@@ -2371,7 +2371,7 @@ class MPS:
         
         vec_eff = vec_eff.flatten()
         vec_prj = vec_prj.flatten()
-        res = vec_eff - self.grnd_st*vec_prj
+        res = vec_eff - (10*self.grnd_st)*vec_prj
         return res
 
     def DMRG(

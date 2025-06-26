@@ -53,8 +53,9 @@ def ground_state_Z2_param(params):
 
     if ladder.bc == "pbc":
         a = np.zeros((1, 2))
-        a[0, 0] = 1
+        a[0, 0] = -1
         extra_ancillary_site = a.reshape((1, 2, 1))
+        # extra_ancillary_site = np.random.rand(1, 2, 1)
         ladder.sites.append(extra_ancillary_site)
         ladder.L = len(ladder.sites)
         if args_mps["excited"]:
@@ -78,7 +79,8 @@ def ground_state_Z2_param(params):
 
     if not args_mps["training"]:
         energy = energy[-1]
-
+    
+    print(ladder.sites[-1])
     if save:
         if ladder.bc == "pbc":
             # ladder.sites.pop()
