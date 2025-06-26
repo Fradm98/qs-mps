@@ -2141,6 +2141,7 @@ class MPS:
         trunc_tol: bool = True,
         trunc_chi: bool = False,
         schmidt_tol: float = 1e-15,
+        ancilla: bool = False,
     ):
         """
         update_state
@@ -2157,83 +2158,91 @@ class MPS:
         precision: int - indicates the precision of the parameter h
 
         """
+        if ancilla:
+            array = self.ancilla_sites
+            shape_left = self.env_left_sm[-1].shape[2]
+            shape_right = self.env_right_sm[-1].shape[2]
+        else:
+            array = self.sites
+            shape_left = self.env_left[-1].shape[2]
+            shape_right = self.env_right[-1].shape[2]
         if sweep == "right":
             # we want to write M (left,d,right) in LFC -> (left*d,right)
-            m = self.sites[site - 1].reshape(
-                self.env_left[-1].shape[2] * self.sites[self.site - 1].shape[1],
-                self.env_right[-1].shape[2],
+            m = array[site - 1].reshape(
+                shape_left * array[self.site - 1].shape[1],
+                shape_right,
             )
             u, s, v = la.svd(m, full_matrices=False)
             if trunc_tol:
                 condition = s >= schmidt_tol
                 s_trunc = np.extract(condition, s)
                 s = s_trunc / la.norm(s_trunc)
-                bond_l = u.shape[0] // self.sites[self.site - 1].shape[1]
-                u = u.reshape(bond_l, self.sites[self.site - 1].shape[1], u.shape[1])
+                bond_l = u.shape[0] // array[self.site - 1].shape[1]
+                u = u.reshape(bond_l, array[self.site - 1].shape[1], u.shape[1])
                 u = u[:, :, : len(s)]
                 v = v[: len(s), :]
             elif trunc_chi:
                 s_trunc = s[: self.chi]
                 s = s_trunc / la.norm(s_trunc)
-                bond_l = u.shape[0] // self.sites[self.site - 1].shape[1]
-                u = u.reshape(bond_l, self.sites[self.site - 1].shape[1], u.shape[1])
+                bond_l = u.shape[0] // array[self.site - 1].shape[1]
+                u = u.reshape(bond_l, array[self.site - 1].shape[1], u.shape[1])
                 u = u[:, :, : len(s)]
                 v = v[: len(s), :]
             else:
                 u = u.reshape(
-                    self.env_left[-1].shape[2],
-                    self.sites[self.site - 1].shape[1],
-                    self.env_right[-1].shape[2],
+                    shape_left,
+                    array[self.site - 1].shape[1],
+                    shape_right,
                 )
             next_site = ncon(
-                [np.diag(s), v, self.sites[site]],
+                [np.diag(s), v, array[site]],
                 [
                     [-1, 1],
                     [1, 2],
                     [2, -2, -3],
                 ],
             )
-            self.sites[site - 1] = u
-            self.sites[site] = next_site
+            array[site - 1] = u
+            array[site] = next_site
 
         elif sweep == "left":
             # we want to write M (left,d,right) in RFC -> (left,d*right)
-            m = self.sites[site - 1].reshape(
-                self.env_left[-1].shape[2],
-                self.sites[self.site - 1].shape[1] * self.env_right[-1].shape[2],
+            m = array[site - 1].reshape(
+                shape_left,
+                array[self.site - 1].shape[1] * shape_right,
             )
             u, s, v = la.svd(m, full_matrices=False)
             if trunc_tol:
                 condition = s >= schmidt_tol
                 s_trunc = np.extract(condition, s)
                 s = s_trunc / la.norm(s_trunc)
-                bond_r = v.shape[1] // self.sites[self.site - 1].shape[1]
-                v = v.reshape(v.shape[0], self.sites[self.site - 1].shape[1], bond_r)
+                bond_r = v.shape[1] // array[self.site - 1].shape[1]
+                v = v.reshape(v.shape[0], array[self.site - 1].shape[1], bond_r)
                 v = v[: len(s), :, :]
                 u = u[:, : len(s)]
             elif trunc_chi:
                 s_trunc = s[: self.chi]
                 s = s_trunc / la.norm(s_trunc)
-                bond_r = v.shape[1] // self.sites[self.site - 1].shape[1]
-                v = v.reshape(v.shape[0], self.sites[self.site - 1].shape[1], bond_r)
+                bond_r = v.shape[1] // array[self.site - 1].shape[1]
+                v = v.reshape(v.shape[0], array[self.site - 1].shape[1], bond_r)
                 v = v[: len(s), :, :]
                 u = u[:, : len(s)]
             else:
                 v = v.reshape(
-                    self.env_left[-1].shape[2],
-                    self.sites[self.site - 1].shape[1],
-                    self.env_right[-1].shape[2],
+                    shape_left,
+                    array[self.site - 1].shape[1],
+                    shape_right,
                 )
             next_site = ncon(
-                [self.sites[site - 2], u, np.diag(s)],
+                [array[site - 2], u, np.diag(s)],
                 [
                     [-1, -2, 1],
                     [1, 2],
                     [2, -3],
                 ],
             )
-            self.sites[site - 1] = v
-            self.sites[site - 2] = next_site
+            array[site - 1] = v
+            array[site - 2] = next_site
 
         return s
 
@@ -2437,6 +2446,8 @@ class MPS:
                 # t_start = time.perf_counter()
                 self.update_envs(sweeps[0], sites[i])
                 if excited:
+                    self.update_state(sweeps[0], sites[i], trunc_tol, trunc_chi, schmidt_tol, ancilla=True)
+                    # self.check_canonical(site=sites[i], ancilla=True)
                     self.update_envs_excited(sweeps[0], sites[i])
                 # print(f"Time update envs: {abs(time.perf_counter()-t_start)}")
                 iter += 1
@@ -4014,7 +4025,7 @@ class MPS:
         return bond_dims
 
     def save_sites(
-        self, path: str, precision: int = 2, cx: list = None, cy: list = None
+        self, path: str, precision: int = 2, cx: list = None, cy: list = None, excited: bool = False,
     ):
         """
         save_sites
@@ -4034,7 +4045,7 @@ class MPS:
         elif "ANNNI" == self.model:
             self.save_sites_ANNNI(path=path, precision=precision)
         elif "Z2" in self.model:
-            self.save_sites_Z2(path=path, precision=precision, cx=cx, cy=cy)
+            self.save_sites_Z2(path=path, precision=precision, cx=cx, cy=cy, excited=excited)
         elif "XXZ" in self.model:
             self.save_sites_XXZ(path=path, precision=precision)
         else:
@@ -4122,7 +4133,7 @@ class MPS:
         return self
 
     def save_sites_Z2(
-        self, path, precision: int = 2, cx: list = np.nan, cy: list = np.nan, filename: str = None,
+        self, path, precision: int = 2, cx: list = np.nan, cy: list = np.nan, filename: str = None, excited: bool = False,
     ):
         # shapes of the tensors
         # shapes = tensor_shapes(self.sites)
@@ -4153,7 +4164,10 @@ class MPS:
             h=self.h,
         )
         if filename is None:
-            filename = f"/results/tensors/tensor_sites_{self.model}_direct_lattice_{self.Z2.l}x{self.Z2.L}_bc_{self.bc}_{self.Z2.sector}_{cx}-{cy}_chi_{self.chi}_h_{self.h:.{precision}f}"
+            if excited:
+                filename = f"/results/tensors/tensor_sites_first_excited_{self.model}_direct_lattice_{self.Z2.l}x{self.Z2.L}_bc_{self.bc}_{self.Z2.sector}_{cx}-{cy}_chi_{self.chi}_h_{self.h:.{precision}f}"
+            else:
+                filename = f"/results/tensors/tensor_sites_{self.model}_direct_lattice_{self.Z2.l}x{self.Z2.L}_bc_{self.bc}_{self.Z2.sector}_{cx}-{cy}_chi_{self.chi}_h_{self.h:.{precision}f}"
         
         with h5py.File(f"{path}{filename}.h5", "w") as f:
             # Save scalar metadata as file attributes

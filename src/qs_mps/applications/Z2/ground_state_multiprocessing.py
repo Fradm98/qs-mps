@@ -88,6 +88,7 @@ def ground_state_Z2_param(params):
             args_mps["precision"],
             args_mps["charges_x"],
             args_mps["charges_y"],
+            args_mps["excited"],
         )
     # new_guess = ladder.sites.copy()
 
