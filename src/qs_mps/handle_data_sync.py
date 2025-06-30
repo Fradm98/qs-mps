@@ -10,7 +10,7 @@ observable = "energy_data"
 # observable = "entropy_data"
 # observable = "error_data"
 # observable = "overlap"
-observable = "electric_field"
+# observable = "electric_field"
 
 # List of server information
 all_servers = [
