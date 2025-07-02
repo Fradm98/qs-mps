@@ -8,6 +8,7 @@ from qs_mps.utils import mpo_to_matrix
 from ncon import ncon
 from scipy.sparse import csc_array, identity, linalg
 import numpy as np
+from typing import Optional, Literal
 
 
 class MPO_ladder:
@@ -341,9 +342,73 @@ class MPO_ladder:
             elif self.cc == "h":
                 mpo_list = self.mpo_Z2_ladder_generalized_obc_cc_h()
         elif self.bc == "pbc":
-            mpo_list = self.mpo_Z2_ladder_generalized_pbc()
+            # mpo_list = self.mpo_Z2_ladder_generalized_pbc()
+            mpo_list = self.mpo_Z2_ladder_generalized_topological()
         self.mpo = mpo_list
         return mpo_list
+
+    def mpo_Z2_ladder_generalized_topological(self, topological_sector: Optional[Literal[1,-1]] = 1):
+        dof = self.l * self.L + 1
+
+        prod_charges = np.prod(self.charges, axis=1).tolist()
+
+        # initialize
+        self.mpo_skeleton()
+        mpo_list = []
+        for c in range(self.L):
+            for f in range(self.l):
+                ## Vertical Bulk ----------------------------------------------
+                # first row, for the zz horizontal interactions
+                self.mpo[0, f + 1] = sparse_pauli_z(n=f, L=self.l).toarray()
+                # last column, for the zz horizontal interactions
+                self.mpo[f + 1, -1] = (
+                    -self.lamb * sparse_pauli_z(n=f, L=self.l).toarray()
+                )
+                ## Horizontal Bulk ----------------------------------------------
+                # first row last column, for the "local" zz vertical interaction
+                coeff = np.prod(self.charges[(f + 1) % self.l, : c + 1])
+                # print(f"coeff column {c}, file {f} is : {coeff}")
+                self.mpo[0, -1] += (
+                    -self.lamb
+                    * coeff
+                    * (
+                        sparse_pauli_z(n=f, L=self.l).toarray()
+                        @ sparse_pauli_z(n=(f + 1) % self.l, L=self.l).toarray()
+                    )
+                )
+                ## Plaquette ----------------------------------------------
+                # first row last column, for the local x plaquette terms
+                self.mpo[0, -1] += (
+                    -1 / self.lamb * sparse_pauli_x(n=f, L=self.l).toarray()
+                )
+
+            ## Vertical Left ----------------------------------------------
+            # first row last column, for the local z vertical terms on the left boundary
+            if c == 0:
+                for f in range(self.l):
+                    self.mpo[0, -1] += (
+                        -self.lamb * sparse_pauli_z(n=f, L=self.l).toarray()
+                    )
+
+
+            ## Vertical Right ----------------------------------------------
+            # last column, treat it as a local term with charge coefficient
+            if c == (self.L - 1): 
+                for f in range(self.l):
+                    coeff = np.prod(prod_charges[: f + 1])
+                    self.mpo[0, -1] += (
+                            -self.lamb
+                            * topological_sector
+                            * coeff 
+                            * sparse_pauli_z(n=f, L=self.l).toarray()
+                        )
+
+            mpo_list.append(self.mpo)
+            self.mpo_skeleton()
+
+        self.mpo = mpo_list
+        return mpo_list
+
 
     def mpo_Z2_ladder_generalized_pbc(self):
         # # degrees of freedom

@@ -51,15 +51,15 @@ def ground_state_Z2_param(params):
         ladder.sites = args_mps["guess"].copy()
         ladder.enlarge_chi()
 
-    if ladder.bc == "pbc":
-        a = np.zeros((1, 2))
-        a[0, 0] = -1
-        extra_ancillary_site = a.reshape((1, 2, 1))
-        # extra_ancillary_site = np.random.rand(1, 2, 1)
-        ladder.sites.append(extra_ancillary_site)
-        ladder.L = len(ladder.sites)
-        if args_mps["excited"]:
-            ladder.ancilla_sites.append(extra_ancillary_site)
+    # if ladder.bc == "pbc":
+    #     a = np.zeros((1, 2))
+    #     a[0, 0] = -1
+    #     extra_ancillary_site = a.reshape((1, 2, 1))
+    #     # extra_ancillary_site = np.random.rand(1, 2, 1)
+    #     ladder.sites.append(extra_ancillary_site)
+    #     ladder.L = len(ladder.sites)
+    #     if args_mps["excited"]:
+    #         ladder.ancilla_sites.append(extra_ancillary_site)
             
 
     energy, entropy, schmidt_vals, t_dmrg = ladder.DMRG(
@@ -80,11 +80,10 @@ def ground_state_Z2_param(params):
     if not args_mps["training"]:
         energy = energy[-1]
     
-    print(ladder.sites[-1])
     if save:
-        if ladder.bc == "pbc":
-            # ladder.sites.pop()
-            ladder.L = len(ladder.sites) - 1
+        # if ladder.bc == "pbc":
+        #     # ladder.sites.pop()
+        #     ladder.L = len(ladder.sites) - 1
         ladder.save_sites(
             args_mps["path"],
             args_mps["precision"],
