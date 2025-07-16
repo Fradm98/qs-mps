@@ -1996,15 +1996,15 @@ class MPS:
                 self.env_right.append(E_r)
         return self
 
-    def envs_first_excited(self, site: int=1):
+    def envs_first_excited(self, site: int=1, improved: bool=True):
         aux = self.sites[0].shape[0]
         l = np.zeros(aux)
         l[0] = 1
         r = np.zeros(aux)
         r[-1] = 1
 
-        E_r = ncon([r.T, r.T, r.T, r.T], [[-1], [-2], [-3], [-4]])
-        E_l = ncon([l, l, l, l], [[-1], [-2], [-3], [-4]])
+        E_r = ncon([r.T, r.T], [[-1], [-2]])
+        E_l = ncon([l, l], [[-1], [-2]])
         self.env_right_sm.append(E_r)
         self.env_left_sm.append(E_l)
         array = self.sites.copy()
@@ -2012,23 +2012,44 @@ class MPS:
 
         # left
         for i in range(1, site):
-            E_l = ncon([E_l, array[i - 1]], [[1, -3, -4, -5], [1, -2, -1]])
-            E_l = ncon([E_l, ancilla[i - 1].conjugate()], [[-1, 1, 2, -3, -4], [2, 1, -2]])
-            E_l = ncon(
-                [E_l, ancilla[i - 1]], [[-1, -2, 1, -5], [1, -4, -3]]
-            )
-            E_l = ncon([E_l, array[i - 1].conjugate()], [[-1, -2, -3, 1, 2], [2, 1, -4]])
+            E_l = ncon([E_l, ancilla[i - 1]], [[1, -3], [1, -2, -1]])
+            E_l = ncon([E_l, array[i - 1].conjugate()], [[-1, 1, 2], [2, 1, -2]])
             self.env_left_sm.append(E_l)
 
         # right
         for i in range(self.L, site, -1):
-            E_r = ncon([E_r, array[i - 1]], [[1, -3, -4, -5], [-1, -2, 1]])
-            E_r = ncon([E_r, ancilla[i - 1].conjugate()], [[-1, 1, 2, -3, -4], [-2, 1, 2]])
-            E_r = ncon(
-                [E_r, ancilla[i - 1]], [[-1, -2, 1, -5], [-3, -4, 1]]
-            )
-            E_r = ncon([E_r, array[i - 1].conjugate()], [[-1, -2, -3, 1, 2], [-4, 1, 2]])
+            E_r = ncon([E_r, ancilla[i - 1]], [[1, -3], [-1, -2, 1]])
+            E_r = ncon([E_r, array[i - 1].conjugate()], [[-1, 1, 2], [-2, 1, 2]])
             self.env_right_sm.append(E_r)
+        
+        # else:
+        #     E_r = ncon([r.T, r.T, r.T, r.T], [[-1], [-2], [-3], [-4]])
+        #     E_l = ncon([l, l, l, l], [[-1], [-2], [-3], [-4]])
+        #     self.env_right_sm.append(E_r)
+        #     self.env_left_sm.append(E_l)
+        #     array = self.sites.copy()
+        #     ancilla = self.ancilla_sites.copy()
+
+        #     # left
+        #     for i in range(1, site):
+        #         E_l = ncon([E_l, array[i - 1]], [[1, -3, -4, -5], [1, -2, -1]])
+        #         E_l = ncon([E_l, ancilla[i - 1].conjugate()], [[-1, 1, 2, -3, -4], [2, 1, -2]])
+        #         E_l = ncon(
+        #             [E_l, ancilla[i - 1]], [[-1, -2, 1, -5], [1, -4, -3]]
+        #         )
+        #         E_l = ncon([E_l, array[i - 1].conjugate()], [[-1, -2, -3, 1, 2], [2, 1, -4]])
+        #         self.env_left_sm.append(E_l)
+
+        #     # right
+        #     for i in range(self.L, site, -1):
+        #         E_r = ncon([E_r, array[i - 1]], [[1, -3, -4, -5], [-1, -2, 1]])
+        #         E_r = ncon([E_r, ancilla[i - 1].conjugate()], [[-1, 1, 2, -3, -4], [-2, 1, 2]])
+        #         E_r = ncon(
+        #             [E_r, ancilla[i - 1]], [[-1, -2, 1, -5], [-3, -4, 1]]
+        #         )
+        #         E_r = ncon([E_r, array[i - 1].conjugate()], [[-1, -2, -3, 1, 2], [-4, 1, 2]])
+        #         self.env_right_sm.append(E_r)
+        
         return self
     
     def H_eff(self, site):
@@ -2319,27 +2340,43 @@ class MPS:
 
         """
         if sweep == "right":
-            # time_upd_env = time.perf_counter()
             array = self.sites[site - 1]
-            ancilla_array = array
             E_l = self.env_left_sm[-1]
-            E_l = ncon([E_l, ancilla_array], [[1, -3, -4, -5], [1, -2, -1]])
-            E_l = ncon([E_l, self.ancilla_sites[site - 1].conjugate()], [[-1, 1, 2, -3, -4], [2, 1, -2]])
-            E_l = ncon([E_l, self.ancilla_sites[site - 1]], [[-1, -2, 1, -5], [1, -4, -3]])
-            E_l = ncon([E_l, array.conjugate()], [[-1, -2, -3, 1, 2], [2, 1, -4]])
+            E_l = ncon([E_l, self.ancilla_sites[site - 1]], [[1, -3], [1, -2, -1]])
+            E_l = ncon([E_l, array.conjugate()], [[-1, 1, 2], [2, 1, -2]])
             self.env_left_sm.append(E_l)
             self.env_right_sm.pop(-1)
 
         if sweep == "left":
             array = self.sites[site - 1]
-            ancilla_array = array
             E_r = self.env_right_sm[-1]
-            E_r = ncon([E_r, ancilla_array], [[1, -3, -4, -5], [-1, -2, 1]])
-            E_r = ncon([E_r, self.ancilla_sites[site - 1].conjugate()], [[-1, 1, 2, -3, -4], [-2, 1, 2]])
-            E_r = ncon([E_r, self.ancilla_sites[site - 1]], [[-1, -2, 1, -5], [-3, -4, 1]])
-            E_r = ncon([E_r, array.conjugate()], [[-1, -2, -3, 1, 2], [-4, 1, 2]])
+            E_r = ncon([E_r, self.ancilla_sites[site - 1]], [[1, -3], [-1, -2, 1]])
+            E_r = ncon([E_r, array.conjugate()], [[-1, 1, 2], [-2, 1, 2]])
             self.env_right_sm.append(E_r)
             self.env_left_sm.pop(-1)
+        # else:
+        #     if sweep == "right":
+        #         # time_upd_env = time.perf_counter()
+        #         array = self.sites[site - 1]
+        #         ancilla_array = array
+        #         E_l = self.env_left_sm[-1]
+        #         E_l = ncon([E_l, ancilla_array], [[1, -3, -4, -5], [1, -2, -1]])
+        #         E_l = ncon([E_l, self.ancilla_sites[site - 1].conjugate()], [[-1, 1, 2, -3, -4], [2, 1, -2]])
+        #         E_l = ncon([E_l, self.ancilla_sites[site - 1]], [[-1, -2, 1, -5], [1, -4, -3]])
+        #         E_l = ncon([E_l, array.conjugate()], [[-1, -2, -3, 1, 2], [2, 1, -4]])
+        #         self.env_left_sm.append(E_l)
+        #         self.env_right_sm.pop(-1)
+
+        #     if sweep == "left":
+        #         array = self.sites[site - 1]
+        #         ancilla_array = array
+        #         E_r = self.env_right_sm[-1]
+        #         E_r = ncon([E_r, ancilla_array], [[1, -3, -4, -5], [-1, -2, 1]])
+        #         E_r = ncon([E_r, self.ancilla_sites[site - 1].conjugate()], [[-1, 1, 2, -3, -4], [-2, 1, 2]])
+        #         E_r = ncon([E_r, self.ancilla_sites[site - 1]], [[-1, -2, 1, -5], [-3, -4, 1]])
+        #         E_r = ncon([E_r, array.conjugate()], [[-1, -2, -3, 1, 2], [-4, 1, 2]])
+        #         self.env_right_sm.append(E_r)
+        #         self.env_left_sm.pop(-1)
 
         return self
     
@@ -2365,13 +2402,22 @@ class MPS:
         vec_eff = ncon([vec_eff, self.w[self.site - 1]], [[-1, 1, 2, -4], [2, -2, 1, -3]])
         vec_eff = ncon([vec_eff, self.env_right[-1]], [[1, 2, -2, -1], [1, 2, -3]])
         
-        vec_prj = ncon([self.env_left_sm[-1], v], [[1, -3, -4, -5], [1, -2, -1]])
-        vec_prj = ncon([vec_prj, self.ancilla_sites[self.site - 1].conjugate(), self.ancilla_sites[self.site - 1]], [[-1, 1, 2, 3, -5], [2, 1, -2], [3, -4, -3]])
-        vec_prj = ncon([vec_prj, self.env_right_sm[-1]], [[1, 2, 3, -2, -1], [1, 2, 3, -3]])
+        # vec_prj = ncon([self.env_left_sm[-1], v], [[1, -3, -4, -5], [1, -2, -1]])
+        # vec_prj = ncon([vec_prj, self.ancilla_sites[self.site - 1].conjugate(), self.ancilla_sites[self.site - 1]], [[-1, 1, 2, 3, -5], [2, 1, -2], [3, -4, -3]])
+        # vec_prj = ncon([vec_prj, self.env_right_sm[-1]], [[1, 2, 3, -2, -1], [1, 2, 3, -3]])
+        # overlap = 1
+        
+        vec_prj = ncon([self.env_left_sm[-1], self.ancilla_sites[self.site - 1]], [[1, -3], [1, -2, -1]])
+        vec_prj = ncon([vec_prj, v.conjugate()], [[-1, 1, 2], [2, 1, -2]])
+        overlap = ncon([vec_prj, self.env_right_sm[-1]], [[1, 2], [1, 2]])
+
+        vec_prj = ncon([self.env_left_sm[-1], self.ancilla_sites[self.site - 1]], [[1, -3], [1, -2, -1]])
+        vec_prj = ncon([vec_prj, self.env_right_sm[-1]], [[1, -2, -1], [1, -3]])
         
         vec_eff = vec_eff.flatten()
         vec_prj = vec_prj.flatten()
-        res = vec_eff - (10*self.grnd_st)*vec_prj
+        # res = vec_eff - (10*self.grnd_st)*vec_prj
+        res = vec_eff - (10*self.grnd_st*overlap.conjugate())*vec_prj
         return res
 
     def DMRG(
@@ -2446,7 +2492,7 @@ class MPS:
                 # t_start = time.perf_counter()
                 self.update_envs(sweeps[0], sites[i])
                 if excited:
-                    self.update_state(sweeps[0], sites[i], trunc_tol, trunc_chi, schmidt_tol, ancilla=True)
+                    # self.update_state(sweeps[0], sites[i], trunc_tol, trunc_chi, schmidt_tol, ancilla=True)
                     # self.check_canonical(site=sites[i], ancilla=True)
                     self.update_envs_excited(sweeps[0], sites[i])
                 # print(f"Time update envs: {abs(time.perf_counter()-t_start)}")
