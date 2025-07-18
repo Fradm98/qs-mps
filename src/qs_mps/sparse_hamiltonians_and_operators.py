@@ -494,7 +494,10 @@ def diagonalization(
     if sparse:
         e, v = spla.eigsh(H, k=k, which=which, v0=v0, maxiter=maxiter)
     else:
-        e, v = la.eigh(H.toarray())
+        try:
+            e, v = la.eigh(H.toarray())
+        except:
+            e, v = la.eigh(H)
     return e, v
 
 
