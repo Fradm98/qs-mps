@@ -2103,6 +2103,7 @@ class MPS:
 
         """
         # time_eig = time.perf_counter()
+        v0 = self.sites[self.site - 1]
         if type(H_eff) == type(None):
             if not excited:
                 A = TensorMultiplierOperator(
@@ -2130,12 +2131,16 @@ class MPS:
                     matvec=self.mv_ex,
                     dtype=np.complex128,
                 )
+                vec_prj = ncon([self.env_left_sm[-1], self.ancilla_sites[self.site - 1]], [[1, -3], [1, -2, -1]])
+                vec_prj = ncon([vec_prj, v0.conjugate()], [[-1, 1, 2], [2, 1, -2]])
+                overlap = ncon([vec_prj, self.env_right_sm[-1]], [[1, 2], [1, 2]])
+                self.grnd_st = self.grnd_st * overlap.conjugate()
             # print(f"shape of A: {A.shape}")
             if A.shape[0] == 2:
                 H = self.H_eff(site=self.site)
                 e, v = la.eigh(H)
             else:
-                v0 = self.sites[self.site - 1]
+                # v0 = self.sites[self.site - 1]
                 # print(f"v0 at site {self.site - 1} has shape: {v0.shape}")
                 e, v = spla.eigsh(A, k=1, v0=v0, which="SA")
         else:
@@ -2407,9 +2412,9 @@ class MPS:
         # vec_prj = ncon([vec_prj, self.env_right_sm[-1]], [[1, 2, 3, -2, -1], [1, 2, 3, -3]])
         # overlap = 1
         
-        vec_prj = ncon([self.env_left_sm[-1], self.ancilla_sites[self.site - 1]], [[1, -3], [1, -2, -1]])
-        vec_prj = ncon([vec_prj, v.conjugate()], [[-1, 1, 2], [2, 1, -2]])
-        overlap = ncon([vec_prj, self.env_right_sm[-1]], [[1, 2], [1, 2]])
+        # vec_prj = ncon([self.env_left_sm[-1], self.ancilla_sites[self.site - 1]], [[1, -3], [1, -2, -1]])
+        # vec_prj = ncon([vec_prj, v.conjugate()], [[-1, 1, 2], [2, 1, -2]])
+        # overlap = ncon([vec_prj, self.env_right_sm[-1]], [[1, 2], [1, 2]])
 
         vec_prj = ncon([self.env_left_sm[-1], self.ancilla_sites[self.site - 1]], [[1, -3], [1, -2, -1]])
         vec_prj = ncon([vec_prj, self.env_right_sm[-1]], [[1, -2, -1], [1, -3]])
@@ -2417,7 +2422,7 @@ class MPS:
         vec_eff = vec_eff.flatten()
         vec_prj = vec_prj.flatten()
         # res = vec_eff - (10*self.grnd_st)*vec_prj
-        res = vec_eff - (10*self.grnd_st*overlap.conjugate())*vec_prj
+        res = vec_eff - (10*self.grnd_st)*vec_prj
         return res
 
     def DMRG(
@@ -2446,6 +2451,7 @@ class MPS:
             self.mpo(long=long, trans=trans)
 
         if excited:
+            print("Running excited state")
             self.grnd_st = self.mpo_first_moment(ancilla=True).real
             self.envs_first_excited()
 
