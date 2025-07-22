@@ -208,7 +208,7 @@ for chi in args.chis:
         if args.length != 0:
             lattice.Z2.add_charges(charges_x,charges_y)
             lattice.Z2._define_sector()
-        lattice.load_sites(path_tensor, precision=3, cx=charges_x, cy=charges_y)
+        lattice.load_sites(path_tensor, precision=args.precision, cx=charges_x, cy=charges_y)
 
         energies = []
         tm = None

@@ -204,11 +204,12 @@ for L in args.Ls:
         lattice_mps = MPS(
             L=L, d=d, model=args.model, chi=args.chis[0], h=h, bc=args.boundcond
         )
+        if args.length != 0:
+            lattice_mps.Z2.add_charges(charges_x,charges_y)
+            lattice_mps.Z2._define_sector()
         lattice_mps.load_sites(
             path=path_tensor, precision=args.precision, cx=charges_x, cy=charges_y
         )
-        if sector != "vacuum_sector":
-            lattice_mps.Z2.add_charges(charges_x, charges_y)
 
         lattice_mps.chi = args.chis[-1]
         lattice_mps.enlarge_chi(noise_std=args.noise, seed=3)
