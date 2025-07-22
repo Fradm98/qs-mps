@@ -134,11 +134,31 @@ parser.add_argument(
     type=str,
 )
 parser.add_argument(
+    "-log",
+    "--logging",
+    help="Name to log the output of the computation",
+    default="output.out",
+    type=str,
+)
+parser.add_argument(
+    "-cc",
+    "--chargeconv",
+    help="Type of Charge convension for obc. Available are 'h', 'v'. By default 'h'",
+    default="h",
+    type=str,
+)
+parser.add_argument(
     "-p",
     "--precision",
     help="Precision to load and save tensors and observables. By default True 3",
     default=3,
     type=int,
+)
+parser.add_argument(
+    "-exc",
+    "--excited",
+    help="First excited state. By default False",
+    action="store_true",
 )
 
 args = parser.parse_args()
