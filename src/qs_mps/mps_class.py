@@ -514,7 +514,7 @@ class MPS:
 
         return self
 
-    def enlarge_chi(self, type_shape: str = "rectangular", prnt: bool = False):
+    def enlarge_chi(self, type_shape: str = "rectangular", prnt: bool = False, noise_std: float = 0.0, seed: int=None):
         """
         enlarge_chi
 
@@ -523,35 +523,48 @@ class MPS:
 
         """
         extended_array = []
+        
+        if seed is not None:
+            np.random.seed(seed)
+    
         if type_shape == "trapezoidal":
             chi = int(np.log2(self.chi))
             for i in range(chi):
                 extended_array.append(
-                    np.zeros(
-                        (self.d**i, self.d, self.d ** (i + 1)), dtype=np.complex128
-                    )
+                    np.random.normal(loc=0.0, scale=noise_std,
+                                    size=(self.d**i, self.d, self.d ** (i + 1)), 
+                    ).astype(np.complex128)
                 )
             for _ in range(self.L - (2 * chi)):
                 extended_array.append(
-                    np.zeros(
-                        (self.d**chi, self.d, self.d**chi), dtype=np.complex128
-                    )
+                    np.random.normal(loc=0.0, scale=noise_std,
+                                    size=(self.d**chi, self.d, self.d**chi), 
+                    ).astype(np.complex128)
                 )
             for i in range(chi):
                 extended_array.append(
-                    np.zeros(
-                        (self.d ** (chi - i), self.d, self.d ** (chi - i - 1)),
-                        dtype=np.complex128,
-                    )
+                    np.random.normal(loc=0.0, scale=noise_std,
+                                    size=(self.d ** (chi - i), self.d, self.d ** (chi - i - 1)),
+                    ).astype(np.complex128)
                 )
 
         elif type_shape == "rectangular":
-            extended_array.append(np.zeros((1, self.d, self.chi), dtype=np.complex128))
+            extended_array.append(
+                np.random.normal(loc=0.0, scale=noise_std, 
+                                size=(1, self.d, self.chi), 
+                ).astype(np.complex128)
+            )
             for _ in range(self.L - 2):
                 extended_array.append(
-                    np.zeros((self.chi, self.d, self.chi), dtype=np.complex128)
+                    np.random.normal(loc=0.0, scale=noise_std, 
+                                    size=(self.chi, self.d, self.chi), 
+                    ).astype(np.complex128)
                 )
-            extended_array.append(np.zeros((self.chi, self.d, 1), dtype=np.complex128))
+            extended_array.append(
+                np.random.normal(loc=0.0, scale=noise_std, 
+                                size=(self.chi, self.d, 1)
+                ).astype(np.complex128)
+            )
         if prnt:
             print("shapes enlarged tensors:")
             tensor_shapes(extended_array)
@@ -616,6 +629,44 @@ class MPS:
                     f"the  tensor at site {i+1} has a ratio with the identity matrix equal to: {ratio}"
                 )
         return self
+
+    def check_mps_sparsity(self, tol: float=1e-8):
+        """
+        Check sparsity statistics for a given MPS.
+        
+        Parameters:
+        - mps: list of np.ndarray, each tensor with shape (Dl, d, Dr)
+        
+        Returns:
+        - stats: dict with global and per-site sparsity information
+        """
+        sparsity_info = []
+        total_nonzero = 0
+        total_elements = 0
+        mps = self.sites
+
+        for i, A in enumerate(mps):
+            nnz = np.count_nonzero(np.abs(A) >= tol)
+            total = A.size
+            sparsity = 1 - (nnz / total)
+            sparsity_info.append({
+                "site": i,
+                "shape": A.shape,
+                "nonzeros": nnz,
+                "total_elements": total,
+                "sparsity": sparsity
+            })
+            total_nonzero += nnz
+            total_elements += total
+
+        global_sparsity = 1 - (total_nonzero / total_elements)
+
+        return {
+            "global_sparsity": global_sparsity,
+            "total_nonzero": total_nonzero,
+            "total_elements": total_elements,
+            "site_sparsity": sparsity_info
+        }
 
     # -------------------------------------------------
     # Density Matrix MPS and manipulation

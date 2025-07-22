@@ -57,6 +57,13 @@ parser.add_argument(
     type=int,
 )
 parser.add_argument(
+    "-s",
+    "--sites",
+    help="Number of sites we want to iterate in the transfer matrix. By default 10",
+    default=10,
+    type=int,
+)
+parser.add_argument(
     "-m", "--model", help="Model to simulate", default="Z2_dual", type=str
 )
 parser.add_argument(
@@ -180,8 +187,7 @@ for chi in args.chis:
         sector = f"{len(charges_x)}_particle(s)_sector"
 
     linop = True
-    h_i, h_f, npoints = 0.6, 1.0, 9
-    gs = np.linspace(h_i,h_f,npoints).tolist()
+    interval = interval.tolist()
 
     if args.length == 0:
         sector = "vacuum_sector"
@@ -197,7 +203,7 @@ for chi in args.chis:
         e1_mps = np.load(f"{path_tensor}/results/energy_data/first_excited_energy_{args.model}_direct_lattice_{args.N}x{args.long}_{sector}_bc_{args.boundcond}_{charges_x}-{charges_y}_h_{args.h_i}-{args.h_f}_delta_{args.npoints}_chi_{chi}.npy")
         
     velocities = []
-    for g in gs:
+    for g in interval:
         lattice = MPS(L=args.long, d=d, model=args.model, chi=chi, h=g, bc=args.boundcond)
         if args.length != 0:
             lattice.Z2.add_charges(charges_x,charges_y)
@@ -205,9 +211,8 @@ for chi in args.chis:
         lattice.load_sites(path_tensor, precision=3, cx=charges_x, cy=charges_y)
 
         energies = []
-        end = 10
         tm = None
-        for sites in range(1,end):
+        for sites in range(1,args.sites+1):
             print(f"computing a {sites} site(s) transfer matrix...")
             tm = multi_site_mps_transfer_matrix(sites, mps_tensor=lattice, mps_tm=tm, linop=linop)
             print(f"transfer matrix found. Shape is {tm.shape}")
@@ -222,7 +227,7 @@ for chi in args.chis:
 
         corr_lens = np.array([-(i+1)/np.log(np.abs(np.asarray(energies)[i,1])) for i in range(len(energies))])
 
-        idx = gs.index(g)
+        idx = interval.index(g)
         vs = (e1_mps - e0_mps)[idx] * corr_lens
         velocities.append(vs)
 
@@ -230,6 +235,6 @@ for chi in args.chis:
 
     if args.save:
         np.save(
-                f"{parent_path}/results/energy_data/speed_of_sound_{args.model}_direct_lattice_{args.N}x{args.long}_{sector}_bc_{args.boundcond}_{charges_x}-{charges_y}_h_{args.h_i}-{args.h_f}_delta_{args.npoints}_chi_{chi}",
+                f"{parent_path}/results/energy_data/speed_of_sound_tm_sites_{args.sites}_{args.model}_direct_lattice_{args.N}x{args.long}_{sector}_bc_{args.boundcond}_{charges_x}-{charges_y}_h_{args.h_i}-{args.h_f}_delta_{args.npoints}_chi_{chi}",
                 velocities,
         )
