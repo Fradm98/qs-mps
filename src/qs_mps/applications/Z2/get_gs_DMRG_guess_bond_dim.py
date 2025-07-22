@@ -1,7 +1,7 @@
 import argparse
 import numpy as np
 from qs_mps.mps_class import MPS
-from qs_mps.utils import get_precision, save_list_of_lists, access_txt
+from qs_mps.utils import get_precision, save_list_of_lists, access_txt, get_cx, get_cy
 from qs_mps.applications.Z2.ground_state_multiprocessing import ground_state_Z2
 
 # DENSITY MATRIX RENORMALIZATION GROUP to find ground states of the Z2 Pure Gauge Theory
@@ -50,6 +50,13 @@ parser.add_argument(
     type=int,
 )
 parser.add_argument(
+    "-R",
+    "--length",
+    help="String length in the two particle sector. By default 0 means we are in the vacuum",
+    default=0,
+    type=int,
+)
+parser.add_argument(
     "-ty",
     "--type_shape",
     help="Type of shape of the bond dimension. Available are: 'trapezoidal', 'pyramidal', 'rectangular'",
@@ -77,6 +84,13 @@ parser.add_argument(
     "--conv_tol",
     help="Convergence tolerance of the compression algorithm",
     default=1e-12,
+    type=float,
+)
+parser.add_argument(
+    "-n",
+    "--noise",
+    help="Convergence tolerance of the compression algorithm",
+    default=1e-5,
     type=float,
 )
 parser.add_argument(
@@ -115,7 +129,7 @@ parser.add_argument(
     "-bc",
     "--boundcond",
     help="Type of boundary conditions. Available are 'obc', 'pbc'",
-    default="obc",
+    default="pbc",
     type=str,
 )
 
@@ -156,10 +170,10 @@ else:
 # ---------------------------------------------------------
 for L in args.Ls:
     # define the sector by looking of the given charges
-    if args.charges_x == []:
+    if args.charges_x == [] and args.charges_y == []:
         sector = "vacuum_sector"
-        charges_x = None
-        charges_y = None
+        charges_x = np.nan
+        charges_y = np.nan
     else:
         sector = f"{len(args.charges_x)}_particle(s)_sector"
         charges_x = args.charges_x
@@ -169,6 +183,11 @@ for L in args.Ls:
         args.where = L // 2
     elif args.where == -2:
         args.bond = False
+
+    if args.length != 0:
+        charges_x = get_cx(L, args.length)
+        charges_y = get_cy(args.l, args.boundcond, args.charges_y, R=args.length)
+        sector = f"{len(charges_x)}_particle(s)_sector"
 
     # init_state = np.zeros((d))
     # init_state[0] = 1
@@ -187,7 +206,7 @@ for L in args.Ls:
             lattice_mps.Z2.add_charges(charges_x, charges_y)
 
         lattice_mps.chi = args.chis[-1]
-        lattice_mps.enlarge_chi()
+        lattice_mps.enlarge_chi(noise_std=args.noise, seed=3)
         init_tensor = lattice_mps.sites.copy()
 
         args_mps = {
