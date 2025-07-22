@@ -2425,6 +2425,34 @@ class MPS:
         res = vec_eff - (10*self.grnd_st)*vec_prj
         return res
 
+    def mv_tm(self, v):
+        v = v.reshape(
+            self.env_left[-1].shape[0],
+            self.sites[self.site - 1].shape[1],
+            self.env_right[-1].shape[0],
+        )
+        vec_eff = ncon([self.env_left[-1], v], [[1, -3, -4], [1, -2, -1]])
+        vec_eff = ncon([vec_eff, self.w[self.site - 1]], [[-1, 1, 2, -4], [2, -2, 1, -3]])
+        vec_eff = ncon([vec_eff, self.env_right[-1]], [[1, 2, -2, -1], [1, 2, -3]])
+        
+        # vec_prj = ncon([self.env_left_sm[-1], v], [[1, -3, -4, -5], [1, -2, -1]])
+        # vec_prj = ncon([vec_prj, self.ancilla_sites[self.site - 1].conjugate(), self.ancilla_sites[self.site - 1]], [[-1, 1, 2, 3, -5], [2, 1, -2], [3, -4, -3]])
+        # vec_prj = ncon([vec_prj, self.env_right_sm[-1]], [[1, 2, 3, -2, -1], [1, 2, 3, -3]])
+        # overlap = 1
+        
+        # vec_prj = ncon([self.env_left_sm[-1], self.ancilla_sites[self.site - 1]], [[1, -3], [1, -2, -1]])
+        # vec_prj = ncon([vec_prj, v.conjugate()], [[-1, 1, 2], [2, 1, -2]])
+        # overlap = ncon([vec_prj, self.env_right_sm[-1]], [[1, 2], [1, 2]])
+
+        vec_prj = ncon([self.env_left_sm[-1], self.ancilla_sites[self.site - 1]], [[1, -3], [1, -2, -1]])
+        vec_prj = ncon([vec_prj, self.env_right_sm[-1]], [[1, -2, -1], [1, -3]])
+        
+        vec_eff = vec_eff.flatten()
+        vec_prj = vec_prj.flatten()
+        # res = vec_eff - (10*self.grnd_st)*vec_prj
+        res = vec_eff - (10*self.grnd_st)*vec_prj
+        return res
+
     def DMRG(
         self,
         trunc_tol: bool,
