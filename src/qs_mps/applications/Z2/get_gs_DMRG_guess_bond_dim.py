@@ -132,6 +132,13 @@ parser.add_argument(
     default="pbc",
     type=str,
 )
+parser.add_argument(
+    "-p",
+    "--precision",
+    help="Precision to load and save tensors and observables. By default True 3",
+    default=3,
+    type=int,
+)
 
 args = parser.parse_args()
 
@@ -142,10 +149,8 @@ d = int(2 ** (args.l))
 if args.interval == "lin":
     interval = np.linspace(args.h_i, args.h_f, args.npoints)
     num = (interval[-1] - interval[0]) / args.npoints
-    precision = get_precision(num)
 elif args.interval == "log":
     interval = np.logspace(args.h_i, args.h_f, args.npoints)
-    precision = int(np.max([np.abs(args.h_f), np.abs(args.h_i)]))
 
 # take the path and precision to save files
 # if we want to save the tensors we save them locally because they occupy a lot of memory
@@ -200,7 +205,7 @@ for L in args.Ls:
             L=L, d=d, model=args.model, chi=args.chis[0], h=h, bc=args.boundcond
         )
         lattice_mps.load_sites(
-            path=path_tensor, precision=precision, cx=charges_x, cy=charges_y
+            path=path_tensor, precision=args.precision, cx=charges_x, cy=charges_y
         )
         if sector != "vacuum_sector":
             lattice_mps.Z2.add_charges(charges_x, charges_y)
@@ -221,7 +226,7 @@ for L in args.Ls:
             "bond": args.bond,
             "path": path_tensor,
             "save": args.save,
-            "precision": precision,
+            "precision": args.precision,
             "sector": sector,
             "charges_x": charges_x,
             "charges_y": charges_y,
@@ -248,7 +253,7 @@ for L in args.Ls:
                 t_final = t_final / 3600
 
             print(
-                f"time of the whole search for h={h:.{precision}f} is: {t_final} {t_unit}"
+                f"time of the whole search for h={h:.{args.precision}f} is: {t_final} {t_unit}"
             )
             if args.bond == False:
                 args.where = "all"
