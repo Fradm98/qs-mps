@@ -232,8 +232,8 @@ for L in args.Ls:
             path=path_tensor, precision=args.precision, cx=charges_x, cy=charges_y
         )
 
-        lattice_mps.chi = args.chis[-1]
-        lattice_mps.enlarge_chi(noise_std=args.noise, seed=3)
+        # lattice_mps.chi = args.chis[-1]
+        # lattice_mps.enlarge_chi(noise_std=args.noise, seed=3)
         init_tensor = lattice_mps.sites.copy()
 
         args_mps = {
@@ -259,6 +259,7 @@ for L in args.Ls:
             "bc": args.boundcond,
             "cc": args.chargeconv,
             "excited": args.excited,
+            "noise": args.noise,
         }
 
         if __name__ == "__main__":
