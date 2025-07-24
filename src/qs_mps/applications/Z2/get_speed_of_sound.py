@@ -93,6 +93,12 @@ parser.add_argument(
     help="Save the tensors. By default True",
     action="store_false",
 )
+parser.add_argument(
+    "-loop",
+    "--loop",
+    help="Start from one site and arrive to a certain number of sites in your transfer matrix. By default true",
+    action="store_false",
+)
 
 args = parser.parse_args()
 
@@ -211,21 +217,34 @@ for chi in args.chis:
         lattice.load_sites(path_tensor, precision=args.precision, cx=charges_x, cy=charges_y)
 
         energies = []
-        tm = None
-        for sites in range(1,args.sites+1):
-            print(f"computing a {sites} site(s) transfer matrix...")
-            tm = multi_site_mps_transfer_matrix(sites, mps_tensor=lattice, mps_tm=tm, linop=linop)
-            print(f"transfer matrix found. Shape is {tm.shape}")
-            if linop:
-                e1 = get_tm_eigs(tm)
-            else:
-                e1, v1 = diagonalization(tm, sparse=True, k=2, which='LA')
-            energies.append(e1)
-        
-        if linop:
-            energies = [np.sort(e1)[::-1] for e1 in energies]
+        # tm = None
+        # for sites in range(1,args.sites+1):
+        #     print(f"computing a {sites} site(s) transfer matrix...")
+        #     tm = multi_site_mps_transfer_matrix(sites, mps_tensor=lattice, mps_tm=tm, linop=linop)
+        #     print(f"transfer matrix found. Shape is {tm.shape}")
+        #     if linop:
+        #         e1 = get_tm_eigs(tm)
+        #     else:
+        #         e1, v1 = diagonalization(tm, sparse=True, k=2, which='LA')
+        #     energies.append(e1)
 
-        corr_lens = np.array([-(i+1)/np.log(np.abs(np.asarray(energies)[i,1])) for i in range(len(energies))])
+        if args.loop:
+            for sites in range(1,args.sites+1):
+                print(f"computing a {sites} site(s) transfer matrix...")
+                e1 = lattice.multi_site_transfer_matrix(sites)
+                energies.append(e1)
+            if linop:
+                energies = [np.sort(e1)[::-1] for e1 in energies]
+        else:
+            print(f"computing a {args.sites} site(s) transfer matrix...")
+            energies = lattice.multi_site_transfer_matrix(args.sites)
+        if linop:
+            energies = np.sort(energies)[::-1]
+
+        if args.loop:
+            corr_lens = np.array([-(i+1)/np.log(np.abs(np.asarray(energies)[i,1])) for i in range(len(energies))])
+        else:
+            corr_lens = np.array([-1/np.log(np.abs(np.asarray(energies)[1]))])
 
         idx = interval.index(g)
         vs = (e1_mps - e0_mps)[idx] * corr_lens

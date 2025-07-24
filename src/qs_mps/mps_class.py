@@ -796,6 +796,21 @@ class MPS:
 
         return mps_dm
     
+    def multi_site_transfer_matrix(self, sites, k: int = 2, which: str = "LM", return_eigenvectors: bool = False):
+        self.site = sites
+        tensors_idxs = [self.L//2-sites//2+i for i in range(sites)]
+        D = self.sites[tensors_idxs[0]].shape[0]
+        I = np.eye(D,D)
+        v0 = I.reshape(D*D)
+        A = TensorMultiplierOperator(
+            (D*D, D*D),
+            matvec=self.mv_tm,
+            dtype=np.complex128,
+        )
+
+        e = spla.eigsh(A, k=k, v0=v0, which=which, return_eigenvectors=return_eigenvectors)
+        return e
+
     def vector_to_mps(
         self,
         vec: np.ndarray,
@@ -2477,32 +2492,19 @@ class MPS:
         return res
 
     def mv_tm(self, v):
-        v = v.reshape(
-            self.env_left[-1].shape[0],
-            self.sites[self.site - 1].shape[1],
-            self.env_right[-1].shape[0],
-        )
-        vec_eff = ncon([self.env_left[-1], v], [[1, -3, -4], [1, -2, -1]])
-        vec_eff = ncon([vec_eff, self.w[self.site - 1]], [[-1, 1, 2, -4], [2, -2, 1, -3]])
-        vec_eff = ncon([vec_eff, self.env_right[-1]], [[1, 2, -2, -1], [1, 2, -3]])
-        
-        # vec_prj = ncon([self.env_left_sm[-1], v], [[1, -3, -4, -5], [1, -2, -1]])
-        # vec_prj = ncon([vec_prj, self.ancilla_sites[self.site - 1].conjugate(), self.ancilla_sites[self.site - 1]], [[-1, 1, 2, 3, -5], [2, 1, -2], [3, -4, -3]])
-        # vec_prj = ncon([vec_prj, self.env_right_sm[-1]], [[1, 2, 3, -2, -1], [1, 2, 3, -3]])
-        # overlap = 1
-        
-        # vec_prj = ncon([self.env_left_sm[-1], self.ancilla_sites[self.site - 1]], [[1, -3], [1, -2, -1]])
-        # vec_prj = ncon([vec_prj, v.conjugate()], [[-1, 1, 2], [2, 1, -2]])
-        # overlap = ncon([vec_prj, self.env_right_sm[-1]], [[1, 2], [1, 2]])
+        tensors_idxs = [self.L//2-self.site//2+i for i in range(self.site)]
+        D = self.sites[tensors_idxs[0]].shape[0]
+        v = v.reshape(D,D)
 
-        vec_prj = ncon([self.env_left_sm[-1], self.ancilla_sites[self.site - 1]], [[1, -3], [1, -2, -1]])
-        vec_prj = ncon([vec_prj, self.env_right_sm[-1]], [[1, -2, -1], [1, -3]])
+        tm_mps = ncon([self.sites[tensors_idxs[0]].conjugate(), self.sites[tensors_idxs[0]]],[[-1,1,-3],[-2,1,-4]])
+        for i in range(1,len(tensors_idxs)):
+            tm_mps = ncon([tm_mps, self.sites[tensors_idxs[i]].conjugate()],[[-1,-2,1,-5],[1,-4,-3]])
+            tm_mps = ncon([tm_mps, self.sites[tensors_idxs[i]]],[[-1,-2,-3,1,2],[2,1,-4]])
+
+        vec_eff = ncon([tm_mps, v], [[-1, -2, 1, 2], [1, 2]])
         
         vec_eff = vec_eff.flatten()
-        vec_prj = vec_prj.flatten()
-        # res = vec_eff - (10*self.grnd_st)*vec_prj
-        res = vec_eff - (10*self.grnd_st)*vec_prj
-        return res
+        return vec_eff
 
     def DMRG(
         self,
