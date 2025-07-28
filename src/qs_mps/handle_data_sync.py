@@ -4,10 +4,10 @@ from scp import SCPClient, SCPException
 from datetime import datetime
 
 device = "marcos2"
-# device = "pc"
+device = "pc"
 # device = "mac"
-# observable = "energy_data"
-observable = "entropy_data"
+observable = "energy_data"
+# observable = "entropy_data"
 # observable = "error_data"
 # observable = "overlap"
 # observable = "electric_field"
