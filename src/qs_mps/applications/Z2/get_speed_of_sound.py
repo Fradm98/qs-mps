@@ -81,6 +81,13 @@ parser.add_argument(
     type=str,
 )
 parser.add_argument(
+    "-w",
+    "--which",
+    help="Order of the eigenvalues. Available are 'LA', 'LM', 'SA', 'SM'",
+    default="LA",
+    type=str,
+)
+parser.add_argument(
     "-p",
     "--precision",
     help="Precision to load and save tensors and observables. By default True 3",
@@ -231,13 +238,13 @@ for chi in args.chis:
         if args.loop:
             for sites in range(1,args.sites+1):
                 print(f"computing a {sites} site(s) transfer matrix...")
-                e1 = lattice.multi_site_transfer_matrix(sites)
+                e1 = lattice.multi_site_transfer_matrix(sites, which=args.which)
                 energies.append(e1)
             if linop:
                 energies = [np.sort(e1)[::-1] for e1 in energies]
         else:
             print(f"computing a {args.sites} site(s) transfer matrix...")
-            energies = lattice.multi_site_transfer_matrix(args.sites)
+            energies = lattice.multi_site_transfer_matrix(args.sites, which=args.which)
         if linop:
             energies = np.sort(energies)[::-1]
 

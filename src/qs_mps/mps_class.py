@@ -796,7 +796,7 @@ class MPS:
 
         return mps_dm
     
-    def multi_site_transfer_matrix(self, sites, k: int = 2, which: str = "LM", return_eigenvectors: bool = False):
+    def multi_site_transfer_matrix(self, sites, k: int = 2, which: str = "LA", return_eigenvectors: bool = False):
         self.site = sites
         tensors_idxs = [self.L//2-sites//2+i for i in range(sites)]
         D = self.sites[tensors_idxs[0]].shape[0]
@@ -809,7 +809,6 @@ class MPS:
         )
 
         e = spla.eigsh(A, k=k, v0=v0, which=which, return_eigenvectors=return_eigenvectors)
-        print(e)
         return e
 
     def vector_to_mps(
