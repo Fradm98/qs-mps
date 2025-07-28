@@ -177,6 +177,9 @@ def get_tm_eigs(mps_tm):
 
 
 
+linop = True
+interval = interval.tolist()
+
 for chi in args.chis:
     if args.charges_x == [] and args.charges_y == []:
         sector = "vacuum_sector"
@@ -191,9 +194,6 @@ for chi in args.chis:
         charges_x = get_cx(args.long, args.length)
         charges_y = get_cy(args.N, args.boundcond, args.charges_y, R=args.length)
         sector = f"{len(charges_x)}_particle(s)_sector"
-
-    linop = True
-    interval = interval.tolist()
 
     if args.length == 0:
         sector = "vacuum_sector"
