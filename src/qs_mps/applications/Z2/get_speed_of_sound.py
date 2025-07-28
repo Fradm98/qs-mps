@@ -248,6 +248,7 @@ for chi in args.chis:
         if linop:
             energies = np.sort(energies)[::-1]
 
+        print(energies)
         if args.loop:
             corr_lens = np.array([-(i+1)/np.log(np.abs(np.asarray(energies)[i,0])) for i in range(len(energies))])
         else:
