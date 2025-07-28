@@ -2496,14 +2496,23 @@ class MPS:
         D = self.sites[tensors_idxs[0]].shape[0]
         v = v.reshape(D,D)
 
-        tm_mps = ncon([self.sites[tensors_idxs[0]].conjugate(), self.sites[tensors_idxs[0]]],[[-1,1,-3],[-2,1,-4]])
-        for i in range(1,len(tensors_idxs)):
-            tm_mps = ncon([tm_mps, self.sites[tensors_idxs[i]].conjugate()],[[-1,-2,1,-5],[1,-4,-3]])
-            tm_mps = ncon([tm_mps, self.sites[tensors_idxs[i]]],[[-1,-2,-3,1,2],[2,1,-4]])
+        tm_mps = ncon([self.sites[tensors_idxs[-1]].conjugate(), v],[[-1,-2,1],[1,-3]])
+        tm_mps = ncon([tm_mps, self.sites[tensors_idxs[-1]]],[[-1,1,2],[-2,1,2]])
 
-        vec_eff = ncon([tm_mps, v], [[-1, -2, 1, 2], [1, 2]])
+        tensors_idxs.pop(-1)
+        for site in tensors_idxs[::-1]:
+            tm_mps = ncon([tm_mps, self.sites[site].conjugate()],[[1,-3],[-1,-2,1]])
+            tm_mps = ncon([tm_mps, self.sites[site]],[[-1,1,2],[-2,1,2]])
+
+        # tm_mps = ncon([self.sites[tensors_idxs[0]].conjugate(), self.sites[tensors_idxs[0]]],[[-1,1,-3],[-2,1,-4]])
+        # for i in range(1,len(tensors_idxs)):
+        #     tm_mps = ncon([tm_mps, self.sites[tensors_idxs[i]].conjugate()],[[-1,-2,1,-5],[1,-4,-3]])
+        #     tm_mps = ncon([tm_mps, self.sites[tensors_idxs[i]]],[[-1,-2,-3,1,2],[2,1,-4]])
+
+        # vec_eff = ncon([tm_mps, v], [[-1, -2, 1, 2], [1, 2]])
         
-        vec_eff = vec_eff.flatten()
+        # vec_eff = vec_eff.flatten()
+        vec_eff = tm_mps.flatten()
         return vec_eff
 
     def DMRG(
