@@ -809,6 +809,7 @@ class MPS:
         )
 
         e = spla.eigsh(A, k=k, v0=v0, which=which, return_eigenvectors=return_eigenvectors)
+        print(e)
         return e
 
     def vector_to_mps(
