@@ -241,12 +241,10 @@ for chi in args.chis:
         if linop:
             energies = np.sort(energies)[::-1]
 
-        print(energies)
-
         if args.loop:
-            corr_lens = np.array([-(i+1)/np.log(np.abs(np.asarray(energies)[i,1])) for i in range(len(energies))])
+            corr_lens = np.array([-(i+1)/np.log(np.abs(np.asarray(energies)[i,0])) for i in range(len(energies))])
         else:
-            corr_lens = np.array([-1/np.log(np.abs(np.asarray(energies)[1]))])
+            corr_lens = np.array([-1/np.log(np.abs(np.asarray(energies)[0]))])
 
         idx = interval.index(g)
         vs = (e1_mps - e0_mps)[idx] * corr_lens
