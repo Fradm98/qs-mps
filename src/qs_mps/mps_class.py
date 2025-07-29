@@ -1449,7 +1449,7 @@ class MPS:
         self.clear_envs()
         return chain
 
-    def electric_field_Z2(self, E, cc: str="h", aux_qub: np.ndarray = None, reduced: bool=True):
+    def electric_field_Z2(self, E, cc: str="h", aux_qub: np.ndarray = None, reduced: bool=True, topological_sector: int = 1):
         """
         electric_field_Z2
 
@@ -1524,8 +1524,8 @@ class MPS:
                             E_v.append(coeff * self.mpo_first_moment().real)
                             # E_v.append(self.mpo_first_moment().real)
                     elif self.bc == "pbc":
-                        self.sites.append(aux_qub)
-                        self.L = len(self.sites)
+                        # self.sites.append(aux_qub)
+                        # self.L = len(self.sites)
                         # self.Z2.L = self.L
                         
                         for l in range(self.Z2.l):
@@ -1537,10 +1537,10 @@ class MPS:
                             prod_charges = np.prod(self.Z2.charges, axis=1).tolist()
                             coeff = np.prod(prod_charges[: l + 1])
                             self.w = self.Z2.mpo.copy()
-                            E_v.append(coeff * self.mpo_first_moment().real)
+                            E_v.append(coeff * topological_sector * self.mpo_first_moment().real)
                         
-                        self.sites.pop(-1)
-                        self.L = len(self.sites)
+                        # self.sites.pop(-1)
+                        # self.L = len(self.sites)
                         # self.Z2.L = self.L
 
                     E[1::2, (mpo_site + i) * 2] = E_v

@@ -400,7 +400,7 @@ class MPO_ladder:
                             -self.lamb
                             * topological_sector
                             * coeff 
-                            * sparse_pauli_z(n=f, L=self.l).toarray()
+                            * sparse_pauli_z(n=f, L=self.l).toarray() @ sparse_pauli_z(n=(self.l-1), L=self.l).toarray()
                         )
 
             mpo_list.append(self.mpo)
@@ -1494,23 +1494,29 @@ class MPO_ladder:
         # self.mpo = self.mpo[:, -1].reshape((self.l + 2, 1, 2, 2))
         # mpo_list.append(self.mpo)
 
+        # mpo_list = []
+        # self.mpo_skeleton(aux_dim=3)
+        # for c in range(self.L):
+        #     if c == self.L - 1:
+        #         self.mpo[0, 1] = sparse_pauli_z(n=file, L=self.l).toarray()
+        #     mpo_list.append(self.mpo)
+        #     self.mpo_skeleton(aux_dim=3)
+
+        # l_aux = self.l
+        # self.l = 1
+        # self.mpo_skeleton(aux_dim=3)
+        # self.l = l_aux
+        
+        # # coeff = np.prod(np.prod(self.charges, axis=1).tolist()[: file + 1])
+        # self.mpo[1, -1] = sparse_pauli_z(n=0, L=1).toarray()
+        # self.mpo = self.mpo[:, -1].reshape((3, 1, 2, 2))
         mpo_list = []
-        self.mpo_skeleton(aux_dim=3)
+        self.mpo_skeleton(aux_dim=2)
         for c in range(self.L):
             if c == self.L - 1:
-                self.mpo[0, 1] = sparse_pauli_z(n=file, L=self.l).toarray()
+                self.mpo[0, 1] = sparse_pauli_z(n=file, L=self.l).toarray() @ sparse_pauli_z(n=(self.l-1), L=self.l).toarray()
             mpo_list.append(self.mpo)
-            self.mpo_skeleton(aux_dim=3)
-
-        l_aux = self.l
-        self.l = 1
-        self.mpo_skeleton(aux_dim=3)
-        self.l = l_aux
-        
-        # coeff = np.prod(np.prod(self.charges, axis=1).tolist()[: file + 1])
-        self.mpo[1, -1] = sparse_pauli_z(n=0, L=1).toarray()
-        self.mpo = self.mpo[:, -1].reshape((3, 1, 2, 2))
-        mpo_list.append(self.mpo)
+            self.mpo_skeleton(aux_dim=2)
 
         self.mpo = mpo_list
         return mpo_list
