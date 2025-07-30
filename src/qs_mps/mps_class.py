@@ -1527,7 +1527,7 @@ class MPS:
                         # self.sites.append(aux_qub)
                         # self.L = len(self.sites)
                         # self.Z2.L = self.L
-                        
+                        print(f"charges:\n{self.Z2.charges}")
                         for l in range(self.Z2.l):
                             # print(f"site: {mpo_site}, ladder: {l}")
                     #         self.Z2.zz_vertical_right_pbc_Z2_dual(
@@ -1538,7 +1538,7 @@ class MPS:
                             prod_charges = np.prod(self.Z2.charges, axis=1).tolist()
                             print(prod_charges)
                             coeff = np.prod(prod_charges[: l + 1])
-                            print(coeff, self.mpo_first_moment().real)
+                            print(coeff, self.mpo_first_moment().real, coeff * topological_sector * self.mpo_first_moment().real)
                             self.w = self.Z2.mpo.copy()
                             E_v.append(coeff * topological_sector * self.mpo_first_moment().real)
                         
