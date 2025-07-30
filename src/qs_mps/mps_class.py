@@ -1533,9 +1533,12 @@ class MPS:
                     #         self.Z2.zz_vertical_right_pbc_Z2_dual(
                     #     mpo_site=mpo_site, l=l
                     # )
+                            print(f"last column, row: {l}")
                             self.Z2.mpo_Z2_vertical_right_edges_pbc(file=l)
                             prod_charges = np.prod(self.Z2.charges, axis=1).tolist()
+                            print(prod_charges)
                             coeff = np.prod(prod_charges[: l + 1])
+                            print(coeff, self.mpo_first_moment().real)
                             self.w = self.Z2.mpo.copy()
                             E_v.append(coeff * topological_sector * self.mpo_first_moment().real)
                         
