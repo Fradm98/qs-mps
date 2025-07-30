@@ -79,7 +79,7 @@ class MPO_ladder:
             ), "Do not choose the last charge! We use it for Gauss Law constraint"
             self.charges[j, i] = -1
         # impose the constraint
-        self.charge_constraint()
+        # self.charge_constraint()
         # self.charges = np.flip(self.charges, axis=1)
         return self
 
