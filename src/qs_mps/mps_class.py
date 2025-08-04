@@ -1527,18 +1527,18 @@ class MPS:
                         # self.sites.append(aux_qub)
                         # self.L = len(self.sites)
                         # self.Z2.L = self.L
-                        print(f"charges:\n{self.Z2.charges}")
+                        # print(f"charges:\n{self.Z2.charges}")
                         for l in range(self.Z2.l):
                             # print(f"site: {mpo_site}, ladder: {l}")
                     #         self.Z2.zz_vertical_right_pbc_Z2_dual(
                     #     mpo_site=mpo_site, l=l
                     # )
-                            print(f"last column, row: {l}")
+                            # print(f"last column, row: {l}")
                             self.Z2.mpo_Z2_vertical_right_edges_pbc(file=l)
                             prod_charges = np.prod(self.Z2.charges, axis=1).tolist()
-                            print(prod_charges)
+                            # print(prod_charges)
                             coeff = np.prod(prod_charges[: l + 1])
-                            print(coeff, self.mpo_first_moment().real, coeff * topological_sector * self.mpo_first_moment().real)
+                            # print(coeff, self.mpo_first_moment().real, coeff * topological_sector * self.mpo_first_moment().real)
                             self.w = self.Z2.mpo.copy()
                             E_v.append(coeff * topological_sector * self.mpo_first_moment().real)
                         
@@ -3596,9 +3596,9 @@ class MPS:
         # overlap
         # overlaps = []
         if "losch" in obs:
-            if self.bc == "pbc":
-                self.sites.append(aux_qub)
-                self.L = len(self.sites)
+            # if self.bc == "pbc":
+            #     self.sites.append(aux_qub)
+            #     self.L = len(self.sites)
             
             psi_init = self.sites.copy()
             self.ancilla_sites = psi_init.copy()
@@ -3606,9 +3606,9 @@ class MPS:
             overlaps = np.array([self._compute_norm(site=1, mixed=True)])
             print('overlap', overlaps, overlaps.shape)
             self.ancilla_sites = []
-            if self.bc == "pbc":
-                aux_qub = self.sites.pop(-1)
-                self.L = len(self.sites)
+            # if self.bc == "pbc":
+            #     aux_qub = self.sites.pop(-1)
+            #     self.L = len(self.sites)
 
             name_ov = f'overlaps/D_{self.chi}'
             create_observable_group(save_file, run_group, name_ov)
@@ -3643,9 +3643,9 @@ class MPS:
             psi0_sp = psi0_ex.copy()
             psi_trott_sp = psi0_sp.copy()
 
-        if self.bc == "pbc":
-            self.sites.append(aux_qub)
-            self.L = len(self.sites)
+        # if self.bc == "pbc":
+        #     self.sites.append(aux_qub)
+        #     self.L = len(self.sites)
         
         self.ancilla_sites = self.sites.copy()
 
@@ -3711,9 +3711,9 @@ class MPS:
                 print("==========================================")
                 print("Computing observables for this trotter step")
                 
-                if self.bc == "pbc":
-                    self.sites.pop()
-                    self.L = len(self.sites)
+                # if self.bc == "pbc":
+                #     self.sites.pop()
+                #     self.L = len(self.sites)
                 
                 # electric field
                 if "el" in obs:
@@ -3735,9 +3735,9 @@ class MPS:
                 
                 # overlap
                 if "losch" in obs:
-                    if self.bc == "pbc":
-                        self.sites.append(aux_qub)
-                        self.L = len(self.sites)
+                    # if self.bc == "pbc":
+                    #     self.sites.append(aux_qub)
+                    #     self.L = len(self.sites)
                     
                     self.ancilla_sites = psi_init.copy()
                     # overlaps.append(self._compute_norm(site=1, mixed=True))
@@ -3786,9 +3786,9 @@ class MPS:
                     braket_mps_sp.append(mps_sp)
                 
             
-                if self.bc == "pbc":
-                    self.sites.append(aux_qub)
-                    self.L = len(self.sites)
+                # if self.bc == "pbc":
+                #     self.sites.append(aux_qub)
+                #     self.L = len(self.sites)
 
         return errors, entropies, svs, electric_local_field, overlaps, braket_ex_sp, braket_ex_mps, braket_mps_sp
     
