@@ -79,7 +79,7 @@ class MPO_ladder:
             ), "Do not choose the last charge! We use it for Gauss Law constraint"
             self.charges[j, i] = -1
         # impose the constraint
-        self.charge_constraint()
+        # self.charge_constraint()
         # self.charges = np.flip(self.charges, axis=1)
         return self
 
@@ -400,7 +400,7 @@ class MPO_ladder:
                             -self.lamb
                             * topological_sector
                             * coeff 
-                            * sparse_pauli_z(n=f, L=self.l).toarray()
+                            * sparse_pauli_z(n=f, L=self.l).toarray() @ sparse_pauli_z(n=(self.l-1), L=self.l).toarray()
                         )
 
             mpo_list.append(self.mpo)
@@ -972,7 +972,7 @@ class MPO_ladder:
                 ).reshape((1, 1, w_init_X.shape[2], w_init_X_l.shape[3]))
             w_tot.append(w_init_X)
             
-        w_tot.append(np.array([[np.eye(2)]]))
+        # w_tot.append(np.array([[np.eye(2)]]))
         self.mpo = w_tot
         return self
 
@@ -1021,6 +1021,7 @@ class MPO_ladder:
         Z2 = sparse_pauli_z(n=0, L=1).toarray()
         I2 = identity(2, dtype=complex).toarray()
         I = identity(2**self.l, dtype=complex).toarray()
+        prod_charges = np.prod(self.charges, axis=1).tolist()
 
         w_odd_re = np.array(
                 [
@@ -1075,27 +1076,17 @@ class MPO_ladder:
                 )
 
             elif mpo_site == self.L-1:
-                # finish interaction for bulk vertical links + start interaction for right vertical links
-                w_even_re = np.array(
-                                [
-                                    [
-                                        np.sqrt(np.cos(h_ev * delta)) * I,
-                                        1j
-                                        * np.sqrt(np.sin(h_ev * delta))
-                                        * Z,
-                                    ],
-                                ]
-                            )
-                w_l = ncon([w_even_re, w_odd],
-                        [[-1, -3, -5, 1],[-2, -4, 1, -6]],
-                ).reshape(
-                            (
-                                w_even_re.shape[0] * w_odd.shape[0],
-                                w_even_re.shape[1] * w_odd.shape[1],
-                                w_even_re.shape[2],
-                                w_odd.shape[-1],
-                            )
-                        )
+                # finish interaction for bulk vertical links
+                w_l = w_odd
+                
+                # make the non-local vertical intercation for the right edge vertical links
+                coeff = np.prod(prod_charges[: l + 1])
+                Z_lN = coeff * (
+                    sparse_pauli_z(n=l, L=self.l) @ sparse_pauli_z(n=self.l-1, L=self.l)
+                ).toarray()
+                w_int_loc_re = linalg.expm(1j * h_ev * delta * Z_lN)
+                w_l = ncon([w_l, w_int_loc_re],[[-1,-2,1,-4],[-3,1]])
+            
             else:
                 # interactions of bulk vertical links
                 w_l = ncon(
@@ -1114,8 +1105,8 @@ class MPO_ladder:
             w_l = ncon([w_l, w_int_loc],[[-1,-2,1,-4],[-3,1]])
             w_tot.append(w_l)
 
-        # finish interaction for right vertical links
-        w_tot.append(w_odd_re)
+        # # finish interaction for right vertical links
+        # w_tot.append(w_odd_re)
         self.mpo = w_tot
         return w_tot
     
@@ -1494,23 +1485,29 @@ class MPO_ladder:
         # self.mpo = self.mpo[:, -1].reshape((self.l + 2, 1, 2, 2))
         # mpo_list.append(self.mpo)
 
+        # mpo_list = []
+        # self.mpo_skeleton(aux_dim=3)
+        # for c in range(self.L):
+        #     if c == self.L - 1:
+        #         self.mpo[0, 1] = sparse_pauli_z(n=file, L=self.l).toarray()
+        #     mpo_list.append(self.mpo)
+        #     self.mpo_skeleton(aux_dim=3)
+
+        # l_aux = self.l
+        # self.l = 1
+        # self.mpo_skeleton(aux_dim=3)
+        # self.l = l_aux
+        
+        # # coeff = np.prod(np.prod(self.charges, axis=1).tolist()[: file + 1])
+        # self.mpo[1, -1] = sparse_pauli_z(n=0, L=1).toarray()
+        # self.mpo = self.mpo[:, -1].reshape((3, 1, 2, 2))
         mpo_list = []
-        self.mpo_skeleton(aux_dim=3)
+        self.mpo_skeleton(aux_dim=2)
         for c in range(self.L):
             if c == self.L - 1:
-                self.mpo[0, 1] = sparse_pauli_z(n=file, L=self.l).toarray()
+                self.mpo[0, 1] = sparse_pauli_z(n=file, L=self.l).toarray() @ sparse_pauli_z(n=(self.l-1), L=self.l).toarray()
             mpo_list.append(self.mpo)
-            self.mpo_skeleton(aux_dim=3)
-
-        l_aux = self.l
-        self.l = 1
-        self.mpo_skeleton(aux_dim=3)
-        self.l = l_aux
-        
-        # coeff = np.prod(np.prod(self.charges, axis=1).tolist()[: file + 1])
-        self.mpo[1, -1] = sparse_pauli_z(n=0, L=1).toarray()
-        self.mpo = self.mpo[:, -1].reshape((3, 1, 2, 2))
-        mpo_list.append(self.mpo)
+            self.mpo_skeleton(aux_dim=2)
 
         self.mpo = mpo_list
         return mpo_list

@@ -4,8 +4,6 @@ import datetime as dt
 from qs_mps.mps_class import MPS
 from qs_mps.utils import get_precision, save_list_of_lists, access_txt, get_cx, get_cy
 from qs_mps.applications.Z2.ground_state_multiprocessing import ground_state_Z2
-import sys
-import time
 
 # DENSITY MATRIX RENORMALIZATION GROUP to find ground states of the Z2 Pure Gauge Theory
 # changing the transverse field parameters in its dual formulation

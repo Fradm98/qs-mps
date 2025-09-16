@@ -467,7 +467,7 @@ def static_potential_varying_g(
 
 
 def potential_fit_0(R, a, b):
-    return a * R + b 
+    return a * R - b 
 
 def potential_fit_1(R, a, b, c):
     return a * R - b * (1 / R) + c
@@ -548,7 +548,7 @@ def get_fit_params(gs, Rs, l, Ls, chis, bc, sector, h_i, h_f, npoints, path_tens
         return terms, term_errs
 
 
-def fit_params_sys(Rss, l, L, chis, bc, sector, h_i, h_f, npoints, path, cx, cy, param: int=0, fit: int=1, euclidean: bool=False, manhatten: bool=False, ris: bool=False):
+def fit_params_sys(Rss, N, L, chis, bc, sector, h_i, h_f, npoints, path, cx, cy, param: int=0, fit: int=1, euclidean: bool=False, manhatten: bool=False, ris: bool=False):
     if euclidean:
         cy = [0,1]
 
@@ -572,20 +572,20 @@ def fit_params_sys(Rss, l, L, chis, bc, sector, h_i, h_f, npoints, path, cx, cy,
     # interval
     gs = np.linspace(h_i,h_f,npoints)
 
-    sigmas_tot = []
-    sigmas_tot_err = []
-    sigmas_ri = np.zeros((len(list_Rs), len(gs)))
-    sigmas_ri_err = np.zeros((len(list_Rs), len(gs)))
+    terms_tot = []
+    terms_tot_err = []
+    terms_ri = np.zeros((len(list_Rs), len(gs)))
+    terms_ri_err = np.zeros((len(list_Rs), len(gs)))
     for j, g in enumerate(gs):
-        sigma_g_ri_chi = []
-        sigma_g_ri_chi_err = []
+        term_g_ri_chi = []
+        term_g_ri_chi_err = []
         for i, Rs in enumerate(list_Rs):        
             potentials = []
             for R in Rs:
                 # if R >= 25:
                 #     L = 50
                 pots = static_potential_chis(
-                        g, R, l, L, chis, bc, sector, h_i, h_f, npoints, path, cx, cy
+                        g, R, N, L, chis, bc, sector, h_i, h_f, npoints, path, cx, cy
                     )
                 potentials.append(pots)
 
@@ -596,29 +596,29 @@ def fit_params_sys(Rss, l, L, chis, bc, sector, h_i, h_f, npoints, path, cx, cy,
             # if manhatten:
             #     Rs = [R+1 for R in Rs]
 
-            sigma_chis = []
-            sigma_chis_err = []
+            term_chis = []
+            term_chis_err = []
             for k, chi in enumerate(chis):
                 popt, errs = fitting(Rs, potentials[k], errors=None, fit=fit, guess=None)
                 term = popt[param]
                 term_err = errs[param]
-                sigma_chis.append(term)
-                sigma_chis_err.append(term_err)
+                term_chis.append(term)
+                term_chis_err.append(term_err)
 
             if len(chis) > 1:
-                sigma_g_ri_chi_err.append(np.abs(sigma_chis[-2]-sigma_chis[-1]) + sigma_chis_err[-2] + sigma_chis_err[-1])
+                term_g_ri_chi_err.append(np.abs(term_chis[-2]-term_chis[-1]) + term_chis_err[-2] + term_chis_err[-1])
             else:
-                sigma_g_ri_chi_err.append(sigma_chis_err[-1])
-            sigma_g_ri_chi.append(sigma_chis[-1])
-            sigmas_ri[i,j] = sigma_chis[-1]
-            sigmas_ri_err[i,j] = sigma_chis_err[-1]
-        av, av_err = weighted_average(sigma_g_ri_chi, sigma_g_ri_chi_err)
-        sigmas_tot.append(av)
-        sigmas_tot_err.append(av_err)
+                term_g_ri_chi_err.append(term_chis_err[-1])
+            term_g_ri_chi.append(term_chis[-1])
+            terms_ri[i,j] = term_chis[-1]
+            terms_ri_err[i,j] = term_chis_err[-1]
+        av, av_err = weighted_average(term_g_ri_chi, term_g_ri_chi_err)
+        terms_tot.append(av)
+        terms_tot_err.append(av_err)
     if ris:
-        return sigmas_tot, sigmas_tot_err, sigmas_ri, sigmas_ri_err, list_Rs
+        return terms_tot, terms_tot_err, terms_ri, terms_ri_err, list_Rs
     else:
-        return sigmas_tot, sigmas_tot_err
+        return terms_tot, terms_tot_err
     
 def potential_first_discrete_derivative(
     g: float,
