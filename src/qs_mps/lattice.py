@@ -205,11 +205,11 @@ class Lattice(object):
             raise ValueError(f"The coordinates {x} and {y} exceeds the lattice")
 
         star = []
-        if x + 1 >= L:
+        if x + 1 > L:
             star.append(0)
         else:
             star.append(self.link((x, y), (x + 1, y), **kwargs))
-        if y + 1 >= l:
+        if y + 1 > l:
             star.append(0)
         else:
             star.append(self.link((x, y), (x, y + 1), **kwargs))
