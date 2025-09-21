@@ -190,7 +190,7 @@ class Lattice(object):
         )
         return plaq
 
-    def star(self, site: Site, L, l, **kwargs) -> Star:
+    def star(self, site: Site, Lx, Ly, **kwargs) -> Star:
         """
         Return the links of a star. The links are oriented counterclock-wise
         starting from the right link.
@@ -201,15 +201,16 @@ class Lattice(object):
             A 4-element array
         """
         x, y = site
-        if x >= self.Lx or y >= self.Ly:
-            raise ValueError(f"The coordinates {x} and {y} exceeds the lattice")
+        
+        # if x >= self.Lx or y >= self.Ly:
+        #     raise ValueError(f"The coordinates {x} and {y} exceeds the lattice")
 
         star = []
-        if x + 1 > L:
+        if x + 1 > Lx:
             star.append(0)
         else:
             star.append(self.link((x, y), (x + 1, y), **kwargs))
-        if y + 1 > l:
+        if y + 1 > Ly:
             star.append(0)
         else:
             star.append(self.link((x, y), (x, y + 1), **kwargs))
@@ -221,6 +222,9 @@ class Lattice(object):
             star.append(0)
         else:
             star.append(self.link((x, y - 1), (x, y), **kwargs))
+        if self.pbc_y:
+            if y == 0:
+                star.append(self.link((x, (y - 1) % Ly), (x, y), **kwargs))
         return star
 
     @property
