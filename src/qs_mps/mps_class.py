@@ -1355,7 +1355,7 @@ class MPS:
 
         return self
 
-    def single_operator_Ising(self, site, long: str = "X"):
+    def single_operator_Ising(self, site, op: str = "X"):
         """
         single_operator_Ising
 
@@ -1368,16 +1368,16 @@ class MPS:
         """
         I = identity(2, dtype=complex).toarray()
         O = csc_array((2, 2), dtype=complex).toarray()
-        if long == "Z":
-            long_op = sparse_pauli_z(n=0, L=1).toarray()
-        elif long == "X":
-            long_op = sparse_pauli_x(n=0, L=1).toarray()
+        if op == "Z":
+            op_op = sparse_pauli_z(n=0, L=1).toarray()
+        elif op == "X":
+            op_op = sparse_pauli_x(n=0, L=1).toarray()
         w_tot = []
         w_init = np.array([[I, O], [O, I]])
         for i in range(self.L):
             w_mag = w_init
             if i == site - 1:
-                w_mag[0, -1] = long_op
+                w_mag[0, -1] = op_op
 
             w_tot.append(w_mag)
         self.w = w_tot
@@ -3116,12 +3116,12 @@ class MPS:
         self.order_param(op=Z)
         mag_mps_tot.append(np.real(self.mpo_first_moment()))
         # loc X
-        self.local_param(site=self.L // 2 + 1, op=X)
+        self.local_param(site=self.L // 2 + 1, op="X")
         mag_mps_loc_X.append(np.real(self.mpo_first_moment()))
         # local glob Z
         mag_loc = []
         for i in range(self.L):
-            self.local_param(site=i + 1, op=Z)
+            self.local_param(site=i + 1, op="Z")
             mag_loc.append(np.real(self.mpo_first_moment()))
         mag_mps_loc.append(mag_loc)
 
@@ -3145,7 +3145,7 @@ class MPS:
             self.mpo_quench(quench, delta, h_ev)
             print(f"Bond dim ancilla: {self.ancilla_sites[self.L//2].shape[0]}")
             print(f"Bond dim site: {self.sites[self.L//2].shape[0]}")
-            error, entropy = self.compression(
+            error, entropy, sm = self.compression(
                 trunc_tol=False,
                 trunc_chi=True,
                 n_sweeps=n_sweeps,
@@ -3161,12 +3161,12 @@ class MPS:
             self.order_param(op=Z)
             mag_mps_tot.append(np.real(self.mpo_first_moment(mixed=True)))
             # loc X
-            self.local_param(site=self.L // 2 + 1, op=X)
+            self.local_param(site=self.L // 2 + 1, op="X")
             mag_mps_loc_X.append(np.real(self.mpo_first_moment(mixed=True)))
             # local glob Z
             mag = []
             for i in range(self.L):
-                self.local_param(site=i + 1, op=Z)
+                self.local_param(site=i + 1, op="Z")
                 mag.append(self.mpo_first_moment(mixed=True).real)
             mag_mps_loc.append(mag)
 
@@ -3931,7 +3931,7 @@ class MPS:
         print("\n## Norm of psi0_ex: ", (psi0_ex.conjugate() @ psi0_ex))
 
         # ham for exact evolution
-        H_ev = sparse_ising_hamiltonian(J=self.J, h_l=self.eps, h_t=h_ev, L=self.L, long="Z")
+        H_ev = sparse_ising_hamiltonian(J=J_ev, h_l=self.eps, h_t=h_ev, L=self.L, long="Z")
         
         # trotter evolution operator at second order
         H_ev_loc = sparse_ising_hamiltonian(J=0, h_l=self.eps, h_t=h_ev, L=self.L, long="Z")
