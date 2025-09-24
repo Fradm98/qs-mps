@@ -667,21 +667,30 @@ def exact_evolution_sparse(
 def evolution_operator(delta, hamiltonian):
     return spla.expm(-1j*delta*hamiltonian)
 
-def trott_Z2_dual_1(delta, coupling, H_loc, H_int):
-    U_loc = evolution_operator(delta=delta*(-1/coupling), hamiltonian=H_loc)    
-    U_int = evolution_operator(delta=delta*(-coupling), hamiltonian=H_int)
+def trott_1(delta, coupling_loc, coupling_int, H_loc, H_int):
+    U_loc = evolution_operator(delta=delta*(-coupling_loc), hamiltonian=H_loc)    
+    U_int = evolution_operator(delta=delta*(-coupling_int), hamiltonian=H_int)
     return U_loc @ U_int
     
-def trott_Z2_dual_2(delta, coupling, H_loc, H_int):
-    U_loc = evolution_operator(delta=(delta/2)*(-1/coupling), hamiltonian=H_loc)    
-    U_int = evolution_operator(delta=delta*(-coupling), hamiltonian=H_int)
+def trott_2(delta, coupling_loc, coupling_int, H_loc, H_int):
+    U_loc = evolution_operator(delta=(delta/2)*(-coupling_loc), hamiltonian=H_loc)    
+    U_int = evolution_operator(delta=delta*(-coupling_int), hamiltonian=H_int)
     return U_loc @ U_int @ U_loc
 
 def trott_Z2_dual(l, L, cx, cy, delta, coupling, ord: int=1):
     H_ev_el = sparse_Z2_electric_dual_ham(l, L, cx, cy) # zz dual interaction term
     H_ev_mag = sparse_Z2_magnetic_dual_ham(l, L) # x dual local term
     if ord == 1:
-        U_ev = trott_Z2_dual_1(delta, coupling, H_loc=H_ev_mag, H_int=H_ev_el)
+        U_ev = trott_1(delta, coupling_loc=1/coupling, coupling_int=coupling, H_loc=H_ev_mag, H_int=H_ev_el)
     if ord == 2:
-        U_ev = trott_Z2_dual_2(delta, coupling, H_loc=H_ev_mag, H_int=H_ev_el)
+        U_ev = trott_2(delta, coupling_loc=1/coupling, coupling_int=coupling, H_loc=H_ev_mag, H_int=H_ev_el)
+    return U_ev
+
+def trott_ising(L, J, h, delta, ord: int=1):
+    H_int = sparse_ising_hamiltonian(J=J, h_t=0, h_l=0, L=L, long="Z") # zz interaction term
+    H_loc = sparse_ising_hamiltonian(J=0, h_t=h, h_l=0, L=L, long="Z") # x local term
+    if ord == 1:
+        U_ev = trott_1(delta, coupling_loc=h, coupling_int=J, H_loc=H_loc, H_int=H_int)
+    if ord == 2:
+        U_ev = trott_2(delta, coupling_loc=h, coupling_int=J, H_loc=H_loc, H_int=H_int)
     return U_ev

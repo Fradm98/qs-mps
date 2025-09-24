@@ -20,6 +20,7 @@ from qs_mps.sparse_hamiltonians_and_operators import (
     sparse_Z2_dual_ham,
     sparse_Z2_magnetic_dual_ham,
     sparse_Z2_electric_dual_ham,
+    trott_ising,
     trott_Z2_dual,
     sparse_pauli_x,
     sparse_pauli_y,
@@ -3888,6 +3889,286 @@ class MPS:
 
         return error, entropy, schmidt_values, matrix_mpo
         
+    def TEBD_variational_ising(
+        self,
+        trotter_steps: int,
+        delta: float,
+        J_ev: float,
+        h_ev: float,
+        n_sweeps: int = 2,
+        conv_tol: float = 1e-8,
+        bond: bool = True,
+        where: int = -1,
+        exact: bool = False,
+        cx: list = None,
+        cy: list = None,
+        aux_qub: np.ndarray = None,
+        obs: list = None,
+        obs_freq: float = 0.3,
+        training: bool = False,
+        chi_max: int = 128,
+        path: str = None,
+        precision: int = 3,
+        run_group: str = None,
+        save_file: str = None,
+    ):
+        """
+        variational_mps_evolution
+
+        This function computes the magnetization and (on demand) the fidelity
+        of the trotter evolved MPS by the MPO direct application.
+
+        trotter_steps: int - number of times we apply the mpo to the mps
+        delta: float - time interval which defines the evolution per step
+        h_ev: float - value of the external field in the evolving hamiltonian
+        flip: bool - flip the initial state middle qubit
+        quench: str - type of quench we want to execute. Available are 'flip', 'global'
+        fidelity: bool - we can compute the fidelity with the initial state
+                if the chain is small enough. By default False
+        err: bool - computes the distance error between the guess state and an
+                uncompressed state. If True it is used as a convergence criterion.
+                By default True
+
+        """
+        obs_trotter = [int(val) for val in np.linspace(0, trotter_steps-1, int((trotter_steps*obs_freq)))]
+
+        if chi_max < self.chi:
+            self.enlarge_chi()
+            self.canonical_form(trunc_chi=True, trunc_tol=False)
+        
+
+        # ============================
+        # Observables
+        # ============================
+        # compression error
+        # errors = [[0]*(n_sweeps*(self.L-1))]
+        if training:
+            errors = np.zeros((self.L-1)*n_sweeps)
+        else:
+            errors = np.array([0])
+        # entropy
+        if bond:
+            entropies = np.array([0])
+        else:
+            entropies = np.zeros((self.L-1))
+
+        # schmidt_vals
+        svs = []
+
+        # local magnetization
+        local_magnetization = []
+        if "lm" in obs:
+            date_start = dt.datetime.now()
+            print(f"\n*** Computing local magnetization in date: {dt.datetime.now()} ***\n")
+            
+            for i in range(len(self.sites)):
+                self.local_param(site=i, op="Z")
+                local_magnetization.append(self.mpo_first_moment().real)
+            t_final = dt.datetime.now() - date_start
+            print(f"Total time for the local magnetization is: {t_final}")
+
+            shape_loc_mag = self.L
+            name_loc_mag = f'magnetization/D_{self.chi}/trotter_step_{0:03d}'
+            create_observable_group(save_file, run_group, name_loc_mag)
+            prepare_observable_group(save_file, run_group, name_loc_mag, shape=shape_loc_mag)
+            update_observable(save_file, run_group, name_loc_mag, data=local_magnetization, attr=0)
+
+        # overlap
+        # overlaps = []
+        if "losch" in obs:
+            # if self.bc == "pbc":
+            #     self.sites.append(aux_qub)
+            #     self.L = len(self.sites)
+            
+            psi_init = self.sites.copy()
+            self.ancilla_sites = psi_init.copy()
+            # overlaps.append(self._compute_norm(site=1, mixed=True))
+            overlaps = np.array([self._compute_norm(site=1, mixed=True)])
+            print('overlap', overlaps, overlaps.shape)
+            self.ancilla_sites = []
+            # if self.bc == "pbc":
+            #     aux_qub = self.sites.pop(-1)
+            #     self.L = len(self.sites)
+
+            name_ov = f'overlaps/D_{self.chi}'
+            create_observable_group(save_file, run_group, name_ov)
+            prepare_observable_group(save_file, run_group, name_ov, shape=trotter_steps + 1, dtype=np.complex128)
+            update_observable(save_file, run_group, name_ov, data=overlaps, attr=0, assign_all=False)
+            
+        # exact
+        braket_ex_sp = [1]
+        braket_ex_mps = [1]
+        braket_mps_sp = [1]
+        if exact:
+            # init state exact
+            ladders = int(np.log2(self.d))
+            H_sp = sparse_ising_hamiltonian(J=self.J, h_t=self.h, h_l=self.eps, L=self.L, long="Z")
+            e, v = diagonalization(H_sp, sparse=False)
+            psi0_ex = v[:,0]
+
+            # ham for exact evolution
+            H_ev = sparse_ising_hamiltonian(J=J_ev, h_t=h_ev, h_l=self.eps, L=self.L, long="Z")
+            # # ham for local evolution
+            # H_ev = - (1/h_ev) * sparse_Z2_magnetic_dual_ham(l=ladders, L=self.L-1)
+            # # ham for interaction evolution
+            # H_ev = - h_ev * sparse_Z2_electric_dual_ham(l=ladders, L=self.L-1, cx=cx, cy=cy)
+            
+            # trotter evolution operator at second order
+            U_ev_sp = trott_ising(L=self.L, J=J_ev, h=h_ev, delta=delta, ord=2)
+            
+            # # trotter operators for local and interaction evolution
+            # U_ev_sp = spla.expm(-1j*delta*H_ev)
+            
+            # init state sparse
+            psi0_sp = psi0_ex.copy()
+            psi_trott_sp = psi0_sp.copy()
+
+        # if self.bc == "pbc":
+        #     self.sites.append(aux_qub)
+        #     self.L = len(self.sites)
+        
+        self.ancilla_sites = self.sites.copy()
+
+        for trott in range(trotter_steps):
+
+            date_start = dt.datetime.now()
+            print(f"\n*** Starting the {trott}-th trotter step in date: {dt.datetime.now()} ***\n")
+            error, entropy, schmidt_vals, matrix_mpo = self.TEBD_variational_Z2_trotter_step(
+                delta=delta,
+                h_ev=h_ev,
+                n_sweeps=n_sweeps,
+                conv_tol=conv_tol,
+                bond=bond,
+                where=where,
+                exact=exact,
+            )
+            t_final = dt.datetime.now() - date_start
+            print(f"Total time for the {trott}-th trotter step is: {t_final}")
+
+            ## saving the temp mps
+            print(f"saving temporarily the mps at {trott}-th trotter step...")
+            filename = f"/results/tensors/time_evolved_tensor_sites_{self.model}_L_{self.L}_bc_{self.bc}_chi_{self.chi}_h_{self.h:.{precision}f}_delta_{delta}_trotter_{trotter_steps}"
+            self.save_sites_Ising(path, precision, filename=filename)
+            
+            # save compression error
+            if training:
+                errors = np.array(error)
+                shape_err = (self.L - 1)*n_sweeps
+                name_err = f'errors_trunc/D_{self.chi}/trotter_step_{(trott+1):03d}'
+                create_observable_group(save_file, run_group, name_err)
+                prepare_observable_group(save_file, run_group, name_err, shape=shape_err)
+                update_observable(save_file, run_group, name_err, data=errors, attr=trott+1)
+            else:
+                errors = np.array([error[-1]])
+                name_err = f'errors_trunc/D_{self.chi}'
+                update_observable(save_file, run_group, name_err, data=errors, attr=trott+1, assign_all=False)
+
+            # save entropy
+            if bond:
+                entropies = np.array([entropy])
+                print(entropies)
+                name_entr = f'entropies/D_{self.chi}'
+                update_observable(save_file, run_group, name_entr, data=entropies, attr=trott+1, assign_all=False)
+            else:
+                entropies = np.array(entropy)
+                shape_entr = (self.L - 1)
+                name_entr = f'entropies/D_{self.chi}/trotter_step_{(trott+1):03d}'
+                create_observable_group(save_file, run_group, name_entr)
+                prepare_observable_group(save_file, run_group, name_entr, shape=shape_entr)
+                update_observable(save_file, run_group, name_entr, data=entropies, attr=trott+1)
+
+            # schmidt_vals
+            shape_sm = self.chi
+            name_sm = f'schmidt_values/D_{self.chi}/trotter_step_{(trott+1):03d}'
+            create_observable_group(save_file, run_group, name_sm)
+            prepare_observable_group(save_file, run_group, name_sm, shape=shape_sm)
+            update_observable(save_file, run_group, name_sm, data=schmidt_vals, attr=trott+1)
+            
+            # ============================
+            # Observables
+            # ============================
+            if trott in obs_trotter:
+                print("==========================================")
+                print("Computing observables for this trotter step")
+                
+                # if self.bc == "pbc":
+                #     self.sites.pop()
+                #     self.L = len(self.sites)
+                
+                # electric field
+                if "el" in obs:
+                    date_start = dt.datetime.now()
+                    print(f"\n*** Computing local magnetization in date: {dt.datetime.now()} ***\n")
+                    
+                    for i in range(len(self.sites)):
+                        self.local_param(site=i, op="Z")
+                        local_magnetization.append(self.mpo_first_moment().real)
+                    t_final = dt.datetime.now() - date_start
+                    print(f"Total time for the electric field density is: {t_final}")
+
+                    name_loc_mag = f'electric_fields/D_{self.chi}/trotter_step_{(trott+1):03d}'
+                    create_observable_group(save_file, run_group, name_loc_mag)
+                    prepare_observable_group(save_file, run_group, name_loc_mag, shape=shape_loc_mag)
+                    update_observable(save_file, run_group, name_loc_mag, data=loc_mag, attr=trott+1)
+                
+                # overlap
+                if "losch" in obs:
+                    # if self.bc == "pbc":
+                    #     self.sites.append(aux_qub)
+                    #     self.L = len(self.sites)
+                    
+                    self.ancilla_sites = psi_init.copy()
+                    # overlaps.append(self._compute_norm(site=1, mixed=True))
+                    overlaps = np.array([self._compute_norm(site=1, mixed=True)])
+                    self.ancilla_sites = []
+                    if self.bc == "pbc":
+                        aux_qub = self.sites.pop(-1)
+                        self.L = len(self.sites)
+
+                    # overlap
+                    name_ov = f'overlaps/D_{self.chi}'
+                    update_observable(save_file, run_group, name_ov, data=overlaps, attr=trott+1, assign_all=False)
+                
+                # exact
+                if exact:
+                    difference = np.linalg.norm(matrix_mpo - U_ev_sp.toarray())
+                    if difference < 1e-10:  # Threshold for numerical precision
+                        print("MPO matches the sparse matrix representation!")
+                    else:
+                        print(f"Mismatch found! Difference: {difference}")
+
+                    # trotter state mps
+                    psi_trott_mps = mps_to_vector(self.sites)
+                    # print("\n****** Norm of psi_trott_mps: ", self._compute_norm(site=1))
+
+                    # trotter state exact
+                    U_ev = spla.expm(-1j*delta*(trott+1)*H_ev)
+                    psi_trott_ex = U_ev @ psi0_ex
+                    # print("\n****** Norm of psi_trott_ex: ", (psi_trott_ex.conjugate() @ psi_trott_ex))
+
+                    # trotter state sparse
+                    psi_trott_sp = U_ev_sp @ psi_trott_sp
+                    # print("\n****** Norm of psi_trott_ex: ", (psi_trott_sp.conjugate() @ psi_trott_sp))
+
+                    # exact vs sparse
+                    ex_sp = psi_trott_ex.conjugate() @ psi_trott_sp
+                    # ex_sp = la.norm(psi_trott_ex - psi_trott_sp)
+                    braket_ex_sp.append(ex_sp)
+                    # exact vs mps
+                    ex_mps = psi_trott_ex.conjugate() @ psi_trott_mps
+                    # ex_mps = la.norm(psi_trott_ex - psi_trott_mps)
+                    braket_ex_mps.append(ex_mps)
+                    # mps vs sparse
+                    mps_sp = psi_trott_mps.conjugate() @ psi_trott_sp
+                    # mps_sp = la.norm(psi_trott_mps - psi_trott_sp)
+                    braket_mps_sp.append(mps_sp)
+                
+            
+                # if self.bc == "pbc":
+                #     self.sites.append(aux_qub)
+                #     self.L = len(self.sites)
+
+        return errors, entropies, svs, electric_local_field, overlaps, braket_ex_sp, braket_ex_mps, braket_mps_sp
         
     def TEBD_variational_Ising_debug(
         self,
@@ -4226,23 +4507,58 @@ class MPS:
             raise ValueError("Choose a correct model")
         return self
 
-    def save_sites_Ising(self, path, precision: int = 2):
-        # shapes of the tensors
-        shapes = tensor_shapes(self.sites, False)
-        np.savetxt(
-            f"{path}/results/tensors/shapes_sites_{self.model}_L_{self.L}_chi_{self.chi}_h_{self.h:.{precision}f}_J_{self.J:.{precision}f}",
-            shapes,
-            fmt="%1.i",  # , delimiter=','
-        )
+    def save_sites_Ising(self, path, precision: int = 2, excited: bool = False, filename: str=None):
+        # # shapes of the tensors
+        # shapes = tensor_shapes(self.sites, False)
+        # np.savetxt(
+        #     f"{path}/results/tensors/shapes_sites_{self.model}_L_{self.L}_chi_{self.chi}_h_{self.h:.{precision}f}_J_{self.J:.{precision}f}",
+        #     shapes,
+        #     fmt="%1.i",  # , delimiter=','
+        # )
 
-        # flattening of the tensors
-        tensor = [element for site in self.sites for element in site.flatten()]
-        np.savetxt(
-            f"{path}/results/tensors/tensor_sites_{self.model}_L_{self.L}_chi_{self.chi}_h_{self.h:.{precision}f}_J_{self.J:.{precision}f}",
-            tensor,
-        )
-        return self
+        # # flattening of the tensors
+        # tensor = [element for site in self.sites for element in site.flatten()]
+        # np.savetxt(
+        #     f"{path}/results/tensors/tensor_sites_{self.model}_L_{self.L}_chi_{self.chi}_h_{self.h:.{precision}f}_J_{self.J:.{precision}f}",
+        #     tensor,
+        # )
+        # return self
 
+        t_start = time.perf_counter()
+
+        metadata = dict(
+            model=self.model,
+            L=self.L,
+            bc=self.bc,
+            chi=self.chi,
+            h=self.h,
+        )
+        if filename is None:
+            if excited:
+                filename = f"/results/tensors/tensor_sites_first_excited_{self.model}_L_{self.L}_bc_{self.bc}_chi_{self.chi}_h_{self.h:.{precision}f}"
+            else:
+                filename = f"/results/tensors/tensor_sites_{self.model}_L_{self.L}_bc_{self.bc}_chi_{self.chi}_h_{self.h:.{precision}f}"
+        
+        with h5py.File(f"{path}{filename}.h5", "w") as f:
+            # Save scalar metadata as file attributes
+            for key, value in metadata.items():
+                f.attrs[
+                    key
+                ] = value  # This is good for small, scalar data like strings or numbers
+
+            # Create a group for the tensors
+            tensors_group = f.create_group("tensors")
+
+            # Store each tensor as a separate dataset within the group
+            for i, tensor in enumerate(self.sites):
+                tensors_group.create_dataset(
+                    f"tensor_{i}", data=tensor, compression="gzip"
+                )
+
+        t_save = abs(time.perf_counter() - t_start)
+        t_save = dt.timedelta(seconds=t_save)
+        print(f"time for saving: {t_save}")
+        
     def save_sites_Cluster_xy(self, path, precision: int = 2):
         # shapes of the tensors
         shapes = tensor_shapes(self.sites, False)
