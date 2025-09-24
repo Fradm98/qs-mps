@@ -3888,7 +3888,76 @@ class MPS:
             matrix_mpo = matrix_mpo @ mpo_loc_2
 
         return error, entropy, schmidt_values, matrix_mpo
+    
+    def TEBD_variational_ising_trotter_step(
+        self,
+        delta: float,
+        J_ev: float,
+        h_ev: float,
+        n_sweeps: int = 4,
+        conv_tol: float = 1e-12,
+        bond: bool = True,
+        where: int = -1,
+        exact: bool = False,
+    ):
+        """
+        TEBD variational Z2 trotter step
+
+        This function computes one trotter step for the evolution of
+        a state using the Z2 Dual hamiltonian. We use a second order trotterization
+        where the local (magnetization/plaquette) term sandwiches the
+        interaction (electric/string) term. Whilst the local term is applied
+        as a block for all the ladders, the interaction term is applied ladder
+        per ladder to reduce the total bond dimension of the mpo.
+        Hence, the compression algorithm should work faster and give accurate
+        approximation of the initial state.  
+
+        delta: float - time interval which defines the evolution per step
+        h_ev: float - value of the external field in the evolving hamiltonian
+        flip: bool - flip the initial state middle qubit
+        quench: str - type of quench we want to execute. Available are 'flip', 'global'
+        fidelity: bool - we can compute the fidelity with the initial state
+                if the chain is small enough. By default False
+        err: bool - computes the distance error between the guess state and an
+                uncompressed state. If True it is used as a convergence criterion.
+                By default True
+
+        """
+        if exact:
+            matrix_mpo = identity(2**self.L)
+        else:
+            matrix_mpo = None
         
+        date_start = dt.datetime.now()
+        # start with the half mu_x before the ladder interacton evolution operator
+        
+        self.ancilla_sites = self.sites.copy()
+
+        self.mpo_Ising_quench_global(delta=delta, h_ev=h_ev, J_ev=J_ev)
+
+        print(f"Bond dim ancilla: {self.ancilla_sites[self.L//2].shape[0]}")
+        print(f"Bond dim site: {self.sites[self.L//2].shape[0]}")
+
+        # compress the ladder evolution operator
+        error, entropy, schmidt_values = self.compression(
+            trunc_tol=False,
+            trunc_chi=True,
+            n_sweeps=n_sweeps,
+            conv_tol=conv_tol,
+            bond=bond,
+            where=where,
+        )
+        self.ancilla_sites = self.sites.copy()
+
+        t_final = dt.datetime.now() - date_start
+        print(f"Compress the ising evolution operator: {t_final}")
+
+        if exact:
+            mpo_ev = mpo_to_matrix(self.w)
+            matrix_mpo = matrix_mpo @ mpo_ev
+
+        return error, entropy, schmidt_values, matrix_mpo
+    
     def TEBD_variational_ising(
         self,
         trotter_steps: int,
@@ -3900,9 +3969,6 @@ class MPS:
         bond: bool = True,
         where: int = -1,
         exact: bool = False,
-        cx: list = None,
-        cy: list = None,
-        aux_qub: np.ndarray = None,
         obs: list = None,
         obs_freq: float = 0.3,
         training: bool = False,
@@ -3961,9 +4027,11 @@ class MPS:
             date_start = dt.datetime.now()
             print(f"\n*** Computing local magnetization in date: {dt.datetime.now()} ***\n")
             
+            loc_mag = np.zeros((self.L))
             for i in range(len(self.sites)):
                 self.local_param(site=i, op="Z")
-                local_magnetization.append(self.mpo_first_moment().real)
+                loc_mag[i] = self.mpo_first_moment().real
+            local_magnetization.append(loc_mag)
             t_final = dt.datetime.now() - date_start
             print(f"Total time for the local magnetization is: {t_final}")
 
@@ -4001,7 +4069,6 @@ class MPS:
         braket_mps_sp = [1]
         if exact:
             # init state exact
-            ladders = int(np.log2(self.d))
             H_sp = sparse_ising_hamiltonian(J=self.J, h_t=self.h, h_l=self.eps, L=self.L, long="Z")
             e, v = diagonalization(H_sp, sparse=False)
             psi0_ex = v[:,0]
@@ -4100,12 +4167,15 @@ class MPS:
                     date_start = dt.datetime.now()
                     print(f"\n*** Computing local magnetization in date: {dt.datetime.now()} ***\n")
                     
+                    loc_mag[:] = 0
                     for i in range(len(self.sites)):
                         self.local_param(site=i, op="Z")
-                        local_magnetization.append(self.mpo_first_moment().real)
+                        loc_mag[i] = self.mpo_first_moment().real
+                    local_magnetization.append(loc_mag)
                     t_final = dt.datetime.now() - date_start
-                    print(f"Total time for the electric field density is: {t_final}")
+                    print(f"Total time for the local magnetization is: {t_final}")
 
+                    shape_loc_mag = self.L
                     name_loc_mag = f'electric_fields/D_{self.chi}/trotter_step_{(trott+1):03d}'
                     create_observable_group(save_file, run_group, name_loc_mag)
                     prepare_observable_group(save_file, run_group, name_loc_mag, shape=shape_loc_mag)
@@ -4121,9 +4191,6 @@ class MPS:
                     # overlaps.append(self._compute_norm(site=1, mixed=True))
                     overlaps = np.array([self._compute_norm(site=1, mixed=True)])
                     self.ancilla_sites = []
-                    if self.bc == "pbc":
-                        aux_qub = self.sites.pop(-1)
-                        self.L = len(self.sites)
 
                     # overlap
                     name_ov = f'overlaps/D_{self.chi}'
@@ -4168,7 +4235,7 @@ class MPS:
                 #     self.sites.append(aux_qub)
                 #     self.L = len(self.sites)
 
-        return errors, entropies, svs, electric_local_field, overlaps, braket_ex_sp, braket_ex_mps, braket_mps_sp
+        return errors, entropies, svs, local_magnetization, overlaps, braket_ex_sp, braket_ex_mps, braket_mps_sp
         
     def TEBD_variational_Ising_debug(
         self,
