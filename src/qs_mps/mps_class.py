@@ -482,7 +482,7 @@ class MPS:
         # print(f"-=-=-= Norm: {N}\n")
         return N
 
-    def flipping_mps(self):
+    def flipping_mps(self, op: str="X"):
         """
         flipping_mps
 
@@ -490,12 +490,15 @@ class MPS:
         assuming to be in the computational (Z) basis.
 
         """
-        X = np.array([[0, 1], [1, 0]])
+        if op == "X":
+            S = np.array([[0, 1], [1, 0]])
+        elif op == "Z":
+            S = np.array([[1, 0], [0, -1]])
         if len(self.sites) % 2 == 0:
-            new_site = ncon([self.sites[self.L // 2 - 1], X], [[-1, 1, -3], [1, -2]])
+            new_site = ncon([self.sites[self.L // 2 - 1], S], [[-1, 1, -3], [1, -2]])
             self.sites[self.L // 2 - 1] = new_site
 
-        new_site = ncon([self.sites[self.L // 2], X], [[-1, 1, -3], [1, -2]])
+        new_site = ncon([self.sites[self.L // 2], S], [[-1, 1, -3], [1, -2]])
         self.sites[self.L // 2] = new_site
 
         return self
@@ -1376,7 +1379,7 @@ class MPS:
         w_tot = []
         w_init = np.array([[I, O], [O, I]])
         for i in range(self.L):
-            w_mag = w_init
+            w_mag = w_init.copy()
             if i == site - 1:
                 w_mag[0, -1] = op_op
 
@@ -3931,12 +3934,8 @@ class MPS:
         date_start = dt.datetime.now()
         # start with the half mu_x before the ladder interacton evolution operator
         
-        self.ancilla_sites = self.sites.copy()
 
         self.mpo_Ising_quench_global(delta=delta, h_ev=h_ev, J_ev=J_ev)
-
-        print(f"Bond dim ancilla: {self.ancilla_sites[self.L//2].shape[0]}")
-        print(f"Bond dim site: {self.sites[self.L//2].shape[0]}")
 
         # compress the ladder evolution operator
         error, entropy, schmidt_values = self.compression(
@@ -3947,16 +3946,16 @@ class MPS:
             bond=bond,
             where=where,
         )
+
+        print(f"Bond dim ancilla: {self.ancilla_sites[self.L//2].shape[0]}")
+        print(f"Bond dim site: {self.sites[self.L//2].shape[0]}")
+
         self.ancilla_sites = self.sites.copy()
 
         t_final = dt.datetime.now() - date_start
         print(f"Compress the ising evolution operator: {t_final}")
 
-        if exact:
-            mpo_ev = mpo_to_matrix(self.w)
-            matrix_mpo = matrix_mpo @ mpo_ev
-
-        return error, entropy, schmidt_values, matrix_mpo
+        return error, entropy, schmidt_values
     
     def TEBD_variational_ising(
         self,
@@ -3998,25 +3997,42 @@ class MPS:
         """
         obs_trotter = [int(val) for val in np.linspace(0, trotter_steps-1, int((trotter_steps*obs_freq)))]
 
-        if chi_max < self.chi:
+        chi_sat = []
+        if chi_max > self.chi:
+            self.chi = chi_max
             self.enlarge_chi()
             self.canonical_form(trunc_chi=True, trunc_tol=False)
         
+        chi_sat.append(self.sites[self.L//2].shape[0])
 
         # ============================
         # Observables
         # ============================
         # compression error
-        # errors = [[0]*(n_sweeps*(self.L-1))]
+        errs = [[0]*(n_sweeps*(self.L-1))]
+        # errs = []
         if training:
             errors = np.zeros((self.L-1)*n_sweeps)
+            # errs.append(errors)
         else:
             errors = np.array([0])
+            # errs.append(errors)
+            # name_errs = f'errors/D_{self.chi}'
+            # create_observable_group(save_file, run_group, name_errs)
+            # prepare_observable_group(save_file, run_group, name_errs, shape=trotter_steps + 1, dtype=np.complex128)
+            # update_observable(save_file, run_group, name_errs, data=errors, attr=0, assign_all=False)
         # entropy
+        entrs = []
         if bond:
             entropies = np.array([0])
+            # entrs.append(entropies)
+            # name_entrs = f'entropies/D_{self.chi}'
+            # create_observable_group(save_file, run_group, name_entrs)
+            # prepare_observable_group(save_file, run_group, name_entrs, shape=trotter_steps + 1, dtype=np.complex128)
+            # update_observable(save_file, run_group, name_entrs, data=entropies, attr=0, assign_all=False)
         else:
             entropies = np.zeros((self.L-1))
+            # entrs.append(entropies)
 
         # schmidt_vals
         svs = []
@@ -4029,20 +4045,20 @@ class MPS:
             
             loc_mag = np.zeros((self.L))
             for i in range(len(self.sites)):
-                self.local_param(site=i, op="Z")
+                self.local_param(site=i+1, op="Z")
                 loc_mag[i] = self.mpo_first_moment().real
-            local_magnetization.append(loc_mag)
+            local_magnetization.append(loc_mag.copy())
             t_final = dt.datetime.now() - date_start
             print(f"Total time for the local magnetization is: {t_final}")
 
-            shape_loc_mag = self.L
-            name_loc_mag = f'magnetization/D_{self.chi}/trotter_step_{0:03d}'
-            create_observable_group(save_file, run_group, name_loc_mag)
-            prepare_observable_group(save_file, run_group, name_loc_mag, shape=shape_loc_mag)
-            update_observable(save_file, run_group, name_loc_mag, data=local_magnetization, attr=0)
+            # shape_loc_mag = self.L
+            # name_loc_mag = f'magnetization/D_{self.chi}/trotter_step_{0:03d}'
+            # create_observable_group(save_file, run_group, name_loc_mag)
+            # prepare_observable_group(save_file, run_group, name_loc_mag, shape=shape_loc_mag)
+            # update_observable(save_file, run_group, name_loc_mag, data=local_magnetization, attr=0)
 
         # overlap
-        # overlaps = []
+        ovlps = []
         if "losch" in obs:
             # if self.bc == "pbc":
             #     self.sites.append(aux_qub)
@@ -4052,16 +4068,17 @@ class MPS:
             self.ancilla_sites = psi_init.copy()
             # overlaps.append(self._compute_norm(site=1, mixed=True))
             overlaps = np.array([self._compute_norm(site=1, mixed=True)])
+            ovlps.append(np.array([self._compute_norm(site=1, mixed=True)]))
             print('overlap', overlaps, overlaps.shape)
             self.ancilla_sites = []
             # if self.bc == "pbc":
             #     aux_qub = self.sites.pop(-1)
             #     self.L = len(self.sites)
 
-            name_ov = f'overlaps/D_{self.chi}'
-            create_observable_group(save_file, run_group, name_ov)
-            prepare_observable_group(save_file, run_group, name_ov, shape=trotter_steps + 1, dtype=np.complex128)
-            update_observable(save_file, run_group, name_ov, data=overlaps, attr=0, assign_all=False)
+            # name_ov = f'overlaps/D_{self.chi}'
+            # create_observable_group(save_file, run_group, name_ov)
+            # prepare_observable_group(save_file, run_group, name_ov, shape=trotter_steps + 1, dtype=np.complex128)
+            # update_observable(save_file, run_group, name_ov, data=overlaps, attr=0, assign_all=False)
             
         # exact
         braket_ex_sp = [1]
@@ -4089,6 +4106,14 @@ class MPS:
             # init state sparse
             psi0_sp = psi0_ex.copy()
             psi_trott_sp = psi0_sp.copy()
+            
+            self.mpo_Ising_quench_global(delta=delta, J_ev=J_ev, h_ev=h_ev)
+            mpo_ev = mpo_to_matrix(self.w)
+            difference = np.linalg.norm(mpo_ev - U_ev_sp.toarray())
+            if difference < 1e-10:  # Threshold for numerical precision
+                print("MPO matches the sparse matrix representation!")
+            else:
+                print(f"Mismatch found! Difference: {difference}")
 
         # if self.bc == "pbc":
         #     self.sites.append(aux_qub)
@@ -4100,15 +4125,19 @@ class MPS:
 
             date_start = dt.datetime.now()
             print(f"\n*** Starting the {trott}-th trotter step in date: {dt.datetime.now()} ***\n")
-            error, entropy, schmidt_vals, matrix_mpo = self.TEBD_variational_Z2_trotter_step(
+            error, entropy, schmidt_vals = self.TEBD_variational_ising_trotter_step(
                 delta=delta,
                 h_ev=h_ev,
+                J_ev=J_ev,
                 n_sweeps=n_sweeps,
                 conv_tol=conv_tol,
                 bond=bond,
                 where=where,
                 exact=exact,
             )
+
+            chi_sat.append(self.sites[self.L//2].shape[0])
+
             t_final = dt.datetime.now() - date_start
             print(f"Total time for the {trott}-th trotter step is: {t_final}")
 
@@ -4119,37 +4148,41 @@ class MPS:
             
             # save compression error
             if training:
+                errs.append(np.array(error))
                 errors = np.array(error)
-                shape_err = (self.L - 1)*n_sweeps
-                name_err = f'errors_trunc/D_{self.chi}/trotter_step_{(trott+1):03d}'
-                create_observable_group(save_file, run_group, name_err)
-                prepare_observable_group(save_file, run_group, name_err, shape=shape_err)
-                update_observable(save_file, run_group, name_err, data=errors, attr=trott+1)
+                # shape_err = (self.L - 1)*n_sweeps
+                # name_err = f'errors_trunc/D_{self.chi}/trotter_step_{(trott+1):03d}'
+                # create_observable_group(save_file, run_group, name_err)
+                # prepare_observable_group(save_file, run_group, name_err, shape=shape_err)
+                # update_observable(save_file, run_group, name_err, data=errors, attr=trott+1)
             else:
+                errs.append(np.array([error[-1]]))
                 errors = np.array([error[-1]])
-                name_err = f'errors_trunc/D_{self.chi}'
-                update_observable(save_file, run_group, name_err, data=errors, attr=trott+1, assign_all=False)
+                # name_err = f'errors_trunc/D_{self.chi}'
+                # update_observable(save_file, run_group, name_err, data=errors, attr=trott+1, assign_all=False)
 
             # save entropy
             if bond:
+                entrs.append(np.array([entropy]))
                 entropies = np.array([entropy])
-                print(entropies)
-                name_entr = f'entropies/D_{self.chi}'
-                update_observable(save_file, run_group, name_entr, data=entropies, attr=trott+1, assign_all=False)
+                # print(entropies)
+                # name_entr = f'entropies/D_{self.chi}'
+                # update_observable(save_file, run_group, name_entr, data=entropies, attr=trott+1, assign_all=False)
             else:
+                entrs.append(np.array(entropy))
                 entropies = np.array(entropy)
-                shape_entr = (self.L - 1)
-                name_entr = f'entropies/D_{self.chi}/trotter_step_{(trott+1):03d}'
-                create_observable_group(save_file, run_group, name_entr)
-                prepare_observable_group(save_file, run_group, name_entr, shape=shape_entr)
-                update_observable(save_file, run_group, name_entr, data=entropies, attr=trott+1)
+                # shape_entr = (self.L - 1)
+                # name_entr = f'entropies/D_{self.chi}/trotter_step_{(trott+1):03d}'
+                # create_observable_group(save_file, run_group, name_entr)
+                # prepare_observable_group(save_file, run_group, name_entr, shape=shape_entr)
+                # update_observable(save_file, run_group, name_entr, data=entropies, attr=trott+1)
 
             # schmidt_vals
-            shape_sm = self.chi
-            name_sm = f'schmidt_values/D_{self.chi}/trotter_step_{(trott+1):03d}'
-            create_observable_group(save_file, run_group, name_sm)
-            prepare_observable_group(save_file, run_group, name_sm, shape=shape_sm)
-            update_observable(save_file, run_group, name_sm, data=schmidt_vals, attr=trott+1)
+            # shape_sm = self.chi
+            # name_sm = f'schmidt_values/D_{self.chi}/trotter_step_{(trott+1):03d}'
+            # create_observable_group(save_file, run_group, name_sm)
+            # prepare_observable_group(save_file, run_group, name_sm, shape=shape_sm)
+            # update_observable(save_file, run_group, name_sm, data=schmidt_vals, attr=trott+1)
             
             # ============================
             # Observables
@@ -4163,23 +4196,23 @@ class MPS:
                 #     self.L = len(self.sites)
                 
                 # electric field
-                if "el" in obs:
+                if "lm" in obs:
                     date_start = dt.datetime.now()
                     print(f"\n*** Computing local magnetization in date: {dt.datetime.now()} ***\n")
                     
                     loc_mag[:] = 0
                     for i in range(len(self.sites)):
-                        self.local_param(site=i, op="Z")
+                        self.local_param(site=i+1, op="Z")
                         loc_mag[i] = self.mpo_first_moment().real
-                    local_magnetization.append(loc_mag)
+                    local_magnetization.append(loc_mag.copy())
                     t_final = dt.datetime.now() - date_start
                     print(f"Total time for the local magnetization is: {t_final}")
 
-                    shape_loc_mag = self.L
-                    name_loc_mag = f'electric_fields/D_{self.chi}/trotter_step_{(trott+1):03d}'
-                    create_observable_group(save_file, run_group, name_loc_mag)
-                    prepare_observable_group(save_file, run_group, name_loc_mag, shape=shape_loc_mag)
-                    update_observable(save_file, run_group, name_loc_mag, data=loc_mag, attr=trott+1)
+                    # shape_loc_mag = self.L
+                    # name_loc_mag = f'electric_fields/D_{self.chi}/trotter_step_{(trott+1):03d}'
+                    # create_observable_group(save_file, run_group, name_loc_mag)
+                    # prepare_observable_group(save_file, run_group, name_loc_mag, shape=shape_loc_mag)
+                    # update_observable(save_file, run_group, name_loc_mag, data=loc_mag, attr=trott+1)
                 
                 # overlap
                 if "losch" in obs:
@@ -4190,20 +4223,15 @@ class MPS:
                     self.ancilla_sites = psi_init.copy()
                     # overlaps.append(self._compute_norm(site=1, mixed=True))
                     overlaps = np.array([self._compute_norm(site=1, mixed=True)])
+                    ovlps.append(np.array([self._compute_norm(site=1, mixed=True)]))
                     self.ancilla_sites = []
-
-                    # overlap
-                    name_ov = f'overlaps/D_{self.chi}'
-                    update_observable(save_file, run_group, name_ov, data=overlaps, attr=trott+1, assign_all=False)
+                    self.ancilla_sites = self.sites.copy()
+                    # # overlap
+                    # name_ov = f'overlaps/D_{self.chi}'
+                    # update_observable(save_file, run_group, name_ov, data=overlaps, attr=trott+1, assign_all=False)
                 
                 # exact
                 if exact:
-                    difference = np.linalg.norm(matrix_mpo - U_ev_sp.toarray())
-                    if difference < 1e-10:  # Threshold for numerical precision
-                        print("MPO matches the sparse matrix representation!")
-                    else:
-                        print(f"Mismatch found! Difference: {difference}")
-
                     # trotter state mps
                     psi_trott_mps = mps_to_vector(self.sites)
                     # print("\n****** Norm of psi_trott_mps: ", self._compute_norm(site=1))
@@ -4235,7 +4263,7 @@ class MPS:
                 #     self.sites.append(aux_qub)
                 #     self.L = len(self.sites)
 
-        return errors, entropies, svs, local_magnetization, overlaps, braket_ex_sp, braket_ex_mps, braket_mps_sp
+        return errs, entrs, svs, local_magnetization, ovlps, braket_ex_sp, braket_ex_mps, braket_mps_sp, chi_sat
         
     def TEBD_variational_Ising_debug(
         self,

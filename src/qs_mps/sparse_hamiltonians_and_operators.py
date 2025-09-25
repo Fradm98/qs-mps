@@ -668,13 +668,13 @@ def evolution_operator(delta, hamiltonian):
     return spla.expm(-1j*delta*hamiltonian)
 
 def trott_1(delta, coupling_loc, coupling_int, H_loc, H_int):
-    U_loc = evolution_operator(delta=delta*(-coupling_loc), hamiltonian=H_loc)    
-    U_int = evolution_operator(delta=delta*(-coupling_int), hamiltonian=H_int)
+    U_loc = evolution_operator(delta=delta*(coupling_loc), hamiltonian=H_loc)    
+    U_int = evolution_operator(delta=delta*(coupling_int), hamiltonian=H_int)
     return U_loc @ U_int
     
 def trott_2(delta, coupling_loc, coupling_int, H_loc, H_int):
-    U_loc = evolution_operator(delta=(delta/2)*(-coupling_loc), hamiltonian=H_loc)    
-    U_int = evolution_operator(delta=delta*(-coupling_int), hamiltonian=H_int)
+    U_loc = evolution_operator(delta=(delta/2)*(coupling_loc), hamiltonian=H_loc)    
+    U_int = evolution_operator(delta=delta*(coupling_int), hamiltonian=H_int)
     return U_loc @ U_int @ U_loc
 
 def trott_Z2_dual(l, L, cx, cy, delta, coupling, ord: int=1):
