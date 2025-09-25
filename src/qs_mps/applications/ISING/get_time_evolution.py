@@ -2,19 +2,10 @@ import numpy as np
 from scipy.sparse import csc_array
 import scipy.sparse.linalg as spla
 
-import matplotlib.pyplot as plt
-import matplotlib as mpl
-
-# default parameters of the plot layout
-plt.rcParams["text.usetex"] = True  # use latex
-plt.rcParams["font.size"] = 13
-plt.rcParams["figure.dpi"] = 300
-plt.rcParams["figure.constrained_layout.use"] = True
 
 from qs_mps.applications.Z2.exact_hamiltonian import *
 from qs_mps.sparse_hamiltonians_and_operators import *
 from qs_mps.mps_class import MPS
-from qs_mps.utils import anim, get_cx, get_cy
 
 L = 11
 d = 2
