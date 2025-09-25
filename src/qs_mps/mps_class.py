@@ -928,7 +928,7 @@ class MPS:
 
         w_tot = []
         for i in range(self.L):
-            if i == 0 or i == 1:
+            if i == 0 or i == self.L-1:
                 c = 1
             else:
                 c = 0
