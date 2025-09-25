@@ -51,8 +51,8 @@ obs = ["lm", "losch"]
 obs_freq = 1
 training = True
 chi_max = 200
-path_tensor = "D:/projects/0_ISING/"
-parent_path = "D:/projects/0_ISING/"
+path_tensor = "/shared/projects/0_ISING/"
+parent_path = "/shared/projects/0_ISING/"
 # create a run group for saving observables
 h5file = f"{parent_path}/results/results_time_2.hdf5"
 params = dict(L=L, delta=delta, 
