@@ -4009,12 +4009,14 @@ class MPS:
         # Observables
         # ============================
         # compression error
-        errs = [[0]*(n_sweeps*(self.L-1))]
+        
         # errs = []
         if training:
+            errs = [[0]*(n_sweeps*(self.L-1))]
             errors = np.zeros((self.L-1)*n_sweeps)
             # errs.append(errors)
         else:
+            errs = [np.array([0])]
             errors = np.array([0])
             # errs.append(errors)
             # name_errs = f'errors/D_{self.chi}'
