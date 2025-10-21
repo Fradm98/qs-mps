@@ -40,10 +40,10 @@ bond = True
 exact = False
 obs = ["lm", "losch"]
 obs_freq = 1
-training = True
+training = False
 chi_max = 200
-path_tensor = "/shared/projects/0_ISING/"
-parent_path = "/shared/projects/0_ISING/"
+path_tensor = "/shared/projects/0_ISING"
+parent_path = "/shared/projects/0_ISING"
 # create a run group for saving observables
 h5file = f"{parent_path}/results/results_time_2.hdf5"
 params = dict(L=L, delta=delta, 
@@ -86,10 +86,16 @@ print(f"\n*** Starting TEBD evolution in {dt.datetime.now()} ***\n")
 t_final = dt.datetime.now() - date_start
 print(f"Total time for TEBD evolution of {npoints} trotter steps is: {t_final}")
 
-np.save(
-        f"{parent_path}/results/errors/errors_time_ev_training_{training}_{model}_L_{L}_h_{h_i}-{h_ev}_delta_{delta}_trotter_steps_{npoints}_chi_{chi_max}.npy",
-        errors,
-        )
+if training:
+        np.savetxt(
+                f"{parent_path}/results/errors/errors_training_time_ev_training_{training}_{model}_L_{L}_h_{h_i}-{h_ev}_delta_{delta}_trotter_steps_{npoints}_chi_{chi_max}.txt",
+                errors,
+                )
+else:
+        np.save(
+                f"{parent_path}/results/errors/errors_time_ev_training_{training}_{model}_L_{L}_h_{h_i}-{h_ev}_delta_{delta}_trotter_steps_{npoints}_chi_{chi_max}.npy",
+                errors,
+                )
 np.save(
         f"{parent_path}/results/entropies/entropies_time_ev_bond_{bond}_{model}_L_{L}_h_{h_i}-{h_ev}_delta_{delta}_trotter_steps_{npoints}_chi_{chi_max}.npy",
         entropies,
