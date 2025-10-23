@@ -928,16 +928,12 @@ class MPS:
 
         w_tot = []
         for i in range(self.L):
-            if i == 0 or i == self.L-1:
-                c = 1
-            else:
-                c = 0
             w = np.array(
                 [
                     [
                         I,
                         -self.J * long_op,
-                        -self.h * trans_op - self.eps * c * (long_op - I),
+                        -self.h * trans_op - self.eps * long_op,
                     ],
                     [O, O, long_op],
                     [O, O, I],
