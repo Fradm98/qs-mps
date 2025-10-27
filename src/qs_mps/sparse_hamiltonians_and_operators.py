@@ -140,7 +140,7 @@ def sparse_magnetization(L, op="X", staggered: bool = False):
 # -----------------------------------------------
 # Sparse Ising Hamiltonian
 # -----------------------------------------------
-def sparse_ising_hamiltonian(J: float, h_t: float, h_l: float, L: int, long: str = "X"):
+def sparse_ising_hamiltonian(J: float, h_t: float, h_l: float, L: int, long: str = "X", deg: int=1):
     """
     Returns a sparse representation of the Hamiltonian of the 1D Ising model in a chain of length L
     with open boundary conditions
@@ -191,7 +191,10 @@ def sparse_ising_hamiltonian(J: float, h_t: float, h_l: float, L: int, long: str
             np1_pauli_z = sparse_pauli_z(n + 1, L)
             hamiltonian_int += n_pauli_z @ np1_pauli_z
 
-    return -J * hamiltonian_int - h_t * hamiltonian_t - h_l * hamiltonian_l
+    if deg == 1:
+        return -J * hamiltonian_int - h_t * hamiltonian_t - h_l * hamiltonian_l
+    if deg == 2:
+        return -J * hamiltonian_int - h_t * hamiltonian_t - h_l * (hamiltonian_l - L*identity(2**L))
 
 
 # -----------------------------------------------

@@ -1263,10 +1263,14 @@ class MPS:
         """
         I = np.eye(2)
         O = np.zeros((2, 2))
-        op = sparse_pauli_z(n=0, L=1).toarray()
+
+        if op == "Z":
+            long_op = sparse_pauli_z(n=0, L=1).toarray()
+        elif op == "X":
+            long_op = sparse_pauli_x(n=0, L=1).toarray()
         w_tot = []
         for _ in range(self.L):
-            w_mag = np.array([[I, op], [O, I]])
+            w_mag = np.array([[I, long_op], [O, I]])
             w_tot.append(w_mag)
         self.w = w_tot
         return self
