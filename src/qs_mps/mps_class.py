@@ -1900,13 +1900,15 @@ class MPS:
         ancilla: bool = False,
         mixed: bool = False,
         rev: bool = False,
+        DMRG2: bool = False,
     ):
         """
         envs
 
         This function computes the left and right environments to compute the effective Hamiltonian.
         In addition, computes the environments to calculate the second and fourth moment of a mpo.
-
+        
+        site: int - Define from which site you want to start the DMRG. By default 1
         sm: bool - Compute the left and right environments for the second moment of self.w. Default False
         fm: bool - Compute the left and right environments for the fourth moment of self.w. Default False
 
@@ -2059,7 +2061,9 @@ class MPS:
                     [E_l, array[i - 1].conjugate()], [[-1, -2, 1, 2], [2, 1, -3]]
                 )
                 self.env_left.append(E_l)
-
+            
+            if DMRG2:
+                site = site + 1
             for i in range(self.L, site, -1):
                 E_r = ncon([E_r, array[i - 1]], [[1, -3, -4], [-1, -2, 1]])
                 E_r = ncon([E_r, w[i - 1]], [[-1, 1, 2, -4], [-2, 2, 1, -3]])
@@ -2160,7 +2164,12 @@ class MPS:
 
         return H
 
-    def eigensolver(self, v0: np.ndarray = None, H_eff: np.ndarray = None, excited: bool = False):
+    def eigensolver(self, 
+                    v0: np.ndarray = None, 
+                    H_eff: np.ndarray = None, 
+                    excited: bool = False,
+                    DMRG2: bool = False,
+                    sweep: str = "right"):
         """
         eigensolver
 
@@ -2191,6 +2200,38 @@ class MPS:
                     matvec=self.mv,
                     dtype=np.complex128,
                 )
+            elif DMRG2:
+                if sweep == "right":
+                    A = TensorMultiplierOperator(
+                        (
+                            self.env_left[-1].shape[0]
+                            * self.sites[self.site - 1].shape[1]
+                            * self.sites[self.site].shape[1]
+                            * self.env_right[-1].shape[0],
+                            self.env_left[-1].shape[2]
+                            * self.sites[self.site - 1].shape[1]
+                            * self.sites[self.site].shape[1]
+                            * self.env_right[-1].shape[2],
+                        ),
+                        matvec=self.mv_ex,
+                        dtype=np.complex128,
+                    )
+                elif sweep == "left":
+                    A = TensorMultiplierOperator(
+                        (
+                            self.env_left[-1].shape[0]
+                            * self.sites[self.site - 1].shape[1]
+                            * self.sites[self.site - 2].shape[1]
+                            * self.env_right[-1].shape[0],
+                            self.env_left[-1].shape[2]
+                            * self.sites[self.site - 1].shape[1]
+                            * self.sites[self.site - 2].shape[1]
+                            * self.env_right[-1].shape[2],
+                        ),
+                        matvec=self.mv_ex,
+                        dtype=np.complex128,
+                    )
+
             else:
                 A = TensorMultiplierOperator(
                     (

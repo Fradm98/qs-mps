@@ -162,7 +162,7 @@ def sparse_ising_hamiltonian(J: float, h_t: float, h_l: float, L: int, long: str
             for n in range(L):
                 n_row_indices, n_col_indices = sparse_non_diag_paulis_indices(n, L)
                 n_pauli_x = sparse_pauli_x(n, L, n_row_indices, n_col_indices)
-                hamiltonian_l += n_pauli_x
+                hamiltonian_l += (n_pauli_x - identity(2**L))
 
         # Sum over sigma_z terms
         for n in range(L - 1):
@@ -183,7 +183,7 @@ def sparse_ising_hamiltonian(J: float, h_t: float, h_l: float, L: int, long: str
         if h_l != 0:
             for n in range(L):
                 n_pauli_z = sparse_pauli_z(n, L)
-                hamiltonian_l += n_pauli_z
+                hamiltonian_l += (n_pauli_z - identity(2**L))
 
         # Interaction
         for n in range(L - 1):
@@ -194,7 +194,7 @@ def sparse_ising_hamiltonian(J: float, h_t: float, h_l: float, L: int, long: str
     if deg == 1:
         return -J * hamiltonian_int - h_t * hamiltonian_t - h_l * hamiltonian_l
     if deg == 2:
-        return -J * hamiltonian_int - h_t * hamiltonian_t - h_l * (hamiltonian_l - L*identity(2**L))
+        return -J * hamiltonian_int - h_t * hamiltonian_t - (h_l / L) * hamiltonian_l
 
 
 # -----------------------------------------------
