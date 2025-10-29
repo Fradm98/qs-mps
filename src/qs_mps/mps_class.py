@@ -2213,7 +2213,7 @@ class MPS:
                             * self.sites[self.site].shape[1]
                             * self.env_right[-1].shape[2],
                         ),
-                        matvec=self.mv_ex,
+                        matvec=self.mv_2,
                         dtype=np.complex128,
                     )
                 elif sweep == "left":
@@ -2228,7 +2228,7 @@ class MPS:
                             * self.sites[self.site - 2].shape[1]
                             * self.env_right[-1].shape[2],
                         ),
-                        matvec=self.mv_ex,
+                        matvec=self.mv_2,
                         dtype=np.complex128,
                     )
 
@@ -2500,6 +2500,18 @@ class MPS:
         return self
     
     def mv(self, v):
+        v = v.reshape(
+            self.env_left[-1].shape[0],
+            self.sites[self.site - 1].shape[1],
+            self.env_right[-1].shape[0],
+        )
+        res = ncon([self.env_left[-1], v], [[1, -3, -4], [1, -2, -1]])
+        res = ncon([res, self.w[self.site - 1]], [[-1, 1, 2, -4], [2, -2, 1, -3]])
+        res = ncon([res, self.env_right[-1]], [[1, 2, -2, -1], [1, 2, -3]])
+        res = res.flatten()
+        return res
+    
+    def mv_2(self, v):
         v = v.reshape(
             self.env_left[-1].shape[0],
             self.sites[self.site - 1].shape[1],
