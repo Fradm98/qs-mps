@@ -2185,50 +2185,53 @@ class MPS:
 
         """
         # time_eig = time.perf_counter()
-        v0 = self.sites[self.site - 1]
         if type(H_eff) == type(None):
             if not excited:
-                A = TensorMultiplierOperator(
-                    (
-                        self.env_left[-1].shape[0]
-                        * self.sites[self.site - 1].shape[1]
-                        * self.env_right[-1].shape[0],
-                        self.env_left[-1].shape[2]
-                        * self.sites[self.site - 1].shape[1]
-                        * self.env_right[-1].shape[2],
-                    ),
-                    matvec=self.mv,
-                    dtype=np.complex128,
-                )
-            elif DMRG2:
-                if sweep == "right":
+                if DMRG2:
+                    if sweep == "right":
+                        v0 = ncon([self.sites[self.site - 1],self.sites[self.site]],[[-1,-2,1],[1,-3,-4]]).reshape(self.sites[self.site-1].shape[0], self.d**2, self.sites[self.site].shape[2])
+                        A = TensorMultiplierOperator(
+                            (
+                                self.env_left[-1].shape[0]
+                                * self.sites[self.site - 1].shape[1]
+                                * self.sites[self.site].shape[1]
+                                * self.env_right[-1].shape[0],
+                                self.env_left[-1].shape[2]
+                                * self.sites[self.site - 1].shape[1]
+                                * self.sites[self.site].shape[1]
+                                * self.env_right[-1].shape[2],
+                            ),
+                            matvec=self.mv_2,
+                            dtype=np.complex128,
+                        )
+                    elif sweep == "left":
+                        v0 = ncon([self.sites[self.site - 2],self.sites[self.site - 1]],[[-1,-2,1],[1,-3,-4]]).reshape(self.sites[self.site-2].shape[0], self.d**2, self.sites[self.site-1].shape[2])
+                        A = TensorMultiplierOperator(
+                            (
+                                self.env_left[-1].shape[0]
+                                * self.sites[self.site - 1].shape[1]
+                                * self.sites[self.site - 2].shape[1]
+                                * self.env_right[-1].shape[0],
+                                self.env_left[-1].shape[2]
+                                * self.sites[self.site - 1].shape[1]
+                                * self.sites[self.site - 2].shape[1]
+                                * self.env_right[-1].shape[2],
+                            ),
+                            matvec=self.mv_2,
+                            dtype=np.complex128,
+                        )
+                else:
+                    v0 = self.sites[self.site - 1]
                     A = TensorMultiplierOperator(
                         (
                             self.env_left[-1].shape[0]
                             * self.sites[self.site - 1].shape[1]
-                            * self.sites[self.site].shape[1]
                             * self.env_right[-1].shape[0],
                             self.env_left[-1].shape[2]
                             * self.sites[self.site - 1].shape[1]
-                            * self.sites[self.site].shape[1]
                             * self.env_right[-1].shape[2],
                         ),
-                        matvec=self.mv_2,
-                        dtype=np.complex128,
-                    )
-                elif sweep == "left":
-                    A = TensorMultiplierOperator(
-                        (
-                            self.env_left[-1].shape[0]
-                            * self.sites[self.site - 1].shape[1]
-                            * self.sites[self.site - 2].shape[1]
-                            * self.env_right[-1].shape[0],
-                            self.env_left[-1].shape[2]
-                            * self.sites[self.site - 1].shape[1]
-                            * self.sites[self.site - 2].shape[1]
-                            * self.env_right[-1].shape[2],
-                        ),
-                        matvec=self.mv_2,
+                        matvec=self.mv,
                         dtype=np.complex128,
                     )
 
@@ -2267,11 +2270,14 @@ class MPS:
         e_min = e[0].real
         eigvec = np.array(v[:, 0])
 
-        self.sites[self.site - 1] = eigvec.reshape(
-            self.env_left[-1].shape[0],
-            self.sites[self.site - 1].shape[1],
-            self.env_right[-1].shape[0],
-        )
+        if DMRG2:
+            self.sites[self.site - 1] = eigvec
+        else:
+            self.sites[self.site - 1] = eigvec.reshape(
+                self.env_left[-1].shape[0],
+                self.sites[self.site - 1].shape[1],
+                self.env_right[-1].shape[0],
+            )
         return e_min
 
     def update_state(
@@ -2282,6 +2288,7 @@ class MPS:
         trunc_chi: bool = False,
         schmidt_tol: float = 1e-15,
         ancilla: bool = False,
+        DMRG2: bool = False,
     ):
         """
         update_state
@@ -2308,79 +2315,120 @@ class MPS:
             shape_right = self.env_right[-1].shape[2]
         if sweep == "right":
             # we want to write M (left,d,right) in LFC -> (left*d,right)
-            m = array[site - 1].reshape(
-                shape_left * array[self.site - 1].shape[1],
-                shape_right,
-            )
+            if DMRG2:
+                m = array[site - 1].reshape(
+                    shape_left * self.d,
+                    shape_right * self.d,
+                )
+            else:
+                m = array[site - 1].reshape(
+                    shape_left * array[self.site - 1].shape[1],
+                    shape_right,
+                )
             u, s, v = la.svd(m, full_matrices=False)
             if trunc_tol:
                 condition = s >= schmidt_tol
                 s_trunc = np.extract(condition, s)
                 s = s_trunc / la.norm(s_trunc)
-                bond_l = u.shape[0] // array[self.site - 1].shape[1]
-                u = u.reshape(bond_l, array[self.site - 1].shape[1], u.shape[1])
+                bond_l = u.shape[0] // self.d
+                u = u.reshape(bond_l, self.d, u.shape[1])
                 u = u[:, :, : len(s)]
                 v = v[: len(s), :]
             elif trunc_chi:
                 s_trunc = s[: self.chi]
                 s = s_trunc / la.norm(s_trunc)
-                bond_l = u.shape[0] // array[self.site - 1].shape[1]
-                u = u.reshape(bond_l, array[self.site - 1].shape[1], u.shape[1])
+                bond_l = u.shape[0] // self.d
+                u = u.reshape(bond_l, self.d, u.shape[1])
                 u = u[:, :, : len(s)]
-                v = v[: len(s), :]
+                if DMRG2:
+                    v = v.reshape(v.shape[0], self.d, v.shape[1] // self.d)
+                    v = v[: len(s), :, :]
+                else:
+                    v = v[: len(s), :]
+
             else:
                 u = u.reshape(
                     shape_left,
-                    array[self.site - 1].shape[1],
+                    self.d,
                     shape_right,
                 )
-            next_site = ncon(
-                [np.diag(s), v, array[site]],
-                [
-                    [-1, 1],
-                    [1, 2],
-                    [2, -2, -3],
-                ],
-            )
+            
+            if DMRG2:
+                next_site = ncon(
+                    [np.diag(s), v],
+                    [
+                        [-1, 1],
+                        [1, -2, -3],
+                    ],
+                )
+            else:
+                next_site = ncon(
+                    [np.diag(s), v, array[site]],
+                    [
+                        [-1, 1],
+                        [1, 2],
+                        [2, -2, -3],
+                    ],
+                )
             array[site - 1] = u
             array[site] = next_site
 
         elif sweep == "left":
             # we want to write M (left,d,right) in RFC -> (left,d*right)
-            m = array[site - 1].reshape(
-                shape_left,
-                array[self.site - 1].shape[1] * shape_right,
-            )
+            if DMRG2:
+                m = array[site - 1].reshape(
+                    shape_left * self.d,
+                    shape_right * self.d,
+                )
+            else:
+                m = array[site - 1].reshape(
+                    shape_left,
+                    array[self.site - 1].shape[1] * shape_right,
+                )
             u, s, v = la.svd(m, full_matrices=False)
             if trunc_tol:
                 condition = s >= schmidt_tol
                 s_trunc = np.extract(condition, s)
                 s = s_trunc / la.norm(s_trunc)
-                bond_r = v.shape[1] // array[self.site - 1].shape[1]
-                v = v.reshape(v.shape[0], array[self.site - 1].shape[1], bond_r)
+                bond_r = v.shape[1] // self.d
+                v = v.reshape(v.shape[0], self.d, bond_r)
                 v = v[: len(s), :, :]
                 u = u[:, : len(s)]
             elif trunc_chi:
                 s_trunc = s[: self.chi]
                 s = s_trunc / la.norm(s_trunc)
-                bond_r = v.shape[1] // array[self.site - 1].shape[1]
-                v = v.reshape(v.shape[0], array[self.site - 1].shape[1], bond_r)
+                bond_r = v.shape[1] // self.d
+                v = v.reshape(v.shape[0], self.d, bond_r)
                 v = v[: len(s), :, :]
-                u = u[:, : len(s)]
+                if DMRG2:
+                    u = u.reshape(u.shape[0] // self.d, self.d, u.shape[1])
+                    u = u[:, :, : len(s)]
+                else:
+                    u = u[:, : len(s)]
             else:
                 v = v.reshape(
                     shape_left,
-                    array[self.site - 1].shape[1],
+                    self.d,
                     shape_right,
                 )
-            next_site = ncon(
-                [array[site - 2], u, np.diag(s)],
-                [
-                    [-1, -2, 1],
-                    [1, 2],
-                    [2, -3],
-                ],
-            )
+            if DMRG2:
+                next_site = ncon(
+                    [u, np.diag(s)],
+                    [
+                        [-1, -2, 1],
+                        [1, -3],
+                    ],
+                ).reshape()
+            else:
+                next_site = ncon(
+                    [array[site - 2], u, np.diag(s)],
+                    [
+                        [-1, -2, 1],
+                        [1, 2],
+                        [2, -3],
+                    ],
+                )
+
             array[site - 1] = v
             array[site - 2] = next_site
 
@@ -2400,8 +2448,8 @@ class MPS:
         """
         if sweep == "right":
             # time_upd_env = time.perf_counter()
-            array = self.sites[site - 1]
-            ancilla_array = array
+            array = self.sites[site - 1].copy()
+            ancilla_array = array.copy()
             w = self.w[site - 1]
             if rev:
                 E_l = self.env_left_sm[-1]
@@ -2423,8 +2471,8 @@ class MPS:
             # np.savetxt(f"results/times_data/update_env_{site}_h_{self.h:.2f}", [time.perf_counter()-time_upd_env])
 
         if sweep == "left":
-            array = self.sites[site - 1]
-            ancilla_array = array
+            array = self.sites[site - 1].copy()
+            ancilla_array = array.copy()
             w = self.w[site - 1]
             if rev:
                 E_r = self.env_right_sm[-1]
@@ -2514,11 +2562,12 @@ class MPS:
     def mv_2(self, v):
         v = v.reshape(
             self.env_left[-1].shape[0],
-            self.sites[self.site - 1].shape[1],
+            (self.d)**2,
             self.env_right[-1].shape[0],
         )
         res = ncon([self.env_left[-1], v], [[1, -3, -4], [1, -2, -1]])
-        res = ncon([res, self.w[self.site - 1]], [[-1, 1, 2, -4], [2, -2, 1, -3]])
+        site2mpo = ncon([self.w[self.site - 1],self.w[self.site]], [[-1, 1, -3, -5], [1, -2, -4, -6]]).reshape(self.env_left[-1].shape[1],self.env_right[-1].shape[1],(self.d)**2,(self.d)**2)
+        res = ncon([res, site2mpo], [[-1, 1, 2, -4], [2, -2, 1, -3]])
         res = ncon([res, self.env_right[-1]], [[1, 2, -2, -1], [1, 2, -3]])
         res = res.flatten()
         return res
@@ -2587,6 +2636,7 @@ class MPS:
         bond: bool = True,
         where: int = -1,
         excited: bool = False,
+        DMRG2: bool = False,
     ):
         energies = []
         sweeps = ["right", "left"]
@@ -2605,7 +2655,7 @@ class MPS:
             self.grnd_st = self.mpo_first_moment(ancilla=True).real
             self.envs_first_excited()
 
-        self.envs()
+        self.envs(DMRG2=DMRG2)
 
         iter = 1
         H = None
@@ -2619,20 +2669,20 @@ class MPS:
             entropy = []
             schmidt_vals = []
             for i in range(self.L - 1):
-                # print(f"Site: {sites[i]}\n")
+                print(f"Site: {sites[i]}\n")
                 # t_start = time.perf_counter()
                 if trunc_tol == True:
                     H = self.H_eff(sites[i])
                 # print(f"Time effective Ham: {abs(time.perf_counter()-t_start)}")
                 # t_start = time.perf_counter()
                 self.site = sites[i]
-                energy = self.eigensolver(v0=v0, H_eff=H, excited=excited)  # , v0=v0
+                energy = self.eigensolver(v0=v0, H_eff=H, excited=excited, DMRG2=DMRG2, sweep=sweeps[0])  # , v0=v0
                 # energy = self.eigensolver(H_eff=H, site=sites[i], v0=v0) # , v0=v0
                 # print(f"Time eigensolver: {abs(time.perf_counter()-t_start)}")
                 energies.append(energy)
                 # t_start = time.perf_counter()
                 s = self.update_state(
-                    sweeps[0], sites[i], trunc_tol, trunc_chi, schmidt_tol
+                    sweeps[0], sites[i], trunc_tol, trunc_chi, schmidt_tol, DMRG2=DMRG2
                 )
                 # print(f"Time update state: {abs(time.perf_counter()-t_start)}")
                 if bond:
