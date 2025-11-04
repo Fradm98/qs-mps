@@ -182,3 +182,12 @@ Icon?
 .DS_Store
 
 .vscode/
+
+
+# applications
+src/qs_mps/applications/Z3/*
+src/qs_mps/applications/ANNNI/*
+src/qs_mps/applications/CLUSTER/*
+src/qs_mps/applications/ISING/*
+src/qs_mps/applications/MPOs/*
+src/qs_mps/applications/XXZ/*
