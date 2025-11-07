@@ -1220,7 +1220,7 @@ class MPS:
     # -------------------------------------------------
     def order_param(
         self,
-        op: np.ndarray = None,
+        op: str = "Z",
         site: int = None,
         l: int = None,
         direction: str = None,
@@ -2201,7 +2201,7 @@ class MPS:
                                 * self.sites[self.site].shape[1]
                                 * self.env_right[-1].shape[2],
                             ),
-                            matvec=self.mv_2,
+                            matvec=self.mv_2_right,
                             dtype=np.complex128,
                         )
                     elif sweep == "left":
@@ -2217,7 +2217,7 @@ class MPS:
                                 * self.sites[self.site - 2].shape[1]
                                 * self.env_right[-1].shape[2],
                             ),
-                            matvec=self.mv_2,
+                            matvec=self.mv_2_left,
                             dtype=np.complex128,
                         )
                 else:
@@ -2418,7 +2418,7 @@ class MPS:
                         [-1, -2, 1],
                         [1, -3],
                     ],
-                ).reshape()
+                )
             else:
                 next_site = ncon(
                     [array[site - 2], u, np.diag(s)],
@@ -2434,7 +2434,7 @@ class MPS:
 
         return s
 
-    def update_envs(self, sweep, site, mixed=False, rev=False):
+    def update_envs(self, sweep: str, site: int, mixed: bool=False, rev: bool=False, DMRG2: bool=False):
         """
         update_envs
 
@@ -2442,7 +2442,7 @@ class MPS:
         site optimization performed by the eigensolver. After the update of the mps
         in LCF and RCF we can compute the new environment and throw the one we do not need.
 
-        sweep: string - direction of the sweeping. Could be "left" or "right"
+        sweep: str - direction of the sweeping. Could be "left" or "right"
         site: int - site we are optimizing
 
         """
@@ -2466,8 +2466,15 @@ class MPS:
                 self.env_left_sm.append(E_l)
                 self.env_right_sm.pop(-1)
             else:
-                self.env_left.append(E_l)
-                self.env_right.pop(-1)
+                if DMRG2:
+                    if site == (self.L-1):
+                        return self
+                    else:
+                        self.env_left.append(E_l)
+                        self.env_right.pop(-1)
+                else:
+                    self.env_left.append(E_l)
+                    self.env_right.pop(-1)
             # np.savetxt(f"results/times_data/update_env_{site}_h_{self.h:.2f}", [time.perf_counter()-time_upd_env])
 
         if sweep == "left":
@@ -2489,8 +2496,15 @@ class MPS:
                 self.env_right_sm.append(E_r)
                 self.env_left_sm.pop(-1)
             else:
-                self.env_right.append(E_r)
-                self.env_left.pop(-1)
+                if DMRG2:
+                    if site == 2:
+                        return self
+                    else:
+                        self.env_right.append(E_r)
+                        self.env_left.pop(-1)
+                else:
+                    self.env_right.append(E_r)
+                    self.env_left.pop(-1)
 
         return self
 
@@ -2559,7 +2573,7 @@ class MPS:
         res = res.flatten()
         return res
     
-    def mv_2(self, v):
+    def mv_2_right(self, v):
         v = v.reshape(
             self.env_left[-1].shape[0],
             (self.d)**2,
@@ -2567,6 +2581,19 @@ class MPS:
         )
         res = ncon([self.env_left[-1], v], [[1, -3, -4], [1, -2, -1]])
         site2mpo = ncon([self.w[self.site - 1],self.w[self.site]], [[-1, 1, -3, -5], [1, -2, -4, -6]]).reshape(self.env_left[-1].shape[1],self.env_right[-1].shape[1],(self.d)**2,(self.d)**2)
+        res = ncon([res, site2mpo], [[-1, 1, 2, -4], [2, -2, 1, -3]])
+        res = ncon([res, self.env_right[-1]], [[1, 2, -2, -1], [1, 2, -3]])
+        res = res.flatten()
+        return res
+
+    def mv_2_left(self, v):
+        v = v.reshape(
+            self.env_left[-1].shape[0],
+            (self.d)**2,
+            self.env_right[-1].shape[0],
+        )
+        res = ncon([self.env_left[-1], v], [[1, -3, -4], [1, -2, -1]])
+        site2mpo = ncon([self.w[self.site - 2],self.w[self.site - 1]], [[-1, 1, -3, -5], [1, -2, -4, -6]]).reshape(self.env_left[-1].shape[1],self.env_right[-1].shape[1],(self.d)**2,(self.d)**2)
         res = ncon([res, site2mpo], [[-1, 1, 2, -4], [2, -2, 1, -3]])
         res = ncon([res, self.env_right[-1]], [[1, 2, -2, -1], [1, 2, -3]])
         res = res.flatten()
@@ -2669,7 +2696,7 @@ class MPS:
             entropy = []
             schmidt_vals = []
             for i in range(self.L - 1):
-                print(f"Site: {sites[i]}\n")
+                # print(f"Site: {sites[i]}\n")
                 # t_start = time.perf_counter()
                 if trunc_tol == True:
                     H = self.H_eff(sites[i])
@@ -2696,7 +2723,7 @@ class MPS:
                     schmidt_vals.append(s)
 
                 # t_start = time.perf_counter()
-                self.update_envs(sweeps[0], sites[i])
+                self.update_envs(sweeps[0], sites[i], DMRG2=DMRG2)
                 if excited:
                     # self.update_state(sweeps[0], sites[i], trunc_tol, trunc_chi, schmidt_tol, ancilla=True)
                     # self.check_canonical(site=sites[i], ancilla=True)
@@ -4651,7 +4678,7 @@ class MPS:
         return bond_dims
 
     def save_sites(
-        self, path: str, precision: int = 2, cx: list = None, cy: list = None, excited: bool = False,
+        self, path: str, precision: int = 2, cx: list = None, cy: list = None, excited: bool = False, DMRG2: bool = False
     ):
         """
         save_sites
@@ -4663,7 +4690,7 @@ class MPS:
         precision: int - indicates the precision of the variable h
         """
         if "Ising" == self.model:
-            self.save_sites_Ising(path=path, precision=precision)
+            self.save_sites_Ising(path=path, precision=precision, DMRG2=DMRG2)
         elif "Cluster" == self.model:
             self.save_sites_Ising(path=path, precision=precision)
         elif "Cluster-XY" == self.model:
@@ -4679,7 +4706,7 @@ class MPS:
         return self
 
     def load_sites(
-        self, path: str, precision: int = 2, cx: list = None, cy: list = None
+        self, path: str, precision: int = 2, cx: list = None, cy: list = None, DMRG2: bool = False,
     ):
         """
         load_sites
@@ -4692,7 +4719,7 @@ class MPS:
 
         """
         if "Ising" == self.model:
-            self.load_sites_Ising(path=path, precision=precision)
+            self.load_sites_Ising(path=path, precision=precision, DMRG2=DMRG2)
         elif "ANNNI" == self.model:
             self.load_sites_ANNNI(path=path, precision=precision)
         elif "Cluster" == self.model:
@@ -4707,7 +4734,7 @@ class MPS:
             raise ValueError("Choose a correct model")
         return self
 
-    def save_sites_Ising(self, path, precision: int = 2, excited: bool = False, filename: str=None):
+    def save_sites_Ising(self, path, precision: int = 2, excited: bool = False, filename: str=None, DMRG2: bool=False):
         # # shapes of the tensors
         # shapes = tensor_shapes(self.sites, False)
         # np.savetxt(
@@ -4732,12 +4759,18 @@ class MPS:
             bc=self.bc,
             chi=self.chi,
             h=self.h,
+            DMRG2=DMRG2
         )
+        if DMRG2:
+            DMRG_sites = 2
+        else:
+            DMRG_sites = 1
+
         if filename is None:
             if excited:
-                filename = f"/results/tensors/tensor_sites_first_excited_{self.model}_L_{self.L}_bc_{self.bc}_chi_{self.chi}_h_{self.h:.{precision}f}"
+                filename = f"/results/tensors/tensor_sites_first_excited_{self.model}_L_{self.L}_DMRG-{DMRG_sites}_chi_{self.chi}_h_{self.h:.{precision}f}"
             else:
-                filename = f"/results/tensors/tensor_sites_{self.model}_L_{self.L}_bc_{self.bc}_chi_{self.chi}_h_{self.h:.{precision}f}"
+                filename = f"/results/tensors/tensor_sites_{self.model}_L_{self.L}_DMRG-{DMRG_sites}_chi_{self.chi}_h_{self.h:.{precision}f}"
         
         with h5py.File(f"{path}{filename}.h5", "w") as f:
             # Save scalar metadata as file attributes
@@ -4867,7 +4900,7 @@ class MPS:
         )
         return self
 
-    def load_sites_Ising(self, path, precision: int = 2):
+    def load_sites_Ising(self, path, precision: int = 2, DMRG2: bool = False):
         """
         load_sites
 
@@ -4878,22 +4911,34 @@ class MPS:
         function get_labels().
 
         """
-        # loading of the shapes
-        shapes = np.loadtxt(
-            f"{path}/results/tensors/shapes_sites_{self.model}_L_{self.L}_chi_{self.chi}_h_{self.h:.{precision}f}_J_{self.J:.{precision}f}"
-        ).astype(int)
-        # loading of the flat tensors
-        filedata = np.loadtxt(
-            f"{path}/results/tensors/tensor_sites_{self.model}_L_{self.L}_chi_{self.chi}_h_{self.h:.{precision}f}_J_{self.J:.{precision}f}",
-            dtype=complex,
-        )
-        # auxiliary function to get the indices where to split
-        labels = get_labels(shapes)
-        flat_tn = np.array_split(filedata, labels)
-        flat_tn.pop(-1)
-        # reshape the flat tensors and initializing the sites
-        self.sites = [site.reshape(shapes[i]) for i, site in enumerate(flat_tn)]
+        # # loading of the shapes
+        # shapes = np.loadtxt(
+        #     f"{path}/results/tensors/shapes_sites_{self.model}_L_{self.L}_chi_{self.chi}_h_{self.h:.{precision}f}_J_{self.J:.{precision}f}"
+        # ).astype(int)
+        # # loading of the flat tensors
+        # filedata = np.loadtxt(
+        #     f"{path}/results/tensors/tensor_sites_{self.model}_L_{self.L}_chi_{self.chi}_h_{self.h:.{precision}f}_J_{self.J:.{precision}f}",
+        #     dtype=complex,
+        # )
+        # # auxiliary function to get the indices where to split
+        # labels = get_labels(shapes)
+        # flat_tn = np.array_split(filedata, labels)
+        # flat_tn.pop(-1)
+        # # reshape the flat tensors and initializing the sites
+        # self.sites = [site.reshape(shapes[i]) for i, site in enumerate(flat_tn)]
+        if DMRG2:
+            DMRG_sites = 2
+        else:
+            DMRG_sites = 1
+        filename = f"/results/tensors/tensor_sites_{self.model}_L_{self.L}_DMRG-{DMRG_sites}_chi_{self.chi}_h_{self.h:.{precision}f}"
+        with h5py.File(f"{path}{filename}.h5", "r") as f:
+            # Load metadata
+            metadata = {key: f.attrs[key] for key in f.attrs}
+            print("Metadata:", metadata)
 
+            # Load tensors
+            self.sites = [f["tensors"][f"tensor_{i}"][:] for i in range(self.Z2.L)]
+        
         return self
 
     def load_sites_Cluster_xy(self, path, precision: int = 2):
