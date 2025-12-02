@@ -4937,7 +4937,7 @@ class MPS:
             print("Metadata:", metadata)
 
             # Load tensors
-            self.sites = [f["tensors"][f"tensor_{i}"][:] for i in range(self.Z2.L)]
+            self.sites = [f["tensors"][f"tensor_{i}"][:] for i in range(self.L)]
         
         return self
 
