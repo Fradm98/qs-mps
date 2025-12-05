@@ -1409,10 +1409,86 @@ def append_observable(h5file, run_group, obs_name, data):
         dset.resize((new_size,) + dset.shape[1:])
         dset[old_size:new_size] = data
 
+def equal(a, b):
+    if isinstance(a, np.ndarray) and isinstance(b, np.ndarray):
+        return np.array_equal(a, b)
+    else:
+        return a == b
+    
 def find_run_by_params(h5file, query_params: dict):
     with h5py.File(h5file, 'r') as f:
         for group_name in f:
             grp = f[group_name]
-            if all(grp.attrs.get(k) == v for k, v in query_params.items()):
+            if all(equal(grp.attrs.get(k), v) for k, v in query_params.items()):
                 return group_name
-    return None
+            
+
+def get_el_field_in_time(h5file, query_params: dict, bond_dim: int):
+    group_name = find_run_by_params(h5file, query_params)
+    with h5py.File(h5file, 'r') as f:
+        obs_grp = f[f"{group_name}/electric_fields"]
+        for k, v in obs_grp.items():
+            if k.split('_')[-1] == str(bond_dim):
+                obs_bond_dim_group = obs_grp[k]
+                break
+        
+        el_tot = []
+        for k, v in obs_bond_dim_group.items():
+            dset_trott = obs_bond_dim_group[f"{k}/values"]
+            el_tot.append(dset_trott[:])
+
+    return el_tot
+
+def get_schmidt_values_in_time(h5file, query_params: dict, bond_dim: int):
+    group_name = find_run_by_params(h5file, query_params)
+    with h5py.File(h5file, 'r') as f:
+        obs_grp = f[f"{group_name}/schmidt_values"]
+        for k, v in obs_grp.items():
+            if k.split('_')[-1] == str(bond_dim):
+                obs_bond_dim_group = obs_grp[k]
+                break
+        
+        svs_tot = []
+        for k, v in obs_bond_dim_group.items():
+            dset_trott = obs_bond_dim_group[f"{k}/values"]
+            svs_tot.append(dset_trott[:])
+
+    return svs_tot
+
+def get_entropies_in_time(h5file, query_params: dict, bond_dim: int):
+    group_name = find_run_by_params(h5file, query_params)
+    with h5py.File(h5file, 'r') as f:
+        obs_grp = f[f"{group_name}/entropies"]
+        for k, v in obs_grp.items():
+            if k.split('_')[-1] == str(bond_dim):
+                obs_bond_dim_group = obs_grp[k]
+                break
+        
+        if len(obs_bond_dim_group) > 1:
+            el_tot = []
+            for k, v in obs_bond_dim_group.items():
+                dset_trott = obs_bond_dim_group[f"{k}/values"]
+                el_tot.append(dset_trott[:])
+        else:
+            entr_tot = obs_bond_dim_group["values"][:]
+
+    return entr_tot
+
+def get_errors_in_time(h5file, query_params: dict, bond_dim: int):
+    group_name = find_run_by_params(h5file, query_params)
+    with h5py.File(h5file, 'r') as f:
+        obs_grp = f[f"{group_name}/errors_trunc"]
+        for k, v in obs_grp.items():
+            if k.split('_')[-1] == str(bond_dim):
+                obs_bond_dim_group = obs_grp[k]
+                break
+
+        if len(obs_bond_dim_group) > 1:
+            err_tot = []
+            for k, v in obs_bond_dim_group.items():
+                dset_trott = obs_bond_dim_group[f"{k}/values"]
+                err_tot.append(dset_trott[:])
+        else:
+            err_tot = obs_bond_dim_group["values"][:]
+
+    return err_tot
