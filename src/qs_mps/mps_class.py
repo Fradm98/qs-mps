@@ -2064,6 +2064,7 @@ class MPS:
             
             if DMRG2:
                 site = site + 1
+
             for i in range(self.L, site, -1):
                 E_r = ncon([E_r, array[i - 1]], [[1, -3, -4], [-1, -2, 1]])
                 E_r = ncon([E_r, w[i - 1]], [[-1, 1, 2, -4], [-2, 2, 1, -3]])
@@ -3728,7 +3729,7 @@ class MPS:
             update_observable(save_file, run_group, name_el_field, data=E_h, attr=0)
 
         # overlap
-        # overlaps = []
+        overlaps = []
         if "losch" in obs:
             # if self.bc == "pbc":
             #     self.sites.append(aux_qub)

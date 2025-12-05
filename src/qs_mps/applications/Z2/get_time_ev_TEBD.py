@@ -229,7 +229,7 @@ for L in args.Ls:
         args.bond = False
 
     # create a run group for saving observables
-    h5file = f"{parent_path}/results/results_time.hdf5"
+    h5file = f"{parent_path}/results/time_data/results_time.hdf5"
     params = dict(N=args.l, L=L, R=args.length, cx=charges_x, cy=charges_y, delta=args.delta, 
                 T=args.npoints, of=args.obs_freq, h_i=args.h_i, h_ev=args.h_ev, bc=args.boundcond, chis=args.chis)
     
@@ -279,12 +279,12 @@ for L in args.Ls:
             print("State not found! Computing DMRG")
             lattice_mps._random_state(seed=3, type_shape="rectangular", chi=args.chi_max)
             lattice_mps.canonical_form()
-            lattice_mps.sites.append(np.random.rand(1,2,1))
-            lattice_mps.L = len(lattice_mps.sites)
+            # lattice_mps.sites.append(np.random.rand(1,2,1))
+            # lattice_mps.L = len(lattice_mps.sites)
             energy, entropy, schmidt_vals, t_dmrg = lattice_mps.DMRG(trunc_chi=True, trunc_tol=False, bond=False, long="Z", trans="X")
             lattice_mps.check_canonical(site=1)
-            aux_qub = lattice_mps.sites.pop()
-            lattice_mps.L -= 1
+            # aux_qub = lattice_mps.sites.pop()
+            # lattice_mps.L -= 1
 
             lattice_mps.order_param()
             mag = lattice_mps.mpo_first_moment()
@@ -434,7 +434,7 @@ for L in args.Ls:
         entrs,
         svs,
         efields,
-        transversal_fields_string,
+        # transversal_fields_string,
         losch,
         ex_sp,
         ex_mps,
@@ -469,11 +469,11 @@ for L in args.Ls:
                 efields,
             )
 
-        if "end" in args.obs:
-            np.save(
-                f"{parent_path}/results/electric_field/electric_field_energy_density_middle_column_quench_dynamics_{args.model}_direct_lattice_{args.l}x{L}_{sector}_bc_{args.boundcond}_R_{args.length}_off-{charges_y}_h_{args.h_i}-{args.h_ev}_delta_{args.delta}_trotter_steps_{args.npoints}_chi_{chi}.npy",
-                transversal_fields_string,
-            )
+        # if "end" in args.obs:
+        #     np.save(
+        #         f"{parent_path}/results/electric_field/electric_field_energy_density_middle_column_quench_dynamics_{args.model}_direct_lattice_{args.l}x{L}_{sector}_bc_{args.boundcond}_R_{args.length}_off-{charges_y}_h_{args.h_i}-{args.h_ev}_delta_{args.delta}_trotter_steps_{args.npoints}_chi_{chi}.npy",
+        #         transversal_fields_string,
+        #     )
 
         if args.bond == False:
             args.where = "all"
