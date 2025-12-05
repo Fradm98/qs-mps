@@ -4847,17 +4847,33 @@ class MPS:
 
         t_start = time.perf_counter()
 
-        metadata = dict(
-            model=self.model,
-            l=self.Z2.l,
-            L=self.Z2.L,
-            bc=self.bc,
-            sector=self.Z2.sector,
-            cx=cx,
-            cy=cy,
-            chi=self.chi,
-            h=self.h,
-        )
+        if cx is None:
+            metadata = dict(
+                model=self.model,
+                l=self.Z2.l,
+                L=self.Z2.L,
+                bc=self.bc,
+                sector=self.Z2.sector,
+                cx=np.nan,
+                cy=np.nan,
+                chi=self.chi,
+                h=self.h,
+            )
+        elif isinstance(cx, list):
+            metadata = dict(
+                model=self.model,
+                l=self.Z2.l,
+                L=self.Z2.L,
+                bc=self.bc,
+                sector=self.Z2.sector,
+                cx=cx,
+                cy=cy,
+                chi=self.chi,
+                h=self.h,
+            )
+        else:
+            raise TypeError("charges not in the right format, should be None or a list")
+        
         if filename is None:
             if excited:
                 filename = f"/results/tensors/tensor_sites_first_excited_{self.model}_direct_lattice_{self.Z2.l}x{self.Z2.L}_bc_{self.bc}_{self.Z2.sector}_{cx}-{cy}_chi_{self.chi}_h_{self.h:.{precision}f}"
