@@ -176,7 +176,7 @@ elif args.path == "marcos":
     parent_path = path_tensor
 elif args.path == "ngtcern":
     # parent_path = "/Users/fradm/Google Drive/My Drive/projects/1_Z2"
-    path_tensor = "/Users/fradm/Desktop/projects/1_Z2"
+    path_tensor = "/shared/projects/1_Z2"
     parent_path = path_tensor
 else:
     raise SyntaxError("Path not valid. Choose among 'pc', 'mac', 'marcos'")
@@ -298,7 +298,6 @@ for L in args.Ls:
             
             if args.bond:
                 entropy = entropy[L//2]
-                print(schmidt_vals)
                 schmidt_vals = np.array(schmidt_vals[L//2])
 
         # initialize the variables to save
@@ -327,7 +326,6 @@ for L in args.Ls:
 
         if args.bond:
             entropies = np.array([entropy])
-            print(entropies, entropies.shape)
             shape_entr = args.npoints + 1
             name_entr = f'entropies/D_{chi}'
             create_observable_group(h5file, run_group, name_entr)
