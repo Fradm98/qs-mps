@@ -295,6 +295,11 @@ for L in args.Ls:
             print(f"initial magentization is: {mag}")
 
             lattice_mps.save_sites(path=path_tensor, precision=args.precision, cx=cx_vac, cy=cy_vac)
+            
+            if args.bond:
+                entropy = entropy[L//2]
+                print(schmidt_vals)
+                schmidt_vals = np.array(schmidt_vals[L//2])
 
         # initialize the variables to save
         errors_tr = [[0, 0]]
@@ -322,6 +327,7 @@ for L in args.Ls:
 
         if args.bond:
             entropies = np.array([entropy])
+            print(entropies, entropies.shape)
             shape_entr = args.npoints + 1
             name_entr = f'entropies/D_{chi}'
             create_observable_group(h5file, run_group, name_entr)
