@@ -4847,7 +4847,7 @@ class MPS:
 
         t_start = time.perf_counter()
 
-        if cx is None:
+        if (cx is None) or (cx is np.nan):
             metadata = dict(
                 model=self.model,
                 l=self.Z2.l,
@@ -4872,7 +4872,7 @@ class MPS:
                 h=self.h,
             )
         else:
-            raise TypeError("charges not in the right format, should be None or a list")
+            raise TypeError("charges not in the right format, should be None/np.nan or a list")
         
         if filename is None:
             if excited:
