@@ -26,17 +26,14 @@ elif path == "marcos":
 
 save_gif = True
 target = {
-    'L': 40, 'N': 5, 'R': 20, 'T': 200,
-    'bc': 'pbc',
-    'chis': np.array([128]),
-    'cx': np.array([10, 30]),
-    'cy': np.array([0, 0]),
-    'delta': 0.05, 'h_ev': 0.8,
-    'h_i': 0.8, 'of': 0.3,
+    'L': 40, 'N': 5, 'R': 20, 'T': 200, 
+    'bc': 'pbc', 'chis': np.array([128, 192, 256, 384, 512]), 
+    'cx': np.array([10, 30]), 'cy': np.array([0, 0]), 
+    'delta': 0.05, 'h_ev': 0.8, 'h_i': 0.8, 'of': 0.3,
 }
 chi_t = 128
 
-efields = np.asarray(get_el_field_in_time(f"{parent_path}/results/time_data/results_time_test.hdf5", target, bond_dim=chi_t))
+efields = np.asarray(get_el_field_in_time(f"{parent_path}/results/time_data/results_time.hdf5", target, bond_dim=chi_t))
 
 steps = len(efields)
 if save_gif:

@@ -1415,12 +1415,16 @@ def equal(a, b):
     else:
         return a == b
     
-def find_run_by_params(h5file, query_params: dict):
+def find_run_by_params(h5file, query_params: dict, get: str='last'):
     with h5py.File(h5file, 'r') as f:
+        groups = []
         for group_name in f:
             grp = f[group_name]
             if all(equal(grp.attrs.get(k), v) for k, v in query_params.items()):
-                return group_name
+                groups.append(group_name)
+        
+        if get == "last":
+            return groups[-1]
             
 
 def get_el_field_in_time(h5file, query_params: dict, bond_dim: int):
