@@ -1420,8 +1420,9 @@ def find_run_by_params(h5file, query_params: dict, get: str='last'):
         groups = []
         for group_name in f:
             grp = f[group_name]
-            if all(equal(grp.attrs.get(k), v) for k, v in query_params.items()):
-                groups.append(group_name)
+            if len(grp.attrs) == len(query_params):
+                if all(equal(grp.attrs.get(k), v) for k, v in query_params.items()):
+                    groups.append(group_name)
         
         if get == "last":
             return groups[-1]
