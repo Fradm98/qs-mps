@@ -36,9 +36,9 @@ target = {
 }
 chi_t = 128
 
-efields = np.asarray(get_el_field_in_time("C:\Users\HP\Desktop\projects\\1_Z2\\results\\time_data\\results_time_test.hdf5", target, bond_dim=chi_t))
+efields = np.asarray(get_el_field_in_time(f"{parent_path}/results/time_data/results_time_test.hdf5", target, bond_dim=chi_t))
 
 steps = len(efields)
 if save_gif:
     movie = anim(frames=steps, interval=200, data=efields, params=np.linspace(0,steps*target['delta'],steps+1), show=False, charges_x=target['cx'], charges_y=target['cy'], precision=2, time=True)
-    movie.save(filename=f"quench_Z2_{target['L']}x{target['N']}_g_i_{target['h_i']}_g_ev_{target['h_ev']}_trott_steps_{steps}_delta_{target['delta']}_chi_{chi_t}.gif")
+    movie.save(filename=f"{path_figures}/figures/animations/quench_Z2_{target['L']}x{target['N']}_g_i_{target['h_i']}_g_ev_{target['h_ev']}_trott_steps_{steps}_delta_{target['delta']}_chi_{chi_t}.gif")
