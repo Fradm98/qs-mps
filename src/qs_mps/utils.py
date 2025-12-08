@@ -1181,7 +1181,7 @@ def anim(
             ax.add_patch(circle)
 
     # add charges
-    if charges_x != None:
+    if charges_x is not None:
         for i in range(len(charges_x)):
             ax.text(
                 x=2 * charges_x[i] + 0.1, y=2 * charges_y[i] - 0.1, s="-1", color="red"
