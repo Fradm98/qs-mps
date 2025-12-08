@@ -154,6 +154,12 @@ parser.add_argument(
     default=3,
     type=int,
 )
+parser.add_argument(
+    "-res",
+    "--restart",
+    help="Restart a computation starting from a tensor saved temporarily. By default None",
+    action="store_true",
+)
 
 args = parser.parse_args()
 
@@ -239,111 +245,124 @@ for L in args.Ls:
     
     run_group = create_run_group(h5file, params)
 
+
     for chi in args.chis:
         if args.chi_max < chi:
             args.chi_max = chi
+
         lattice_mps = MPS(
                 L=L, d=d, model=args.model, chi=args.chi_max, h=args.h_i, bc=args.boundcond
             )
+        if args.restart:
+            with h5py.File(h5file, 'r') as f:
+                grp = f[run_group]
+                entrs = grp[f'entropies/D_{chi}/values'][:]
+                trotter_steps = len(entrs) - 1
+                last = np.nonzero(entrs)[0][-1]
+                args.npoints = (trotter_steps + 1) - last
 
-        sector_vac = "vacuum_sector"
-        cx_vac = np.nan
-        cy_vac = np.nan
-        if sector_vac != "vacuum_sector":
-            lattice_mps.Z2.add_charges(cx_vac, cy_vac)
-            lattice_mps.charges = lattice_mps.Z2.charges
-            lattice_mps.Z2._define_sector()
+            filename = f"time_evolved_tensor_sites_Z2_dual_direct_lattice_{args.l}x{L}_bc_{args.boundcond}_2_particle(s)_sector_{charges_x}-{charges_y}_chi_{chi}_h_{args.h_ev:.{args.precision}f}_delta_{args.delta}_trotter_{trotter_steps}.h5"
+            lattice_mps.load_sites(path=path_tensor, precision=args.precision, cx=charges_x, cy=charges_y, filename=filename)            
         else:
-            lattice_mps.Z2._define_sector()
-        try:
-            lattice_mps.load_sites(
-                path=path_tensor, precision=args.precision, cx=cx_vac, cy=cy_vac
-            )
-            print("State found!!")
-            if args.bond:
-                try:
-                    entropy = load_list_of_lists(f"{parent_path}/results/entropy_data/{args.where}_bond_entropy_{args.model}_direct_lattice_{args.l}x{L}_{sector_vac}_bc_{args.boundcond}_{cx_vac}-{cy_vac}_h_{args.h_i}_delta_{args.npoints}_chi_{chi}")
-                except:
-                    lattice_mps.canonical_form(svd_direction="right", trunc_chi=False, trunc_tol=True, schmidt_tol=1e-15)
-                    entropy = von_neumann_entropy(lattice_mps.bonds[L//2])
-                    schmidt_vals = lattice_mps.bonds[L//2]
-                    print("Entropy of initial state for the middle MPS bond")
-                    print(entropy)
+            last = 0
+            sector_vac = "vacuum_sector"
+            cx_vac = np.nan
+            cy_vac = np.nan
+            if sector_vac != "vacuum_sector":
+                lattice_mps.Z2.add_charges(cx_vac, cy_vac)
+                lattice_mps.charges = lattice_mps.Z2.charges
+                lattice_mps.Z2._define_sector()
             else:
-                try:
-                    entropy = load_list_of_lists(f"{parent_path}/results/entropy_data/all_bond_entropy_{args.model}_direct_lattice_{args.l}x{L}_{sector_vac}_bc_{args.boundcond}_{cx_vac}-{cy_vac}_h_{args.h_i}_delta_{args.npoints}_chi_{chi}")
-                except:
-                    lattice_mps.canonical_form(svd_direction="right", trunc_chi=False, trunc_tol=True, schmidt_tol=1e-15)
-                    entropy = [von_neumann_entropy(lattice_mps.bonds[i]) for i in range(L-1)]
-                    schmidt_vals = lattice_mps.bonds[L//2]
-                    print("Entropy of initial state for all of the MPS bonds")
-                    print(entropy)
+                lattice_mps.Z2._define_sector()
+            try:
+                lattice_mps.load_sites(
+                    path=path_tensor, precision=args.precision, cx=cx_vac, cy=cy_vac
+                )
+                print("State found!!")
+                if args.bond:
+                    try:
+                        entropy = load_list_of_lists(f"{parent_path}/results/entropy_data/{args.where}_bond_entropy_{args.model}_direct_lattice_{args.l}x{L}_{sector_vac}_bc_{args.boundcond}_{cx_vac}-{cy_vac}_h_{args.h_i}_delta_{args.npoints}_chi_{chi}")
+                    except:
+                        lattice_mps.canonical_form(svd_direction="right", trunc_chi=False, trunc_tol=True, schmidt_tol=1e-15)
+                        entropy = von_neumann_entropy(lattice_mps.bonds[L//2])
+                        schmidt_vals = lattice_mps.bonds[L//2]
+                        print("Entropy of initial state for the middle MPS bond")
+                        print(entropy)
+                else:
+                    try:
+                        entropy = load_list_of_lists(f"{parent_path}/results/entropy_data/all_bond_entropy_{args.model}_direct_lattice_{args.l}x{L}_{sector_vac}_bc_{args.boundcond}_{cx_vac}-{cy_vac}_h_{args.h_i}_delta_{args.npoints}_chi_{chi}")
+                    except:
+                        lattice_mps.canonical_form(svd_direction="right", trunc_chi=False, trunc_tol=True, schmidt_tol=1e-15)
+                        entropy = [von_neumann_entropy(lattice_mps.bonds[i]) for i in range(L-1)]
+                        schmidt_vals = lattice_mps.bonds[L//2]
+                        print("Entropy of initial state for all of the MPS bonds")
+                        print(entropy)
 
-        except:
-            print("State not found! Computing DMRG")
-            lattice_mps._random_state(seed=3, type_shape="rectangular", chi=args.chi_max)
-            lattice_mps.canonical_form()
-            # lattice_mps.sites.append(np.random.rand(1,2,1))
-            # lattice_mps.L = len(lattice_mps.sites)
-            energy, entropy, schmidt_vals, t_dmrg = lattice_mps.DMRG(trunc_chi=True, trunc_tol=False, bond=False, long="Z", trans="X")
-            lattice_mps.check_canonical(site=1)
-            # aux_qub = lattice_mps.sites.pop()
-            # lattice_mps.L -= 1
+            except:
+                print("State not found! Computing DMRG")
+                lattice_mps._random_state(seed=3, type_shape="rectangular", chi=args.chi_max)
+                lattice_mps.canonical_form()
+                # lattice_mps.sites.append(np.random.rand(1,2,1))
+                # lattice_mps.L = len(lattice_mps.sites)
+                energy, entropy, schmidt_vals, t_dmrg = lattice_mps.DMRG(trunc_chi=True, trunc_tol=False, bond=False, long="Z", trans="X")
+                lattice_mps.check_canonical(site=1)
+                # aux_qub = lattice_mps.sites.pop()
+                # lattice_mps.L -= 1
 
-            lattice_mps.order_param()
-            mag = lattice_mps.mpo_first_moment()
-            print(f"initial magentization is: {mag}")
+                lattice_mps.order_param()
+                mag = lattice_mps.mpo_first_moment()
+                print(f"initial magentization is: {mag}")
 
-            lattice_mps.save_sites(path=path_tensor, precision=args.precision, cx=cx_vac, cy=cy_vac)
+                lattice_mps.save_sites(path=path_tensor, precision=args.precision, cx=cx_vac, cy=cy_vac)
+                
+                if args.bond:
+                    entropy = entropy[L//2]
+                    schmidt_vals = np.array(schmidt_vals[L//2])
+
+            # initialize the variables to save
+            errors_tr = [[0, 0]]
+            errors = [0]
+            entropies_ev = [entropy]
+
+            n_sweeps = 8
             
+            # create observables group and save them
+            
+            if args.training:
+                errors = np.zeros((L-1+1)*n_sweeps) # should be L-1 but we have an ancillary qubit on the right
+                shape_err = (L - 1 + 1)*n_sweeps
+                name_err = f'errors_trunc/D_{chi}/trotter_step_{0:03d}'
+                create_observable_group(h5file, run_group, name_err)
+                prepare_observable_group(h5file, run_group, name_err, shape=shape_err)
+                update_observable(h5file, run_group, name_err, data=errors, attr=0)
+            else:
+                errors = np.array([0])
+                shape_err = args.npoints + 1
+                name_err = f'errors_trunc/D_{chi}'
+                create_observable_group(h5file, run_group, name_err)
+                prepare_observable_group(h5file, run_group, name_err, shape=shape_err)
+                update_observable(h5file, run_group, name_err, data=errors, attr=0, assign_all=False)
+
             if args.bond:
-                entropy = entropy[L//2]
-                schmidt_vals = np.array(schmidt_vals[L//2])
+                entropies = np.array([entropy])
+                shape_entr = args.npoints + 1
+                name_entr = f'entropies/D_{chi}'
+                create_observable_group(h5file, run_group, name_entr)
+                prepare_observable_group(h5file, run_group, name_entr, shape=shape_entr)
+                update_observable(h5file, run_group, name_entr, data=entropies, attr=0, assign_all=False)
+            else:
+                entropies = np.array(entropy)
+                shape_entr = (L - 1)
+                name_entr = f'entropies/D_{chi}/trotter_step_{0:03d}'
+                create_observable_group(h5file, run_group, name_entr)
+                prepare_observable_group(h5file, run_group, name_entr, shape=shape_entr)
+                update_observable(h5file, run_group, name_entr, data=entropies, attr=0)
 
-        # initialize the variables to save
-        errors_tr = [[0, 0]]
-        errors = [0]
-        entropies_ev = [entropy]
-
-        n_sweeps = 8
-        
-        # create observables group and save them
-        
-        if args.training:
-            errors = np.zeros((L-1+1)*n_sweeps) # should be L-1 but we have an ancillary qubit on the right
-            shape_err = (L - 1 + 1)*n_sweeps
-            name_err = f'errors_trunc/D_{chi}/trotter_step_{0:03d}'
-            create_observable_group(h5file, run_group, name_err)
-            prepare_observable_group(h5file, run_group, name_err, shape=shape_err)
-            update_observable(h5file, run_group, name_err, data=errors, attr=0)
-        else:
-            errors = np.array([0])
-            shape_err = args.npoints + 1
-            name_err = f'errors_trunc/D_{chi}'
-            create_observable_group(h5file, run_group, name_err)
-            prepare_observable_group(h5file, run_group, name_err, shape=shape_err)
-            update_observable(h5file, run_group, name_err, data=errors, attr=0, assign_all=False)
-
-        if args.bond:
-            entropies = np.array([entropy])
-            shape_entr = args.npoints + 1
-            name_entr = f'entropies/D_{chi}'
-            create_observable_group(h5file, run_group, name_entr)
-            prepare_observable_group(h5file, run_group, name_entr, shape=shape_entr)
-            update_observable(h5file, run_group, name_entr, data=entropies, attr=0, assign_all=False)
-        else:
-            entropies = np.array(entropy)
-            shape_entr = (L - 1)
-            name_entr = f'entropies/D_{chi}/trotter_step_{0:03d}'
-            create_observable_group(h5file, run_group, name_entr)
-            prepare_observable_group(h5file, run_group, name_entr, shape=shape_entr)
-            update_observable(h5file, run_group, name_entr, data=entropies, attr=0)
-
-        shape_sm = len(schmidt_vals)
-        name_sm = f'schmidt_values/D_{chi}/trotter_step_{0:03d}'
-        create_observable_group(h5file, run_group, name_sm)
-        prepare_observable_group(h5file, run_group, name_sm, shape=shape_sm)
-        update_observable(h5file, run_group, name_sm, data=schmidt_vals, attr=0)
+            shape_sm = len(schmidt_vals)
+            name_sm = f'schmidt_values/D_{chi}/trotter_step_{0:03d}'
+            create_observable_group(h5file, run_group, name_sm)
+            prepare_observable_group(h5file, run_group, name_sm, shape=shape_sm)
+            update_observable(h5file, run_group, name_sm, data=schmidt_vals, attr=0)
 
         # ---------------------------------------------------------
         # Trotter Evolution
@@ -464,7 +483,8 @@ for L in args.Ls:
             chi_max=args.chi_max,
             path=path_tensor,
             run_group=run_group,
-            save_file=h5file
+            save_file=h5file,
+            restart=last
             )
 
         t_final = dt.datetime.now() - date_start

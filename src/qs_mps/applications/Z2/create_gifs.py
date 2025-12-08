@@ -37,5 +37,5 @@ efields = np.asarray(get_el_field_in_time(f"{parent_path}/results/time_data/resu
 
 steps = len(efields)
 if save_gif:
-    movie = anim(frames=steps, interval=200, data=efields, params=np.linspace(0,steps*target['delta'],steps+1), show=False, charges_x=target['cx'], charges_y=target['cy'], precision=2, time=True)
+    movie = anim(frames=steps, interval=200, data=efields, params=np.linspace(0,steps/target['of']*target['delta'],steps+1), show=False, charges_x=target['cx'], charges_y=target['cy'], precision=2, time=True)
     movie.save(filename=f"{path_figures}/figures/animations/quench_Z2_{target['L']}x{target['N']}_g_i_{target['h_i']}_g_ev_{target['h_ev']}_trott_steps_{steps}_delta_{target['delta']}_chi_{chi_t}.gif")

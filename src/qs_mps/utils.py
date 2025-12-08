@@ -1346,11 +1346,16 @@ def get_run_group_name(params: dict) -> str:
     return f"{timestamp}_{hash_part}"
 
 def create_run_group(h5file, params: dict):
-    group_name = get_run_group_name(params)
     with h5py.File(h5file, 'a') as f:
-        grp = f.create_group(group_name)
-        for key, value in params.items():
-            grp.attrs[key] = value
+        grp_nm = find_run_by_params(h5file, params)
+        if grp_nm is None:
+            group_name = get_run_group_name(params)
+            grp = f.create_group(group_name)
+        
+            for key, value in params.items():
+                grp.attrs[key] = value
+        else:
+            group_name = grp_nm
     return group_name
 
 def create_observable_group(h5file, run_group, obs_name):
@@ -1417,15 +1422,14 @@ def equal(a, b):
     
 def find_run_by_params(h5file, query_params: dict, get: str='last'):
     with h5py.File(h5file, 'r') as f:
-        groups = []
-        for group_name in f:
-            grp = f[group_name]
-            if len(grp.attrs) == len(query_params):
-                if all(equal(grp.attrs.get(k), v) for k, v in query_params.items()):
-                    groups.append(group_name)
-        
-        if get == "last":
-            return groups[-1]
+        if get == 'last':
+            group = None
+            for group_name in f:
+                grp = f[group_name]
+                if len(grp.attrs) == len(query_params):
+                    if all(equal(grp.attrs.get(k), v) for k, v in query_params.items()):
+                        group = group_name
+            return group        
             
 
 def get_el_field_in_time(h5file, query_params: dict, bond_dim: int):

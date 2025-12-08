@@ -3661,6 +3661,7 @@ class MPS:
         precision: int = 3,
         run_group: str = None,
         save_file: str = None,
+        restart: int = 0
     ):
         """
         variational_mps_evolution
@@ -3680,111 +3681,120 @@ class MPS:
                 By default True
 
         """
-        obs_trotter = [int(val) for val in np.linspace(0, trotter_steps-1, int((trotter_steps*obs_freq)))]
 
-        if chi_max < self.chi:
-            self.enlarge_chi()
-            self.canonical_form(trunc_chi=True, trunc_tol=False)
-        
-
-        # ============================
-        # Observables
-        # ============================
-        # compression error
-        # errors = [[0]*(n_sweeps*(self.L-1))]
-        if training:
-            errors = np.zeros((self.L-1)*n_sweeps)
+        if restart != 0:
+            print(f"starting from trotter step: {restart}")
+            trotter_steps = restart + trotter_steps - 1
+            obs_trotter = [int(val) for val in np.linspace(0, trotter_steps-1, int((trotter_steps*obs_freq)))]
+            mask = np.asarray(obs_trotter) <= restart
+            idx = np.argmax(np.asarray(obs_trotter)[mask])
+            obs_trotter = obs_trotter[idx:]
         else:
-            errors = np.array([0])
-        # entropy
-        if bond:
-            entropies = np.array([0])
-        else:
-            entropies = np.zeros((self.L-1))
+            obs_trotter = [int(val) for val in np.linspace(0, trotter_steps-1, int((trotter_steps*obs_freq)))]
 
-        # schmidt_vals
-        svs = []
-
-        # electric field
-        electric_local_field = []
-        if "el" in obs:
-            date_start = dt.datetime.now()
-            print(f"\n*** Computing electric field density in date: {dt.datetime.now()} ***\n")
-            if self.bc == "obc":
-                shape_el_field = (2 * self.Z2.l + 1, 2 * self.L + 1)
-                E_h = np.zeros(shape_el_field)
-            if self.bc == "pbc":
-                shape_el_field = (2 * self.Z2.l, 2 * self.L + 1)
-                E_h = np.zeros(shape_el_field)
+            if chi_max < self.chi:
+                self.enlarge_chi()
+                self.canonical_form(trunc_chi=True, trunc_tol=False)
             
-            E_h[:] = np.nan
-            E_h = self.electric_field_Z2(E_h, aux_qub=aux_qub, reduced=False)
-            electric_local_field.append(E_h.copy())
-            t_final = dt.datetime.now() - date_start
-            print(f"Total time for the electric field density is: {t_final}")
 
-            name_el_field = f'electric_fields/D_{self.chi}/trotter_step_{0:03d}'
-            create_observable_group(save_file, run_group, name_el_field)
-            prepare_observable_group(save_file, run_group, name_el_field, shape=shape_el_field)
-            update_observable(save_file, run_group, name_el_field, data=E_h, attr=0)
+            # ============================
+            # Observables
+            # ============================
+            # compression error
+            # errors = [[0]*(n_sweeps*(self.L-1))]
+            if training:
+                errors = np.zeros((self.L-1)*n_sweeps)
+            else:
+                errors = np.array([0])
+            # entropy
+            if bond:
+                entropies = np.array([0])
+            else:
+                entropies = np.zeros((self.L-1))
 
-        # overlap
-        overlaps = []
-        if "losch" in obs:
+            # schmidt_vals
+            svs = []
+
+            # electric field
+            electric_local_field = []
+            if "el" in obs:
+                date_start = dt.datetime.now()
+                print(f"\n*** Computing electric field density in date: {dt.datetime.now()} ***\n")
+                if self.bc == "obc":
+                    shape_el_field = (2 * self.Z2.l + 1, 2 * self.L + 1)
+                    E_h = np.zeros(shape_el_field)
+                if self.bc == "pbc":
+                    shape_el_field = (2 * self.Z2.l, 2 * self.L + 1)
+                    E_h = np.zeros(shape_el_field)
+                
+                E_h[:] = np.nan
+                E_h = self.electric_field_Z2(E_h, aux_qub=aux_qub, reduced=False)
+                electric_local_field.append(E_h.copy())
+                t_final = dt.datetime.now() - date_start
+                print(f"Total time for the electric field density is: {t_final}")
+
+                name_el_field = f'electric_fields/D_{self.chi}/trotter_step_{0:03d}'
+                create_observable_group(save_file, run_group, name_el_field)
+                prepare_observable_group(save_file, run_group, name_el_field, shape=shape_el_field)
+                update_observable(save_file, run_group, name_el_field, data=E_h, attr=0)
+
+            # overlap
+            overlaps = []
+            if "losch" in obs:
+                # if self.bc == "pbc":
+                #     self.sites.append(aux_qub)
+                #     self.L = len(self.sites)
+                
+                psi_init = self.sites.copy()
+                self.ancilla_sites = psi_init.copy()
+                # overlaps.append(self._compute_norm(site=1, mixed=True))
+                overlaps = np.array([self._compute_norm(site=1, mixed=True)])
+                print('overlap', overlaps, overlaps.shape)
+                self.ancilla_sites = []
+                # if self.bc == "pbc":
+                #     aux_qub = self.sites.pop(-1)
+                #     self.L = len(self.sites)
+
+                name_ov = f'overlaps/D_{self.chi}'
+                create_observable_group(save_file, run_group, name_ov)
+                prepare_observable_group(save_file, run_group, name_ov, shape=trotter_steps + 1, dtype=np.complex128)
+                update_observable(save_file, run_group, name_ov, data=overlaps, attr=0, assign_all=False)
+                
+            # exact
+            braket_ex_sp = [1]
+            braket_ex_mps = [1]
+            braket_mps_sp = [1]
+            if exact:
+                # init state exact
+                ladders = int(np.log2(self.d))
+                H_sp = sparse_Z2_dual_ham(l=ladders, L=self.L-1, g=self.h, cx=cx, cy=cy)
+                e, v = diagonalization(H_sp, sparse=False)
+                psi0_ex = v[:,0]
+
+                # ham for exact evolution
+                H_ev = sparse_Z2_dual_ham(l=ladders, L=self.L-1, g=h_ev, cx=cx, cy=cy)
+                # # ham for local evolution
+                # H_ev = - (1/h_ev) * sparse_Z2_magnetic_dual_ham(l=ladders, L=self.L-1)
+                # # ham for interaction evolution
+                # H_ev = - h_ev * sparse_Z2_electric_dual_ham(l=ladders, L=self.L-1, cx=cx, cy=cy)
+                
+                # trotter evolution operator at second order
+                U_ev_sp = trott_Z2_dual(l=ladders, L=self.L-1, cx=cx, cy=cy, delta=delta, coupling=h_ev, ord=2)
+                
+                # # trotter operators for local and interaction evolution
+                # U_ev_sp = spla.expm(-1j*delta*H_ev)
+                
+                # init state sparse
+                psi0_sp = psi0_ex.copy()
+                psi_trott_sp = psi0_sp.copy()
+
             # if self.bc == "pbc":
             #     self.sites.append(aux_qub)
             #     self.L = len(self.sites)
-            
-            psi_init = self.sites.copy()
-            self.ancilla_sites = psi_init.copy()
-            # overlaps.append(self._compute_norm(site=1, mixed=True))
-            overlaps = np.array([self._compute_norm(site=1, mixed=True)])
-            print('overlap', overlaps, overlaps.shape)
-            self.ancilla_sites = []
-            # if self.bc == "pbc":
-            #     aux_qub = self.sites.pop(-1)
-            #     self.L = len(self.sites)
-
-            name_ov = f'overlaps/D_{self.chi}'
-            create_observable_group(save_file, run_group, name_ov)
-            prepare_observable_group(save_file, run_group, name_ov, shape=trotter_steps + 1, dtype=np.complex128)
-            update_observable(save_file, run_group, name_ov, data=overlaps, attr=0, assign_all=False)
-            
-        # exact
-        braket_ex_sp = [1]
-        braket_ex_mps = [1]
-        braket_mps_sp = [1]
-        if exact:
-            # init state exact
-            ladders = int(np.log2(self.d))
-            H_sp = sparse_Z2_dual_ham(l=ladders, L=self.L-1, g=self.h, cx=cx, cy=cy)
-            e, v = diagonalization(H_sp, sparse=False)
-            psi0_ex = v[:,0]
-
-            # ham for exact evolution
-            H_ev = sparse_Z2_dual_ham(l=ladders, L=self.L-1, g=h_ev, cx=cx, cy=cy)
-            # # ham for local evolution
-            # H_ev = - (1/h_ev) * sparse_Z2_magnetic_dual_ham(l=ladders, L=self.L-1)
-            # # ham for interaction evolution
-            # H_ev = - h_ev * sparse_Z2_electric_dual_ham(l=ladders, L=self.L-1, cx=cx, cy=cy)
-            
-            # trotter evolution operator at second order
-            U_ev_sp = trott_Z2_dual(l=ladders, L=self.L-1, cx=cx, cy=cy, delta=delta, coupling=h_ev, ord=2)
-            
-            # # trotter operators for local and interaction evolution
-            # U_ev_sp = spla.expm(-1j*delta*H_ev)
-            
-            # init state sparse
-            psi0_sp = psi0_ex.copy()
-            psi_trott_sp = psi0_sp.copy()
-
-        # if self.bc == "pbc":
-        #     self.sites.append(aux_qub)
-        #     self.L = len(self.sites)
         
         self.ancilla_sites = self.sites.copy()
 
-        for trott in range(trotter_steps):
+        for trott in range(restart, trotter_steps):
 
             date_start = dt.datetime.now()
             print(f"\n*** Starting the {trott}-th trotter step in date: {dt.datetime.now()} ***\n")
@@ -5016,7 +5026,7 @@ class MPS:
 
         return self
 
-    def load_sites_Z2(self, path, precision: int = 2, cx: list = None, cy: list = None):
+    def load_sites_Z2(self, path, precision: int = 2, cx: list = None, cy: list = None, filename: str = None):
         """
         load_sites
 
@@ -5044,21 +5054,39 @@ class MPS:
         # # reshape the flat tensors and initializing the sites
         # self.sites = [site.reshape(shapes[i]) for i, site in enumerate(flat_tn)]
 
-        if cx == None:
-            try:
-                filename = f"/results/tensors/tensor_sites_{self.model}_direct_lattice_{self.Z2.l}x{self.Z2.L}_bc_{self.bc}_{self.Z2.sector}_{cx}-{cy}_chi_{self.chi}_h_{self.h:.{precision}f}"
-                with h5py.File(f"{path}{filename}.h5", "r") as f:
-                    # Load metadata
-                    metadata = {key: f.attrs[key] for key in f.attrs}
-                    print("Metadata:", metadata)
+        if filename is None:
+            if cx is None:
+                try:
+                    if excited:
+                        filename = f"/results/tensors/tensor_sites_first_excited_{self.model}_direct_lattice_{self.Z2.l}x{self.Z2.L}_bc_{self.bc}_{self.Z2.sector}_{cx}-{cy}_chi_{self.chi}_h_{self.h:.{precision}f}"
+                    else:
+                        filename = f"/results/tensors/tensor_sites_{self.model}_direct_lattice_{self.Z2.l}x{self.Z2.L}_bc_{self.bc}_{self.Z2.sector}_{cx}-{cy}_chi_{self.chi}_h_{self.h:.{precision}f}"
+                    with h5py.File(f"{path}{filename}.h5", "r") as f:
+                        # Load metadata
+                        metadata = {key: f.attrs[key] for key in f.attrs}
+                        print("Metadata:", metadata)
 
-                    # Load tensors
-                    self.sites = [
-                        f["tensors"][f"tensor_{i}"][:] for i in range(self.Z2.L)
-                    ]
-            except:
-                cx = np.nan
-                cy = np.nan
+                        # Load tensors
+                        self.sites = [
+                            f["tensors"][f"tensor_{i}"][:] for i in range(self.Z2.L)
+                        ]
+                except:
+                    cx = np.nan
+                    cy = np.nan
+                    if excited:
+                        filename = f"/results/tensors/tensor_sites_first_excited_{self.model}_direct_lattice_{self.Z2.l}x{self.Z2.L}_bc_{self.bc}_{self.Z2.sector}_{cx}-{cy}_chi_{self.chi}_h_{self.h:.{precision}f}"
+                    else:
+                        filename = f"/results/tensors/tensor_sites_{self.model}_direct_lattice_{self.Z2.l}x{self.Z2.L}_bc_{self.bc}_{self.Z2.sector}_{cx}-{cy}_chi_{self.chi}_h_{self.h:.{precision}f}"
+                    with h5py.File(f"{path}{filename}.h5", "r") as f:
+                        # Load metadata
+                        metadata = {key: f.attrs[key] for key in f.attrs}
+                        print("Metadata:", metadata)
+
+                        # Load tensors
+                        self.sites = [
+                            f["tensors"][f"tensor_{i}"][:] for i in range(self.Z2.L)
+                        ]
+            else:
                 filename = f"/results/tensors/tensor_sites_{self.model}_direct_lattice_{self.Z2.l}x{self.Z2.L}_bc_{self.bc}_{self.Z2.sector}_{cx}-{cy}_chi_{self.chi}_h_{self.h:.{precision}f}"
                 with h5py.File(f"{path}{filename}.h5", "r") as f:
                     # Load metadata
@@ -5070,7 +5098,6 @@ class MPS:
                         f["tensors"][f"tensor_{i}"][:] for i in range(self.Z2.L)
                     ]
         else:
-            filename = f"/results/tensors/tensor_sites_{self.model}_direct_lattice_{self.Z2.l}x{self.Z2.L}_bc_{self.bc}_{self.Z2.sector}_{cx}-{cy}_chi_{self.chi}_h_{self.h:.{precision}f}"
             with h5py.File(f"{path}{filename}.h5", "r") as f:
                 # Load metadata
                 metadata = {key: f.attrs[key] for key in f.attrs}
