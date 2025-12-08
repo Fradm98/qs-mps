@@ -2,7 +2,7 @@ from qs_mps.utils import *
 import h5py
 
 # default parameters of the plot layout
-plt.rcParams["text.usetex"] = True  # use latex
+plt.rcParams["text.usetex"] = False  # use latex
 plt.rcParams["font.size"] = 13
 plt.rcParams["figure.dpi"] = 300
 plt.rcParams["figure.constrained_layout.use"] = True
