@@ -240,8 +240,9 @@ for L in args.Ls:
 
     # create a run group for saving observables
     h5file = f"{parent_path}/results/time_data/results_time.hdf5"
-    params = dict(N=args.l, L=L, R=args.length, cx=charges_x, cy=charges_y, delta=args.delta, 
-                T=args.npoints, of=args.obs_freq, h_i=args.h_i, h_ev=args.h_ev, bc=args.boundcond, chis=args.chis)
+    params = dict(L=L, N=args.l, R=args.length, T=args.npoints, bc=args.boundcond, chis=args.chis,
+                cx=charges_x, cy=charges_y, delta=args.delta, 
+                h_ev=args.h_ev, h_i=args.h_i, of=args.obs_freq)
     
     run_group = create_run_group(h5file, params)
 
