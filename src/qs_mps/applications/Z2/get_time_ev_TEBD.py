@@ -245,7 +245,6 @@ for L in args.Ls:
     
     run_group = create_run_group(h5file, params)
 
-
     for chi in args.chis:
         if args.chi_max < chi:
             args.chi_max = chi
@@ -257,12 +256,13 @@ for L in args.Ls:
             with h5py.File(h5file, 'r') as f:
                 grp = f[run_group]
                 entrs = grp[f'entropies/D_{chi}/values'][:]
-                trotter_steps = len(entrs) - 1
-                last = np.nonzero(entrs)[0][-1]
-                args.npoints = (trotter_steps + 1) - last
 
-            filename = f"time_evolved_tensor_sites_Z2_dual_direct_lattice_{args.l}x{L}_bc_{args.boundcond}_2_particle(s)_sector_{charges_x}-{charges_y}_chi_{chi}_h_{args.h_ev:.{args.precision}f}_delta_{args.delta}_trotter_{trotter_steps}.h5"
-            lattice_mps.load_sites(path=path_tensor, precision=args.precision, cx=charges_x, cy=charges_y, filename=filename)            
+            trotter_steps = len(entrs) - 1
+            last = np.nonzero(entrs)[0][-1]
+            args.npoints = (trotter_steps + 1) - last
+
+            filename = f"/results/tensors/time_evolved_tensor_sites_Z2_dual_direct_lattice_{args.l}x{L}_bc_{args.boundcond}_2_particle(s)_sector_{charges_x}-{charges_y}_chi_{chi}_h_{args.h_ev:.{args.precision}f}_delta_{args.delta}_trotter_{trotter_steps}.h5"
+            lattice_mps.load_sites(path=path_tensor, filename=filename)            
         else:
             last = 0
             sector_vac = "vacuum_sector"

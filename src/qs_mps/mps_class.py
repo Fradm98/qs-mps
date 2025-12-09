@@ -4717,7 +4717,7 @@ class MPS:
         return self
 
     def load_sites(
-        self, path: str, precision: int = 2, cx: list = None, cy: list = None, DMRG2: bool = False,
+        self, path: str, precision: int = 2, cx: list = None, cy: list = None, DMRG2: bool = False, filename: str = None
     ):
         """
         load_sites
@@ -4738,7 +4738,7 @@ class MPS:
         elif "Cluster-XY" == self.model:
             self.load_sites_Cluster_xy(path=path, precision=precision)
         elif "Z2" in self.model:
-            self.load_sites_Z2(path=path, precision=precision, cx=cx, cy=cy)
+            self.load_sites_Z2(path=path, precision=precision, cx=cx, cy=cy, filename=filename)
         elif "XXZ" in self.model:
             self.load_sites_XXZ(path=path, precision=precision)
         else:
@@ -5098,7 +5098,7 @@ class MPS:
                         f["tensors"][f"tensor_{i}"][:] for i in range(self.Z2.L)
                     ]
         else:
-            with h5py.File(f"{path}{filename}.h5", "r") as f:
+            with h5py.File(f"{path}{filename}", "r") as f:
                 # Load metadata
                 metadata = {key: f.attrs[key] for key in f.attrs}
                 print("Metadata:", metadata)
