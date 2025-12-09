@@ -238,6 +238,8 @@ for L in args.Ls:
     elif args.where == -2:
         args.bond = False
 
+    n_sweeps = 8
+
     # create a run group for saving observables
     h5file = f"{parent_path}/results/time_data/results_time.hdf5"
     params = dict(L=L, N=args.l, R=args.length, T=args.npoints, bc=args.boundcond, chis=np.array(args.chis),
@@ -324,8 +326,6 @@ for L in args.Ls:
             errors_tr = [[0, 0]]
             errors = [0]
             entropies_ev = [entropy]
-
-            n_sweeps = 8
             
             # create observables group and save them
             
