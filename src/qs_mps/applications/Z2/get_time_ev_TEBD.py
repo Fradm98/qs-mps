@@ -458,15 +458,16 @@ for L in args.Ls:
         print(f"\n*** Starting TEBD evolution in {dt.datetime.now()} ***\n")
 
         # trotter evolution
-        (errs,
-        entrs,
-        svs,
-        efields,
-        # transversal_fields_string,
-        losch,
-        ex_sp,
-        ex_mps,
-        mps_sp) = lattice_mps.TEBD_variational_Z2_exact(
+        # (errs,
+        # entrs,
+        # svs,
+        # efields,
+        # # transversal_fields_string,
+        # losch,
+        # ex_sp,
+        # ex_mps,
+        # mps_sp) = 
+        lattice_mps.TEBD_variational_Z2_exact(
             trotter_steps=args.npoints,
             delta=args.delta,
             h_ev=args.h_ev,

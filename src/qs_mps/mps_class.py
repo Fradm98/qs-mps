@@ -3689,6 +3689,13 @@ class MPS:
             mask = np.asarray(obs_trotter) <= restart
             idx = np.argmax(np.asarray(obs_trotter)[mask])
             obs_trotter = obs_trotter[idx:]
+            if self.bc == "obc":
+                shape_el_field = (2 * self.Z2.l + 1, 2 * self.L + 1)
+                E_h = np.zeros(shape_el_field)
+            if self.bc == "pbc":
+                shape_el_field = (2 * self.Z2.l, 2 * self.L + 1)
+                E_h = np.zeros(shape_el_field)
+            psi_init = self.sites.copy()
         else:
             obs_trotter = [int(val) for val in np.linspace(0, trotter_steps-1, int((trotter_steps*obs_freq)))]
 
@@ -3934,8 +3941,8 @@ class MPS:
                 # if self.bc == "pbc":
                 #     self.sites.append(aux_qub)
                 #     self.L = len(self.sites)
-
-        return errors, entropies, svs, electric_local_field, overlaps, braket_ex_sp, braket_ex_mps, braket_mps_sp
+        return self
+        # return errors, entropies, svs, electric_local_field, overlaps, braket_ex_sp, braket_ex_mps, braket_mps_sp
     
     def TEBD_variational_Z2_trotter_step(
         self,
