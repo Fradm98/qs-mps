@@ -1415,7 +1415,10 @@ def append_observable(h5file, run_group, obs_name, data):
         dset[old_size:new_size] = data
 
 def equal(a, b):
-    if isinstance(a, np.ndarray) and isinstance(b, np.ndarray):
+    if isinstance(a, list) or isinstance(b, list):
+        a = np.array(a)
+        b = np.array(b)
+        # if isinstance(a, np.ndarray) and isinstance(b, np.ndarray):
         return np.array_equal(a, b)
     else:
         return a == b
