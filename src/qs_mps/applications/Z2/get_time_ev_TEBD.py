@@ -266,6 +266,7 @@ for L in args.Ls:
             if args.npoints == 1:
                 print(f"bond dimension {chi} already computed...")
                 args.restart = False
+                args.npoints = trotter_steps
                 continue
 
             filename = f"/results/tensors/time_evolved_tensor_sites_Z2_dual_direct_lattice_{args.l}x{L}_bc_{args.boundcond}_2_particle(s)_sector_{charges_x}-{charges_y}_chi_{chi}_h_{args.h_ev:.{args.precision}f}_delta_{args.delta}_trotter_{trotter_steps}.h5"
@@ -325,11 +326,6 @@ for L in args.Ls:
                 if args.bond:
                     entropy = entropy[L//2]
                     schmidt_vals = np.array(schmidt_vals[L//2])
-
-            # initialize the variables to save
-            errors_tr = [[0, 0]]
-            errors = [0]
-            entropies_ev = [entropy]
             
             # create observables group and save them
             
