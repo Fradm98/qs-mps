@@ -263,6 +263,8 @@ for L in args.Ls:
             trotter_steps = len(entrs) - 1
             last = np.nonzero(entrs)[0][-1]
             args.npoints = (trotter_steps + 1) - last
+            if args.npoints == 1:
+                continue
 
             filename = f"/results/tensors/time_evolved_tensor_sites_Z2_dual_direct_lattice_{args.l}x{L}_bc_{args.boundcond}_2_particle(s)_sector_{charges_x}-{charges_y}_chi_{chi}_h_{args.h_ev:.{args.precision}f}_delta_{args.delta}_trotter_{trotter_steps}.h5"
             lattice_mps.load_sites(path=path_tensor, filename=filename)            
