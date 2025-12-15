@@ -264,6 +264,7 @@ for L in args.Ls:
             last = np.nonzero(entrs)[0][-1]
             args.npoints = (trotter_steps + 1) - last
             if args.npoints == 1:
+                print(f"bond dimension {chi} already computed...")
                 continue
 
             filename = f"/results/tensors/time_evolved_tensor_sites_Z2_dual_direct_lattice_{args.l}x{L}_bc_{args.boundcond}_2_particle(s)_sector_{charges_x}-{charges_y}_chi_{chi}_h_{args.h_ev:.{args.precision}f}_delta_{args.delta}_trotter_{trotter_steps}.h5"
