@@ -4724,7 +4724,7 @@ class MPS:
         return self
 
     def load_sites(
-        self, path: str, precision: int = 2, cx: list = None, cy: list = None, DMRG2: bool = False, filename: str = None
+        self, path: str, precision: int = 2, cx: list = None, cy: list = None, DMRG2: bool = False, filename: str = None, excited: bool = False,
     ):
         """
         load_sites
@@ -4745,7 +4745,7 @@ class MPS:
         elif "Cluster-XY" == self.model:
             self.load_sites_Cluster_xy(path=path, precision=precision)
         elif "Z2" in self.model:
-            self.load_sites_Z2(path=path, precision=precision, cx=cx, cy=cy, filename=filename)
+            self.load_sites_Z2(path=path, precision=precision, cx=cx, cy=cy, filename=filename, excited=excited)
         elif "XXZ" in self.model:
             self.load_sites_XXZ(path=path, precision=precision)
         else:
@@ -5033,7 +5033,7 @@ class MPS:
 
         return self
 
-    def load_sites_Z2(self, path, precision: int = 2, cx: list = None, cy: list = None, filename: str = None):
+    def load_sites_Z2(self, path, precision: int = 2, cx: list = None, cy: list = None, filename: str = None, excited: bool = False):
         """
         load_sites
 
@@ -5062,6 +5062,7 @@ class MPS:
         # self.sites = [site.reshape(shapes[i]) for i, site in enumerate(flat_tn)]
 
         if filename is None:
+            print(cx,cy)
             if cx is None:
                 try:
                     if excited:

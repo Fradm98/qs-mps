@@ -5,7 +5,7 @@ from typing import Literal, Union
 
 import matplotlib.pyplot as plt
 from qs_mps.mps_class import MPS as mps
-import torch
+# import torch
 
 def get_cx(L: int, R: int):
     assert 0 <= R < L, f"The fluxtube spans for {R} lattice links but the lattice length is {L}"
@@ -289,74 +289,74 @@ def gstates_to_rdms_matrix_qs_mps(gstates, *, sites=None, shape=None, proj_psd=F
     return rdms
 
 
-###########################################
+# ###########################################
 
 
-def mps_overlap(bs, *, squeeze_end=True):
-    t = torch.tensor(bs[0])
-    t = torch.einsum("ipa,jpb->ijab", t, torch.conj(t))
-    t = torch.squeeze(torch.squeeze(torch.tensor(t), dim=0), dim=0)
+# def mps_overlap(bs, *, squeeze_end=True):
+#     t = torch.tensor(bs[0])
+#     t = torch.einsum("ipa,jpb->ijab", t, torch.conj(t))
+#     t = torch.squeeze(torch.squeeze(torch.tensor(t), dim=0), dim=0)
 
-    for b in bs[1:]:
+#     for b in bs[1:]:
 
-        b = torch.tensor(b)
-        t = torch.einsum("ij,ipa,jpb->ab", t, b, torch.conj(b))
+#         b = torch.tensor(b)
+#         t = torch.einsum("ij,ipa,jpb->ab", t, b, torch.conj(b))
 
-    if squeeze_end:
-        t = torch.squeeze(torch.squeeze(t, dim=0), dim=0)
-    return t
-
-
-def mps_overlap_b(bs, *, squeeze_end=True):
-    t = torch.tensor(bs[0])
-    t = torch.einsum("ipa,jpb->ijab", t, torch.conj(t))
-    t = torch.squeeze(torch.squeeze(torch.tensor(t), dim=-1), dim=-1)
-
-    for b in bs[1:]:
-
-        b = torch.tensor(b)
-        t = torch.einsum("ij,api,bpj->ab", t, b, torch.conj(b))
-    if squeeze_end:
-        t = torch.squeeze(torch.squeeze(t, dim=-1), dim=-1)
-    return t
+#     if squeeze_end:
+#         t = torch.squeeze(torch.squeeze(t, dim=0), dim=0)
+#     return t
 
 
-def mps_contract_open(bs, *, squeeze_ends=True):
-    t = torch.tensor(bs[0])
-    for b in bs[1:]:
+# def mps_overlap_b(bs, *, squeeze_end=True):
+#     t = torch.tensor(bs[0])
+#     t = torch.einsum("ipa,jpb->ijab", t, torch.conj(t))
+#     t = torch.squeeze(torch.squeeze(torch.tensor(t), dim=-1), dim=-1)
 
-        t = torch.einsum("ijk,kab->ijab", t, torch.tensor(b))
-        # Merge the physical legs
-        t = torch.flatten(t, start_dim=1, end_dim=2)
-    if squeeze_ends:
-        # Squeeze first and last legs since we have open boundary conditions.
-        t = torch.squeeze(torch.squeeze(t, dim=0), dim=-1)
-    return t
+#     for b in bs[1:]:
 
-
-def single_rdm_n(mps, sites, L):
-    bs = mps
-    top = mps_overlap(bs[: sites[0]], squeeze_end=False)
-
-    # print("Top")
-    # for idx, tensor in enumerate(bs[: self.sites[0]]):
-    #     print("Number: ", idx, "Shape: ", np.shape(tensor))
-
-    # print("Bottom")
-    # for idx, tensor in enumerate(bs[self.sites[-1] :]):
-    #     print("Number: ", idx, "Shape: ", np.shape(tensor))
-
-    bottom = mps_overlap_b(bs[sites[-1] :][::-1], squeeze_end=False)
-
-    # RDM for the middle 2 sites
-    t = mps_contract_open(bs[sites[0] : sites[-1]], squeeze_ends=False)
-    t = np.einsum("apb,iqj->aipqbj", t, np.conj(t))
-
-    # Put all together and obtain a RDM
-    t = np.einsum("ai,aipqbj,bj->pq", top, t, bottom)
-    return t
+#         b = torch.tensor(b)
+#         t = torch.einsum("ij,api,bpj->ab", t, b, torch.conj(b))
+#     if squeeze_end:
+#         t = torch.squeeze(torch.squeeze(t, dim=-1), dim=-1)
+#     return t
 
 
-def partial_rdm_n(mps_list, sites, L) -> np.array:
-    rdm_list = [single_rdm_n(mps_list[i], sites, L) for i in range(len(mps_list))]
-    return np.array(rdm_list)
+# def mps_contract_open(bs, *, squeeze_ends=True):
+#     t = torch.tensor(bs[0])
+#     for b in bs[1:]:
+
+#         t = torch.einsum("ijk,kab->ijab", t, torch.tensor(b))
+#         # Merge the physical legs
+#         t = torch.flatten(t, start_dim=1, end_dim=2)
+#     if squeeze_ends:
+#         # Squeeze first and last legs since we have open boundary conditions.
+#         t = torch.squeeze(torch.squeeze(t, dim=0), dim=-1)
+#     return t
+
+
+# def single_rdm_n(mps, sites, L):
+#     bs = mps
+#     top = mps_overlap(bs[: sites[0]], squeeze_end=False)
+
+#     # print("Top")
+#     # for idx, tensor in enumerate(bs[: self.sites[0]]):
+#     #     print("Number: ", idx, "Shape: ", np.shape(tensor))
+
+#     # print("Bottom")
+#     # for idx, tensor in enumerate(bs[self.sites[-1] :]):
+#     #     print("Number: ", idx, "Shape: ", np.shape(tensor))
+
+#     bottom = mps_overlap_b(bs[sites[-1] :][::-1], squeeze_end=False)
+
+#     # RDM for the middle 2 sites
+#     t = mps_contract_open(bs[sites[0] : sites[-1]], squeeze_ends=False)
+#     t = np.einsum("apb,iqj->aipqbj", t, np.conj(t))
+
+#     # Put all together and obtain a RDM
+#     t = np.einsum("ai,aipqbj,bj->pq", top, t, bottom)
+#     return t
+
+
+# def partial_rdm_n(mps_list, sites, L) -> np.array:
+#     rdm_list = [single_rdm_n(mps_list[i], sites, L) for i in range(len(mps_list))]
+#     return np.array(rdm_list)
