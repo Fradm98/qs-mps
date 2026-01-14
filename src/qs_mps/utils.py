@@ -1251,15 +1251,15 @@ def anim_no_lattice(
 
     # add the links expectation values
     cmap = plt.get_cmap("inferno")
-    im = ax.imshow(data[0], vmin=0, vmax=1, cmap=cmap, interpolation="nearest")
+    im = ax.imshow(data[0], vmin=-1, vmax=1, cmap=cmap, aspect='auto', interpolation="nearest")
         # Create a divider and append the colorbar to the right of ax
-    divider = make_axes_locatable(ax)
-    cax = divider.append_axes("right", size="3%", pad=0.1)  # size and padding
+    # divider = make_axes_locatable(ax)
+    # cax = divider.append_axes("right", size="3%", pad=0.1)  # size and padding
 
-    # Create colorbar
-    cbar = fig.colorbar(im, cax=cax)
-    # cbar = plt.colorbar(im, ax=ax)
-    cbar.set_label("Electric field")
+    # # Create colorbar
+    # cbar = fig.colorbar(im, cax=cax)
+    # # cbar = plt.colorbar(im, ax=ax)
+    # cbar.set_label("Electric field")
 
     # # add vacuum
     # for i in vlines:
@@ -1273,7 +1273,7 @@ def anim_no_lattice(
     if charges_x != None:
         for i in range(len(charges_x)):
             ax.text(
-                x=charges_x[i]+0.1, y=charges_y[i]-0.1, s="-1", color="red"
+                x=charges_x[i]-0.1, y=charges_y[i]-0.1, s="-1", color="red"
             )
             circle = Ellipse(
                 (charges_x[i], charges_y[i]),
