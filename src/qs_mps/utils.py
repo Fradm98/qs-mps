@@ -1251,7 +1251,7 @@ def anim_no_lattice(
 
     # add the links expectation values
     cmap = plt.get_cmap("inferno")
-    im = ax.imshow(data[0], vmin=-1, vmax=1, cmap=cmap, aspect='auto', interpolation="nearest")
+    im = ax.imshow(data[0], vmin=0, vmax=1, cmap=cmap, aspect='auto', interpolation="nearest")
         # Create a divider and append the colorbar to the right of ax
     # divider = make_axes_locatable(ax)
     # cax = divider.append_axes("right", size="3%", pad=0.1)  # size and padding
