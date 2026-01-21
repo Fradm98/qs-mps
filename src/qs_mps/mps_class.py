@@ -5081,6 +5081,7 @@ class MPS:
                 except:
                     cx = np.nan
                     cy = np.nan
+                    print("here")
                     if excited:
                         filename = f"/results/tensors/tensor_sites_first_excited_{self.model}_direct_lattice_{self.Z2.l}x{self.Z2.L}_bc_{self.bc}_{self.Z2.sector}_{cx}-{cy}_chi_{self.chi}_h_{self.h:.{precision}f}"
                     else:

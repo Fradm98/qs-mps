@@ -1189,6 +1189,65 @@ def string_width_varying_R(
 
     return strings, err_strings
 
+def load_entropy(
+    R: int,
+    l: int,
+    L: int,
+    chi: list,
+    bc: str = None,
+    sector: str = None,
+    h_i: float = None,
+    h_f: float = None,
+    npoints: int = None,
+    path_tensor: str = None,
+    all_bonds: bool = False,
+    cx: list = None,
+    cy: list = None,
+):
+    """
+    entropy
+
+    This function computes the entropies for some couplings gs.
+
+    R: int - string length formed by the separation of two charges
+    l: int - number of ladders in the direct lattice
+    L: int - number of plaquettes per ladder in the direct lattice (rungs-1)
+    chi: int - bond dimension used to approximate DMRG computations of the ground state
+    bc: str - boundary conditions of the lattice
+    sector: str - sector of the ground state
+    h_i: float - starting point for computations spanning the coupling phase space
+    h_f: float - ending point for computations spanning the coupling phase space
+    npoints: int - number of points for computations spanning the coupling phase space
+    path_tensor: str - path name for retrieving the energy density values
+
+    """
+    cx = get_cx(L, R, cx=cx)
+    cy = get_cy(l, bc=bc, R=R, cy=cy)
+
+    if L % 2 == 0:
+        where = L // 2
+    elif L % 2 == 1:
+        where = L // 2 + 1
+    
+    if all_bonds:
+        where = "all"
+    try:
+        entropies = np.load(
+            f"{path_tensor}/results/entropy_data/{where}_bond_entropy_Z2_dual_direct_lattice_{l}x{L}_{sector}_bc_{bc}_{cx}-{cy}_h_{h_i}-{h_f}_delta_{npoints}_chi_{chi}"
+        )
+    except:
+        entropies = load_list_of_lists(
+            f"{path_tensor}/results/entropy_data/{where}_bond_entropy_Z2_dual_direct_lattice_{l}x{L}_{sector}_bc_{bc}_{cx}-{cy}_h_{h_i}-{h_f}_delta_{npoints}_chi_{chi}"
+        )
+
+        # vac = None
+        # schmidt_values = np.load(
+        #     f"{path_tensor}/results/entropy_data/{where}_schmidt_vals_Z2_dual_direct_lattice_{l}x{L}_{sector}_bc_{bc}_{vac}-{vac}_h_{h_i}-{h_f}_delta_{npoints}_chi_{chi}.npy"
+        # )
+
+
+    return entropies
+
 def entropy(
     R: int,
     l: int,
