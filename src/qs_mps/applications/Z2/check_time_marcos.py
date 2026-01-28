@@ -159,7 +159,7 @@ if args.path == "marcos":
     path_tensor = "/Users/fradm/Desktop/projects/1_Z2"
     parent_path = path_tensor
 elif args.path == "ngt":
-    path_tensor = "/shared/projects/1_Z2"
+    path_tensor = "/scratch/projects/1_Z2"
     parent_path = path_tensor
 else:
     raise SyntaxError("Path not valid. Choose among 'marcos', 'ngt'")
