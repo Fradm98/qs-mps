@@ -465,6 +465,7 @@ for L in args.Ls:
             )
         if "en" in args.obs:
             if args.ex:
+                print("here")
                 np.save(
                 f"{parent_path}/results/energy_data/first_excited_energy_{args.model}_direct_lattice_{args.l}x{L}_{sector}_bc_{args.boundcond}_{charges_x}-{charges_y}_h_{args.h_i}-{args.h_f}_delta_{args.npoints}_chi_{chi}.npy",
                 En,

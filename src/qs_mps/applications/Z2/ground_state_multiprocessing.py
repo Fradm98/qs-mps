@@ -51,6 +51,7 @@ def ground_state_Z2_param(params):
         ladder.sites = args_mps["guess"].copy()
         ladder.enlarge_chi(noise_std=args_mps["noise"], seed=3)
         ladder.canonical_form(trunc_chi=True, trunc_tol=False)
+        
 
     # if ladder.bc == "pbc":
     #     a = np.zeros((1, 2))

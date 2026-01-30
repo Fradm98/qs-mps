@@ -2237,6 +2237,7 @@ class MPS:
                     )
 
             else:
+                v0 = self.sites[self.site - 1]
                 A = TensorMultiplierOperator(
                     (
                         self.env_left[-1].shape[0]
@@ -5064,7 +5065,6 @@ class MPS:
         # self.sites = [site.reshape(shapes[i]) for i, site in enumerate(flat_tn)]
 
         if filename is None:
-            print(cx,cy)
             if cx is None:
                 try:
                     if excited:
@@ -5098,7 +5098,10 @@ class MPS:
                             f["tensors"][f"tensor_{i}"][:] for i in range(self.Z2.L)
                         ]
             else:
-                filename = f"/results/tensors/tensor_sites_{self.model}_direct_lattice_{self.Z2.l}x{self.Z2.L}_bc_{self.bc}_{self.Z2.sector}_{cx}-{cy}_chi_{self.chi}_h_{self.h:.{precision}f}"
+                if excited:
+                    filename = f"/results/tensors/tensor_sites_first_excited_{self.model}_direct_lattice_{self.Z2.l}x{self.Z2.L}_bc_{self.bc}_{self.Z2.sector}_{cx}-{cy}_chi_{self.chi}_h_{self.h:.{precision}f}"
+                else:
+                    filename = f"/results/tensors/tensor_sites_{self.model}_direct_lattice_{self.Z2.l}x{self.Z2.L}_bc_{self.bc}_{self.Z2.sector}_{cx}-{cy}_chi_{self.chi}_h_{self.h:.{precision}f}"
                 with h5py.File(f"{path}{filename}.h5", "r") as f:
                     # Load metadata
                     metadata = {key: f.attrs[key] for key in f.attrs}
