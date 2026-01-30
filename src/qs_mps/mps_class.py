@@ -4875,6 +4875,7 @@ class MPS:
                 cy=np.nan,
                 chi=self.chi,
                 h=self.h,
+                excited=excited,
             )
         elif isinstance(cx, list):
             metadata = dict(
@@ -4887,6 +4888,7 @@ class MPS:
                 cy=cy,
                 chi=self.chi,
                 h=self.h,
+                excited=excited,
             )
         else:
             raise TypeError("charges not in the right format, should be None/np.nan or a list")

@@ -90,7 +90,7 @@ parser.add_argument(
     "-p",
     "--prec",
     help="Precision of the coupling constant",
-    default=None,
+    default=3,
     type=int,
 )
 parser.add_argument(
@@ -111,6 +111,12 @@ parser.add_argument(
     "--red",
     help="Reduced observables in the middle of the cylinder. If False save for each link. By default True",
     action="store_false",
+)
+parser.add_argument(
+    "-ex",
+    "--ex",
+    help="Load the excited state",
+    action="store_true",
 )
 
 args = parser.parse_args()
@@ -215,7 +221,7 @@ for L in args.Ls:
                 lattice_mps.Z2._define_sector()
 
             lattice_mps.load_sites(
-                path=path_tensor, precision=precision, cx=charges_x, cy=charges_y
+                path=path_tensor, precision=precision, cx=charges_x, cy=charges_y, excited=args.ex
             )
 
             if "wl" in args.obs:
@@ -351,7 +357,9 @@ for L in args.Ls:
                 )
                 lattice_mps.Z2.mpo_Z2_ladder_generalized_pbc()
                 lattice_mps.w = lattice_mps.Z2.mpo.copy()
-                En.append(lattice_mps.mpo_first_moment().real)
+                res = lattice_mps.mpo_first_moment().real
+                En.append(res)
+                print(res)
 
             if "end" in args.obs:
                 # print(f"Energy density for h:{h:.{precision}f}, direct lattice lxL:{args.l}x{L}, bc: {args.boundcond}, chi:{chi}, sector: {sector}")
@@ -456,10 +464,16 @@ for L in args.Ls:
                 C,
             )
         if "en" in args.obs:
-            np.save(
-                f"{parent_path}/results/energy_data/energy_{args.model}_direct_lattice_{args.l}x{L}_{sector}_bc_{args.boundcond}_{charges_x}-{charges_y}_h_{args.h_i}-{args.h_f}_delta_{args.npoints}_chi_{chi}.npy",
+            if args.ex:
+                np.save(
+                f"{parent_path}/results/energy_data/first_excited_energy_{args.model}_direct_lattice_{args.l}x{L}_{sector}_bc_{args.boundcond}_{charges_x}-{charges_y}_h_{args.h_i}-{args.h_f}_delta_{args.npoints}_chi_{chi}.npy",
                 En,
             )
+            else:
+                np.save(
+                    f"{parent_path}/results/energy_data/energy_{args.model}_direct_lattice_{args.l}x{L}_{sector}_bc_{args.boundcond}_{charges_x}-{charges_y}_h_{args.h_i}-{args.h_f}_delta_{args.npoints}_chi_{chi}.npy",
+                    En,
+                )
         if "end" in args.obs:
             np.save(
                 f"{parent_path}/results/energy_data/electric_energy_density_{args.model}_direct_lattice_{args.l}x{L}_{sector}_bc_{args.boundcond}_{charges_x}-{charges_y}_h_{args.h_i}-{args.h_f}_delta_{args.npoints}_chi_{chi}.npy",
