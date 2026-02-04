@@ -43,7 +43,7 @@ def ground_state_Z2_param(params):
     if args_mps["guess"] == []:
         print("Running with random state")
         ladder._random_state(
-            seed=3, chi=args_mps["chi"], type_shape=args_mps["type_shape"]
+            seed=np.random.randint(1,1001), chi=args_mps["chi"], type_shape=args_mps["type_shape"]
         )
         ladder.canonical_form(trunc_chi=True, trunc_tol=False)
     else:
