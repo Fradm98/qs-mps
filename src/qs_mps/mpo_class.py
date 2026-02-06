@@ -19,6 +19,7 @@ class MPO_ladder:
         self.bc = bc
         self.charges = self._define_charges()
         self.lamb = lamb
+        self.param = 1
         self.mpo = []
         self.latt = Lattice((self.L + 1, self.l + 1), (False, False))
         self.dof_dir = None
@@ -485,17 +486,17 @@ class MPO_ladder:
         for c in range(self.L):
             ## Horizontal Up ----------------------------------------------
             # first row last column, for the local z horizontal up
-            coeff = np.prod(self.charges[0, : c + 1])
-            self.mpo[0, -1] += (
-                -self.lamb * coeff * sparse_pauli_z(n=0, L=self.l).toarray()
-            )
+            # coeff = np.prod(self.charges[0, : c + 1])
+            # self.mpo[0, -1] += (
+            #     -self.lamb * coeff * sparse_pauli_z(n=0, L=self.l).toarray()
+            # )
 
             ## Horizontal Bulk ----------------------------------------------
             for f in range(self.l - 1):
                 # first row last column, for the "local" zz vertical interaction
                 coeff = np.prod(self.charges[f + 1, : c + 1])
                 self.mpo[0, -1] += (
-                    -self.lamb
+                    -self.param
                     * coeff
                     * (
                         sparse_pauli_z(n=f, L=self.l).toarray()
@@ -506,18 +507,18 @@ class MPO_ladder:
             f += 1
             ## Horizontal Bottom ----------------------------------------------
             # first row last column, for the local z horizontal bottom
-            coeff = np.prod(self.charges[f + 1, : c + 1])
-            self.mpo[0, -1] += (
-                -self.lamb * coeff * sparse_pauli_z(n=f, L=self.l).toarray()
-            )
+            # coeff = np.prod(self.charges[f + 1, : c + 1])
+            # self.mpo[0, -1] += (
+            #     -self.lamb * coeff * sparse_pauli_z(n=f, L=self.l).toarray()
+            # )
 
             ## Vertical Left ----------------------------------------------
             # first row last column, for the local z vertical terms on the left boundary
-            if c == 0:
-                for f in range(self.l):
-                    self.mpo[0, -1] += (
-                        -self.lamb * sparse_pauli_z(n=f, L=self.l).toarray()
-                    )
+            # if c == 0:
+            #     for f in range(self.l):
+            #         self.mpo[0, -1] += (
+            #             -self.lamb * sparse_pauli_z(n=f, L=self.l).toarray()
+            #         )
 
             for f in range(self.l):
                 ## Vertical Bulk ----------------------------------------------
@@ -525,24 +526,24 @@ class MPO_ladder:
                 self.mpo[0, f + 1] = sparse_pauli_z(n=f, L=self.l).toarray()
                 # last column, for the zz horizontal interactions
                 self.mpo[f + 1, -1] = (
-                    -self.lamb * sparse_pauli_z(n=f, L=self.l).toarray()
+                    -self.param * sparse_pauli_z(n=f, L=self.l).toarray()
                 )
 
             ## Plaquette ----------------------------------------------
             # first row last column, for the local x plaquette terms
             for f in range(self.l):
                 self.mpo[0, -1] += (
-                    -1 / self.lamb * sparse_pauli_x(n=f, L=self.l).toarray()
+                    -self.lamb * sparse_pauli_x(n=f, L=self.l).toarray()
                 )
 
             ## Vertical Right ----------------------------------------------
             # first row last column, for the local z vertical right
-            if c == (self.L - 1):
-                for f in range(self.l):
-                    coeff = np.prod(self.charges[: f + 1, : self.L + 1])
-                    self.mpo[0, -1] += (
-                        -self.lamb * coeff * sparse_pauli_z(n=f, L=self.l).toarray()
-                    )
+            # if c == (self.L - 1):
+            #     for f in range(self.l):
+            #         coeff = np.prod(self.charges[: f + 1, : self.L + 1])
+            #         self.mpo[0, -1] += (
+            #             -self.lamb * coeff * sparse_pauli_z(n=f, L=self.l).toarray()
+            #         )
 
             mpo_list.append(self.mpo)
             self.mpo_skeleton()

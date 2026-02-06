@@ -1,7 +1,7 @@
 import numpy as np
 import h5py
 
-from scipy.sparse import csr_matrix, csr_array, identity
+from scipy.sparse import csr_matrix, csr_array, identity, diags
 from scipy.linalg import expm, solve, norm
 import scipy.linalg as la
 import scipy.sparse.linalg as spla
@@ -833,18 +833,19 @@ class MPS:
         vec: np.ndarray - vector we want to transform in a MPS
 
         """
-        vec_legs = int(np.log2(len(vec)))
+        # vec_legs = int(np.log2(len(vec)))
+        vec_legs = int(logarithm_base_d(x=len(vec), d=self.d))
         sites = []
         bonds = []
         alpha = 1
         for i in range(vec_legs):
-            matrix = vec.reshape((2 ** (vec_legs - (i + 1)), 2 * alpha))
+            matrix = vec.reshape((self.d ** (vec_legs - (i + 1)), self.d * alpha))
             u, s, v = la.svd(matrix, full_matrices=False)
-            bond_r = v.shape[1] // 2
+            bond_r = v.shape[1] // self.d
             v = truncation(v, threshold=1e-15)
             s = truncation(s, threshold=1e-15)
             u = truncation(u, threshold=1e-15)
-            v = v.reshape((v.shape[0], 2, bond_r))
+            v = v.reshape((v.shape[0], self.d, bond_r))
             if trunc_chi:
                 if v.shape[0] > chi:
                     v = v[:chi, :, :]
@@ -903,6 +904,9 @@ class MPS:
 
         elif self.model == "XXZ":
             self.mpo_xxz(long=long)
+        
+        elif self.model == "heis":
+            self.mpo_heis()
 
         return self
 
@@ -1058,6 +1062,44 @@ class MPS:
                     [O, O, trans_op, O, self.lx * long_op],
                     [O, O, O, O, -self.J * long_op],
                     [O, O, O, O, self.ly * Y],
+                    [O, O, O, O, I],
+                ]
+            )
+            w_tot.append(w)
+        self.w = w_tot
+        return self
+
+    def mpo_heis(self):
+        """
+        mpo_Cluster
+
+        This function defines the MPO for the 1D Cluster model.
+        It takes the same MPO for all sites.
+
+        """
+        I = identity(3, dtype=complex).toarray()
+        O = csc_array((3, 3), dtype=complex).toarray()
+        Sz = diags([1, 0, -1], 0, format="csr").toarray()
+        S_plus  = csr_matrix([[0, 0, 1],
+                              [0, 0, 0],
+                              [0, 0, 0]]).toarray()
+
+        S_minus = csr_matrix([[0, 0, 0],
+                              [0, 0, 0],
+                              [1, 0, 0]]).toarray()
+        
+        n_holes = csr_matrix([[0, 0, 0],
+                              [0, 1, 0],
+                              [0, 0, 0]]).toarray()
+
+        w_tot = []
+        for i in range(self.L):
+            w = np.array(
+                [
+                    [I, Sz, S_plus, S_minus, self.eps * n_holes],
+                    [O, O, O, O, self.h * Sz],
+                    [O, O, O, O, (1/2) * self.J * S_minus],
+                    [O, O, O, O, (1/2) * self.J * S_plus],
                     [O, O, O, O, I],
                 ]
             )
