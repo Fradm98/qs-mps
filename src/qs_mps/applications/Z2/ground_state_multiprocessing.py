@@ -96,7 +96,90 @@ def ground_state_Z2_param(params):
     # new_guess = ladder.sites.copy()
 
     return energy, entropy, schmidt_vals, t_dmrg
-    # return energy, entropy, schmidt_vals, t_dmrg, new_guess
+
+def ground_state_heis_param(params):
+    args_mps = params[0]
+    param = params[1]
+    chain = MPS(
+        L=args_mps["L"],
+        d=args_mps["d"],
+        model=args_mps["model"],
+        chi=args_mps["chi"],
+        bc=args_mps["bc"],
+        J=args_mps["J"],
+        eps=args_mps["eps"],
+        h=param,
+    )
+    chi = args_mps["chi"]
+    save = args_mps["save"]
+    precision = args_mps["precision"]
+    
+    if args_mps["excited"]:
+        chain.load_sites(
+            args_mps["path"],
+            args_mps["precision"],
+            args_mps["charges_x"],
+            args_mps["charges_y"],
+        )
+        chain.ancilla_sites = chain.sites.copy()
+        chain.sites = []
+
+    if args_mps["guess"] == []:
+        print("Running with random state")
+        chain._random_state(
+            seed=np.random.randint(1,1001), chi=args_mps["chi"], type_shape=args_mps["type_shape"]
+        )
+        chain.canonical_form(trunc_chi=True, trunc_tol=False)
+    else:
+        print("Running with guess state")
+        chain.sites = args_mps["guess"].copy()
+        chain.enlarge_chi(noise_std=args_mps["noise"], seed=3)
+        chain.canonical_form(trunc_chi=True, trunc_tol=False)
+        
+
+    # if chain.bc == "pbc":
+    #     a = np.zeros((1, 2))
+    #     a[0, 0] = -1
+    #     extra_ancillary_site = a.reshape((1, 2, 1))
+    #     # extra_ancillary_site = np.random.rand(1, 2, 1)
+    #     chain.sites.append(extra_ancillary_site)
+    #     chain.L = len(chain.sites)
+    #     if args_mps["excited"]:
+    #         chain.ancilla_sites.append(extra_ancillary_site)
+            
+
+    energy, entropy, schmidt_vals, t_dmrg = chain.DMRG(
+        trunc_tol=args_mps["trunc_tol"],
+        trunc_chi=args_mps["trunc_chi"],
+        where=args_mps["where"],
+        bond=args_mps["bond"],
+        n_sweeps=args_mps["n_sweeps"],
+        conv_tol=args_mps["conv_tol"],
+        excited=args_mps["excited"],
+    )
+    # t_final = np.sum(t_dmrg)
+    # t_final_gen = dt.timedelta(seconds=t_final)
+    print(
+        f"time of the whole search for h={param:.{precision}f}, chi={chi} is: {t_dmrg} in date {dt.datetime.now()}"
+    )
+
+    if not args_mps["training"]:
+        energy = energy[-1]
+    
+    if save:
+        # if chain.bc == "pbc":
+        #     # chain.sites.pop()
+        #     chain.L = len(chain.sites) - 1
+        chain.save_sites(
+            args_mps["path"],
+            args_mps["precision"],
+            args_mps["charges_x"],
+            args_mps["charges_y"],
+            args_mps["excited"],
+        )
+    # new_guess = chain.sites.copy()
+
+    return energy, entropy, schmidt_vals, t_dmrg
 
 
 def run_with_timeout(func, args, timeout):
@@ -344,6 +427,24 @@ def ground_state_Z2(args_mps, multpr, interval, reps: int = 1):
             times.append(t_dmrg)
         return energies, entropies, schmidt_vals, times
 
+def ground_state_heis(args_mps, multpr, interval, reps: int = 1):
+    if multpr:
+        results_param = ground_state_Z2_multpr(args_mps=args_mps, multpr_param=interval)
+        if results_param == None:
+            return print("The computation exceeded the time limit")
+        else:
+            return get_results(results_param)
+    else:
+        energies, entropies, schmidt_vals, times = [], [], [], []
+        for p in interval:
+            print(f"\n*** Starting param: {p:.5f}, chi={args_mps["chi"]}, L={args_mps["L"]} in {dt.datetime.now()} ***\n")
+            params = [args_mps, p]
+            energy, entropy, schmidt_val, t_dmrg = ground_state_heis_param(params)
+            energies.append(energy)
+            entropies.append(entropy)
+            schmidt_vals.append(schmidt_val)
+            times.append(t_dmrg)
+        return energies, entropies, schmidt_vals, times
     # else:
     #     energies_param = []
     #     entropies_param = []
