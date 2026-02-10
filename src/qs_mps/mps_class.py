@@ -1079,7 +1079,7 @@ class MPS:
         """
         I = identity(3, dtype=complex).toarray()
         O = csc_array((3, 3), dtype=complex).toarray()
-        Sz = diags([1, 0, -1], 0, format="csr").toarray()
+        Sz = (1/2) * diags([1, 0, -1], 0, format="csr").toarray()
         S_plus  = csr_matrix([[0, 0, 1],
                               [0, 0, 0],
                               [0, 0, 0]]).toarray()
@@ -1313,6 +1313,33 @@ class MPS:
         w_tot = []
         for _ in range(self.L):
             w_mag = np.array([[I, long_op], [O, I]])
+            w_tot.append(w_mag)
+        self.w = w_tot
+        return self
+    
+    def mag_3(self, stag: bool=False):
+        """
+        mag_3
+
+        This function defines the MPO magnetization for the 1D heisenberg chain in case of 3-dimensional physical state.
+        It takes the same MPO for all sites.
+
+        op: np.ndarray - operator that constitute with the order parameter of the theory.
+            It depends on the choice of the basis for Ising Hamiltonian
+
+        """
+        I = identity(3, dtype=complex).toarray()
+        O = csc_array((3, 3), dtype=complex).toarray()
+        Sz = (1/2) * diags([1, 0, -1], 0, format="csr").toarray()
+
+        w_tot = []
+        if stag:
+            sign = [(-1)**k for k in range(self.L)]
+        else:
+            sign = [1]*self.L
+
+        for i in range(self.L):
+            w_mag = np.array([[I, sign[i]*Sz / self.L], [O, I]])
             w_tot.append(w_mag)
         self.w = w_tot
         return self
