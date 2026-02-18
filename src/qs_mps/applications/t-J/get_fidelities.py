@@ -26,7 +26,7 @@ chi = 100
 h_i, h_f = -1.05, -0.9
 a = 5e-3
 precision = 4
-couplings = np.arange(h_i,h_f+a,a)
+couplings = np.arange(h_i,h_f,a)
 npoints = len(couplings)
 DMRG2 = False
 d = 3
@@ -39,7 +39,7 @@ path = "/Users/fradm/Desktop/projects/Fidelities_with_TN"
 fidelity = []
 for L in Ls:
     fidelity_L = []
-    for k in range(len(couplings)-1):
+    for k in range(len(couplings)):
         print(f"L: {L}, coupling: {couplings[k]:.4f}")
         heis_chain_g = MPS(L=L, d=d, model=model, chi=chi, h=couplings[k], eps=eps_gs, J=J, bc='obc')
         heis_chain_g_dg = MPS(L=L, d=d, model=model, chi=chi, h=couplings[k+1], eps=eps_gs, J=J, bc='obc')
