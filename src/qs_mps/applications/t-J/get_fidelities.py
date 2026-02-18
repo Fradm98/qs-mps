@@ -61,4 +61,4 @@ for i, L in enumerate(Ls):
     plt.plot(couplings[:-1], dfs/L, color=colors[i], label=f"$L: {L}$")
 
 plt.legend()
-plt.savefig(f"{path}/figures/discrete_fid_sus_Ls_{Ls}_h_{h_i}-{h_f}_npoints_{npoints}_eps_{eps_gs}_diff_eps_chi_{chi}.pdf", dpi=300, format="pdf")
+plt.savefig(f"{path}/figures/discrete_fid_sus_Ls_{Ls[0]}-{Ls[-1]}_h_{h_i}-{h_f}_npoints_{npoints}_eps_{eps_gs}_diff_eps_chi_{chi}.pdf", dpi=300, format="pdf")
