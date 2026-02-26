@@ -22,7 +22,7 @@ from qs_mps.utils import anim, get_cx, get_cy
 
 # metadata of the tensors
 model = "heis"
-chi = 100
+chi = 200
 h_i, h_f = -1.05, -0.9
 a = 5e-3
 precision = 4
