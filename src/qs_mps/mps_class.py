@@ -1071,10 +1071,10 @@ class MPS:
 
     def mpo_heis(self):
         """
-        mpo_Cluster
+        mpo_heis
 
-        This function defines the MPO for the 1D Cluster model.
-        It takes the same MPO for all sites.
+        This function defines the MPO for the 1D Heisenberg model in the extended basis d=3.
+        The basis counts with spin up, hole, and spin down. It takes the same MPO for all sites.
 
         """
         I = identity(3, dtype=complex).toarray()
@@ -1097,6 +1097,66 @@ class MPS:
             w = np.array(
                 [
                     [I, Sz, S_plus, S_minus, self.eps * Sz],
+                    [O, O, O, O, self.h * Sz],
+                    [O, O, O, O, (1/2) * self.J * S_minus],
+                    [O, O, O, O, (1/2) * self.J * S_plus],
+                    [O, O, O, O, I],
+                ]
+            )
+            w_tot.append(w)
+        self.w = w_tot
+        return self
+
+    def mpo_tjv(self):
+        """
+        mpo_tjv
+
+        This function defines the MPO for the 1D t-J-V model.
+        Has a Heisenberg part and a hopping part with tunable NN and NNN interactions.
+        In addition, hole interactions are controlled by V.
+        It takes the same MPO for all sites.
+
+        """
+        I = identity(3, dtype=complex).toarray()
+        O = csc_array((3, 3), dtype=complex).toarray()
+        
+        # Spin operators
+        Sz = (1/2) * diags([1, 0, -1], 0, format="csr")
+        
+        S_plus  = csr_matrix([[0, 0, 1],
+                                [0, 0, 0],
+                                [0, 0, 0]])
+
+        S_minus = csr_matrix([[0, 0, 0],
+                                [0, 0, 0],
+                                [1, 0, 0]])
+
+        # Hole hopping operators
+
+        # spin up goes into a hole state
+        T_up_h   = csr_matrix([[0, 1, 0],
+                                [0, 0, 0],
+                                [0, 0, 0]])
+
+        # spin down goes into a hole state
+        T_down_h = csr_matrix([[0, 0, 0],
+                                [0, 0, 0],
+                                [0, 1, 0]])
+
+        # hole goes into a spin up state
+        T_h_up   = csr_matrix([[0, 0, 0],
+                                [1, 0, 0],
+                                [0, 0, 0]])
+
+        # hole goes into a spin down state
+        T_h_down = csr_matrix([[0, 0, 0],
+                                [0, 0, 1],
+                                [0, 0, 0]])
+        w_tot = []
+        for i in range(self.L):
+            w = np.array(
+                [
+                    [I, Sz, S_plus, S_minus, T_up_h, T_down_h, T_h_up, T_h_down, self.eps * Sz],
                     [O, O, O, O, self.h * Sz],
                     [O, O, O, O, (1/2) * self.J * S_minus],
                     [O, O, O, O, (1/2) * self.J * S_plus],
