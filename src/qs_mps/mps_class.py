@@ -1143,45 +1143,57 @@ class MPS:
         I = identity(3, dtype=complex).toarray()
         O = csc_array((3, 3), dtype=complex).toarray()
 
-        # Spin operators
-        Sz = (1 / 2) * diags([1, 0, -1], 0, format="csr")
+        ## Heisenberg spin operators
+        
+        # z component of spin operator
+        Sz = (1 / 2) * diags([1, 0, -1], 0, format="csr").toarray()
 
-        S_plus = csr_matrix([[0, 0, 1], [0, 0, 0], [0, 0, 0]])
+        # flip spin up to spin down
+        S_plus = csr_matrix([[0, 0, 1], [0, 0, 0], [0, 0, 0]]).toarray()
 
-        S_minus = csr_matrix([[0, 0, 0], [0, 0, 0], [1, 0, 0]])
+        # flip spin down to spin up
+        S_minus = csr_matrix([[0, 0, 0], [0, 0, 0], [1, 0, 0]]).toarray()
 
-        # Hole hopping operators
-
-        # spin up goes into a hole state
-        T_up_h = csr_matrix([[0, 1, 0], [0, 0, 0], [0, 0, 0]])
-
-        # spin down goes into a hole state
-        T_down_h = csr_matrix([[0, 0, 0], [0, 0, 0], [0, 1, 0]])
+        ## Hole hopping operators
 
         # hole goes into a spin up state
-        T_h_up = csr_matrix([[0, 0, 0], [1, 0, 0], [0, 0, 0]])
+        T_up_h = csr_matrix([[0, 1, 0], [0, 0, 0], [0, 0, 0]]).toarray()
 
         # hole goes into a spin down state
-        T_h_down = csr_matrix([[0, 0, 0], [0, 0, 1], [0, 0, 0]])
+        T_down_h = csr_matrix([[0, 0, 0], [0, 0, 0], [0, 1, 0]]).toarray()
+
+        # hole goes into a spin up state
+        T_h_up = csr_matrix([[0, 0, 0], [1, 0, 0], [0, 0, 0]]).toarray()
+
+        # hole goes into a spin down state
+        T_h_down = csr_matrix([[0, 0, 0], [0, 0, 1], [0, 0, 0]]).toarray()
+
+        ## Hole interaction operators
+
+        # number operator for holes
+        n_h = csr_matrix([[0, 0, 0], [0, 1, 0], [0, 0, 0]]).toarray()
+        
         w_tot = []
         t = 1
         tp = t
+        V = 0
         for i in range(self.L):
             w = np.array(
                 [
-                    [I, Sz, S_plus, S_minus, T_up_h, O, T_down_h, O, T_h_up, O, T_h_down, O, self.eps * Sz],
-                    [O, O, O, O, O, O, O, O, O, O, O, O, self.h * Sz],
-                    [O, O, O, O, O, O, O, O, O, O, O, O, (1 / 2) * self.J * S_minus],
-                    [O, O, O, O, O, O, O, O, O, O, O, O, (1 / 2) * self.J * S_plus],
-                    [O, O, O, O, O, I, O, O, O, O, O, O, t * T_h_up],
-                    [O, O, O, O, O, O, O, O, O, O, O, O, tp * T_h_up],
-                    [O, O, O, O, O, O, O, I, O, O, O, O, t * T_up_h],
-                    [O, O, O, O, O, O, O, O, O, O, O, O, tp * T_up_h],
-                    [O, O, O, O, O, O, O, O, O, I, O, O, t * T_h_down],
-                    [O, O, O, O, O, O, O, O, O, O, O, O, tp * T_h_down],
-                    [O, O, O, O, O, O, O, O, O, O, O, I, t * T_down_h],
-                    [O, O, O, O, O, O, O, O, O, O, O, O, tp * T_down_h],
-                    [O, O, O, O, O, O, O, O, O, O, O, O, I],
+                    [I, Sz, S_plus, S_minus, T_up_h, O, T_down_h, O, T_h_up, O, T_h_down, O, n_h, self.eps * Sz],
+                    [O, O, O, O, O, O, O, O, O, O, O, O, O, self.h * Sz],
+                    [O, O, O, O, O, O, O, O, O, O, O, O, O, (1 / 2) * self.J * S_minus],
+                    [O, O, O, O, O, O, O, O, O, O, O, O, O, (1 / 2) * self.J * S_plus],
+                    [O, O, O, O, O, I, O, O, O, O, O, O, O, t * T_h_up],
+                    [O, O, O, O, O, O, O, O, O, O, O, O, O, tp * T_h_up],
+                    [O, O, O, O, O, O, O, I, O, O, O, O, O, t * T_up_h],
+                    [O, O, O, O, O, O, O, O, O, O, O, O, O, tp * T_up_h],
+                    [O, O, O, O, O, O, O, O, O, I, O, O, O, t * T_h_down],
+                    [O, O, O, O, O, O, O, O, O, O, O, O, O, tp * T_h_down],
+                    [O, O, O, O, O, O, O, O, O, O, O, I, O, t * T_down_h],
+                    [O, O, O, O, O, O, O, O, O, O, O, O, O, tp * T_down_h],
+                    [O, O, O, O, O, O, O, O, O, O, O, O, O, V * n_h],
+                    [O, O, O, O, O, O, O, O, O, O, O, O, O, I],
                 ]
             )
             w_tot.append(w)
