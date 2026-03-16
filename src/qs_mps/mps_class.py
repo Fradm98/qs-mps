@@ -524,6 +524,28 @@ class MPS:
             self.sites[i] = new_site
 
         return self
+    
+    def flipping_all_tj(self, ancilla: bool=False):
+        """
+        flipping_all
+
+        This function flips all the sites of the mps with the operator X,
+        assuming to be in the computational (Z) basis.
+
+        """
+        X = np.array([[0, 0, 1], [0, 0, 0], [1, 0, 0]])
+        if ancilla:
+            sites = self.ancilla_sites.copy()
+        else:
+            sites = self.sites.copy()
+        for i in range(self.L):
+            new_site = ncon([sites[i], X], [[-1, 1, -3], [1, -2]])
+            if ancilla:
+                self.ancilla_sites[i] = new_site
+            else:
+                self.sites[i] = new_site
+
+        return self
 
     def enlarge_chi(
         self,
@@ -1437,6 +1459,31 @@ class MPS:
         self.w = w_tot
         return self
 
+    def mag_3_loc(self, site: int):
+        """
+        mag_3
+
+        This function defines the MPO magnetization for the 1D heisenberg chain in case of 3-dimensional physical state.
+        It takes the same MPO for all sites.
+
+        op: np.ndarray - operator that constitute with the order parameter of the theory.
+            It depends on the choice of the basis for Ising Hamiltonian
+
+        """
+        I = identity(3, dtype=complex).toarray()
+        O = csc_array((3, 3), dtype=complex).toarray()
+        Sz = diags([1, 0, -1], 0, format="csr").toarray()
+
+        w_tot = []
+
+        for i in range(self.L):
+            if i == site:
+                w_tot.append(Sz.reshape((1,1,self.d,self.d)))
+            else:
+                w_tot.append(I.reshape((1,1,self.d,self.d)))
+        self.w = w_tot
+        return self
+    
     def order_param_Z2(self):
         """
         order_param_Z2
