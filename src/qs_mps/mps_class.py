@@ -2,7 +2,7 @@ import numpy as np
 import h5py
 
 from scipy.sparse import csr_matrix, csr_array, identity, diags
-from scipy.linalg import expm, solve, norm
+from scipy.linalg import expm, solve, norm, kron
 import scipy.linalg as la
 import scipy.sparse.linalg as spla
 
@@ -1287,6 +1287,179 @@ class MPS:
             if self.model == "Z2":
                 MPO_ladder.mpo_Z2_quench_global(delta, h_ev, J_ev)
 
+    def U_i_ip1_tJ(self, Jz, t_up, t_down, J_perp, delta):
+        """
+        U_i_ip1
+
+        This function computes the exponential of the 2-site hamiltonian for the t-J model.
+        It returns to versions: 
+        1. one with a time step delta/2 to use at the initial and final step
+        of the trotterization
+        2. one with a time step delta to use in the bulk steps of the trotterization
+
+        """
+        I = identity(3, dtype=complex).toarray()
+        O = csc_array((3, 3), dtype=complex).toarray()
+
+        ## Heisenberg spin operators
+        
+        # z component of spin operator
+        Sz = (1 / 2) * diags([1, 0, -1], 0, format="csr").toarray()
+
+        # flip spin up to spin down
+        S_plus = csr_matrix([[0, 0, 1], [0, 0, 0], [0, 0, 0]]).toarray()
+
+        # flip spin down to spin up
+        S_minus = csr_matrix([[0, 0, 0], [0, 0, 0], [1, 0, 0]]).toarray()
+
+        ## Hole hopping operators
+
+        # hole goes into a spin up state
+        T_up_h = csr_matrix([[0, 1, 0], [0, 0, 0], [0, 0, 0]]).toarray()
+
+        # hole goes into a spin down state
+        T_down_h = csr_matrix([[0, 0, 0], [0, 0, 0], [0, 1, 0]]).toarray()
+
+        # hole goes into a spin up state
+        T_h_up = csr_matrix([[0, 0, 0], [1, 0, 0], [0, 0, 0]]).toarray()
+
+        # hole goes into a spin down state
+        T_h_down = csr_matrix([[0, 0, 0], [0, 0, 1], [0, 0, 0]]).toarray()
+
+        ## Hole interaction operators
+
+        # number operator for holes
+        n_h = csr_matrix([[0, 0, 0], [0, 1, 0], [0, 0, 0]]).toarray()
+
+        # choose the hamiltonian parameters
+        H_i_ip1 = (Jz * kron(Sz, Sz) 
+        + (J_perp/2) * kron(S_plus, S_minus) 
+        + (J_perp/2) * kron(S_minus, S_plus) 
+        - (t_up) * kron(T_up_h, T_h_up) 
+        - (t_up) * kron(T_h_up, T_up_h) 
+        - (t_down) * kron(T_down_h, T_h_down) 
+        - (t_down) * kron(T_h_down, T_down_h)).toarray()
+
+        # initial and final 2-site evolution operator
+        op_ev_if = expm(-1j * delta/2 * H_i_ip1)
+
+        # bulk 2-site evolution operator
+        op_ev_bulk = expm(-1j * delta * H_i_ip1)
+        
+        return op_ev_if, op_ev_bulk
+
+    def evolution_mpo_svd_tJ(op_ev_if: np.ndarray, op_ev_bulk: np.ndarray, d: int=3, schmidt_tol: float=1e-15):
+        """
+        evolution_mpo_svd
+
+        This function takes the edges, and bulk 2-site evolution operators (of the t-J model) and performs an svd
+        to separate the matrix into site i and site i+1. Reshaping the results of the svd
+        we can obtain the mpo for those evolution operators (with bounded bond dimension D<=d^2)
+
+        """
+        op_ev_if = op_ev_if.reshape(d,d,d,d)
+        op_ev_if = op_ev_if.transpose(0,2,1,3)
+        op_ev_if = op_ev_if.reshape(d*d,d*d)
+
+        u, s, v = la.svd(op_ev_if, full_matrices=False)
+
+        condition = s >= schmidt_tol
+        s_trunc = np.extract(condition, s)
+        s = s_trunc
+        v = v[:len(s),:]
+
+        site_i_if = u.reshape(d,d,u.shape[1])
+        site_i_if = site_i_if[:, :, :len(s)]
+        site_i_if = site_i_if.transpose(2,0,1)
+        site_i_if = site_i_if.reshape(1,len(s),d,d)
+
+        site_ip1_if = ncon([np.diag(s), v],[[-1, 1],[1, -2]]).reshape(v.shape[0],d,d)
+        site_ip1_if = site_ip1_if.reshape(1,v.shape[0],d,d)
+        site_ip1_if = site_ip1_if.transpose(1,0,2,3)
+
+
+        op_ev_bulk = op_ev_bulk.reshape(d,d,d,d)
+        op_ev_bulk = op_ev_bulk.transpose(0,2,1,3)
+        op_ev_bulk = op_ev_bulk.reshape(d*d,d*d)
+
+        u, s, v = la.svd(op_ev_bulk, full_matrices=False)
+
+        condition = s >= schmidt_tol
+        s_trunc = np.extract(condition, s)
+        s = s_trunc
+        v = v[:len(s),:]
+
+        site_i_b = u.reshape(d,d,u.shape[1])
+        site_i_b = site_i_b[:, :, :len(s)]
+        site_i_b = site_i_b.transpose(2,0,1)
+        site_i_b = site_i_b.reshape(1,len(s),d,d)
+
+        site_ip1_b = ncon([np.diag(s), v],[[-1, 1],[1, -2]]).reshape(v.shape[0],d,d)
+        site_ip1_b = site_ip1_b.reshape(1,v.shape[0],d,d)
+        site_ip1_b = site_ip1_b.transpose(1,0,2,3)
+
+        tol = 1e-15 * np.max(np.abs(site_i_if))
+        site_i_if.real[np.abs(site_i_if.real) < tol] = 0
+        site_i_if.imag[np.abs(site_i_if.imag) < tol] = 0
+        
+        tol = 1e-15 * np.max(np.abs(site_ip1_if))
+        site_ip1_if.real[np.abs(site_ip1_if.real) < tol] = 0
+        site_ip1_if.imag[np.abs(site_ip1_if.imag) < tol] = 0
+        
+        tol = 1e-15 * np.max(np.abs(site_i_b))
+        site_i_b.real[np.abs(site_i_b.real) < tol] = 0
+        site_i_b.imag[np.abs(site_i_b.imag) < tol] = 0
+        
+        tol = 1e-15 * np.max(np.abs(site_ip1_b))
+        site_ip1_b.real[np.abs(site_ip1_b.real) < tol] = 0
+        site_ip1_b.imag[np.abs(site_ip1_b.imag) < tol] = 0
+
+        return site_i_if, site_ip1_if, site_i_b, site_ip1_b
+
+    def evolution_mpo_step_tJ(self, site_i_if, site_ip1_if, site_i_b, site_ip1_b):
+        """
+        evolution_mpo_start_tJ
+
+        This function finds the starting evolution mpo for a chain n of the t-J model.
+        It is the first step of a second order trotterization.
+
+        """
+        # first site has one tensor only
+        mpo_id = identity(3, dtype=complex).toarray().reshape((1,1,3,3))
+        mpo_start = ncon([site_i_if, mpo_id, site_i_if],[[-1,-4,-7,1],[-2,-5,1,2],[-3,-6,2,-8]]).reshape((site_i_if.shape[0]**2,site_i_if.shape[1]**2, 3, 3))
+        # two bulk operators for even and odd sites
+        mpo_bulk_odd = ncon([site_ip1_if, site_i_b, site_ip1_if],[[-1,-4,-7,1],[-2,-5,1,2],[-3,-6,2,-8]]).reshape((site_ip1_if.shape[0]**2*site_i_b.shape[0],site_ip1_if.shape[1]**2*site_i_b.shape[1], 3, 3))
+        mpo_bulk_even = ncon([site_i_if, site_ip1_b, site_i_if],[[-1,-4,-7,1],[-2,-5,1,2],[-3,-6,2,-8]]).reshape((site_i_if.shape[0]**2*site_ip1_b.shape[0],site_i_if.shape[1]**2*site_ip1_b.shape[1], 3, 3))
+        # two last-site operators depending on the parity of the chain
+        mpo_end_n_odd = ncon([mpo_id, site_ip1_b, mpo_id],[[-1,-4,-7,1],[-2,-5,1,2],[-3,-6,2,-8]]).reshape((mpo_id.shape[0]**2*site_ip1_b.shape[0],mpo_id.shape[1]**2*site_ip1_b.shape[1], 3, 3)) # for odd chains
+        mpo_end_n_even = ncon([site_ip1_if, mpo_id, site_ip1_if],[[-1,-4,-7,1],[-2,-5,1,2],[-3,-6,2,-8]]).reshape((site_ip1_if.shape[0]**2*mpo_id.shape[0],site_ip1_if.shape[1]**2*mpo_id.shape[1], 3, 3)) # for even chains
+    
+        mpo_step = []
+        
+        # left op
+        mpo_step.append(mpo_start)
+        
+        # bulk ops
+        for i in range(1,self.L-1):
+            if (i%2) == 0:
+                mpo_step.append(mpo_bulk_even)
+            elif (i%2) == 1:
+                mpo_step.append(mpo_bulk_odd)
+        
+        # right op
+        if (self.L%2) == 0:
+            mpo_step.append(mpo_end_n_even)
+        elif (self.L%2) == 1:
+            mpo_step.append(mpo_end_n_odd)
+        
+        return mpo_step
+
+
+    def mpo_quench_tJ(self, Jz, t_up, t_down, J_perp, delta):
+        op_ev_if, op_ev_bulk = self.U_i_ip1_tJ(Jz, t_up, t_down, J_perp, delta)
+        site_i_if, site_ip1_if, site_i_b, site_ip1_b = self.evolution_mpo_svd_tJ(op_ev_if, op_ev_bulk)
+        mpo_step = self.evolution_mpo_step_tJ(site_i_if, site_ip1_if, site_i_b, site_ip1_b)
+
     def mpo_quench_flip(self, sites):
         """
         mpo_quench_flip
@@ -1560,6 +1733,9 @@ class MPS:
         if self.model == "Ising":
             self.single_operator_Ising(site=site, op=op)
 
+        if self.model == "tj":
+            self.single_operator_tJ(site=site, op=op)
+
         elif self.model == "ANNNI":
             self.single_operator_ANNNI(site=site)
 
@@ -1596,6 +1772,33 @@ class MPS:
         self.w = w_tot
         return self
 
+    def single_operator_tJ(self, site, op: str = "Z"):
+        """
+        single_operator_Ising
+
+        This function computes a local operator (op) for the 1D Ising model
+        on a certain arbitrary site.
+
+        site: int - local site where the operator acts
+        op: np.ndarray - operator acting on the local site
+
+        """
+        I = identity(3, dtype=complex).toarray()
+        O = csc_array((3, 3), dtype=complex).toarray()
+        if op == "Z":
+            Sz = diags([1, 0, -1], 0, format="csr").toarray()
+        
+        w_tot = []
+        w_init = np.array([[I, O], [O, I]])
+        for i in range(self.L):
+            w_mag = w_init.copy()
+            if i == site - 1:
+                w_mag[0, -1] = Sz
+
+            w_tot.append(w_mag)
+        self.w = w_tot
+        return self
+    
     def single_operator_ANNNI(self, site, long: str = "X"):
         """
         single_operator_Ising
@@ -4948,7 +5151,308 @@ class MPS:
             braket_mps_sp.append(mps_sp)
 
         return braket_ex_sp, braket_ex_mps, braket_mps_sp
+    
+    def TEBD_variational_tJ_trotter_step(
+        self,
+        n_sweeps: int = 4,
+        conv_tol: float = 1e-12,
+        bond: bool = True,
+        where: int = -1
+    ):
+        """
+        TEBD variational Z2 trotter step
 
+        This function computes one trotter step for the evolution of
+        a state using the Z2 Dual hamiltonian. We use a second order trotterization
+        where the local (magnetization/plaquette) term sandwiches the
+        interaction (electric/string) term. Whilst the local term is applied
+        as a block for all the ladders, the interaction term is applied ladder
+        per ladder to reduce the total bond dimension of the mpo.
+        Hence, the compression algorithm should work faster and give accurate
+        approximation of the initial state.
+
+        delta: float - time interval which defines the evolution per step
+        h_ev: float - value of the external field in the evolving hamiltonian
+        flip: bool - flip the initial state middle qubit
+        quench: str - type of quench we want to execute. Available are 'flip', 'global'
+        fidelity: bool - we can compute the fidelity with the initial state
+                if the chain is small enough. By default False
+        err: bool - computes the distance error between the guess state and an
+                uncompressed state. If True it is used as a convergence criterion.
+                By default True
+
+        """
+        date_start = dt.datetime.now()
+        # start with the half mu_x before the ladder interacton evolution operator
+
+        self.w = self.w_dag.copy()
+
+        # compress the ladder evolution operator
+        error, entropy, schmidt_values = self.compression(
+            trunc_tol=False,
+            trunc_chi=True,
+            n_sweeps=n_sweeps,
+            conv_tol=conv_tol,
+            bond=bond,
+            where=where,
+        )
+
+        print(f"Bond dim ancilla: {self.ancilla_sites[self.L//2].shape[0]}")
+        print(f"Bond dim site: {self.sites[self.L//2].shape[0]}")
+
+        self.ancilla_sites = self.sites.copy()
+
+        t_final = dt.datetime.now() - date_start
+        print(f"Compress the ising evolution operator: {t_final}")
+
+        return error, entropy, schmidt_values
+    
+    def TEBD_variational_tJ(
+        self,
+        trotter_steps: int,
+        n_sweeps: int = 2,
+        conv_tol: float = 1e-8,
+        bond: bool = True,
+        where: int = -1,
+        obs: list = None,
+        obs_freq: float = 0.3,
+        training: bool = False,
+        chi_max: int = 128,
+        path: str = None,
+        precision: int = 3,
+    ):
+        """
+        variational_mps_evolution
+
+        This function computes the magnetization and (on demand) the fidelity
+        of the trotter evolved MPS by the MPO direct application.
+
+        trotter_steps: int - number of times we apply the mpo to the mps
+        delta: float - time interval which defines the evolution per step
+        h_ev: float - value of the external field in the evolving hamiltonian
+        flip: bool - flip the initial state middle qubit
+        quench: str - type of quench we want to execute. Available are 'flip', 'global'
+        fidelity: bool - we can compute the fidelity with the initial state
+                if the chain is small enough. By default False
+        err: bool - computes the distance error between the guess state and an
+                uncompressed state. If True it is used as a convergence criterion.
+                By default True
+
+        """
+        obs_trotter = [
+            int(val)
+            for val in np.linspace(
+                0, trotter_steps - 1, int((trotter_steps * obs_freq))
+            )
+        ]
+
+        chi_sat = []
+        if chi_max > self.chi:
+            self.chi = chi_max
+            self.enlarge_chi()
+            self.canonical_form(trunc_chi=True, trunc_tol=False)
+
+        chi_sat.append(self.sites[self.L // 2].shape[0])
+
+        # ============================
+        # Observables
+        # ============================
+        # compression error
+
+        # errs = []
+        if training:
+            errs = [[0] * (n_sweeps * (self.L - 1))]
+            errors = np.zeros((self.L - 1) * n_sweeps)
+            # errs.append(errors)
+        else:
+            errs = [np.array([0])]
+            errors = np.array([0])
+            # errs.append(errors)
+            # name_errs = f'errors/D_{self.chi}'
+            # create_observable_group(save_file, run_group, name_errs)
+            # prepare_observable_group(save_file, run_group, name_errs, shape=trotter_steps + 1, dtype=np.complex128)
+            # update_observable(save_file, run_group, name_errs, data=errors, attr=0, assign_all=False)
+        # entropy
+        entrs = []
+        if bond:
+            entropies = np.array([0])
+            # entrs.append(entropies)
+            # name_entrs = f'entropies/D_{self.chi}'
+            # create_observable_group(save_file, run_group, name_entrs)
+            # prepare_observable_group(save_file, run_group, name_entrs, shape=trotter_steps + 1, dtype=np.complex128)
+            # update_observable(save_file, run_group, name_entrs, data=entropies, attr=0, assign_all=False)
+        else:
+            entropies = np.zeros((self.L - 1))
+            # entrs.append(entropies)
+
+        # schmidt_vals
+        svs = []
+
+        # local magnetization
+        local_magnetization = []
+        if "lm" in obs:
+            date_start = dt.datetime.now()
+            print(
+                f"\n*** Computing local magnetization in date: {dt.datetime.now()} ***\n"
+            )
+
+            loc_mag = np.zeros((self.L))
+            for i in range(len(self.sites)):
+                self.local_param(site=i + 1, op="Z")
+                loc_mag[i] = self.mpo_first_moment().real
+            local_magnetization.append(loc_mag.copy())
+            t_final = dt.datetime.now() - date_start
+            print(f"Total time for the local magnetization is: {t_final}")
+
+            # shape_loc_mag = self.L
+            # name_loc_mag = f'magnetization/D_{self.chi}/trotter_step_{0:03d}'
+            # create_observable_group(save_file, run_group, name_loc_mag)
+            # prepare_observable_group(save_file, run_group, name_loc_mag, shape=shape_loc_mag)
+            # update_observable(save_file, run_group, name_loc_mag, data=local_magnetization, attr=0)
+
+        # overlap
+        ovlps = []
+        if "losch" in obs:
+            # if self.bc == "pbc":
+            #     self.sites.append(aux_qub)
+            #     self.L = len(self.sites)
+
+            psi_init = self.sites.copy()
+            self.ancilla_sites = psi_init.copy()
+            # overlaps.append(self._compute_norm(site=1, mixed=True))
+            overlaps = np.array([self._compute_norm(site=1, mixed=True)])
+            ovlps.append(np.array([self._compute_norm(site=1, mixed=True)]))
+            print("overlap", overlaps, overlaps.shape)
+            self.ancilla_sites = []
+            # if self.bc == "pbc":
+            #     aux_qub = self.sites.pop(-1)
+            #     self.L = len(self.sites)
+
+            # name_ov = f'overlaps/D_{self.chi}'
+            # create_observable_group(save_file, run_group, name_ov)
+            # prepare_observable_group(save_file, run_group, name_ov, shape=trotter_steps + 1, dtype=np.complex128)
+            # update_observable(save_file, run_group, name_ov, data=overlaps, attr=0, assign_all=False)
+
+        self.ancilla_sites = self.sites.copy()
+
+        for trott in range(trotter_steps):
+
+            date_start = dt.datetime.now()
+            print(
+                f"\n*** Starting the {trott}-th trotter step in date: {dt.datetime.now()} ***\n"
+            )
+            error, entropy, schmidt_vals = self.TEBD_variational_tJ_trotter_step(
+                n_sweeps=n_sweeps,
+                conv_tol=conv_tol,
+                bond=bond,
+                where=where
+            )
+
+            chi_sat.append(self.sites[self.L // 2].shape[0])
+
+            t_final = dt.datetime.now() - date_start
+            print(f"Total time for the {trott}-th trotter step is: {t_final}")
+
+            # ## saving the temp mps
+            # print(f"saving temporarily the mps at {trott}-th trotter step...")
+            # filename = f"/results/tensors/time_evolved_tensor_sites_{self.model}_L_{self.L}_bc_{self.bc}_chi_{self.chi}_h_{self.h:.{precision}f}_delta_{delta}_trotter_{trotter_steps}"
+            # self.save_sites_heis(path, precision, filename=filename)
+
+            # save compression error
+            if training:
+                errs.append(np.array(error))
+                errors = np.array(error)
+                # shape_err = (self.L - 1)*n_sweeps
+                # name_err = f'errors_trunc/D_{self.chi}/trotter_step_{(trott+1):03d}'
+                # create_observable_group(save_file, run_group, name_err)
+                # prepare_observable_group(save_file, run_group, name_err, shape=shape_err)
+                # update_observable(save_file, run_group, name_err, data=errors, attr=trott+1)
+            else:
+                errs.append(np.array([error[-1]]))
+                errors = np.array([error[-1]])
+                # name_err = f'errors_trunc/D_{self.chi}'
+                # update_observable(save_file, run_group, name_err, data=errors, attr=trott+1, assign_all=False)
+
+            # save entropy
+            if bond:
+                entrs.append(np.array([entropy]))
+                entropies = np.array([entropy])
+                # print(entropies)
+                # name_entr = f'entropies/D_{self.chi}'
+                # update_observable(save_file, run_group, name_entr, data=entropies, attr=trott+1, assign_all=False)
+            else:
+                entrs.append(np.array(entropy))
+                entropies = np.array(entropy)
+                # shape_entr = (self.L - 1)
+                # name_entr = f'entropies/D_{self.chi}/trotter_step_{(trott+1):03d}'
+                # create_observable_group(save_file, run_group, name_entr)
+                # prepare_observable_group(save_file, run_group, name_entr, shape=shape_entr)
+                # update_observable(save_file, run_group, name_entr, data=entropies, attr=trott+1)
+
+            # schmidt_vals
+            # shape_sm = self.chi
+            # name_sm = f'schmidt_values/D_{self.chi}/trotter_step_{(trott+1):03d}'
+            # create_observable_group(save_file, run_group, name_sm)
+            # prepare_observable_group(save_file, run_group, name_sm, shape=shape_sm)
+            # update_observable(save_file, run_group, name_sm, data=schmidt_vals, attr=trott+1)
+
+            # ============================
+            # Observables
+            # ============================
+            if trott in obs_trotter:
+                print("==========================================")
+                print("Computing observables for this trotter step")
+
+                # if self.bc == "pbc":
+                #     self.sites.pop()
+                #     self.L = len(self.sites)
+
+                # electric field
+                if "lm" in obs:
+                    date_start = dt.datetime.now()
+                    print(
+                        f"\n*** Computing local magnetization in date: {dt.datetime.now()} ***\n"
+                    )
+
+                    loc_mag[:] = 0
+                    for i in range(len(self.sites)):
+                        self.local_param(site=i + 1, op="Z")
+                        loc_mag[i] = self.mpo_first_moment().real
+                    local_magnetization.append(loc_mag.copy())
+                    t_final = dt.datetime.now() - date_start
+                    print(f"Total time for the local magnetization is: {t_final}")
+
+                    # shape_loc_mag = self.L
+                    # name_loc_mag = f'electric_fields/D_{self.chi}/trotter_step_{(trott+1):03d}'
+                    # create_observable_group(save_file, run_group, name_loc_mag)
+                    # prepare_observable_group(save_file, run_group, name_loc_mag, shape=shape_loc_mag)
+                    # update_observable(save_file, run_group, name_loc_mag, data=loc_mag, attr=trott+1)
+
+                # overlap
+                if "losch" in obs:
+                    # if self.bc == "pbc":
+                    #     self.sites.append(aux_qub)
+                    #     self.L = len(self.sites)
+
+                    self.ancilla_sites = psi_init.copy()
+                    # overlaps.append(self._compute_norm(site=1, mixed=True))
+                    overlaps = np.array([self._compute_norm(site=1, mixed=True)])
+                    ovlps.append(np.array([self._compute_norm(site=1, mixed=True)]))
+                    self.ancilla_sites = []
+                    self.ancilla_sites = self.sites.copy()
+                    # # overlap
+                    # name_ov = f'overlaps/D_{self.chi}'
+                    # update_observable(save_file, run_group, name_ov, data=overlaps, attr=trott+1, assign_all=False)
+
+        return (
+            errs,
+            entrs,
+            svs,
+            local_magnetization,
+            ovlps,
+            chi_sat,
+        )
+    
     # -------------------------------------------------
     # Computing expectation values
     # -------------------------------------------------
