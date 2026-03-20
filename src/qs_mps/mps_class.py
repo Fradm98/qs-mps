@@ -5390,6 +5390,7 @@ class MPS:
                 # update_observable(save_file, run_group, name_entr, data=entropies, attr=trott+1)
 
             # schmidt_vals
+            svs.append(schmidt_vals)
             # shape_sm = self.chi
             # name_sm = f'schmidt_values/D_{self.chi}/trotter_step_{(trott+1):03d}'
             # create_observable_group(save_file, run_group, name_sm)
