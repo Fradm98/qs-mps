@@ -21,6 +21,8 @@ class MPO_ladder:
         self.lamb = lamb
         self.param = 1
         self.mpo = []
+        self.mpo_dummy_1 = []
+        self.mpo_dummy_2 = []
         self.latt = Lattice((self.L + 1, self.l + 1), (False, False))
         self.dof_dir = None
         self.dof_dual = None

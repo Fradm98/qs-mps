@@ -241,7 +241,7 @@ for L in args.Ls:
     n_sweeps = 8
 
     # create a run group for saving observables
-    h5file = f"{parent_path}/results/time_data/results_time.hdf5"
+    h5file = f"{parent_path}/results/time_data/results_time_ev_for_plotting_rough_paper.hdf5"
     params = dict(L=L, N=args.l, R=args.length, T=args.npoints, bc=args.boundcond, chis=args.chis,
                 cx=charges_x, cy=charges_y, delta=args.delta, 
                 h_ev=args.h_ev, h_i=args.h_i, of=args.obs_freq)

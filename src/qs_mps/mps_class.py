@@ -4329,6 +4329,14 @@ class MPS:
 
         self.ancilla_sites = self.sites.copy()
 
+        # save trotter mpos inside some dummy attribute
+        self.Z2._initialize_finalize_quench_local(delta=delta, h_ev=h_ev)
+        self.Z2.mpo_dummy_1 = self.Z2.mpo.copy()
+        for l in range(self.Z2.l):
+            self.Z2.mpo_Z2_ladder_quench_int(delta=delta, h_ev=h_ev, l=l)
+            self.Z2.mpo_dummy_2.append(self.Z2.mpo.copy())
+        self.Z2.mpo = []
+
         for trott in range(restart, trotter_steps):
 
             date_start = dt.datetime.now()
@@ -4561,8 +4569,9 @@ class MPS:
 
         date_start = dt.datetime.now()
         # start with the half mu_x before the ladder interacton evolution operator
-        self.Z2._initialize_finalize_quench_local(delta=delta, h_ev=h_ev)
-        self.w = self.Z2.mpo.copy()
+        # self.Z2._initialize_finalize_quench_local(delta=delta, h_ev=h_ev)
+        # self.w = self.Z2.mpo.copy()
+        self.w = self.Z2.mpo_dummy_1.copy()
         self.mpo_to_mps(ancilla=False)
 
         t_final = dt.datetime.now() - date_start
@@ -4577,8 +4586,9 @@ class MPS:
         # apply the interaction operator one ladder per time
         for l in range(self.Z2.l):
             date_start = dt.datetime.now()
-            self.Z2.mpo_Z2_ladder_quench_int(delta=delta, h_ev=h_ev, l=l)
-            self.w = self.Z2.mpo.copy()
+            # self.Z2.mpo_Z2_ladder_quench_int(delta=delta, h_ev=h_ev, l=l)
+            # self.w = self.Z2.mpo.copy()
+            self.w = self.Z2.mpo_dummy_2[l].copy()
 
             print(f"Bond dim ancilla: {self.ancilla_sites[self.L//2].shape[0]}")
             print(f"Bond dim site: {self.sites[self.L//2].shape[0]}")
@@ -4605,8 +4615,9 @@ class MPS:
 
         date_start = dt.datetime.now()
         # finish with the other half mu_x before the ladder interacton evolution operator
-        self.Z2._initialize_finalize_quench_local(delta=delta, h_ev=h_ev)
-        self.w = self.Z2.mpo.copy()
+        # self.Z2._initialize_finalize_quench_local(delta=delta, h_ev=h_ev)
+        # self.w = self.Z2.mpo.copy()
+        self.w = self.Z2.mpo_dummy_1.copy()
         self.mpo_to_mps(ancilla=False)
 
         t_final = dt.datetime.now() - date_start
