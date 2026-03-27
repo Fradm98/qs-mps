@@ -803,17 +803,21 @@ def time_ev_string_width_occupation(
 ):
     efields = np.load(
         f"{path_tensor}/results/electric_field/electric_field_quench_dynamics_Z2_dual_direct_lattice_{l}x{L}_{sector}_bc_{bc}_R_{R}_h_{h_i}-{h_f}_delta_{delta}_trotter_steps_{trotter}_chi_{chi}.npy")
+    print(f"{path_tensor}/results/electric_field/electric_field_quench_dynamics_Z2_dual_direct_lattice_{l}x{L}_{sector}_bc_{bc}_R_{R}_h_{h_i}-{h_f}_delta_{delta}_trotter_steps_{trotter}_chi_{chi}.npy")
 
     try:
         vac = None
         efields_vacuum = np.load(
                     f"{path_tensor}/results/electric_field/electric_field_Z2_dual_direct_lattice_{l}x{L}_vacuum_sector_bc_{bc}_{vac}-{vac}_h_{h_i}-{h_f}_delta_{npoints}_chi_{chi}.npy"
                 )
+        print(f"{path_tensor}/results/electric_field/electric_field_Z2_dual_direct_lattice_{l}x{L}_vacuum_sector_bc_{bc}_{vac}-{vac}_h_{h_i}-{h_f}_delta_{npoints}_chi_{chi}.npy")
     except:
         vac = np.nan
         efields_vacuum = np.load(
                     f"{path_tensor}/results/electric_field/electric_field_Z2_dual_direct_lattice_{l}x{L}_vacuum_sector_bc_{bc}_{vac}-{vac}_h_{h_i}-{h_f}_delta_{npoints}_chi_{chi}.npy"
                 )
+        print(f"{path_tensor}/results/electric_field/electric_field_Z2_dual_direct_lattice_{l}x{L}_vacuum_sector_bc_{bc}_{vac}-{vac}_h_{h_i}-{h_f}_delta_{npoints}_chi_{chi}.npy")
+
     arr = [*range(-(l - 1)//2, l//2 + 1)]
 
     if (l%2) == 0:
