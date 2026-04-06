@@ -165,7 +165,7 @@ def n_order_kink_mass_varying_R(
     kms = []
     err_kms = []
     for R in Rs:
-        print(f"R: {R}")
+        # print(f"R: {R}")
         km, err = n_order_kink_mass_exact_chi(
             g, R, l, L, chis, bc, sector, h_i, h_f, npoints, path_tensor, cx, cy, cy_off_axis, vacuum
         )
@@ -238,16 +238,24 @@ def static_potential(
         energy_charges = np.load(
             f"{path_tensor}/results/energy_data/energy_Z2_dual_direct_lattice_{l}x{L}_{sector}_bc_{bc}_{cx}-{cy}_h_{h_i}-{h_f}_delta_{npoints}_chi_{chi}.npy"
         )
+        print(f"{path_tensor}/results/energy_data/energy_Z2_dual_direct_lattice_{l}x{L}_{sector}_bc_{bc}_{cx}-{cy}_h_{h_i}-{h_f}_delta_{npoints}_chi_{chi}.npy"
+        )
         energy_vacuum = np.load(
             f"{path_tensor}/results/energy_data/energy_Z2_dual_direct_lattice_{l}x{L}_vacuum_sector_bc_{bc}_{vac}-{vac}_h_{h_i}-{h_f}_delta_{npoints}_chi_{chi}.npy"
+        )
+        print(f"{path_tensor}/results/energy_data/energy_Z2_dual_direct_lattice_{l}x{L}_vacuum_sector_bc_{bc}_{vac}-{vac}_h_{h_i}-{h_f}_delta_{npoints}_chi_{chi}.npy"
         )
     except:
         vac = np.nan
         energy_charges = np.load(
             f"{path_tensor}/results/energy_data/energy_Z2_dual_direct_lattice_{l}x{L}_{sector}_bc_{bc}_{cx}-{cy}_h_{h_i}-{h_f}_delta_{npoints}_chi_{chi}.npy"
         )
+        print(f"{path_tensor}/results/energy_data/energy_Z2_dual_direct_lattice_{l}x{L}_{sector}_bc_{bc}_{cx}-{cy}_h_{h_i}-{h_f}_delta_{npoints}_chi_{chi}.npy"
+        )
         energy_vacuum = np.load(
             f"{path_tensor}/results/energy_data/energy_Z2_dual_direct_lattice_{l}x{L}_vacuum_sector_bc_{bc}_{vac}-{vac}_h_{h_i}-{h_f}_delta_{npoints}_chi_{chi}.npy"
+        )
+        print(f"{path_tensor}/results/energy_data/energy_Z2_dual_direct_lattice_{l}x{L}_vacuum_sector_bc_{bc}_{vac}-{vac}_h_{h_i}-{h_f}_delta_{npoints}_chi_{chi}.npy"
         )
 
     energy_difference = energy_charges - energy_vacuum
@@ -423,8 +431,8 @@ def static_potential_exact_L(
             flag = 1
 
     if flag == 1:
-        print(f"The ratio R/L: {r} exceeds the threshold ratio: {r_thr}\n")
-        print(f"Consider taking smaller Rs, computing the potential with linear fit")
+        # print(f"The ratio R/L: {r} exceeds the threshold ratio: {r_thr}\n")
+        # print(f"Consider taking smaller Rs, computing the potential with linear fit")
         pot_exact, err = get_exact_potential_Ls(Ls, potentials, pot_errs)
     elif flag == 0:
         # print(f"Negligible boundary effects in L\n")
@@ -556,7 +564,7 @@ def fit_params_sys(Rss, N, L, chis, bc, sector, h_i, h_f, npoints, path, cx, cy,
     list_Rs = []
     Rs  = Rss.copy()
     for R in Rs:
-        print(Rss)
+        # print(Rss)
         list_Rs.append(Rss.copy())
         if len(Rss) > 4+fit:
             Rss.pop(0)
@@ -795,22 +803,26 @@ def time_ev_string_width_occupation(
 ):
     efields = np.load(
         f"{path_tensor}/results/electric_field/electric_field_quench_dynamics_Z2_dual_direct_lattice_{l}x{L}_{sector}_bc_{bc}_R_{R}_h_{h_i}-{h_f}_delta_{delta}_trotter_steps_{trotter}_chi_{chi}.npy")
+    print(f"{path_tensor}/results/electric_field/electric_field_quench_dynamics_Z2_dual_direct_lattice_{l}x{L}_{sector}_bc_{bc}_R_{R}_h_{h_i}-{h_f}_delta_{delta}_trotter_steps_{trotter}_chi_{chi}.npy")
 
     try:
         vac = None
         efields_vacuum = np.load(
                     f"{path_tensor}/results/electric_field/electric_field_Z2_dual_direct_lattice_{l}x{L}_vacuum_sector_bc_{bc}_{vac}-{vac}_h_{h_i}-{h_f}_delta_{npoints}_chi_{chi}.npy"
                 )
+        print(f"{path_tensor}/results/electric_field/electric_field_Z2_dual_direct_lattice_{l}x{L}_vacuum_sector_bc_{bc}_{vac}-{vac}_h_{h_i}-{h_f}_delta_{npoints}_chi_{chi}.npy")
     except:
         vac = np.nan
         efields_vacuum = np.load(
                     f"{path_tensor}/results/electric_field/electric_field_Z2_dual_direct_lattice_{l}x{L}_vacuum_sector_bc_{bc}_{vac}-{vac}_h_{h_i}-{h_f}_delta_{npoints}_chi_{chi}.npy"
                 )
+        print(f"{path_tensor}/results/electric_field/electric_field_Z2_dual_direct_lattice_{l}x{L}_vacuum_sector_bc_{bc}_{vac}-{vac}_h_{h_i}-{h_f}_delta_{npoints}_chi_{chi}.npy")
+
     arr = [*range(-(l - 1)//2, l//2 + 1)]
 
     if (l%2) == 0:
         arr.pop(0)
-    print(arr)
+    # print(arr)
 
     string_arr = [[np.asarray(efields[i][0::2,2*(L//2) + 1])[x] for x in arr] for i in range(int(trotter*obs_freq)+1)]
     string_arr_vacuum = [np.asarray(efields_vacuum[0][0::2,2*(L//2) + 1])[x] for x in arr]    
@@ -1029,21 +1041,27 @@ def string_width_occupation(
     efields = np.load(
         f"{path_tensor}/results/electric_field/electric_field_Z2_dual_direct_lattice_{l}x{L}_{sector}_bc_{bc}_{cx}-{cy}_h_{h_i}-{h_f}_delta_{npoints}_chi_{chi}.npy")
 
+    print(f"{path_tensor}/results/electric_field/electric_field_Z2_dual_direct_lattice_{l}x{L}_{sector}_bc_{bc}_{cx}-{cy}_h_{h_i}-{h_f}_delta_{npoints}_chi_{chi}.npy")
     try:
         vac = None
         efields_vacuum = np.load(
                     f"{path_tensor}/results/electric_field/electric_field_Z2_dual_direct_lattice_{l}x{L}_vacuum_sector_bc_{bc}_{vac}-{vac}_h_{h_i}-{h_f}_delta_{npoints}_chi_{chi}.npy"
+                )
+        print(f"{path_tensor}/results/electric_field/electric_field_Z2_dual_direct_lattice_{l}x{L}_vacuum_sector_bc_{bc}_{vac}-{vac}_h_{h_i}-{h_f}_delta_{npoints}_chi_{chi}.npy"
                 )
     except:
         vac = np.nan
         efields_vacuum = np.load(
                     f"{path_tensor}/results/electric_field/electric_field_Z2_dual_direct_lattice_{l}x{L}_vacuum_sector_bc_{bc}_{vac}-{vac}_h_{h_i}-{h_f}_delta_{npoints}_chi_{chi}.npy"
                 )
+        print(f"{path_tensor}/results/electric_field/electric_field_Z2_dual_direct_lattice_{l}x{L}_vacuum_sector_bc_{bc}_{vac}-{vac}_h_{h_i}-{h_f}_delta_{npoints}_chi_{chi}.npy"
+                )
+        
     arr = [*range(-(l - 1)//2, l//2 + 1)]
 
     if (l%2) == 0:
         arr.pop(0)
-    print(arr)
+    # print(arr)
 
     string_arr = [np.asarray(efields[g_idx][0::2,2*(L//2) + 1])[x] for x in arr]
     string_arr_vacuum = [np.asarray(efields_vacuum[g_idx][0::2,2*(L//2) + 1])[x] for x in arr]
@@ -1124,7 +1142,7 @@ def get_exact_string_chis(chis, strings):
     # Extract fitted parameters and their errors
     a_fit, b_fit, c_fit = popt
     a_err, b_err, c_err = np.sqrt(np.diag(pcov))
-    print(f"y0 (asymptotic value in 1/chi) = {c_fit:.6f} ± {c_err:.6f}")
+    # print(f"y0 (asymptotic value in 1/chi) = {c_fit:.6f} ± {c_err:.6f}")
     return c_fit, c_err
 
 
@@ -1294,9 +1312,13 @@ def entropy(
         schmidt_values = np.load(
             f"{path_tensor}/results/entropy_data/{where}_schmidt_vals_Z2_dual_direct_lattice_{l}x{L}_{sector}_bc_{bc}_{cx}-{cy}_h_{h_i}-{h_f}_delta_{npoints}_chi_{chi}.npy"
         )
+        print(f"{path_tensor}/results/entropy_data/{where}_schmidt_vals_Z2_dual_direct_lattice_{l}x{L}_{sector}_bc_{bc}_{cx}-{cy}_h_{h_i}-{h_f}_delta_{npoints}_chi_{chi}.npy"
+        )
     except:
         schmidt_values = load_list_of_lists(
             f"{path_tensor}/results/entropy_data/{where}_schmidt_vals_Z2_dual_direct_lattice_{l}x{L}_{sector}_bc_{bc}_{cx}-{cy}_h_{h_i}-{h_f}_delta_{npoints}_chi_{chi}.npy"
+        )
+        print(f"{path_tensor}/results/entropy_data/{where}_schmidt_vals_Z2_dual_direct_lattice_{l}x{L}_{sector}_bc_{bc}_{cx}-{cy}_h_{h_i}-{h_f}_delta_{npoints}_chi_{chi}.npy"
         )
 
         # vac = None

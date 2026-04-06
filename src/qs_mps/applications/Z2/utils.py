@@ -82,8 +82,8 @@ def weighted_average(data: list, err_data: list):
     # Error in the weighted average
     av_err = np.sqrt(1 / np.sum(weights))
 
-    print(f"Weighted Average: {av}")
-    print(f"Error in the Average: {av_err}")
+    # print(f"Weighted Average: {av}")
+    # print(f"Error in the Average: {av_err}")
     return av, av_err
 
 
