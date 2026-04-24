@@ -2,7 +2,7 @@ import numpy as np
 
 from scipy.sparse import csc_array, kron
 import scipy.sparse as sp
-from qs_mps.sparse_hamiltonians_and_operators import diagonalization
+from qs_mps.sparse_hamiltonians_and_operators import diagonalization, U_evolution_sparse
 
 # Single-site identity
 Id = sp.identity(3, format="csr").toarray()
@@ -196,3 +196,45 @@ def half_hole_quench_init(half_chain_length, t_up, t_down, Jz, J_perp, eps, V, n
     H_tJ_ev = tJV_ham(n=2*half_chain_length+n_holes, t_up=t_up, t_down=t_down, Jz=Jz, J_perp=J_perp, eps=eps, V=V, tp_up=tp_up, tp_down=tp_down)
 
     return H_tJ_ev, psi_init
+
+def half_hole_quench_evolution(half_chain_length, H_tJ_ev, psi_init, trotter_steps, final_time, obs=[], n_holes=1, save=False):
+    psi_ev = psi_init.copy()
+
+    exp_vals = []
+    psi_save = []
+
+    if len(obs) == 0:
+        obs = ['h_loc']
+    
+    if 'h_loc' in obs:
+        ops_h = local_hole_occupation(2*half_chain_length + n_holes)
+
+    if 'm_loc' in obs:
+        ops_m = local_mag_occupation(2*half_chain_length + n_holes)
+
+    occup_tot_h = []
+    occup_tot_m = []
+
+    for trott in range(trotter_steps):
+        print(f"Trotter step: {trott}")
+        psi_ev = U_evolution_sparse(psi_init=psi_ev, H_ev=H_tJ_ev, trotter=trotter_steps, time=final_time)
+        if save:
+            psi_save.append(psi_ev.copy())
+        
+        if 'h_loc' in obs:
+            occup = []
+            for op in ops_h:
+                occup.append((psi_ev.conjugate().T @ op @ psi_ev).real)
+                # occup.append(((psi_ev.conjugate().T @ op @ psi_ev).real).toarray())
+            occup_tot_h.append(occup)
+    
+        if 'm_loc' in obs:
+            occup = []
+            for op in ops_m:
+                occup.append((psi_ev.conjugate().T @ op @ psi_ev).real)
+                # occup.append(((psi_ev.conjugate().T @ op @ psi_ev).real).toarray())
+            occup_tot_m.append(occup)
+    
+    exp_vals.append(occup_tot_h)
+    exp_vals.append(occup_tot_m)
+    return exp_vals, psi_save
