@@ -959,6 +959,9 @@ class MPS:
         elif self.model == "heis":
             self.mpo_heis()
 
+        elif self.model == "Rydberg":
+            self.mpo_rydberg()
+            
         return self
 
     # -------------------------------------------------
@@ -1132,7 +1135,7 @@ class MPS:
         O = csc_array((2, 2), dtype=complex).toarray()
         n_op = csr_matrix([[0, 0], [0, 1]]).toarray()
         long_op = sparse_pauli_x(n=0, L=1).toarray()
-        
+
         w_tot = []
 
         for i in range(self.L):
