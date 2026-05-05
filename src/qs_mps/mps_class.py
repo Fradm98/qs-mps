@@ -1120,6 +1120,35 @@ class MPS:
         self.w = w_tot
         return self
 
+    def mpo_rydberg(self, long: str = "X", eps: float = 0):
+        """
+        mpo_Cluster
+
+        This function defines the MPO for the 1D Cluster model.
+        It takes the same MPO for all sites.
+
+        """
+        I = identity(2, dtype=complex).toarray()
+        O = csc_array((2, 2), dtype=complex).toarray()
+        n_op = csr_matrix([[0, 0], [0, 1]]).toarray()
+        long_op = sparse_pauli_x(n=0, L=1).toarray()
+        
+        w_tot = []
+
+        for i in range(self.L):
+            w = np.array(
+                [
+                    [I, n_op, O, O, -self.h * n_op + long_op],
+                    [O, O, I, O, + ((1)**6) * self.J * n_op],
+                    [O, O, O, I, + ((1/2)**6) * self.J * n_op],
+                    [O, O, O, O, + ((1/3)**6) * self.J * n_op],
+                    [O, O, O, O, I],
+                ]
+            )
+            w_tot.append(w)
+        self.w = w_tot
+        return self
+    
     def mpo_heis(self):
         """
         mpo_heis
