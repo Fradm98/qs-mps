@@ -1,8 +1,8 @@
 import numpy as np
 import h5py
 
-from scipy.sparse import csr_matrix, csr_array, identity, diags
-from scipy.linalg import expm, solve, norm, kron
+from scipy.sparse import csr_matrix, csr_array, identity, diags, kron
+from scipy.linalg import expm, solve, norm
 import scipy.linalg as la
 import scipy.sparse.linalg as spla
 
@@ -1336,32 +1336,32 @@ class MPS:
         ## Heisenberg spin operators
         
         # z component of spin operator
-        Sz = (1 / 2) * diags([1, 0, -1], 0, format="csr").toarray()
+        Sz = (1 / 2) * diags([1, 0, -1], 0, format="csr")
 
         # flip spin up to spin down
-        S_plus = csr_matrix([[0, 0, 1], [0, 0, 0], [0, 0, 0]]).toarray()
+        S_plus = csr_matrix([[0, 0, 1], [0, 0, 0], [0, 0, 0]])
 
         # flip spin down to spin up
-        S_minus = csr_matrix([[0, 0, 0], [0, 0, 0], [1, 0, 0]]).toarray()
+        S_minus = csr_matrix([[0, 0, 0], [0, 0, 0], [1, 0, 0]])
 
         ## Hole hopping operators
 
         # hole goes into a spin up state
-        T_up_h = csr_matrix([[0, 1, 0], [0, 0, 0], [0, 0, 0]]).toarray()
+        T_up_h = csr_matrix([[0, 1, 0], [0, 0, 0], [0, 0, 0]])
 
         # hole goes into a spin down state
-        T_down_h = csr_matrix([[0, 0, 0], [0, 0, 0], [0, 1, 0]]).toarray()
+        T_down_h = csr_matrix([[0, 0, 0], [0, 0, 0], [0, 1, 0]])
 
         # hole goes into a spin up state
-        T_h_up = csr_matrix([[0, 0, 0], [1, 0, 0], [0, 0, 0]]).toarray()
+        T_h_up = csr_matrix([[0, 0, 0], [1, 0, 0], [0, 0, 0]])
 
         # hole goes into a spin down state
-        T_h_down = csr_matrix([[0, 0, 0], [0, 0, 1], [0, 0, 0]]).toarray()
+        T_h_down = csr_matrix([[0, 0, 0], [0, 0, 1], [0, 0, 0]])
 
         ## Hole interaction operators
 
         # number operator for holes
-        n_h = csr_matrix([[0, 0, 0], [0, 1, 0], [0, 0, 0]]).toarray()
+        n_h = csr_matrix([[0, 0, 0], [0, 1, 0], [0, 0, 0]])
 
         # choose the hamiltonian parameters
         H_i_ip1 = (Jz * kron(Sz, Sz) 
