@@ -1818,14 +1818,16 @@ class MPS:
         I = identity(3, dtype=complex).toarray()
         O = csc_array((3, 3), dtype=complex).toarray()
         if op == "Z":
-            Sz = diags([1, 0, -1], 0, format="csr").toarray()
+            operator = diags([1, 0, -1], 0, format="csr").toarray()
+        elif op == "nh":
+            operator = diags([0, 1, 0], 0, format="csr").toarray()
         
         w_tot = []
         w_init = np.array([[I, O], [O, I]])
         for i in range(self.L):
             w_mag = w_init.copy()
             if i == site - 1:
-                w_mag[0, -1] = Sz
+                w_mag[0, -1] = operator
 
             w_tot.append(w_mag)
         self.w = w_tot
