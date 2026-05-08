@@ -3212,7 +3212,7 @@ class MPS:
         #     self.L = self.L - 1
         t_start = dt.datetime.now()
         for n in range(n_sweeps):
-            print(f"Sweep n: {n}\n")
+            # print(f"Sweep n: {n}\n")
             entropy = []
             schmidt_vals = []
             for i in range(self.L - 1):
