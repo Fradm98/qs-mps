@@ -5230,35 +5230,30 @@ class MPS:
         date_start = dt.datetime.now()
         # start with the half mu_x before the ladder interacton evolution operator
 
-        if len(self.w_dag) == 1:
-            mpo_ordered_list = [self.w_dag.copy()]
-        elif len(self.w_dag) == 3:
-            mpo_ordered_list = [self.w_dag[0].copy(),self.w_dag[1].copy(),self.w_dag[2].copy(),self.w_dag[1].copy()] 
+        for i, mpo in enumerate(self.w_dag):
+            if i == 0:
+                print("i,i+1 interaction")
+            elif i == 1 or i == 3:
+                print("i,i+1 interaction delta/2")
+            elif i == 2:
+                print("i,i+1 interaction delta")
 
-            for i, mpo in enumerate(mpo_ordered_list):
-                if i == 0:
-                    print("i,i+1 interaction")
-                elif i == 1 or i == 3:
-                    print("i,i+1 interaction delta/2")
-                elif i == 2:
-                    print("i,i+1 interaction delta")
+            self.w = mpo.copy()
 
-                self.w = mpo.copy()
-                tensor_shapes(self.w)
-                # compress the ladder evolution operator
-                error, entropy, schmidt_values = self.compression(
-                    trunc_tol=False,
-                    trunc_chi=True,
-                    n_sweeps=n_sweeps,
-                    conv_tol=conv_tol,
-                    bond=bond,
-                    where=where,
-                )
+            # compress the ladder evolution operator
+            error, entropy, schmidt_values = self.compression(
+                trunc_tol=False,
+                trunc_chi=True,
+                n_sweeps=n_sweeps,
+                conv_tol=conv_tol,
+                bond=bond,
+                where=where,
+            )
 
-                print(f"Bond dim ancilla: {self.ancilla_sites[self.L//2].shape[0]}")
-                print(f"Bond dim site: {self.sites[self.L//2].shape[0]}")
+            print(f"Bond dim ancilla: {self.ancilla_sites[self.L//2].shape[0]}")
+            print(f"Bond dim site: {self.sites[self.L//2].shape[0]}")
 
-                self.ancilla_sites = self.sites.copy()
+            self.ancilla_sites = self.sites.copy()
 
         t_final = dt.datetime.now() - date_start
         print(f"Compress the tJV evolution operator: {t_final}")

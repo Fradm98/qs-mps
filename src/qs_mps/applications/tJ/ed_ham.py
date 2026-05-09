@@ -2,7 +2,10 @@ import numpy as np
 
 from scipy.sparse import csc_array, kron
 import scipy.sparse as sp
+from scipy.linalg import svd 
+
 from qs_mps.sparse_hamiltonians_and_operators import diagonalization, U_evolution_sparse
+from ncon import ncon
 
 # Single-site identity
 Id = sp.identity(3, format="csr").toarray()
@@ -71,6 +74,15 @@ def local_hole_occupation(n):
 
 def local_mag_occupation(n):
     return [kron_sparse_op(2*Sz, i, n) for i in range(n)]
+
+
+def id_gate(d,chi):
+    I = np.zeros((chi, chi, d, d))
+
+    for a in range(chi):
+        for s in range(d):
+            I[a,a,s,s] = 1.0
+    return I
 
 
 # Heisenberg ham
@@ -159,7 +171,6 @@ def hop_2_ham(n, tp_up, tp_down):
 
     return - (tp_up/8) * (H_uh + H_hu) - (tp_down/8) * (H_dh + H_hd)
 
-
 # holes ham
 def hol_ham(n, V):
     # zz-int
@@ -238,3 +249,190 @@ def half_hole_quench_evolution(half_chain_length, H_tJ_ev, psi_init, trotter_ste
     exp_vals.append(occup_tot_h)
     exp_vals.append(occup_tot_m)
     return exp_vals, psi_save
+
+def U_i_ip1_tJV(Jz, t_up, t_down, J_perp, V, delta):
+    """
+    U_i_ip1
+
+    This function computes the exponential of the 2-site hamiltonian for the t-J model.
+    It returns to versions: 
+    1. one with a time step delta/2 to use at the initial and final step
+    of the trotterization
+    2. one with a time step delta to use in the bulk steps of the trotterization
+
+    """
+
+    # choose the hamiltonian parameters
+    H_i_ip1 = (Jz * kron(Sz, Sz) 
+    + (J_perp/2) * kron(S_plus, S_minus) 
+    + (J_perp/2) * kron(S_minus, S_plus) 
+    - (t_up) * kron(T_up_h, T_h_up) 
+    - (t_up) * kron(T_h_up, T_up_h) 
+    - (t_down) * kron(T_down_h, T_h_down) 
+    - (t_down) * kron(T_h_down, T_down_h)
+    + (V) * kron(n_h, n_h)).toarray()
+
+    # initial and final 2-site evolution operator
+    op_ev_if = sp.linalg.expm(-1j * delta/2 * H_i_ip1)
+
+    # bulk 2-site evolution operator
+    op_ev_bulk = sp.linalg.expm(-1j * delta * H_i_ip1)
+    
+    return op_ev_if, op_ev_bulk
+
+def evolution_mpo_step_i_ip1_tJV(n, site_i_if, site_ip1_if, site_i_b, site_ip1_b):
+    """
+    evolution_mpo_start_tJ
+
+    This function finds the starting evolution mpo for a chain n of the t-J model.
+    It is the first step of a second order trotterization.
+
+    """
+    # first site has one tensor only
+    mpo_id = Id.reshape((1,1,3,3))
+    mpo_start = ncon([site_i_if, mpo_id, site_i_if],[[-1,-4,-7,1],[-2,-5,1,2],[-3,-6,2,-8]]).reshape((site_i_if.shape[0]**2,site_i_if.shape[1]**2, 3, 3))
+    # two bulk operators for even and odd sites
+    mpo_bulk_odd = ncon([site_ip1_if, site_i_b, site_ip1_if],[[-1,-4,-7,1],[-2,-5,1,2],[-3,-6,2,-8]]).reshape((site_ip1_if.shape[0]**2*site_i_b.shape[0],site_ip1_if.shape[1]**2*site_i_b.shape[1], 3, 3))
+    mpo_bulk_even = ncon([site_i_if, site_ip1_b, site_i_if],[[-1,-4,-7,1],[-2,-5,1,2],[-3,-6,2,-8]]).reshape((site_i_if.shape[0]**2*site_ip1_b.shape[0],site_i_if.shape[1]**2*site_ip1_b.shape[1], 3, 3))
+    # two last-site operators depending on the parity of the chain
+    mpo_end_n_odd = ncon([mpo_id, site_ip1_b, mpo_id],[[-1,-4,-7,1],[-2,-5,1,2],[-3,-6,2,-8]]).reshape((mpo_id.shape[0]**2*site_ip1_b.shape[0],mpo_id.shape[1]**2*site_ip1_b.shape[1], 3, 3)) # for odd chains
+    mpo_end_n_even = ncon([site_ip1_if, mpo_id, site_ip1_if],[[-1,-4,-7,1],[-2,-5,1,2],[-3,-6,2,-8]]).reshape((site_ip1_if.shape[0]**2*mpo_id.shape[0],site_ip1_if.shape[1]**2*mpo_id.shape[1], 3, 3)) # for even chains
+ 
+    mpo_step = []
+    
+    # left op
+    mpo_step.append(mpo_start)
+    
+    # bulk ops
+    for i in range(1,n-1):
+        if (i%2) == 0:
+            mpo_step.append(mpo_bulk_even)
+        elif (i%2) == 1:
+            mpo_step.append(mpo_bulk_odd)
+    
+    # right op
+    if (n%2) == 0:
+        mpo_step.append(mpo_end_n_even)
+    elif (n%2) == 1:
+        mpo_step.append(mpo_end_n_odd)
+    
+    return mpo_step
+
+## helping functions
+def U_i_ip2_tJ(tp_up, tp_down, delta):
+    """
+    U_i_ip2
+
+    This function computes the exponential of the 2-site hamiltonian for the t-J model.
+    It returns to versions: 
+    1. one with a time step delta/2 to use at the initial and final step
+    of the trotterization
+    2. one with a time step delta to use in the bulk steps of the trotterization
+
+    """
+
+    # choose the hamiltonian parameters
+    H_i_ip2 = (
+    - (tp_up/8) * kron(T_up_h, T_h_up) 
+    - (tp_up/8) * kron(T_h_up, T_up_h)
+    - (tp_down/8) * kron(T_down_h, T_h_down) 
+    - (tp_down/8) * kron(T_h_down, T_down_h)).toarray()
+
+    # initial and final 2-site evolution operator
+    op_ev_if = sp.linalg.expm(-1j * delta/2 * H_i_ip2)
+
+    # bulk 2-site evolution operator
+    op_ev_bulk = sp.linalg.expm(-1j * delta * H_i_ip2)
+    
+    return op_ev_if, op_ev_bulk
+
+def evolution_mpo_svd_1_tJ(op_ev: np.ndarray, d: int=3, schmidt_tol: float=1e-15, trunc: bool=False):
+    """
+    evolution_mpo_svd
+
+    This function takes the edges, and bulk 2-site evolution operators (of the t-J model) and performs an svd
+    to separate the matrix into site i and site i+1. Reshaping the results of the svd
+    we can obtain the mpo for those evolution operators (with bounded bond dimension D<=d^2)
+
+    """
+    op_ev = op_ev.reshape(d,d,d,d)
+    op_ev = op_ev.transpose(0,2,1,3)
+    op_ev = op_ev.reshape(d*d,d*d)
+
+    u, s, v = svd(op_ev, full_matrices=False)
+
+    if trunc:
+        condition = s >= schmidt_tol
+        s_trunc = np.extract(condition, s)
+        s = s_trunc
+        v = v[:len(s),:]
+
+    site_i = u.reshape(d,d,u.shape[1])
+    site_i = site_i[:, :, :len(s)]
+    site_i = site_i.transpose(2,0,1)
+    site_i = site_i.reshape(1,len(s),d,d)
+
+    site_ip1 = ncon([np.diag(s), v],[[-1, 1],[1, -2]]).reshape(v.shape[0],d,d)
+    site_ip1 = site_ip1.reshape(1,v.shape[0],d,d)
+    site_ip1 = site_ip1.transpose(1,0,2,3)
+
+
+    tol = 1e-15 * np.max(np.abs(site_i))
+    site_i.real[np.abs(site_i.real) < tol] = 0
+    site_i.imag[np.abs(site_i.imag) < tol] = 0
+    
+    tol = 1e-15 * np.max(np.abs(site_ip1))
+    site_ip1.real[np.abs(site_ip1.real) < tol] = 0
+    site_ip1.imag[np.abs(site_ip1.imag) < tol] = 0
+    
+    return site_i, site_ip1
+
+def mpo_ev_trotter_i_ip1_pipeline(n, Jz, J_perp, t_up, t_down, V, delta):
+    op_ev_delta_half, op_ev_delta = U_i_ip1_tJV(Jz, t_up, t_down, J_perp, V, delta)
+    site_i_delta_half, site_ip1_delta_half = evolution_mpo_svd_1_tJ(op_ev_delta_half,trunc=True)
+    site_i_delta, site_ip1_delta = evolution_mpo_svd_1_tJ(op_ev_delta,trunc=True)
+    mpo_ev_trotter_i_ip1 = evolution_mpo_step_i_ip1_tJV(n, site_i_delta_half, site_ip1_delta_half, site_i_delta, site_ip1_delta)
+    return mpo_ev_trotter_i_ip1
+
+
+## helping functions
+def make_mask_even(n):
+    mask_id_A = [(i%4 == 1) if (i+1)<n else False for i in range(n)]
+    mask_C_l = [(i%4 == 1) if (i+2)<n else False for i in range(n)]
+    return mask_id_A, mask_C_l
+
+def make_mask_odd(n):
+    mask_id_B = [(i%4 == 3) if (i+1)<n else False for i in range(n)]
+    mask_D_l = [(i%4 == 3) if (i+2)<n else False for i in range(n)]
+    return mask_id_B, mask_D_l
+
+def make_trott_mpo(n, op_l, i_en, op_r, id, parity: str="even", d: int=3):
+    if parity == "even":
+        mask_1, mask_2 = make_mask_even(n)
+    elif parity == "odd":
+        mask_1, mask_2 = make_mask_odd(n)
+
+    mpo_trott = [id] * n
+
+    idx = 0
+    for mask_step_1, mask_step_2 in zip(mask_1, mask_2):
+        if mask_step_1:
+            mpo_trott[idx] = i_en.copy()
+            mpo_trott[idx-1] = op_l.copy()
+            mpo_trott[idx+1] = op_r.copy()
+        if mask_step_2:
+            mpo_trott[idx] = ncon([mpo_trott[idx],op_l],[[-1,-3,-5,1],[-2,-4,1,-6]]).reshape((mpo_trott[idx].shape[0],mpo_trott[idx].shape[1]*op_l.shape[1],d,d))
+            mpo_trott[idx+1] = ncon([mpo_trott[idx+1],i_en],[[-1,-3,-5,1],[-2,-4,1,-6]]).reshape((mpo_trott[idx+1].shape[0]*i_en.shape[0],i_en.shape[1],d,d))
+            mpo_trott[idx+2] = op_r.copy()
+        idx += 1
+    return mpo_trott
+
+def mpo_ev_trotter_i_ip2_pipeline(n, tp_up, tp_down, delta):
+    op_ev_half, op_ev_delta = U_i_ip2_tJ(tp_up, tp_down, delta)
+    site_i_delta_half, site_ip2_delta_half = evolution_mpo_svd_1_tJ(op_ev_half,trunc=True)
+    site_i_delta, site_ip2_delta = evolution_mpo_svd_1_tJ(op_ev_delta,trunc=True)
+    id_enlarged_mpo = id_gate(3,site_i_delta_half.shape[1])
+    id_mpo = sp.identity(n=3).toarray().reshape((1,1,3,3))
+    trotter_step_delta_half = make_trott_mpo(n, site_i_delta_half, id_enlarged_mpo, site_ip2_delta_half, id_mpo, parity="even")
+    trotter_step_delta = make_trott_mpo(n, site_i_delta, id_enlarged_mpo, site_ip2_delta, id_mpo, parity="odd")
+    return trotter_step_delta_half, trotter_step_delta
