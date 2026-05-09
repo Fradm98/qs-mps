@@ -5230,25 +5230,38 @@ class MPS:
         date_start = dt.datetime.now()
         # start with the half mu_x before the ladder interacton evolution operator
 
-        self.w = self.w_dag.copy()
+        if len(self.w_dag) == 1:
+            mpo_ordered_list = [self.w_dag.copy()]
+        elif len(self.w_dag) == 3:
+            mpo_ordered_list = [self.w_dag[0].copy(),self.w_dag[1].copy(),self.w_dag[2].copy(),self.w_dag[1].copy()] 
 
-        # compress the ladder evolution operator
-        error, entropy, schmidt_values = self.compression(
-            trunc_tol=False,
-            trunc_chi=True,
-            n_sweeps=n_sweeps,
-            conv_tol=conv_tol,
-            bond=bond,
-            where=where,
-        )
+            for i, mpo in enumerate(mpo_ordered_list):
+                if i == 0:
+                    print("i,i+1 interaction")
+                elif i == 1 or i == 3:
+                    print("i,i+1 interaction delta/2")
+                elif i == 2:
+                    print("i,i+1 interaction delta")
 
-        print(f"Bond dim ancilla: {self.ancilla_sites[self.L//2].shape[0]}")
-        print(f"Bond dim site: {self.sites[self.L//2].shape[0]}")
+                self.w = mpo.copy()
+                tensor_shapes(self.w)
+                # compress the ladder evolution operator
+                error, entropy, schmidt_values = self.compression(
+                    trunc_tol=False,
+                    trunc_chi=True,
+                    n_sweeps=n_sweeps,
+                    conv_tol=conv_tol,
+                    bond=bond,
+                    where=where,
+                )
 
-        self.ancilla_sites = self.sites.copy()
+                print(f"Bond dim ancilla: {self.ancilla_sites[self.L//2].shape[0]}")
+                print(f"Bond dim site: {self.sites[self.L//2].shape[0]}")
+
+                self.ancilla_sites = self.sites.copy()
 
         t_final = dt.datetime.now() - date_start
-        print(f"Compress the ising evolution operator: {t_final}")
+        print(f"Compress the tJV evolution operator: {t_final}")
 
         return error, entropy, schmidt_values
     
@@ -5349,6 +5362,19 @@ class MPS:
             t_final = dt.datetime.now() - date_start
             print(f"Total time for the local magnetization is: {t_final}")
 
+        if "lh" in obs:
+            date_start = dt.datetime.now()
+            print(
+                f"\n*** Computing local hole occupation in date: {dt.datetime.now()} ***\n"
+            )
+
+            loc_mag = np.zeros((self.L))
+            for i in range(len(self.sites)):
+                self.local_param(site=i + 1, op="nh")
+                loc_mag[i] = self.mpo_first_moment().real
+            local_magnetization.append(loc_mag.copy())
+            t_final = dt.datetime.now() - date_start
+            print(f"Total time for the local hole occupation is: {t_final}")
             # shape_loc_mag = self.L
             # name_loc_mag = f'magnetization/D_{self.chi}/trotter_step_{0:03d}'
             # create_observable_group(save_file, run_group, name_loc_mag)
@@ -5467,6 +5493,21 @@ class MPS:
                     local_magnetization.append(loc_mag.copy())
                     t_final = dt.datetime.now() - date_start
                     print(f"Total time for the local magnetization is: {t_final}")
+
+                if "lh" in obs:
+                    date_start = dt.datetime.now()
+                    print(
+                        f"\n*** Computing local hole occupation in date: {dt.datetime.now()} ***\n"
+                    )
+
+                    loc_mag[:] = 0
+                    for i in range(len(self.sites)):
+                        self.local_param(site=i + 1, op="nh")
+                        loc_mag[i] = self.mpo_first_moment().real
+                    local_magnetization.append(loc_mag.copy())
+                    t_final = dt.datetime.now() - date_start
+                    print(f"Total time for the local hole occupation is: {t_final}")
+
 
                     # shape_loc_mag = self.L
                     # name_loc_mag = f'electric_fields/D_{self.chi}/trotter_step_{(trott+1):03d}'
