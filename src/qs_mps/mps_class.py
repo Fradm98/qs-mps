@@ -8,6 +8,7 @@ import scipy.sparse.linalg as spla
 
 from ncon import ncon
 
+from tqdm import tqdm
 import time
 import datetime as dt
 from qs_mps.utils import *
@@ -1234,7 +1235,7 @@ class MPS:
         for i in range(self.L):
             w = np.array(
                 [
-                    [I, Sz, S_plus, S_minus, T_up_h, O, T_down_h, O, T_h_up, O, T_h_down, O, n_h, self.eps * Sz],
+                    [I, Sz, S_plus, S_minus, T_up_h, O, T_up_h, O, T_h_down, O, T_h_down, O, n_h, self.eps * Sz],
                     [O, O, O, O, O, O, O, O, O, O, O, O, O, self.h * Sz],
                     [O, O, O, O, O, O, O, O, O, O, O, O, O, (1 / 2) * self.J * S_minus],
                     [O, O, O, O, O, O, O, O, O, O, O, O, O, (1 / 2) * self.J * S_plus],
@@ -3576,7 +3577,7 @@ class MPS:
         self.envs(site=1, mixed=True)
         iter = 1
         for n in range(n_sweeps):
-            print(f"Sweep n: {n}\n")
+            # print(f"Sweep n: {n}\n")
             entropy = []
             for i in range(self.L - 1):
                 # print(f"\n============= Site: {sites[i]} ===================\n")
@@ -3634,22 +3635,24 @@ class MPS:
                     break
 
         if err_dist < conv_tol:
-            print("##############################")
-            print(
-                f"The error between the two last updated states converged\n"
-                + f"to an order of {conv_tol} after:\n"
-                + f"{n} sweeps at site {sites[i]}\n"
-                + f"total iterations {iter}"
-            )
-            print("##############################")
-        else:
-            print("##############################")
-            print(
-                f"The error between the two last updated states converged\n"
-                + f"to an order of {err_dist}\n"
-                + f"instead of the convergence tolerance {conv_tol}"
-            )
-            print("##############################")
+            # print("##############################")
+            # print(
+            #     f"The error between the two last updated states converged\n"
+            #     + f"to an order of {conv_tol} after:\n"
+            #     + f"{n} sweeps at site {sites[i]}\n"
+            #     + f"total iterations {iter}"
+            # )
+            # print("##############################")
+            return errors, entropy, s_mid
+        # else:
+        #     # print("##############################")
+        #     # print(
+        #     #     f"The error between the two last updated states converged\n"
+        #     #     + f"to an order of {err_dist}\n"
+        #     #     + f"instead of the convergence tolerance {conv_tol}"
+        #     # )
+        #     # print("##############################")
+        #     continue
         return errors, entropy, s_mid
 
     def TEBD_direct(self, trotter_steps, delta, h_ev, J_ev, fidelity=False, trunc=True):
@@ -5227,16 +5230,19 @@ class MPS:
                 By default True
 
         """
-        date_start = dt.datetime.now()
-        # start with the half mu_x before the ladder interacton evolution operator
-
-        for i, mpo in enumerate(self.w_dag):
+        # date_start = dt.datetime.now()
+        pbar = tqdm(self.w_dag, dynamic_ncols=True)
+        for i, mpo in enumerate(pbar):
             if i == 0:
-                print("i,i+1 interaction")
+                pbar.set_description("i,i+1 interaction")
+                # print("i,i+1 interaction")
             elif i == 1 or i == 3:
-                print("i,i+1 interaction delta/2")
+                pbar.set_description("i,i+2 interaction delta/2")
+                # print("i,i+2 interaction delta/2")
             elif i == 2:
-                print("i,i+1 interaction delta")
+                pbar.set_description("i,i+2 interaction delta")
+                # print("i,i+2 interaction delta")
+        # for i, mpo in enumerate(self.w_dag):
 
             self.w = mpo.copy()
 
@@ -5250,13 +5256,13 @@ class MPS:
                 where=where,
             )
 
-            print(f"Bond dim ancilla: {self.ancilla_sites[self.L//2].shape[0]}")
-            print(f"Bond dim site: {self.sites[self.L//2].shape[0]}")
+            # print(f"Bond dim ancilla: {self.ancilla_sites[self.L//2].shape[0]}")
+            # print(f"Bond dim site: {self.sites[self.L//2].shape[0]}")
 
             self.ancilla_sites = self.sites.copy()
 
-        t_final = dt.datetime.now() - date_start
-        print(f"Compress the tJV evolution operator: {t_final}")
+        # t_final = dt.datetime.now() - date_start
+        # print(f"Compress the tJV evolution operator: {t_final}")
 
         return error, entropy, schmidt_values
     
@@ -5345,9 +5351,9 @@ class MPS:
         local_magnetization = []
         if "lm" in obs:
             date_start = dt.datetime.now()
-            print(
-                f"\n*** Computing local magnetization in date: {dt.datetime.now()} ***\n"
-            )
+            # print(
+            #     f"\n*** Computing local magnetization in date: {dt.datetime.now()} ***\n"
+            # )
 
             loc_mag = np.zeros((self.L))
             for i in range(len(self.sites)):
@@ -5355,13 +5361,13 @@ class MPS:
                 loc_mag[i] = self.mpo_first_moment().real
             local_magnetization.append(loc_mag.copy())
             t_final = dt.datetime.now() - date_start
-            print(f"Total time for the local magnetization is: {t_final}")
+            # print(f"Total time for the local magnetization is: {t_final}")
 
         if "lh" in obs:
             date_start = dt.datetime.now()
-            print(
-                f"\n*** Computing local hole occupation in date: {dt.datetime.now()} ***\n"
-            )
+            # print(
+            #     f"\n*** Computing local hole occupation in date: {dt.datetime.now()} ***\n"
+            # )
 
             loc_mag = np.zeros((self.L))
             for i in range(len(self.sites)):
@@ -5369,7 +5375,7 @@ class MPS:
                 loc_mag[i] = self.mpo_first_moment().real
             local_magnetization.append(loc_mag.copy())
             t_final = dt.datetime.now() - date_start
-            print(f"Total time for the local hole occupation is: {t_final}")
+            # print(f"Total time for the local hole occupation is: {t_final}")
             # shape_loc_mag = self.L
             # name_loc_mag = f'magnetization/D_{self.chi}/trotter_step_{0:03d}'
             # create_observable_group(save_file, run_group, name_loc_mag)
@@ -5388,7 +5394,7 @@ class MPS:
             # overlaps.append(self._compute_norm(site=1, mixed=True))
             overlaps = np.array([self._compute_norm(site=1, mixed=True)])
             ovlps.append(np.array([self._compute_norm(site=1, mixed=True)]))
-            print("overlap", overlaps, overlaps.shape)
+            # print("overlap", overlaps, overlaps.shape)
             self.ancilla_sites = []
             # if self.bc == "pbc":
             #     aux_qub = self.sites.pop(-1)
@@ -5401,12 +5407,11 @@ class MPS:
 
         self.ancilla_sites = self.sites.copy()
 
+        # pbar = tqdm(range(trotter_steps), dynamic_ncols=True)
+        # for trott in pbar:
         for trott in range(trotter_steps):
-
-            date_start = dt.datetime.now()
-            print(
-                f"\n*** Starting the {trott}-th trotter step in date: {dt.datetime.now()} ***\n"
-            )
+            print(f"trotter_step: {trott}")
+            # pbar.set_description(f"trotter_step: {trott}")
             error, entropy, schmidt_vals = self.TEBD_variational_tJ_trotter_step(
                 n_sweeps=n_sweeps,
                 conv_tol=conv_tol,
@@ -5415,9 +5420,6 @@ class MPS:
             )
 
             chi_sat.append(self.sites[self.L // 2].shape[0])
-
-            t_final = dt.datetime.now() - date_start
-            print(f"Total time for the {trott}-th trotter step is: {t_final}")
 
             # ## saving the temp mps
             # print(f"saving temporarily the mps at {trott}-th trotter step...")
@@ -5467,8 +5469,8 @@ class MPS:
             # Observables
             # ============================
             if trott in obs_trotter:
-                print("==========================================")
-                print("Computing observables for this trotter step")
+                # print("==========================================")
+                # print("Computing observables for this trotter step")
 
                 # if self.bc == "pbc":
                 #     self.sites.pop()
@@ -5477,9 +5479,9 @@ class MPS:
                 # electric field
                 if "lm" in obs:
                     date_start = dt.datetime.now()
-                    print(
-                        f"\n*** Computing local magnetization in date: {dt.datetime.now()} ***\n"
-                    )
+                    # print(
+                    #     f"\n*** Computing local magnetization in date: {dt.datetime.now()} ***\n"
+                    # )
 
                     loc_mag[:] = 0
                     for i in range(len(self.sites)):
@@ -5487,13 +5489,13 @@ class MPS:
                         loc_mag[i] = self.mpo_first_moment().real
                     local_magnetization.append(loc_mag.copy())
                     t_final = dt.datetime.now() - date_start
-                    print(f"Total time for the local magnetization is: {t_final}")
+                    # print(f"Total time for the local magnetization is: {t_final}")
 
                 if "lh" in obs:
                     date_start = dt.datetime.now()
-                    print(
-                        f"\n*** Computing local hole occupation in date: {dt.datetime.now()} ***\n"
-                    )
+                    # print(
+                    #     f"\n*** Computing local hole occupation in date: {dt.datetime.now()} ***\n"
+                    # )
 
                     loc_mag[:] = 0
                     for i in range(len(self.sites)):
@@ -5501,7 +5503,7 @@ class MPS:
                         loc_mag[i] = self.mpo_first_moment().real
                     local_magnetization.append(loc_mag.copy())
                     t_final = dt.datetime.now() - date_start
-                    print(f"Total time for the local hole occupation is: {t_final}")
+                    # print(f"Total time for the local hole occupation is: {t_final}")
 
 
                     # shape_loc_mag = self.L

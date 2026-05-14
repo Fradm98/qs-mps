@@ -69,6 +69,13 @@ def kron_sparse_op(Op, i, n):
             left = kron(left, Id)        
         return kron(left, Op)
     
+def neel_prod_state(n):
+    spin_up_tn = np.array([1,0,0]).reshape((1,3,1))
+    hole_tn = np.array([0,1,0]).reshape((1,3,1))
+    spin_down_tn = np.array([0,0,1]).reshape((1,3,1))
+    tn_list = [spin_up_tn if (i%2) == 0 else spin_down_tn for i in range(n)]
+    return tn_list
+
 def local_hole_occupation(n):
     return [kron_sparse_op(n_h, i, n) for i in range(n)]
 
@@ -387,10 +394,10 @@ def evolution_mpo_svd_1_tJ(op_ev: np.ndarray, d: int=3, schmidt_tol: float=1e-15
     
     return site_i, site_ip1
 
-def mpo_ev_trotter_i_ip1_pipeline(n, Jz, J_perp, t_up, t_down, V, delta):
+def mpo_ev_trotter_i_ip1_pipeline(n, Jz, J_perp, t_up, t_down, V, delta, trunc=False):
     op_ev_delta_half, op_ev_delta = U_i_ip1_tJV(Jz, t_up, t_down, J_perp, V, delta)
-    site_i_delta_half, site_ip1_delta_half = evolution_mpo_svd_1_tJ(op_ev_delta_half,trunc=True)
-    site_i_delta, site_ip1_delta = evolution_mpo_svd_1_tJ(op_ev_delta,trunc=True)
+    site_i_delta_half, site_ip1_delta_half = evolution_mpo_svd_1_tJ(op_ev_delta_half,trunc=trunc)
+    site_i_delta, site_ip1_delta = evolution_mpo_svd_1_tJ(op_ev_delta,trunc=trunc)
     mpo_ev_trotter_i_ip1 = evolution_mpo_step_i_ip1_tJV(n, site_i_delta_half, site_ip1_delta_half, site_i_delta, site_ip1_delta)
     return mpo_ev_trotter_i_ip1
 
@@ -427,10 +434,10 @@ def make_trott_mpo(n, op_l, i_en, op_r, id, parity: str="even", d: int=3):
         idx += 1
     return mpo_trott
 
-def mpo_ev_trotter_i_ip2_pipeline(n, tp_up, tp_down, delta):
+def mpo_ev_trotter_i_ip2_pipeline(n, tp_up, tp_down, delta, trunc=False):
     op_ev_half, op_ev_delta = U_i_ip2_tJ(tp_up, tp_down, delta)
-    site_i_delta_half, site_ip2_delta_half = evolution_mpo_svd_1_tJ(op_ev_half,trunc=True)
-    site_i_delta, site_ip2_delta = evolution_mpo_svd_1_tJ(op_ev_delta,trunc=True)
+    site_i_delta_half, site_ip2_delta_half = evolution_mpo_svd_1_tJ(op_ev_half,trunc=trunc)
+    site_i_delta, site_ip2_delta = evolution_mpo_svd_1_tJ(op_ev_delta,trunc=trunc)
     id_enlarged_mpo = id_gate(3,site_i_delta_half.shape[1])
     id_mpo = sp.identity(n=3).toarray().reshape((1,1,3,3))
     trotter_step_delta_half = make_trott_mpo(n, site_i_delta_half, id_enlarged_mpo, site_ip2_delta_half, id_mpo, parity="even")
