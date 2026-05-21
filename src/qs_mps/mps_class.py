@@ -5299,9 +5299,11 @@ class MPS:
         chi_sat = []
         if chi_max > self.chi:
             self.chi = chi_max
-            self.enlarge_chi()
-            self.canonical_form(trunc_chi=True, trunc_tol=False)
-
+            self.enlarge_chi(noise_std=1e-6)
+            self.canonical_form(svd_direction="left", trunc_chi=True, trunc_tol=False)
+            self.canonical_form(svd_direction="right", trunc_chi=True, trunc_tol=False)
+            
+        tensor_shapes(self.sites)
         chi_sat.append(self.sites[self.L // 2].shape[0])
 
         # ============================
@@ -5409,6 +5411,8 @@ class MPS:
                 bond=bond,
                 where=where
             )
+            if len(schmidt_vals) < self.chi:
+                schmidt_vals = np.append(schmidt_vals, [0]*(self.chi-len(schmidt_vals)))
 
             chi_sat.append(self.sites[self.L // 2].shape[0])
 
