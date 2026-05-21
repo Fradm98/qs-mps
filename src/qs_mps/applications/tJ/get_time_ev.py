@@ -216,13 +216,18 @@ def main():
 
         mpo_i_ip1_eo, mpo_i_ip1_oe = mpo_ev_trotter_i_ip1_pipeline(L, args.Jz, args.J_perp, args.t_up, args.t_down, args.V, delta)
         mpo_i_ip2_delta_half, mpo_i_ip2_delta = mpo_ev_trotter_i_ip2_pipeline(L, args.tp_up, args.tp_down, delta)
-        tensor_shapes(mpo_i_ip1_eo)
-        tensor_shapes(mpo_i_ip1_oe)
-        tensor_shapes(mpo_i_ip2_delta_half)
-        tensor_shapes(mpo_i_ip2_delta)
-        mps_chain.w_dag = {"i,i+1 eo interaction delta/2": mpo_i_ip1_eo.copy(), "i,i+2 interaction delta/2": mpo_i_ip2_delta_half.copy(), "i,i+2 interaction delta": mpo_i_ip2_delta.copy(), "i,i+2 interaction delta/2": mpo_i_ip2_delta_half.copy(), "i,i+1 oe interaction delta/2": mpo_i_ip1_oe.copy()}
-        # mps_chain.w_dag = [mpo_i_ip1.copy(), mpo_i_ip2_delta_half.copy(), mpo_i_ip2_delta.copy(), mpo_i_ip2_delta_half.copy()]
-        # mps_chain.w_dag = [mpo_i_ip1.copy()]
+        # tensor_shapes(mpo_i_ip1_eo)
+        # tensor_shapes(mpo_i_ip1_oe)
+        # tensor_shapes(mpo_i_ip2_delta_half)
+        # tensor_shapes(mpo_i_ip2_delta)
+        mps_chain.w_dag = {
+            "i,i+1 eo interaction delta/2": mpo_i_ip1_eo.copy(), 
+            "i,i+2 1st interaction delta/2": mpo_i_ip2_delta_half.copy(), 
+            "i,i+2 interaction delta": mpo_i_ip2_delta.copy(), 
+            "i,i+2 2nd interaction delta/2": mpo_i_ip2_delta_half.copy(), 
+            "i,i+1 oe interaction delta/2": mpo_i_ip1_oe.copy(),
+                           }
+        print(len(mps_chain.w_dag))
 
         for chi in args.chis:
             date_start = dt.datetime.now()

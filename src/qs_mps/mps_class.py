@@ -5231,11 +5231,9 @@ class MPS:
 
         """
         # date_start = dt.datetime.now()
-        pbar = tqdm(self.w_dag, dynamic_ncols=True)
-        for key, mpo in pbar.items():
+        pbar = tqdm(self.w_dag.items(), dynamic_ncols=True)
+        for key, mpo in pbar:
             pbar.set_description(key)
-                # print("i,i+2 interaction delta")
-        # for i, mpo in enumerate(self.w_dag):
 
             self.w = mpo.copy()
 
