@@ -394,7 +394,35 @@ def evolution_mpo_svd_1_tJ(op_ev: np.ndarray, d: int=3, schmidt_tol: float=1e-15
     
     return site_i, site_ip1
 
+## helping functions
+def make_trott_mpo_eo_oe(n, op_l, op_r, parity: str="eo", d: int=3):
+    if parity == "eo":
+        mpo_even = ncon([op_l,op_r],[[-1,-3,-5,1],[-2,-4,1,-6]]).reshape((op_l.shape[0]*op_r.shape[0],op_l.shape[1]*op_r.shape[1],d,d))
+        mpo_odd = ncon([op_r,op_l],[[-1,-3,-5,1],[-2,-4,1,-6]]).reshape((op_l.shape[0]*op_r.shape[0],op_l.shape[1]*op_r.shape[1],d,d))
+    elif parity == "oe":
+        mpo_even = ncon([op_r,op_l],[[-1,-3,-5,1],[-2,-4,1,-6]]).reshape((op_l.shape[0]*op_r.shape[0],op_l.shape[1]*op_r.shape[1],d,d))
+        mpo_odd = ncon([op_l,op_r],[[-1,-3,-5,1],[-2,-4,1,-6]]).reshape((op_l.shape[0]*op_r.shape[0],op_l.shape[1]*op_r.shape[1],d,d))
+
+    mpo_trott = []
+
+    mpo_trott.append(op_l)
+    for i in range(1,n-1):
+        if (i%2) == 0:
+            mpo_trott.append(mpo_even)
+        elif (i%2) == 1:
+            mpo_trott.append(mpo_odd)
+    
+    mpo_trott.append(op_r)
+    return mpo_trott
+
 def mpo_ev_trotter_i_ip1_pipeline(n, Jz, J_perp, t_up, t_down, V, delta, trunc=False):
+    op_ev_delta_half, op_ev_delta = U_i_ip1_tJV(Jz, t_up, t_down, J_perp, V, delta)
+    site_i_delta_half, site_ip1_delta_half = evolution_mpo_svd_1_tJ(op_ev_delta_half,trunc=trunc)
+    mpo_eo = make_trott_mpo_eo_oe(n, site_i_delta_half, site_ip1_delta_half, parity="eo")
+    mpo_oe = make_trott_mpo_eo_oe(n, site_i_delta_half, site_ip1_delta_half, parity="oe")
+    return mpo_eo, mpo_oe
+
+def mpo_ev_trotter_i_ip1_pipeline_alone(n, Jz, J_perp, t_up, t_down, V, delta, trunc=False):
     op_ev_delta_half, op_ev_delta = U_i_ip1_tJV(Jz, t_up, t_down, J_perp, V, delta)
     site_i_delta_half, site_ip1_delta_half = evolution_mpo_svd_1_tJ(op_ev_delta_half,trunc=trunc)
     site_i_delta, site_ip1_delta = evolution_mpo_svd_1_tJ(op_ev_delta,trunc=trunc)

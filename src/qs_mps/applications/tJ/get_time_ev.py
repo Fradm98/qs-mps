@@ -211,12 +211,14 @@ def main():
         init_state = neel_state + [hole_tn] + [hole_tn] + neel_state
         mps_chain.sites = init_state.copy()
 
-        mpo_i_ip1 = mpo_ev_trotter_i_ip1_pipeline(L, args.Jz, args.J_perp, args.t_up, args.t_down, args.V, delta)
+        mpo_i_ip1_eo, mpo_i_ip1_oe = mpo_ev_trotter_i_ip1_pipeline(L, args.Jz, args.J_perp, args.t_up, args.t_down, args.V, delta)
         mpo_i_ip2_delta_half, mpo_i_ip2_delta = mpo_ev_trotter_i_ip2_pipeline(L, args.tp_up, args.tp_down, delta)
-        tensor_shapes(mpo_i_ip1)
+        tensor_shapes(mpo_i_ip1_eo)
+        tensor_shapes(mpo_i_ip1_oe)
         tensor_shapes(mpo_i_ip2_delta_half)
         tensor_shapes(mpo_i_ip2_delta)
-        mps_chain.w_dag = [mpo_i_ip1.copy(), mpo_i_ip2_delta_half.copy(), mpo_i_ip2_delta.copy(), mpo_i_ip2_delta_half.copy()]
+        mps_chain.w_dag = [mpo_i_ip1_eo.copy(), mpo_i_ip2_delta_half.copy(), mpo_i_ip2_delta.copy(), mpo_i_ip2_delta_half.copy(), mpo_i_ip1_oe.copy()]
+        # mps_chain.w_dag = [mpo_i_ip1.copy(), mpo_i_ip2_delta_half.copy(), mpo_i_ip2_delta.copy(), mpo_i_ip2_delta_half.copy()]
         # mps_chain.w_dag = [mpo_i_ip1.copy()]
 
         for chi in args.chis:

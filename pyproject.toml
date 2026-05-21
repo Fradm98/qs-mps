@@ -30,6 +30,7 @@ dependencies = [
   "matplotlib",
   "jupyter",
   "sympy",
+  "tqdm",
 ]
 
 [project.urls]
