@@ -191,6 +191,9 @@ elif args.path == "marcos":
     # parent_path = "/Users/fradm/Google Drive/My Drive/projects/Fidelities_with_TN"
     path_tensor = "/Users/fradm/Desktop/projects/Fidelities_with_TN"
     parent_path = path_tensor
+elif args.path == "ngt":
+    path_tensor = "/eos/user/f/fdimarca/projects/6_TJ"
+    parent_path = path_tensor
 else:
     raise SyntaxError("Path not valid. Choose among 'pc', 'mac', 'marcos'")
 
@@ -239,10 +242,10 @@ def main():
                                                       obs=['lh'], 
                                                       obs_freq=1)
             
-            np.save(f"{path_tensor}/results/error_data", errs)
-            np.save(f"{path_tensor}/results/entropy_data", entrs)
-            np.save(f"{path_tensor}/results/mag_data", local_magnetization)
-            np.save(f"{path_tensor}/results/svs_data", svs)
+            np.save(f"{path_tensor}/results/error_data/time_ev_errors_L_{L}_tj_model_delta_{delta}_chi_{chi}.npy", errs)
+            np.save(f"{path_tensor}/results/entropy_data/time_ev_entropy_L_{L}_tj_model_delta_{delta}_chi_{chi}.npy", entrs)
+            np.save(f"{path_tensor}/results/mag_data/time_ev_hole_occup_L_{L}_tj_model_delta_{delta}_chi_{chi}.npy", local_magnetization)
+            np.save(f"{path_tensor}/results/svs_data/time_ev_svs_L_{L}_tj_model_delta_{delta}_chi_{chi}.npy", svs)
             
             mps_chain.sites = init_state.copy()
             t_final = dt.datetime.now() - date_start
