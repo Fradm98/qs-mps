@@ -5232,15 +5232,8 @@ class MPS:
         """
         # date_start = dt.datetime.now()
         pbar = tqdm(self.w_dag, dynamic_ncols=True)
-        for i, mpo in enumerate(pbar):
-            if i == 0:
-                pbar.set_description("i,i+1 interaction")
-                # print("i,i+1 interaction")
-            elif i == 1 or i == 3:
-                pbar.set_description("i,i+2 interaction delta/2")
-                # print("i,i+2 interaction delta/2")
-            elif i == 2:
-                pbar.set_description("i,i+2 interaction delta")
+        for key, mpo in pbar.items():
+            pbar.set_description(key)
                 # print("i,i+2 interaction delta")
         # for i, mpo in enumerate(self.w_dag):
 

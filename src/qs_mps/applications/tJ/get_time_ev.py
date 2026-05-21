@@ -220,7 +220,7 @@ def main():
         tensor_shapes(mpo_i_ip1_oe)
         tensor_shapes(mpo_i_ip2_delta_half)
         tensor_shapes(mpo_i_ip2_delta)
-        mps_chain.w_dag = [mpo_i_ip1_eo.copy(), mpo_i_ip2_delta_half.copy(), mpo_i_ip2_delta.copy(), mpo_i_ip2_delta_half.copy(), mpo_i_ip1_oe.copy()]
+        mps_chain.w_dag = {"i,i+1 eo interaction delta/2": mpo_i_ip1_eo.copy(), "i,i+2 interaction delta/2": mpo_i_ip2_delta_half.copy(), "i,i+2 interaction delta": mpo_i_ip2_delta.copy(), "i,i+2 interaction delta/2": mpo_i_ip2_delta_half.copy(), "i,i+1 oe interaction delta/2": mpo_i_ip1_oe.copy()}
         # mps_chain.w_dag = [mpo_i_ip1.copy(), mpo_i_ip2_delta_half.copy(), mpo_i_ip2_delta.copy(), mpo_i_ip2_delta_half.copy()]
         # mps_chain.w_dag = [mpo_i_ip1.copy()]
 
