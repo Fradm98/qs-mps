@@ -202,17 +202,46 @@ else:
 # TEBD
 # ---------------------------------------------------------
 
+def initial_state(defect: int, *args):
+    hole_tn = np.array([[[0],[1],[0]]])
+    if defect == 0:
+        mps_chain = MPS(L=args["L"],d=args["d"],model=args["model"],chi=args["chi"],J=args["Jz"],h=args["J_perp"],k=(args["t"],args["tp"]))
+        mps_chain.load_sites(path=args["path"],precision=args["precision"])
+        mps_chain.sites[args["L"]//2] = hole_tn.copy()
+        mps_chain.sites[args["L"]//2-1] = hole_tn.copy()
+        mps_chain.enlarge_chi(noise_std=1e-7)
+        mps_chain.canonical_form(svd_direction="left")
+        mps_chain.canonical_form(svd_direction="right")
+        init_state = mps_chain.sites.copy()
+    if defect == 2:
+        mps_chain = MPS(L=args["L"],d=args["d"],model=args["model"], chi=1)
+        neel_state = neel_prod_state(args["half_chain_length"])
+        init_state = neel_state + [hole_tn] + [hole_tn] + neel_state
+        mps_chain.sites = init_state.copy()
+    return mps_chain, init_state
+
 def main():
-    hole_tn = np.array([0,1,0]).reshape((1,3,1))
     delta = args.tf / args.trott
+    
+    hole_tn = np.array([0,1,0]).reshape((1,3,1))
+    
     for L in args.Ls:
         half_chain_length = L // 2 - args.defects//2
         
-        mps_chain = MPS(L=L, d=3, model='tj', chi=1)
-        # init_state = [hole_tn]*(L//2 - 1) + [spin_up_tn]*2 + [hole_tn]*(L//2 - 1)
-        neel_state = neel_prod_state(half_chain_length)
-        init_state = neel_state + [hole_tn] + [hole_tn] + neel_state
-        mps_chain.sites = init_state.copy()
+        args_mps = {
+            "L": L,
+            "d": args.d,
+            "chi": chi,
+            "model": args.model,
+            "path": path_tensor,
+            "precision": args.precision,
+            "Jz": args.Jz,
+            "J_perp": args.J_perp,
+            "t": args.t,
+            "tp": args.tp,
+            "half_chain_length": half_chain_length
+        }
+        mps_chain, init_state = initial_state(args.defects, args_mps)
 
         mpo_i_ip1_eo, mpo_i_ip1_oe = mpo_ev_trotter_i_ip1_pipeline(L, args.Jz, args.J_perp, args.t_up, args.t_down, args.V, delta)
         mpo_i_ip2_delta_half, mpo_i_ip2_delta = mpo_ev_trotter_i_ip2_pipeline(L, args.tp_up, args.tp_down, delta)

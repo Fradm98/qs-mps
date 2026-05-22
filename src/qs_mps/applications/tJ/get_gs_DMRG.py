@@ -16,13 +16,23 @@ parser.add_argument(
     type=int,
 )
 parser.add_argument(
-    "h_i",
-    help="Starting value of h (external transverse field on the dual lattice)",
+    "Jz",
+    help="zz coupling Jz",
     type=float,
 )
 parser.add_argument(
-    "h_f",
-    help="Final value of h (external transverse field on the dual lattice)",
+    "J_perp",
+    help="S^+S^- coupling J_perp",
+    type=float,
+)
+parser.add_argument(
+    "t",
+    help="hopping i,i+1 coupling t",
+    type=float,
+)
+parser.add_argument(
+    "tp",
+    help="hopping i,i+2 coupling tp",
     type=float,
 )
 parser.add_argument(
@@ -37,27 +47,6 @@ parser.add_argument(
     "-D", "--chis", help="Simulated bond dimensions", nargs="+", type=int
 )
 parser.add_argument(
-    "-cx",
-    "--charges_x",
-    help="a list of the first index of the charges",
-    nargs="*",
-    type=int,
-)
-parser.add_argument(
-    "-cy",
-    "--charges_y",
-    help="a list of the second index of the charges",
-    nargs="*",
-    type=int,
-)
-parser.add_argument(
-    "-R",
-    "--length",
-    help="String length in the two particle sector. By default 0 means we are in the vacuum",
-    default=0,
-    type=int,
-)
-parser.add_argument(
     "-ty",
     "--type_shape",
     help="Type of shape of the bond dimension. Available are: 'trapezoidal', 'pyramidal', 'rectangular'",
@@ -65,7 +54,7 @@ parser.add_argument(
     type=str,
 )
 parser.add_argument(
-    "-m", "--model", help="Model to simulate", default="heis", type=str
+    "-m", "--model", help="Model to simulate", default="tj", type=str
 )
 parser.add_argument(
     "-mu",
@@ -113,13 +102,6 @@ parser.add_argument(
     action="store_false",
 )
 parser.add_argument(
-    "-i",
-    "--interval",
-    help="Type of interval spacing. Available are 'log', 'lin'",
-    default="lin",
-    type=str,
-)
-parser.add_argument(
     "-bc",
     "--boundcond",
     help="Type of boundary conditions. Available are 'obc', 'pbc'",
@@ -148,13 +130,6 @@ parser.add_argument(
     type=int,
 )
 parser.add_argument(
-    "-j",
-    "--J",
-    help="Value of the J coupling in the hamiltonian. By default 1",
-    default=1,
-    type=float,
-)
-parser.add_argument(
     "-e",
     "--eps",
     help="Value of the epsilon coupling to penalize holes creation. By default 0",
@@ -170,66 +145,35 @@ parser.add_argument(
 
 args = parser.parse_args()
 
-# # Redirect stdout and stderr to the log file
-# sys.stdout = open(f'results/logs/{args.logging}', 'w')
-# sys.stderr = sys.stdout
-
-
-# define the interval of equally spaced values of external field
-if args.interval == "lin":
-    interval = np.linspace(args.h_i, args.h_f, args.npoints)
-    # num = (interval[-1] - interval[0]) / args.npoints
-    # precision = get_precision(num)
-    
-elif args.interval == "log":
-    interval = np.logspace(args.h_i, args.h_f, args.npoints)
-    # precision = int(np.max([np.abs(args.h_f), np.abs(args.h_i)]))
-
+interval = np.linspace(args.t,args.t,args.npoints)
 # take the path and precision to save files
 # if we want to save the tensors we save them locally because they occupy a lot of memory
 if args.path == "pc":
-    parent_path = f"C:/Users/HP/Desktop/projects/Fidelities_with_TN"
-    # parent_path = "G:/My Drive/projects/Fidelities_with_TN"
-    path_tensor = "D:/code/projects/Fidelities_with_TN"
+    parent_path = f"C:/Users/HP/Desktop/projects/6_TJ"
+    # parent_path = "G:/My Drive/projects/6_TJ"
+    path_tensor = "D:/code/projects/6_TJ"
+    parent_path = path_tensor
 elif args.path == "mac":
-    # parent_path = "/Users/fradm98/Google Drive/My Drive/projects/Fidelities_with_TN"
-    path_tensor = "/Users/fradm98/Desktop/projects/Fidelities_with_TN"
+    # parent_path = "/Users/fradm98/Google Drive/My Drive/projects/6_TJ"
+    path_tensor = "/Users/fradm98/Desktop/projects/6_TJ"
     parent_path = path_tensor
 elif args.path == "marcos":
-    # parent_path = "/Users/fradm/Google Drive/My Drive/projects/Fidelities_with_TN"
-    path_tensor = "/Users/fradm/Desktop/projects/Fidelities_with_TN"
+    # parent_path = "/Users/fradm/Google Drive/My Drive/projects/6_TJ"
+    path_tensor = "/Users/fradm/Desktop/projects/6_TJ"
     parent_path = path_tensor
 else:
     raise SyntaxError("Path not valid. Choose among 'pc', 'mac', 'marcos'")
 
-
+precision = 3
 # ---------------------------------------------------------
 # DMRG
 # ---------------------------------------------------------
 for L in args.Ls:
-    # define the sector by looking of the given charges
-    if args.charges_x == [] and args.charges_y == []:
-        sector = "vacuum_sector"
-        charges_x = np.nan
-        charges_y = np.nan
-    else:
-        sector = f"{len(args.charges_x)}_particle(s)_sector"
-        charges_x = args.charges_x
-        charges_y = args.charges_y
-    # where to look at for the entropy
     if args.where == -1:
         args.where = L // 2
     elif args.where == -2:
         args.bond = False
 
-    if args.length != 0:
-        charges_x = get_cx(L, args.length)
-        charges_y = get_cy(args.l, args.boundcond, args.charges_y, R=args.length)
-        sector = f"{len(charges_x)}_particle(s)_sector"
-    # init_state = np.zeros((d))
-    # init_state[0] = 1
-    # init_state = init_state.reshape((1,d,1))
-    # init_tensor = [init_state for _ in range(L)]
     init_tensor = []
     for chi in args.chis:  # L // 2 + 1
         args_mps = {
@@ -245,15 +189,15 @@ for L in args.Ls:
             "path": path_tensor,
             "save": args.save,
             "precision": args.precision,
-            "sector": sector,
-            "charges_x": charges_x,
-            "charges_y": charges_y,
             "n_sweeps": args.number_sweeps,
             "conv_tol": args.conv_tol,
             "training": args.training,
             "guess": init_tensor,
             "bc": args.boundcond,
-            "J": args.J,
+            "Jz": args.Jz,
+            "J_perp": args.J_perp,
+            "t": args.t,
+            "tp": args.tp,
             "eps": args.eps,
             "excited": args.excited,
         }
@@ -277,12 +221,12 @@ for L in args.Ls:
                 # print(energy_chi.shape)
                 if args.excited:
                     np.save(
-                        f"{parent_path}/results/energy_data/first_excited_energies_{args.model}_direct_lattice_L_{L}_bc_{args.boundcond}_J_{args.J}_h_{args.h_i}-{args.h_f}_delta_{args.npoints}_chi_{chi}",
+                        f"{parent_path}/results/energy_data/first_excited_energies_{args.model}_lattice_L_{L}_bc_{args.boundcond}_chi_{chi}_Jz_{args.Jz:.{precision}f}_J_perp_{args.J_perp:.{precision}f}_t_{args.t:.{precision}f}_tp_{args.tp:.{precision}f}",
                         energy_chi,
                     )
                 else:
                     np.save(
-                        f"{parent_path}/results/energy_data/energies_{args.model}_direct_lattice_L_{L}_bc_{args.boundcond}_J_{args.J}_h_{args.h_i}-{args.h_f}_delta_{args.npoints}_chi_{chi}",
+                        f"{parent_path}/results/energy_data/energies_{args.model}_lattice_L_{L}_bc_{args.boundcond}_chi_{chi}_Jz_{args.Jz:.{precision}f}_J_perp_{args.J_perp:.{precision}f}_t_{args.t:.{precision}f}_tp_{args.tp:.{precision}f}",
                         energy_chi,
                     )
                 energy_last = []
@@ -291,71 +235,71 @@ for L in args.Ls:
                 
                 if args.excited:
                     np.save(
-                        f"{parent_path}/results/energy_data/first_excited_energy_{args.model}_direct_lattice_L_{L}_bc_{args.boundcond}_J_{args.J}_h_{args.h_i}-{args.h_f}_delta_{args.npoints}_chi_{chi}",
+                        f"{parent_path}/results/energy_data/first_excited_energy_{args.model}_lattice_L_{L}_bc_{args.boundcond}_chi_{chi}_Jz_{args.Jz:.{precision}f}_J_perp_{args.J_perp:.{precision}f}_t_{args.t:.{precision}f}_tp_{args.tp:.{precision}f}",
                         energy_last,
                     )
                 else:
                     np.save(
-                        f"{parent_path}/results/energy_data/energy_{args.model}_direct_lattice_L_{L}_bc_{args.boundcond}_J_{args.J}_h_{args.h_i}-{args.h_f}_delta_{args.npoints}_chi_{chi}",
+                        f"{parent_path}/results/energy_data/energy_{args.model}_lattice_L_{L}_bc_{args.boundcond}_chi_{chi}_Jz_{args.Jz:.{precision}f}_J_perp_{args.J_perp:.{precision}f}_t_{args.t:.{precision}f}_tp_{args.tp:.{precision}f}",
                         energy_last,
                     )
 
             else:
                 if args.excited:
                     np.save(
-                        f"{parent_path}/results/energy_data/first_excited_energy_{args.model}_direct_lattice_L_{L}_bc_{args.boundcond}_J_{args.J}_h_{args.h_i}-{args.h_f}_delta_{args.npoints}_chi_{chi}",
+                        f"{parent_path}/results/energy_data/first_excited_energy_{args.model}_lattice_L_{L}_bc_{args.boundcond}_chi_{chi}_Jz_{args.Jz:.{precision}f}_J_perp_{args.J_perp:.{precision}f}_t_{args.t:.{precision}f}_tp_{args.tp:.{precision}f}",
                         energy_chi,
                     )
                 else:
                     np.save(
-                    f"{parent_path}/results/energy_data/energy_{args.model}_direct_lattice_L_{L}_bc_{args.boundcond}_J_{args.J}_h_{args.h_i}-{args.h_f}_delta_{args.npoints}_chi_{chi}",
+                    f"{parent_path}/results/energy_data/energy_{args.model}_lattice_L_{L}_bc_{args.boundcond}_chi_{chi}_Jz_{args.Jz:.{precision}f}_J_perp_{args.J_perp:.{precision}f}_t_{args.t:.{precision}f}_tp_{args.tp:.{precision}f}",
                     energy_chi,
                     )
 
             if args.excited:
                 save_list_of_lists(
-                    f"{parent_path}/results/entropy_data/{args.where}_bond_entropy_first_excited_{args.model}_direct_lattice_L_{L}_bc_{args.boundcond}_J_{args.J}_h_{args.h_i}-{args.h_f}_delta_{args.npoints}_chi_{chi}",
+                    f"{parent_path}/results/entropy_data/{args.where}_bond_entropy_first_excited_{args.model}_lattice_L_{L}_bc_{args.boundcond}_chi_{chi}_Jz_{args.Jz:.{precision}f}_J_perp_{args.J_perp:.{precision}f}_t_{args.t:.{precision}f}_tp_{args.tp:.{precision}f}",
                     entropy_chi,
                 )
             else:
                 save_list_of_lists(
-                    f"{parent_path}/results/entropy_data/{args.where}_bond_entropy_{args.model}_direct_lattice_L_{L}_bc_{args.boundcond}_J_{args.J}_h_{args.h_i}-{args.h_f}_delta_{args.npoints}_chi_{chi}",
+                    f"{parent_path}/results/entropy_data/{args.where}_bond_entropy_{args.model}_lattice_L_{L}_bc_{args.boundcond}_chi_{chi}_Jz_{args.Jz:.{precision}f}_J_perp_{args.J_perp:.{precision}f}_t_{args.t:.{precision}f}_tp_{args.tp:.{precision}f}",
                     entropy_chi,
                 )
 
             # save_list_of_lists(
-            #     f"{parent_path}/results/entropy_data/{args.where}_schmidt_vals_{args.model}_direct_lattice_L_{L}_bc_{args.boundcond}_J_{args.J}_h_{args.h_i}-{args.h_f}_delta_{args.npoints}_chi_{chi}",
+            #     f"{parent_path}/results/entropy_data/{args.where}_schmidt_vals_{args.model}_lattice_L_{L}_bc_{args.boundcond}_chi_{chi}_Jz_{args.Jz:.{precision}f}_J_perp_{args.J_perp:.{precision}f}_t_{args.t:.{precision}f}_tp_{args.tp:.{precision}f}",
             #     schmidt_vals_chi,
             # )
             print(schmidt_vals_chi)
             if args.excited:
                 np.save(
-                    f"{parent_path}/results/entropy_data/{args.where}_schmidt_vals_first_excited_{args.model}_direct_lattice_L_{L}_bc_{args.boundcond}_J_{args.J}_h_{args.h_i}-{args.h_f}_delta_{args.npoints}_chi_{chi}.npy",
+                    f"{parent_path}/results/entropy_data/{args.where}_schmidt_vals_first_excited_{args.model}_lattice_L_{L}_bc_{args.boundcond}_chi_{chi}_Jz_{args.Jz:.{precision}f}_J_perp_{args.J_perp:.{precision}f}_t_{args.t:.{precision}f}_tp_{args.tp:.{precision}f}",
                     schmidt_vals_chi,
                 )
             else:
                 np.save(
-                    f"{parent_path}/results/entropy_data/{args.where}_schmidt_vals_{args.model}_direct_lattice_L_{L}_bc_{args.boundcond}_J_{args.J}_h_{args.h_i}-{args.h_f}_delta_{args.npoints}_chi_{chi}.npy",
+                    f"{parent_path}/results/entropy_data/{args.where}_schmidt_vals_{args.model}_lattice_L_{L}_bc_{args.boundcond}_chi_{chi}_Jz_{args.Jz:.{precision}f}_J_perp_{args.J_perp:.{precision}f}_t_{args.t:.{precision}f}_tp_{args.tp:.{precision}f}",
                     schmidt_vals_chi,
                 )
 
             if args.where == "all":
                 if args.excited:
                     entropy_mid = access_txt(
-                        f"{parent_path}/results/entropy_data/{args.where}_bond_entropy_first_excited_{args.model}_direct_lattice_L_{L}_bc_{args.boundcond}_J_{args.J}_h_{args.h_i}-{args.h_f}_delta_{args.npoints}_chi_{chi}",
+                        f"{parent_path}/results/entropy_data/{args.where}_bond_entropy_first_excited_{args.model}_lattice_L_{L}_bc_{args.boundcond}_chi_{chi}_Jz_{args.Jz:.{precision}f}_J_perp_{args.J_perp:.{precision}f}_t_{args.t:.{precision}f}_tp_{args.tp:.{precision}f}",
                         (L) // 2,
                     )
                     np.savetxt(
-                        f"{parent_path}/results/entropy_data/{args.L // 2}_bond_entropy_first_excited_{args.model}_direct_lattice_L_{L}_bc_{args.boundcond}_J_{args.J}_h_{args.h_i}-{args.h_f}_delta_{args.npoints}_chi_{chi}",
+                        f"{parent_path}/results/entropy_data/{L // 2}_bond_entropy_first_excited_{args.model}_lattice_L_{L}_bc_{args.boundcond}_chi_{chi}_Jz_{args.Jz:.{precision}f}_J_perp_{args.J_perp:.{precision}f}_t_{args.t:.{precision}f}_tp_{args.tp:.{precision}f}",
                         entropy_mid,
                     )
                 else:
                     entropy_mid = access_txt(
-                        f"{parent_path}/results/entropy_data/{args.where}_bond_entropy_{args.model}_direct_lattice_L_{L}_bc_{args.boundcond}_J_{args.J}_h_{args.h_i}-{args.h_f}_delta_{args.npoints}_chi_{chi}",
+                        f"{parent_path}/results/entropy_data/{args.where}_bond_entropy_{args.model}_lattice_L_{L}_bc_{args.boundcond}_chi_{chi}_Jz_{args.Jz:.{precision}f}_J_perp_{args.J_perp:.{precision}f}_t_{args.t:.{precision}f}_tp_{args.tp:.{precision}f}",
                         (L) // 2,
                     )
                     np.savetxt(
-                        f"{parent_path}/results/entropy_data/{args.L // 2}_bond_entropy_{args.model}_direct_lattice_L_{L}_bc_{args.boundcond}_J_{args.J}_h_{args.h_i}-{args.h_f}_delta_{args.npoints}_chi_{chi}",
+                        f"{parent_path}/results/entropy_data/{L // 2}_bond_entropy_{args.model}_lattice_L_{L}_bc_{args.boundcond}_chi_{chi}_Jz_{args.Jz:.{precision}f}_J_perp_{args.J_perp:.{precision}f}_t_{args.t:.{precision}f}_tp_{args.tp:.{precision}f}",
                         entropy_mid,
                     )
 

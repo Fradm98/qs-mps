@@ -962,7 +962,10 @@ class MPS:
 
         elif self.model == "Rydberg":
             self.mpo_rydberg()
-            
+        
+        elif self.model == "tj":
+            self.mpo_tjv()
+
         return self
 
     # -------------------------------------------------
@@ -1229,8 +1232,9 @@ class MPS:
         n_h = csr_matrix([[0, 0, 0], [0, 1, 0], [0, 0, 0]]).toarray()
         
         w_tot = []
-        t = 1
-        tp = t
+        Jz = self.J
+        J_perp = self.h
+        (t, tp) = self.k
         V = 0
         for i in range(self.L):
             w = np.array(
@@ -5718,6 +5722,8 @@ class MPS:
             self.save_sites_XXZ(path=path, precision=precision)
         elif "heis" in self.model:
             self.save_sites_heis(path=path, precision=precision)
+        elif "tj" in self.model:
+            self.save_sites_tj(path=path, precision=precision)
         else:
             raise ValueError("Choose a correct model")
         return self
@@ -5763,6 +5769,8 @@ class MPS:
             self.load_sites_XXZ(path=path, precision=precision)
         elif "heis" in self.model:
             self.load_sites_heis(path=path, precision=precision)
+        elif "tj" in self.model:
+            self.load_sites_tj(path=path, precision=precision)
         else:
             raise ValueError("Choose a correct model")
         return self
@@ -5970,6 +5978,55 @@ class MPS:
                 filename = f"/results/tensors/tensor_sites_first_excited_{self.model}_direct_lattice_L_{self.L}_bc_{self.bc}_chi_{self.chi}_J_{self.J:.{precision}f}_h_{self.h:.{precision}f}"
             else:
                 filename = f"/results/tensors/tensor_sites_{self.model}_direct_lattice_L_{self.L}_bc_{self.bc}_chi_{self.chi}_J_{self.J:.{precision}f}_h_{self.h:.{precision}f}"
+
+        with h5py.File(f"{path}{filename}.h5", "w") as f:
+            # Save scalar metadata as file attributes
+            for key, value in metadata.items():
+                f.attrs[key] = (
+                    value  # This is good for small, scalar data like strings or numbers
+                )
+
+            # Create a group for the tensors
+            tensors_group = f.create_group("tensors")
+
+            # Store each tensor as a separate dataset within the group
+            for i, tensor in enumerate(self.sites):
+                tensors_group.create_dataset(
+                    f"tensor_{i}", data=tensor, compression="gzip"
+                )
+
+        t_save = abs(time.perf_counter() - t_start)
+        t_save = dt.timedelta(seconds=t_save)
+        print(f"time for saving: {t_save}")
+
+    def save_sites_tj(
+        self,
+        path,
+        precision: int = 3,
+        filename: str = None,
+        excited: bool = False,
+    ):
+        t_start = time.perf_counter()
+
+        metadata = dict(
+            model=self.model,
+            d=self.d,
+            L=self.L,
+            bc=self.bc,
+            chi=self.chi,
+            Jz=self.J,
+            J_perp=self.h,
+            t=self.k[0],
+            tp=self.k[1],
+            eps=self.eps,
+            excited=excited,
+        )
+
+        if filename is None:
+            if excited:
+                filename = f"/results/tensors/tensor_sites_first_excited_{self.model}_lattice_L_{self.L}_bc_{self.bc}_chi_{self.chi}_Jz_{self.J:.{precision}f}_J_perp_{self.h:.{precision}f}_t_{self.k[0]:.{precision}f}_tp_{self.k[1]:.{precision}f}"
+            else:
+                filename = f"/results/tensors/tensor_sites_{self.model}_lattice_L_{self.L}_bc_{self.bc}_chi_{self.chi}_Jz_{self.J:.{precision}f}_J_perp_{self.h:.{precision}f}_t_{self.k[0]:.{precision}f}_tp_{self.k[1]:.{precision}f}"
 
         with h5py.File(f"{path}{filename}.h5", "w") as f:
             # Save scalar metadata as file attributes
@@ -6215,9 +6272,9 @@ class MPS:
         """
         if filename is None:
             if excited:
-                filename = f"/results/tensors/tensor_sites_first_excited_{self.model}_direct_lattice_L_{self.L}_bc_{self.bc}_chi_{self.chi}_J_{self.J:.{precision}f}_h_{self.h:.{precision}f}"
+                filename = f"/results/tensors/tensor_sites_first_excited_{self.model}_lattice_L_{self.L}_bc_{self.bc}_chi_{self.chi}_Jz_{self.J:.{precision}f}_J_perp_{self.h:.{precision}f}_t_{self.k[0]:.{precision}f}_tp_{self.k[1]:.{precision}f}"
             else:
-                filename = f"/results/tensors/tensor_sites_{self.model}_direct_lattice_L_{self.L}_bc_{self.bc}_chi_{self.chi}_J_{self.J:.{precision}f}_h_{self.h:.{precision}f}"
+                filename = f"/results/tensors/tensor_sites_{self.model}_lattice_L_{self.L}_bc_{self.bc}_chi_{self.chi}_Jz_{self.J:.{precision}f}_J_perp_{self.h:.{precision}f}_t_{self.k[0]:.{precision}f}_tp_{self.k[1]:.{precision}f}"
 
             with h5py.File(f"{path}{filename}.h5", "r") as f:
                 # Load metadata
@@ -6236,6 +6293,43 @@ class MPS:
                 self.sites = [f["tensors"][f"tensor_{i}"][:] for i in range(self.L)]
         return self
 
+    def load_sites_tj(
+        self, path, precision: int = 2, filename: str = None, excited: bool = False
+    ):
+        """
+        load_sites
+
+        This function load the tensors into the sites of the MPS.
+        We fetch a completely flat list, split it to recover the original tensors
+        (but still flat) and reshape each of them accordingly with the saved shapes.
+        To initially split the list in the correct index position refer to the auxiliary
+        function get_labels().
+
+        """
+        if filename is None:
+            if excited:
+                filename = f"/results/tensors/tensor_sites_first_excited_{self.model}_lattice_L_{self.L}_bc_{self.bc}_chi_{self.chi}_Jz_{self.J:.{precision}f}_J_perp_{self.h:.{precision}f}_t_{self.k[0]:.{precision}f}_tp_{self.k[1]:.{precision}f}"
+            else:
+                filename = f"/results/tensors/tensor_sites_{self.model}_lattice_L_{self.L}_bc_{self.bc}_chi_{self.chi}_Jz_{self.J:.{precision}f}_J_perp_{self.h:.{precision}f}_t_{self.k[0]:.{precision}f}_tp_{self.k[1]:.{precision}f}"
+
+
+            with h5py.File(f"{path}{filename}.h5", "r") as f:
+                # Load metadata
+                metadata = {key: f.attrs[key] for key in f.attrs}
+                print("Metadata:", metadata)
+
+                # Load tensors
+                self.sites = [f["tensors"][f"tensor_{i}"][:] for i in range(self.L)]
+        else:
+            with h5py.File(f"{path}{filename}", "r") as f:
+                # Load metadata
+                metadata = {key: f.attrs[key] for key in f.attrs}
+                print("Metadata:", metadata)
+
+                # Load tensors
+                self.sites = [f["tensors"][f"tensor_{i}"][:] for i in range(self.L)]
+        return self
+    
     def load_sites_XXZ(self, path, precision: int = 2):
         """
         load_sites

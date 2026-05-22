@@ -106,7 +106,8 @@ def ground_state_heis_param(params):
         model=args_mps["model"],
         chi=args_mps["chi"],
         bc=args_mps["bc"],
-        J=args_mps["J"],
+        J=args_mps["Jz"],
+        k=(args_mps["t"],args_mps["tp"]),
         eps=args_mps["eps"],
         h=param,
     )
@@ -173,8 +174,6 @@ def ground_state_heis_param(params):
         chain.save_sites(
             args_mps["path"],
             args_mps["precision"],
-            args_mps["charges_x"],
-            args_mps["charges_y"],
             args_mps["excited"],
         )
     # new_guess = chain.sites.copy()
