@@ -1240,7 +1240,7 @@ class MPS:
             if (i == (self.L//2 - 1)) or (i == self.L // 2):
                 w = np.array(
                 [
-                    [I, O, O, O, O, O, O, O, O, O, O, O, O, self.eps * n_h],
+                    [I, O, O, O, O, O, O, O, O, O, O, O, O, - self.eps * n_h],
                     [O, O, O, O, O, O, O, O, O, O, O, O, O, O],
                     [O, O, O, O, O, O, O, O, O, O, O, O, O, O],
                     [O, O, O, O, O, O, O, O, O, O, O, O, O, O],
