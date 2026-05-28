@@ -6312,9 +6312,9 @@ class MPS:
         """
         if filename is None:
             if excited:
-                filename = f"/results/tensors/tensor_sites_first_excited_{self.model}_lattice_L_{self.L}_bc_{self.bc}_chi_{self.chi}_Jz_{self.J:.{precision}f}_J_perp_{self.h:.{precision}f}_t_{self.k[0]:.{precision}f}_tp_{self.k[1]:.{precision}f}"
+                filename = f"/results/tensors/tensor_sites_first_excited_{self.model}_lattice_L_{self.L}_bc_{self.bc}_chi_{self.chi}_Jz_{self.J:.{precision}f}_J_perp_{self.h:.{precision}f}_t_{self.k[0]:.{precision}f}_tp_{self.k[1]:.{precision}f}_eps_{self.eps:.{precision}f}"
             else:
-                filename = f"/results/tensors/tensor_sites_{self.model}_lattice_L_{self.L}_bc_{self.bc}_chi_{self.chi}_Jz_{self.J:.{precision}f}_J_perp_{self.h:.{precision}f}_t_{self.k[0]:.{precision}f}_tp_{self.k[1]:.{precision}f}"
+                filename = f"/results/tensors/tensor_sites_{self.model}_lattice_L_{self.L}_bc_{self.bc}_chi_{self.chi}_Jz_{self.J:.{precision}f}_J_perp_{self.h:.{precision}f}_t_{self.k[0]:.{precision}f}_tp_{self.k[1]:.{precision}f}_eps_{self.eps:.{precision}f}"
 
 
             with h5py.File(f"{path}{filename}.h5", "r") as f:

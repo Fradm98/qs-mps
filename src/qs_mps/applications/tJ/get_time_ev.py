@@ -30,22 +30,12 @@ parser.add_argument(
     type=float,
 )
 parser.add_argument(
-    "t_up",
+    "t",
     help="Final value of h (external transverse field on the dual lattice)",
     type=float,
 )
 parser.add_argument(
-    "t_down",
-    help="Final value of h (external transverse field on the dual lattice)",
-    type=float,
-)
-parser.add_argument(
-    "tp_up",
-    help="Final value of h (external transverse field on the dual lattice)",
-    type=float,
-)
-parser.add_argument(
-    "tp_down",
+    "tp",
     help="Final value of h (external transverse field on the dual lattice)",
     type=float,
 )
@@ -80,7 +70,7 @@ parser.add_argument(
     type=str,
 )
 parser.add_argument(
-    "-m", "--model", help="Model to simulate", default="heis", type=str
+    "-m", "--model", help="Model to simulate", default="tj", type=str
 )
 parser.add_argument(
     "-mu",
@@ -180,20 +170,22 @@ args = parser.parse_args()
 # take the path and precision to save files
 # if we want to save the tensors we save them locally because they occupy a lot of memory
 if args.path == "pc":
-    parent_path = f"C:/Users/HP/Desktop/projects/Fidelities_with_TN"
-    # parent_path = "G:/My Drive/projects/Fidelities_with_TN"
-    path_tensor = "D:/code/projects/6_TJ"
+    # path_tensor = "D:/code/projects/6_TJ"
+    path_tensor = "D:/work/projects/6_TJ"
+    parent_path = path_tensor
+
 elif args.path == "mac":
-    # parent_path = "/Users/fradm98/Google Drive/My Drive/projects/Fidelities_with_TN"
     path_tensor = "/Users/fradm98/Desktop/projects/Fidelities_with_TN"
     parent_path = path_tensor
+
 elif args.path == "marcos":
-    # parent_path = "/Users/fradm/Google Drive/My Drive/projects/Fidelities_with_TN"
     path_tensor = "/Users/fradm/Desktop/projects/Fidelities_with_TN"
     parent_path = path_tensor
+
 elif args.path == "ngt":
     path_tensor = "/eos/user/f/fdimarca/projects/6_TJ"
     parent_path = path_tensor
+
 else:
     raise SyntaxError("Path not valid. Choose among 'pc', 'mac', 'marcos'")
 
@@ -202,16 +194,13 @@ else:
 # TEBD
 # ---------------------------------------------------------
 
-def initial_state(defect: int, *args):
+chi_start = args.chis[0]
+
+def initial_state(defect: int, args):
     hole_tn = np.array([[[0],[1],[0]]])
     if defect == 0:
-        mps_chain = MPS(L=args["L"],d=args["d"],model=args["model"],chi=args["chi"],J=args["Jz"],h=args["J_perp"],k=(args["t"],args["tp"]))
+        mps_chain = MPS(L=args["L"],d=args["d"],model=args["model"],chi=args["chi"],J=args["Jz"],h=args["J_perp"],k=(args["t"],args["tp"]),eps=args["eps"])
         mps_chain.load_sites(path=args["path"],precision=args["precision"])
-        mps_chain.sites[args["L"]//2] = hole_tn.copy()
-        mps_chain.sites[args["L"]//2-1] = hole_tn.copy()
-        mps_chain.enlarge_chi(noise_std=1e-7)
-        mps_chain.canonical_form(svd_direction="left")
-        mps_chain.canonical_form(svd_direction="right")
         init_state = mps_chain.sites.copy()
     if defect == 2:
         mps_chain = MPS(L=args["L"],d=args["d"],model=args["model"], chi=1)
@@ -223,15 +212,13 @@ def initial_state(defect: int, *args):
 def main():
     delta = args.tf / args.trott
     
-    hole_tn = np.array([0,1,0]).reshape((1,3,1))
-    
     for L in args.Ls:
         half_chain_length = L // 2 - args.defects//2
         
         args_mps = {
             "L": L,
-            "d": args.d,
-            "chi": chi,
+            "d": 3,
+            "chi": chi_start,
             "model": args.model,
             "path": path_tensor,
             "precision": args.precision,
@@ -239,12 +226,13 @@ def main():
             "J_perp": args.J_perp,
             "t": args.t,
             "tp": args.tp,
-            "half_chain_length": half_chain_length
+            "eps": args.eps,
+            "half_chain_length": half_chain_length,
         }
         mps_chain, init_state = initial_state(args.defects, args_mps)
 
-        mpo_i_ip1_eo, mpo_i_ip1_oe = mpo_ev_trotter_i_ip1_pipeline(L, args.Jz, args.J_perp, args.t_up, args.t_down, args.V, delta)
-        mpo_i_ip2_delta_half, mpo_i_ip2_delta = mpo_ev_trotter_i_ip2_pipeline(L, args.tp_up, args.tp_down, delta)
+        mpo_i_ip1_eo, mpo_i_ip1_oe = mpo_ev_trotter_i_ip1_pipeline(L, args.Jz, args.J_perp, args.t, args.t, args.V, delta)
+        mpo_i_ip2_delta_half, mpo_i_ip2_delta = mpo_ev_trotter_i_ip2_pipeline(L, args.tp, args.tp, delta)
         # tensor_shapes(mpo_i_ip1_eo)
         # tensor_shapes(mpo_i_ip1_oe)
         # tensor_shapes(mpo_i_ip2_delta_half)
@@ -256,7 +244,6 @@ def main():
             "i,i+2 2nd interaction delta/2": mpo_i_ip2_delta_half.copy(), 
             "i,i+1 oe interaction delta/2": mpo_i_ip1_oe.copy(),
                            }
-        print(len(mps_chain.w_dag))
 
         for chi in args.chis:
             date_start = dt.datetime.now()
