@@ -1238,30 +1238,72 @@ class MPS:
         V = 0
         for i in range(self.L):
             if (i == (self.L//2 - 1)) or (i == self.L // 2):
-                c = 1
-            else:
-                c = 0
-            w = np.array(
+                w = np.array(
                 [
-                    [I, Sz, S_plus, S_minus, T_up_h, O, T_up_h, O, T_h_down, O, T_h_down, O, n_h, - c * self.eps * n_h],
-                    [O, O, O, O, O, O, O, O, O, O, O, O, O, Jz * Sz],
-                    [O, O, O, O, O, O, O, O, O, O, O, O, O, (1 / 2) * J_perp * S_minus],
-                    [O, O, O, O, O, O, O, O, O, O, O, O, O, (1 / 2) * J_perp * S_plus],
-                    [O, O, O, O, O, I, O, O, O, O, O, O, O, - t * T_h_up],
-                    [O, O, O, O, O, O, O, O, O, O, O, O, O, - tp * T_h_up],
-                    [O, O, O, O, O, O, O, I, O, O, O, O, O, - t * T_up_h],
-                    [O, O, O, O, O, O, O, O, O, O, O, O, O, - tp * T_up_h],
-                    [O, O, O, O, O, O, O, O, O, I, O, O, O, - t * T_h_down],
-                    [O, O, O, O, O, O, O, O, O, O, O, O, O, - tp * T_h_down],
-                    [O, O, O, O, O, O, O, O, O, O, O, I, O, - t * T_down_h],
-                    [O, O, O, O, O, O, O, O, O, O, O, O, O, - tp * T_down_h],
-                    [O, O, O, O, O, O, O, O, O, O, O, O, O, V * n_h],
+                    [I, O, O, O, O, O, O, O, O, O, O, O, O, self.eps * n_h],
+                    [O, O, O, O, O, O, O, O, O, O, O, O, O, O],
+                    [O, O, O, O, O, O, O, O, O, O, O, O, O, O],
+                    [O, O, O, O, O, O, O, O, O, O, O, O, O, O],
+                    [O, O, O, O, O, O, O, O, O, O, O, O, O, O],
+                    [O, O, O, O, O, O, O, O, O, O, O, O, O, O],
+                    [O, O, O, O, O, O, O, O, O, O, O, O, O, O],
+                    [O, O, O, O, O, O, O, O, O, O, O, O, O, O],
+                    [O, O, O, O, O, O, O, O, O, O, O, O, O, O],
+                    [O, O, O, O, O, O, O, O, O, O, O, O, O, O],
+                    [O, O, O, O, O, O, O, O, O, O, O, O, O, O],
+                    [O, O, O, O, O, O, O, O, O, O, O, O, O, O],
+                    [O, O, O, O, O, O, O, O, O, O, O, O, O, O],
                     [O, O, O, O, O, O, O, O, O, O, O, O, O, I],
                 ]
             )
+            else:
+                w = np.array(
+                    [
+                        [I, Sz, S_plus, S_minus, T_up_h, O, T_up_h, O, T_h_down, O, T_h_down, O, n_h, O],
+                        [O, O, O, O, O, O, O, O, O, O, O, O, O, Jz * Sz],
+                        [O, O, O, O, O, O, O, O, O, O, O, O, O, (1 / 2) * J_perp * S_minus],
+                        [O, O, O, O, O, O, O, O, O, O, O, O, O, (1 / 2) * J_perp * S_plus],
+                        [O, O, O, O, O, I, O, O, O, O, O, O, O, - t * T_h_up],
+                        [O, O, O, O, O, O, O, O, O, O, O, O, O, - tp * T_h_up],
+                        [O, O, O, O, O, O, O, I, O, O, O, O, O, - t * T_up_h],
+                        [O, O, O, O, O, O, O, O, O, O, O, O, O, - tp * T_up_h],
+                        [O, O, O, O, O, O, O, O, O, I, O, O, O, - t * T_h_down],
+                        [O, O, O, O, O, O, O, O, O, O, O, O, O, - tp * T_h_down],
+                        [O, O, O, O, O, O, O, O, O, O, O, I, O, - t * T_down_h],
+                        [O, O, O, O, O, O, O, O, O, O, O, O, O, - tp * T_down_h],
+                        [O, O, O, O, O, O, O, O, O, O, O, O, O, V * n_h],
+                        [O, O, O, O, O, O, O, O, O, O, O, O, O, I],
+                    ]
+                )
             w_tot.append(w)
         self.w = w_tot
         return self
+        # for i in range(self.L):
+        #     if (i == (self.L//2 - 1)) or (i == self.L // 2):
+        #         c = 1
+        #     else:
+        #         c = 0
+        #     w = np.array(
+        #         [
+        #             [I, Sz, S_plus, S_minus, T_up_h, O, T_up_h, O, T_h_down, O, T_h_down, O, n_h, - c * self.eps * n_h],
+        #             [O, O, O, O, O, O, O, O, O, O, O, O, O, Jz * Sz],
+        #             [O, O, O, O, O, O, O, O, O, O, O, O, O, (1 / 2) * J_perp * S_minus],
+        #             [O, O, O, O, O, O, O, O, O, O, O, O, O, (1 / 2) * J_perp * S_plus],
+        #             [O, O, O, O, O, I, O, O, O, O, O, O, O, - t * T_h_up],
+        #             [O, O, O, O, O, O, O, O, O, O, O, O, O, - tp * T_h_up],
+        #             [O, O, O, O, O, O, O, I, O, O, O, O, O, - t * T_up_h],
+        #             [O, O, O, O, O, O, O, O, O, O, O, O, O, - tp * T_up_h],
+        #             [O, O, O, O, O, O, O, O, O, I, O, O, O, - t * T_h_down],
+        #             [O, O, O, O, O, O, O, O, O, O, O, O, O, - tp * T_h_down],
+        #             [O, O, O, O, O, O, O, O, O, O, O, I, O, - t * T_down_h],
+        #             [O, O, O, O, O, O, O, O, O, O, O, O, O, - tp * T_down_h],
+        #             [O, O, O, O, O, O, O, O, O, O, O, O, O, V * n_h],
+        #             [O, O, O, O, O, O, O, O, O, O, O, O, O, I],
+        #         ]
+        #     )
+        #     w_tot.append(w)
+        # self.w = w_tot
+        # return self
 
     def mpo_xxz(self, long: str = "X", eps: float = 1e-5):
         """
