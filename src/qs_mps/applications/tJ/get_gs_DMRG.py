@@ -8,7 +8,7 @@ from qs_mps.applications.Z2.ground_state_multiprocessing import ground_state_Z2,
 # DENSITY MATRIX RENORMALIZATION GROUP to find ground states of the Z2 Pure Gauge Theory
 # changing the transverse field parameters in its dual formulation
 
-parser = argparse.ArgumentParser(prog="gs_search_Heis")
+parser = argparse.ArgumentParser(prog="gs_search_tJV_model")
 parser.add_argument("d", help="Number of states for one tensor", type=int)
 parser.add_argument(
     "npoints",
@@ -161,8 +161,12 @@ elif args.path == "marcos":
     # parent_path = "/Users/fradm/Google Drive/My Drive/projects/6_TJ"
     path_tensor = "/Users/fradm/Desktop/projects/6_TJ"
     parent_path = path_tensor
+elif args.path == "ngt":
+    # parent_path = "/Users/fradm/Google Drive/My Drive/projects/6_TJ"
+    path_tensor = "/eos/user/f/fdimarca/projects/6_TJ"
+    parent_path = path_tensor
 else:
-    raise SyntaxError("Path not valid. Choose among 'pc', 'mac', 'marcos'")
+    raise SyntaxError("Path not valid. Choose among 'pc', 'mac', 'marcos', 'ngt'")
 
 precision = 3
 # ---------------------------------------------------------

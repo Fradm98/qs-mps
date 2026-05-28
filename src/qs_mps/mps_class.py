@@ -1237,9 +1237,13 @@ class MPS:
         (t, tp) = self.k
         V = 0
         for i in range(self.L):
+            if (i == (self.L//2 - 1)) or (i == self.L // 2):
+                c = 1
+            else:
+                c = 0
             w = np.array(
                 [
-                    [I, Sz, S_plus, S_minus, T_up_h, O, T_up_h, O, T_h_down, O, T_h_down, O, n_h, self.eps * Sz],
+                    [I, Sz, S_plus, S_minus, T_up_h, O, T_up_h, O, T_h_down, O, T_h_down, O, n_h, - c * self.eps * n_h],
                     [O, O, O, O, O, O, O, O, O, O, O, O, O, self.h * Sz],
                     [O, O, O, O, O, O, O, O, O, O, O, O, O, (1 / 2) * self.J * S_minus],
                     [O, O, O, O, O, O, O, O, O, O, O, O, O, (1 / 2) * self.J * S_plus],
