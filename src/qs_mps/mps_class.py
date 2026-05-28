@@ -5312,6 +5312,13 @@ class MPS:
             self.canonical_form(svd_direction="right", trunc_chi=True, trunc_tol=False)
             
         tensor_shapes(self.sites)
+        exp_vals_init_state = []
+        for i in range(1,self.L+1):
+            self.local_param(site=i, op="Z")
+            exp_vals_init_state.append(self.mpo_first_moment().real)
+
+        print("local_magnetization of the initial state after bond dimension expasion: ", exp_vals_init_state)
+        
         chi_sat.append(self.sites[self.L // 2].shape[0])
 
         # ============================

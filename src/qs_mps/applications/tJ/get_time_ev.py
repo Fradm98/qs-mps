@@ -230,6 +230,12 @@ def main():
             "half_chain_length": half_chain_length,
         }
         mps_chain, init_state = initial_state(args.defects, args_mps)
+        exp_vals_init_state = []
+        for i in range(1,mps_chain.L+1):
+            mps_chain.local_param(site=i, op="Z")
+            exp_vals_init_state.append(mps_chain.mpo_first_moment().real)
+
+        print("local_magnetization of the initial state: ", exp_vals_init_state)
 
         mpo_i_ip1_eo, mpo_i_ip1_oe = mpo_ev_trotter_i_ip1_pipeline(L, args.Jz, args.J_perp, args.t, args.t, args.V, delta)
         mpo_i_ip2_delta_half, mpo_i_ip2_delta = mpo_ev_trotter_i_ip2_pipeline(L, args.tp, args.tp, delta)
