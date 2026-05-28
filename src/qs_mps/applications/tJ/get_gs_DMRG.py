@@ -142,6 +142,12 @@ parser.add_argument(
     help="First excited state. By default False",
     action="store_true",
 )
+parser.add_argument(
+    "-def",
+    "--defect",
+    help="Compute the ground state with two holes in the middle. By default False",
+    action="store_true",
+)
 
 args = parser.parse_args()
 
@@ -151,7 +157,7 @@ interval = np.linspace(args.t,args.t,args.npoints)
 if args.path == "pc":
     parent_path = f"C:/Users/HP/Desktop/projects/6_TJ"
     # parent_path = "G:/My Drive/projects/6_TJ"
-    path_tensor = "D:/code/projects/6_TJ"
+    path_tensor = "D:/work/projects/6_TJ"
     parent_path = path_tensor
 elif args.path == "mac":
     # parent_path = "/Users/fradm98/Google Drive/My Drive/projects/6_TJ"
@@ -172,13 +178,39 @@ precision = 3
 # ---------------------------------------------------------
 # DMRG
 # ---------------------------------------------------------
+
+def init_state_tensor(kwargs):
+    if kwargs["defect"]:
+        try:
+            mps_chain = MPS(L=kwargs["L"],
+                            d=kwargs["d"],
+                            model=kwargs["model"],
+                            chi=kwargs["chi"],
+                            J=kwargs["Jz"],
+                            h=kwargs["J_perp"],
+                            k=(kwargs["t"],
+                            kwargs["tp"]),
+                            eps=0)
+            
+            mps_chain.load_sites(path=kwargs["path"],precision=kwargs["precision"])
+            kwargs["guess"] = mps_chain.sites.copy()
+
+            print("TI ground state loaded successfully.")
+        except Exception as e:
+
+            print("TI ground state not found.")
+            print("Falling back to random/empty initialization.")
+            print(f"Reason: {e}")
+    else:
+        kwargs["guess"] = []
+    return kwargs
+
 for L in args.Ls:
     if args.where == -1:
         args.where = L // 2
     elif args.where == -2:
         args.bond = False
 
-    init_tensor = []
     for chi in args.chis:  # L // 2 + 1
         args_mps = {
             "L": L,
@@ -196,7 +228,6 @@ for L in args.Ls:
             "n_sweeps": args.number_sweeps,
             "conv_tol": args.conv_tol,
             "training": args.training,
-            "guess": init_tensor,
             "bc": args.boundcond,
             "Jz": args.Jz,
             "J_perp": args.J_perp,
@@ -204,7 +235,10 @@ for L in args.Ls:
             "tp": args.tp,
             "eps": args.eps,
             "excited": args.excited,
+            "defect": args.defect,
+            "noise": 1e-7,
         }
+        args_mps = init_state_tensor(args_mps)
 
         if __name__ == "__main__":
             date_start = dt.datetime.now()

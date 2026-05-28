@@ -157,6 +157,7 @@ def ground_state_heis_param(params):
         n_sweeps=args_mps["n_sweeps"],
         conv_tol=args_mps["conv_tol"],
         excited=args_mps["excited"],
+        defect=args_mps["defect"]
     )
     # t_final = np.sum(t_dmrg)
     # t_final_gen = dt.timedelta(seconds=t_final)

@@ -929,7 +929,7 @@ class MPS:
     # -------------------------------------------------
     # Matrix Product Operators, MPOs
     # -------------------------------------------------
-    def mpo(self, long: str = "X", trans: str = "Z"):
+    def mpo(self, **kwargs):
         """
         mpo
 
@@ -939,23 +939,23 @@ class MPS:
 
         """
         if self.model == "Ising":
-            self.mpo_Ising(long=long)
+            self.mpo_Ising(long=kwargs.get("long", "Z"))
 
         elif self.model == "ANNNI":
-            self.mpo_ANNNI(long=long, deg_method=1)
+            self.mpo_ANNNI(long=kwargs.get("long", "X"), deg_method=1)
 
         elif self.model == "Cluster":
-            self.mpo_Cluster(long=long)
+            self.mpo_Cluster(long=kwargs.get("long", "X"))
 
         elif self.model == "Cluster-XY":
-            self.mpo_Cluster_xy(long=long)
+            self.mpo_Cluster_xy(long=kwargs.get("long", "X"))
 
         elif self.model == "Z2_dual":
             self.Z2.mpo_Z2_ladder_generalized()
             self.w = self.Z2.mpo
 
         elif self.model == "XXZ":
-            self.mpo_xxz(long=long)
+            self.mpo_xxz(long=kwargs.get("long", "X"))
 
         elif self.model == "heis":
             self.mpo_heis()
@@ -964,7 +964,10 @@ class MPS:
             self.mpo_rydberg()
         
         elif self.model == "tj":
-            self.mpo_tjv()
+            if kwargs.get("defect"):
+                self.mpo_tjv_defect()
+            else:
+                self.mpo_tjv()
 
         return self
 
@@ -1127,7 +1130,7 @@ class MPS:
         self.w = w_tot
         return self
 
-    def mpo_rydberg(self, long: str = "X", eps: float = 0):
+    def mpo_rydberg(self):
         """
         mpo_Cluster
 
@@ -1237,6 +1240,77 @@ class MPS:
         (t, tp) = self.k
         V = 0
         for i in range(self.L):
+            w = np.array(
+                [
+                    [I, Sz, S_plus, S_minus, T_up_h, O, T_up_h, O, T_h_down, O, T_h_down, O, n_h, O],
+                    [O, O, O, O, O, O, O, O, O, O, O, O, O, Jz * Sz],
+                    [O, O, O, O, O, O, O, O, O, O, O, O, O, (1 / 2) * J_perp * S_minus],
+                    [O, O, O, O, O, O, O, O, O, O, O, O, O, (1 / 2) * J_perp * S_plus],
+                    [O, O, O, O, O, I, O, O, O, O, O, O, O, - t * T_h_up],
+                    [O, O, O, O, O, O, O, O, O, O, O, O, O, - (tp / 8) * T_h_up],
+                    [O, O, O, O, O, O, O, I, O, O, O, O, O, - t * T_up_h],
+                    [O, O, O, O, O, O, O, O, O, O, O, O, O, - (tp / 8) * T_up_h],
+                    [O, O, O, O, O, O, O, O, O, I, O, O, O, - t * T_h_down],
+                    [O, O, O, O, O, O, O, O, O, O, O, O, O, - (tp / 8) * T_h_down],
+                    [O, O, O, O, O, O, O, O, O, O, O, I, O, - t * T_down_h],
+                    [O, O, O, O, O, O, O, O, O, O, O, O, O, - (tp / 8) * T_down_h],
+                    [O, O, O, O, O, O, O, O, O, O, O, O, O, V * n_h],
+                    [O, O, O, O, O, O, O, O, O, O, O, O, O, I],
+                ]
+            )
+            w_tot.append(w)
+        self.w = w_tot
+        return self
+    
+    def mpo_tjv_defect(self):
+        """
+        mpo_tjv
+
+        This function defines the MPO for the 1D t-J-V model.
+        Has a Heisenberg part and a hopping part with tunable NN and NNN interactions.
+        In addition, hole interactions are controlled by V.
+        It takes the same MPO for all sites.
+
+        """
+        I = identity(3, dtype=complex).toarray()
+        O = csc_array((3, 3), dtype=complex).toarray()
+
+        ## Heisenberg spin operators
+        
+        # z component of spin operator
+        Sz = (1 / 2) * diags([1, 0, -1], 0, format="csr").toarray()
+
+        # flip spin up to spin down
+        S_plus = csr_matrix([[0, 0, 1], [0, 0, 0], [0, 0, 0]]).toarray()
+
+        # flip spin down to spin up
+        S_minus = csr_matrix([[0, 0, 0], [0, 0, 0], [1, 0, 0]]).toarray()
+
+        ## Hole hopping operators
+
+        # hole goes into a spin up state
+        T_up_h = csr_matrix([[0, 1, 0], [0, 0, 0], [0, 0, 0]]).toarray()
+
+        # hole goes into a spin down state
+        T_down_h = csr_matrix([[0, 0, 0], [0, 0, 0], [0, 1, 0]]).toarray()
+
+        # hole goes into a spin up state
+        T_h_up = csr_matrix([[0, 0, 0], [1, 0, 0], [0, 0, 0]]).toarray()
+
+        # hole goes into a spin down state
+        T_h_down = csr_matrix([[0, 0, 0], [0, 0, 1], [0, 0, 0]]).toarray()
+
+        ## Hole interaction operators
+
+        # number operator for holes
+        n_h = csr_matrix([[0, 0, 0], [0, 1, 0], [0, 0, 0]]).toarray()
+        
+        w_tot = []
+        Jz = self.J
+        J_perp = self.h
+        (t, tp) = self.k
+        V = 0
+        for i in range(self.L):
             if (i == (self.L//2 - 1)) or (i == self.L // 2):
                 w = np.array(
                 [
@@ -1264,13 +1338,13 @@ class MPS:
                         [O, O, O, O, O, O, O, O, O, O, O, O, O, (1 / 2) * J_perp * S_minus],
                         [O, O, O, O, O, O, O, O, O, O, O, O, O, (1 / 2) * J_perp * S_plus],
                         [O, O, O, O, O, I, O, O, O, O, O, O, O, - t * T_h_up],
-                        [O, O, O, O, O, O, O, O, O, O, O, O, O, - tp * T_h_up],
+                        [O, O, O, O, O, O, O, O, O, O, O, O, O, - (tp / 8) * T_h_up],
                         [O, O, O, O, O, O, O, I, O, O, O, O, O, - t * T_up_h],
-                        [O, O, O, O, O, O, O, O, O, O, O, O, O, - tp * T_up_h],
+                        [O, O, O, O, O, O, O, O, O, O, O, O, O, - (tp / 8) * T_up_h],
                         [O, O, O, O, O, O, O, O, O, I, O, O, O, - t * T_h_down],
-                        [O, O, O, O, O, O, O, O, O, O, O, O, O, - tp * T_h_down],
+                        [O, O, O, O, O, O, O, O, O, O, O, O, O, - (tp / 8) * T_h_down],
                         [O, O, O, O, O, O, O, O, O, O, O, I, O, - t * T_down_h],
-                        [O, O, O, O, O, O, O, O, O, O, O, O, O, - tp * T_down_h],
+                        [O, O, O, O, O, O, O, O, O, O, O, O, O, - (tp / 8) * T_down_h],
                         [O, O, O, O, O, O, O, O, O, O, O, O, O, V * n_h],
                         [O, O, O, O, O, O, O, O, O, O, O, O, O, I],
                     ]
@@ -1278,32 +1352,7 @@ class MPS:
             w_tot.append(w)
         self.w = w_tot
         return self
-        # for i in range(self.L):
-        #     if (i == (self.L//2 - 1)) or (i == self.L // 2):
-        #         c = 1
-        #     else:
-        #         c = 0
-        #     w = np.array(
-        #         [
-        #             [I, Sz, S_plus, S_minus, T_up_h, O, T_up_h, O, T_h_down, O, T_h_down, O, n_h, - c * self.eps * n_h],
-        #             [O, O, O, O, O, O, O, O, O, O, O, O, O, Jz * Sz],
-        #             [O, O, O, O, O, O, O, O, O, O, O, O, O, (1 / 2) * J_perp * S_minus],
-        #             [O, O, O, O, O, O, O, O, O, O, O, O, O, (1 / 2) * J_perp * S_plus],
-        #             [O, O, O, O, O, I, O, O, O, O, O, O, O, - t * T_h_up],
-        #             [O, O, O, O, O, O, O, O, O, O, O, O, O, - tp * T_h_up],
-        #             [O, O, O, O, O, O, O, I, O, O, O, O, O, - t * T_up_h],
-        #             [O, O, O, O, O, O, O, O, O, O, O, O, O, - tp * T_up_h],
-        #             [O, O, O, O, O, O, O, O, O, I, O, O, O, - t * T_h_down],
-        #             [O, O, O, O, O, O, O, O, O, O, O, O, O, - tp * T_h_down],
-        #             [O, O, O, O, O, O, O, O, O, O, O, I, O, - t * T_down_h],
-        #             [O, O, O, O, O, O, O, O, O, O, O, O, O, - tp * T_down_h],
-        #             [O, O, O, O, O, O, O, O, O, O, O, O, O, V * n_h],
-        #             [O, O, O, O, O, O, O, O, O, O, O, O, O, I],
-        #         ]
-        #     )
-        #     w_tot.append(w)
-        # self.w = w_tot
-        # return self
+    
 
     def mpo_xxz(self, long: str = "X", eps: float = 1e-5):
         """
@@ -3228,8 +3277,6 @@ class MPS:
         self,
         trunc_tol: bool,
         trunc_chi: bool,
-        long: str = "X",
-        trans: str = "Z",
         schmidt_tol: float = 1e-15,
         conv_tol: float = 1e-10,
         n_sweeps: int = 2,
@@ -3237,6 +3284,7 @@ class MPS:
         where: int = -1,
         excited: bool = False,
         DMRG2: bool = False,
+        **kwargs
     ):
         energies = []
         sweeps = ["right", "left"]
@@ -3248,7 +3296,7 @@ class MPS:
         sites = np.arange(1, self.L + 1).tolist()
 
         if self.w == None:
-            self.mpo(long=long, trans=trans)
+            self.mpo(**kwargs)
 
         if excited:
             print("Running excited state")

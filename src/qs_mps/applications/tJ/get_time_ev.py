@@ -196,15 +196,15 @@ else:
 
 chi_start = args.chis[0]
 
-def initial_state(defect: int, args):
+def initial_state(defect: int, **kwargs):
     hole_tn = np.array([[[0],[1],[0]]])
     if defect == 0:
-        mps_chain = MPS(L=args["L"],d=args["d"],model=args["model"],chi=args["chi"],J=args["Jz"],h=args["J_perp"],k=(args["t"],args["tp"]),eps=args["eps"])
-        mps_chain.load_sites(path=args["path"],precision=args["precision"])
+        mps_chain = MPS(L=kwargs["L"],d=kwargs["d"],model=kwargs["model"],chi=kwargs["chi"],J=kwargs["Jz"],h=kwargs["J_perp"],k=(kwargs["t"],kwargs["tp"]),eps=kwargs["eps"])
+        mps_chain.load_sites(path=kwargs["path"],precision=kwargs["precision"])
         init_state = mps_chain.sites.copy()
     if defect == 2:
-        mps_chain = MPS(L=args["L"],d=args["d"],model=args["model"], chi=1)
-        neel_state = neel_prod_state(args["half_chain_length"])
+        mps_chain = MPS(L=kwargs["L"],d=kwargs["d"],model=kwargs["model"], chi=1)
+        neel_state = neel_prod_state(kwargs["half_chain_length"])
         init_state = neel_state + [hole_tn] + [hole_tn] + neel_state
         mps_chain.sites = init_state.copy()
     return mps_chain, init_state
