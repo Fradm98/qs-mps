@@ -132,8 +132,15 @@ parser.add_argument(
 parser.add_argument(
     "-e",
     "--eps",
-    help="Value of the epsilon coupling to penalize holes creation. By default 0",
+    help="Value of the epsilon coupling to favour pair creation of holes. By default 0",
     default=0,
+    type=float,
+)
+parser.add_argument(
+    "-asy",
+    "--asymmetry",
+    help="Value of the asymmetry between hopping coupling of spin up and spin down with holes. By default 1 (no asymmetry)",
+    default=1,
     type=float,
 )
 parser.add_argument(
@@ -237,6 +244,7 @@ for L in args.Ls:
             "excited": args.excited,
             "defect": args.defect,
             "noise": 1e-7,
+            "asymmetry": args.asymmetry,
         }
         args_mps = init_state_tensor(args_mps)
 

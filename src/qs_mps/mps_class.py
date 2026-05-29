@@ -965,7 +965,7 @@ class MPS:
         
         elif self.model == "tj":
             if kwargs.get("defect"):
-                self.mpo_tjv_defect()
+                self.mpo_tjv_defect(asymmetry=kwargs.get("asymmetry", 1.0))
             else:
                 self.mpo_tjv()
 
@@ -1262,7 +1262,7 @@ class MPS:
         self.w = w_tot
         return self
     
-    def mpo_tjv_defect(self):
+    def mpo_tjv_defect(self, **kwargs):
         """
         mpo_tjv
 
@@ -1309,6 +1309,7 @@ class MPS:
         Jz = self.J
         J_perp = self.h
         (t, tp) = self.k
+        asy = kwargs.get("aymmetry",1)
         V = 0
         for i in range(self.L):
             if (i == (self.L//2 - 1)) or (i == self.L // 2):
@@ -1341,9 +1342,9 @@ class MPS:
                         [O, O, O, O, O, O, O, O, O, O, O, O, O, - (tp / 8) * T_h_up],
                         [O, O, O, O, O, O, O, I, O, O, O, O, O, - t * T_up_h],
                         [O, O, O, O, O, O, O, O, O, O, O, O, O, - (tp / 8) * T_up_h],
-                        [O, O, O, O, O, O, O, O, O, I, O, O, O, - t * T_h_down],
+                        [O, O, O, O, O, O, O, O, O, I, O, O, O, - asy * t * T_h_down],
                         [O, O, O, O, O, O, O, O, O, O, O, O, O, - (tp / 8) * T_h_down],
-                        [O, O, O, O, O, O, O, O, O, O, O, I, O, - t * T_down_h],
+                        [O, O, O, O, O, O, O, O, O, O, O, I, O, - asy * t * T_down_h],
                         [O, O, O, O, O, O, O, O, O, O, O, O, O, - (tp / 8) * T_down_h],
                         [O, O, O, O, O, O, O, O, O, O, O, O, O, V * n_h],
                         [O, O, O, O, O, O, O, O, O, O, O, O, O, I],
@@ -5797,6 +5798,7 @@ class MPS:
         cy: list = None,
         excited: bool = False,
         DMRG2: bool = False,
+        **kwargs,
     ):
         """
         save_sites
@@ -5824,7 +5826,7 @@ class MPS:
         elif "heis" in self.model:
             self.save_sites_heis(path=path, precision=precision)
         elif "tj" in self.model:
-            self.save_sites_tj(path=path, precision=precision)
+            self.save_sites_tj(path=path, precision=precision, **kwargs)
         else:
             raise ValueError("Choose a correct model")
         return self
@@ -6106,6 +6108,7 @@ class MPS:
         precision: int = 3,
         filename: str = None,
         excited: bool = False,
+        **kwargs,
     ):
         t_start = time.perf_counter()
 
@@ -6121,6 +6124,7 @@ class MPS:
             tp=self.k[1],
             eps=self.eps,
             excited=excited,
+            asymmetry=kwargs.get("asymmetry",1)
         )
 
         if filename is None:
