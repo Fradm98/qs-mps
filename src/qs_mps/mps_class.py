@@ -74,15 +74,16 @@ class MPS:
         self.env_left_sm = []
         self.env_right_sm = []
         self.bc = bc
-        self.cc = cc
-        self.Z2 = MPO_ladder(
-            L=self.L,
-            l=int(np.log2(self.d)),
-            model=self.model,
-            lamb=self.h,
-            bc=self.bc,
-            cc=self.cc,
-        )
+        if self.model == "Z2":
+            self.cc = cc
+            self.Z2 = MPO_ladder(
+                L=self.L,
+                l=int(np.log2(self.d)),
+                model=self.model,
+                lamb=self.h,
+                bc=self.bc,
+                cc=self.cc,
+            )
 
     # -------------------------------------------------
     # Manipulation of tensors, state preparation
@@ -5859,7 +5860,7 @@ class MPS:
             self.load_sites_Ising(path=path, precision=precision)
         elif "Cluster-XY" == self.model:
             self.load_sites_Cluster_xy(path=path, precision=precision)
-        elif "Z2" in self.model:
+        elif "Z2_dual" == self.model:
             self.load_sites_Z2(
                 path=path,
                 precision=precision,
@@ -5868,11 +5869,11 @@ class MPS:
                 filename=filename,
                 excited=excited,
             )
-        elif "XXZ" in self.model:
+        elif "XXZ" == self.model:
             self.load_sites_XXZ(path=path, precision=precision)
-        elif "heis" in self.model:
+        elif "heis" == self.model:
             self.load_sites_heis(path=path, precision=precision)
-        elif "tj" in self.model:
+        elif "tj" == self.model:
             self.load_sites_tj(path=path, precision=precision)
         else:
             raise ValueError("Choose a correct model")

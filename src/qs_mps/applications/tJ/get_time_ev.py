@@ -199,12 +199,19 @@ chi_start = args.chis[0]
 def initial_state(defect: int, **kwargs):
     hole_tn = np.array([[[0],[1],[0]]])
     if defect == 0:
-        mps_chain = MPS(L=kwargs["L"],d=kwargs["d"],model=kwargs["model"],chi=kwargs["chi"],J=kwargs["Jz"],h=kwargs["J_perp"],k=(kwargs["t"],kwargs["tp"]),eps=kwargs["eps"])
-        mps_chain.load_sites(path=kwargs["path"],precision=kwargs["precision"])
+        mps_chain = MPS(L=kwargs.get("L"),
+                        d=kwargs.get("d"),
+                        model=kwargs.get("model"),
+                        chi=kwargs.get("chi"),
+                        J=kwargs.get("Jz"),
+                        h=kwargs.get("J_perp"),
+                        k=(kwargs.get("t"),kwargs.get("tp")) ,
+                        eps=kwargs.get("eps")) 
+        mps_chain.load_sites(path=kwargs.get("path"), precision=kwargs.get("precision")) 
         init_state = mps_chain.sites.copy()
     if defect == 2:
-        mps_chain = MPS(L=kwargs["L"],d=kwargs["d"],model=kwargs["model"], chi=1)
-        neel_state = neel_prod_state(kwargs["half_chain_length"])
+        mps_chain = MPS(L=kwargs.get("L"), d=kwargs.get("d"), model=kwargs.get("model"), chi=1)
+        neel_state = neel_prod_state(kwargs.get("half_chain_length")) 
         init_state = neel_state + [hole_tn] + [hole_tn] + neel_state
         mps_chain.sites = init_state.copy()
     return mps_chain, init_state
@@ -273,6 +280,7 @@ def main():
             np.save(f"{path_tensor}/results/entropy_data/time_ev_entropy_L_{L}_tj_model_delta_{delta}_chi_{chi}.npy", entrs)
             np.save(f"{path_tensor}/results/mag_data/time_ev_hole_occup_L_{L}_tj_model_delta_{delta}_chi_{chi}.npy", local_magnetization)
             np.save(f"{path_tensor}/results/svs_data/time_ev_svs_L_{L}_tj_model_delta_{delta}_chi_{chi}.npy", svs)
+            np.save(f"{path_tensor}/results/fidelity_data/time_ev_fidelities_L_{L}_tj_model_delta_{delta}_chi_{chi}.npy", ovlps)
             
             mps_chain.sites = init_state.copy()
             t_final = dt.datetime.now() - date_start

@@ -37,7 +37,7 @@ parser.add_argument(
 )
 parser.add_argument(
     "path",
-    help="Path to the drive depending on the device used. Available are 'pc', 'mac', 'marcos'",
+    help="Path to the drive depending on the device used. Available are 'pc', 'mac', 'marcos', 'ngt'",
     type=str,
 )
 parser.add_argument(

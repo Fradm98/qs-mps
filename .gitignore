@@ -181,7 +181,7 @@ src/mps/variational_compression_different_delta.py
 Icon?
 .DS_Store
 
-.vscode/
+.vscode/*
 
 
 # applications
