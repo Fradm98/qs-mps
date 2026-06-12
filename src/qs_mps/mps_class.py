@@ -966,7 +966,7 @@ class MPS:
         
         elif self.model == "tj":
             if kwargs.get("defect"):
-                self.mpo_tjv_defect(asymmetry=kwargs.get("asymmetry", 1.0))
+                self.mpo_tjv_defect(asymmetry=kwargs.get("asymmetry", 1.0), defect_sites=kwargs.get("defect_sites", []))
             else:
                 self.mpo_tjv()
 
@@ -1313,7 +1313,26 @@ class MPS:
         asy = kwargs.get("aymmetry",1)
         V = 0
         for i in range(self.L):
-            if (i == (self.L//2 - 1)) or (i == self.L // 2):
+            if i == 0:
+                w = np.array(
+                    [
+                        [I, Sz, S_plus, S_minus, T_up_h, O, T_up_h, O, T_h_down, O, T_h_down, O, n_h, -1e-5 * Sz],
+                        [O, O, O, O, O, O, O, O, O, O, O, O, O, Jz * Sz],
+                        [O, O, O, O, O, O, O, O, O, O, O, O, O, (1 / 2) * J_perp * S_minus],
+                        [O, O, O, O, O, O, O, O, O, O, O, O, O, (1 / 2) * J_perp * S_plus],
+                        [O, O, O, O, O, I, O, O, O, O, O, O, O, - t * T_h_up],
+                        [O, O, O, O, O, O, O, O, O, O, O, O, O, - (tp / 8) * T_h_up],
+                        [O, O, O, O, O, O, O, I, O, O, O, O, O, - t * T_up_h],
+                        [O, O, O, O, O, O, O, O, O, O, O, O, O, - (tp / 8) * T_up_h],
+                        [O, O, O, O, O, O, O, O, O, I, O, O, O, - asy * t * T_h_down],
+                        [O, O, O, O, O, O, O, O, O, O, O, O, O, - (tp / 8) * T_h_down],
+                        [O, O, O, O, O, O, O, O, O, O, O, I, O, - asy * t * T_down_h],
+                        [O, O, O, O, O, O, O, O, O, O, O, O, O, - (tp / 8) * T_down_h],
+                        [O, O, O, O, O, O, O, O, O, O, O, O, O, V * n_h],
+                        [O, O, O, O, O, O, O, O, O, O, O, O, O, I],
+                    ]
+                )
+            if i in kwargs.get("defect_sites", []):
                 w = np.array(
                 [
                     [I, O, O, O, O, O, O, O, O, O, O, O, O, - self.eps * n_h],
@@ -1712,6 +1731,9 @@ class MPS:
         elif self.model == "Z2_dual":
             self.order_param_Z2_dual()
 
+        elif self.model == "tj":
+            self.order_param_tj(op=op)
+
         return self
 
     def order_param_Ising(self, op):
@@ -1788,6 +1810,36 @@ class MPS:
                 w_tot.append(Sz.reshape((1,1,self.d,self.d)))
             else:
                 w_tot.append(I.reshape((1,1,self.d,self.d)))
+        self.w = w_tot
+        return self
+    
+    def order_param_tj(self, op: str, stag: bool = False):
+        """
+        mag_3
+
+        This function defines the MPO magnetization for the 1D heisenberg chain in case of 3-dimensional physical state.
+        It takes the same MPO for all sites.
+
+        op: np.ndarray - operator that constitute with the order parameter of the theory.
+            It depends on the choice of the basis for Ising Hamiltonian
+
+        """
+        I = identity(3, dtype=complex).toarray()
+        O = csc_array((3, 3), dtype=complex).toarray()
+        if op == "Z":
+            operator = diags([1, 0, -1], 0, format="csr").toarray()
+        elif op == "nh":
+            operator = diags([0, 1, 0], 0, format="csr").toarray()
+
+        w_tot = []
+        if stag:
+            sign = [(-1) ** k for k in range(self.L)]
+        else:
+            sign = [1] * self.L
+
+        for i in range(self.L):
+            w_mag = np.array([[I, sign[i] * operator], [O, I]])
+            w_tot.append(w_mag)
         self.w = w_tot
         return self
     
