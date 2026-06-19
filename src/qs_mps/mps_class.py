@@ -1237,9 +1237,9 @@ class MPS:
         
         w_tot = []
         Jz = self.J
-        J_perp = self.h
+        J_perp = 1
         (t, tp) = self.k
-        V = 0
+        V = self.h
         for i in range(self.L):
             w = np.array(
                 [
@@ -1308,30 +1308,30 @@ class MPS:
         
         w_tot = []
         Jz = self.J
-        J_perp = self.h
+        J_perp = 1
         (t, tp) = self.k
         asy = kwargs.get("aymmetry",1)
-        V = 0
+        V = self.h
         for i in range(self.L):
-            if i == 0:
-                w = np.array(
-                    [
-                        [I, Sz, S_plus, S_minus, T_up_h, O, T_up_h, O, T_h_down, O, T_h_down, O, n_h, -1e-5 * Sz],
-                        [O, O, O, O, O, O, O, O, O, O, O, O, O, Jz * Sz],
-                        [O, O, O, O, O, O, O, O, O, O, O, O, O, (1 / 2) * J_perp * S_minus],
-                        [O, O, O, O, O, O, O, O, O, O, O, O, O, (1 / 2) * J_perp * S_plus],
-                        [O, O, O, O, O, I, O, O, O, O, O, O, O, - t * T_h_up],
-                        [O, O, O, O, O, O, O, O, O, O, O, O, O, - (tp / 8) * T_h_up],
-                        [O, O, O, O, O, O, O, I, O, O, O, O, O, - t * T_up_h],
-                        [O, O, O, O, O, O, O, O, O, O, O, O, O, - (tp / 8) * T_up_h],
-                        [O, O, O, O, O, O, O, O, O, I, O, O, O, - asy * t * T_h_down],
-                        [O, O, O, O, O, O, O, O, O, O, O, O, O, - (tp / 8) * T_h_down],
-                        [O, O, O, O, O, O, O, O, O, O, O, I, O, - asy * t * T_down_h],
-                        [O, O, O, O, O, O, O, O, O, O, O, O, O, - (tp / 8) * T_down_h],
-                        [O, O, O, O, O, O, O, O, O, O, O, O, O, V * n_h],
-                        [O, O, O, O, O, O, O, O, O, O, O, O, O, I],
-                    ]
-                )
+            # if i == 0:
+            #     w = np.array(
+            #         [
+            #             [I, Sz, S_plus, S_minus, T_up_h, O, T_up_h, O, T_h_down, O, T_h_down, O, n_h, -1e-5 * Sz],
+            #             [O, O, O, O, O, O, O, O, O, O, O, O, O, Jz * Sz],
+            #             [O, O, O, O, O, O, O, O, O, O, O, O, O, (1 / 2) * J_perp * S_minus],
+            #             [O, O, O, O, O, O, O, O, O, O, O, O, O, (1 / 2) * J_perp * S_plus],
+            #             [O, O, O, O, O, I, O, O, O, O, O, O, O, - t * T_h_up],
+            #             [O, O, O, O, O, O, O, O, O, O, O, O, O, - (tp / 8) * T_h_up],
+            #             [O, O, O, O, O, O, O, I, O, O, O, O, O, - t * T_up_h],
+            #             [O, O, O, O, O, O, O, O, O, O, O, O, O, - (tp / 8) * T_up_h],
+            #             [O, O, O, O, O, O, O, O, O, I, O, O, O, - asy * t * T_h_down],
+            #             [O, O, O, O, O, O, O, O, O, O, O, O, O, - (tp / 8) * T_h_down],
+            #             [O, O, O, O, O, O, O, O, O, O, O, I, O, - asy * t * T_down_h],
+            #             [O, O, O, O, O, O, O, O, O, O, O, O, O, - (tp / 8) * T_down_h],
+            #             [O, O, O, O, O, O, O, O, O, O, O, O, O, V * n_h],
+            #             [O, O, O, O, O, O, O, O, O, O, O, O, O, I],
+            #         ]
+            #     )
             if i in kwargs.get("defect_sites", []):
                 w = np.array(
                 [
@@ -1973,8 +1973,17 @@ class MPS:
         O = csc_array((3, 3), dtype=complex).toarray()
         if op == "Z":
             operator = diags([1, 0, -1], 0, format="csr").toarray()
+        elif op == "nu":
+            operator = diags([1, 0, 0], 0, format="csr").toarray()
         elif op == "nh":
             operator = diags([0, 1, 0], 0, format="csr").toarray()
+        elif op == "nd":
+            operator = diags([0, 0, 1], 0, format="csr").toarray()
+        elif op == "c":
+            n_up = diags([1, 0, 0], 0, format="csr").toarray()
+            n_h = diags([0, 1, 0], 0, format="csr").toarray()
+            n_down = diags([0, 0, 1], 0, format="csr").toarray()
+            operator = n_up + n_h + n_down
         
         w_tot = []
         w_init = np.array([[I, O], [O, I]])
