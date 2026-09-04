@@ -2804,6 +2804,7 @@ class MPS:
         excited: bool = False,
         DMRG2: bool = False,
         sweep: str = "right",
+        eigsh_params: dict = None,
     ):
         """
         eigensolver
@@ -2817,8 +2818,12 @@ class MPS:
         site: int - site we are optimizing
         v0: np.ndarray - a guessing for the eigenvector. You can use the updated state in that
             site. Default Nones
+        eigsh_params: dict - extra kwargs forwarded to scipy.sparse.linalg.eigsh, e.g.
+            {"ncv": 40, "tol": 1e-10, "maxiter": 2000} to control the Lanczos subspace
+            size and convergence. Default None (use scipy's defaults).
 
         """
+        eigsh_params = eigsh_params or {}
         # time_eig = time.perf_counter()
         if type(H_eff) == type(None):
             if not excited:
@@ -2912,9 +2917,9 @@ class MPS:
             else:
                 # v0 = self.sites[self.site - 1]
                 # print(f"v0 at site {self.site - 1} has shape: {v0.shape}")
-                e, v = spla.eigsh(A, k=1, v0=v0, which="SA")
+                e, v = spla.eigsh(A, k=1, v0=v0, which="SA", **eigsh_params)
         else:
-            e, v = spla.eigsh(H_eff, k=1, which="SA", v0=v0)
+            e, v = spla.eigsh(H_eff, k=1, which="SA", v0=v0, **eigsh_params)
         # np.savetxt(
         #     f"/Users/fradm/mps/results/times_data/eigsh_eigensolver_site_{site}_h_{self.h:.2f}",
         #     [time.perf_counter() - time_eig],
@@ -3347,6 +3352,7 @@ class MPS:
         where: int = -1,
         excited: bool = False,
         DMRG2: bool = False,
+        eigsh_params: dict = None,
         **kwargs
     ):
         energies = []
@@ -3388,7 +3394,8 @@ class MPS:
                 # t_start = time.perf_counter()
                 self.site = sites[i]
                 energy = self.eigensolver(
-                    v0=v0, H_eff=H, excited=excited, DMRG2=DMRG2, sweep=sweeps[0]
+                    v0=v0, H_eff=H, excited=excited, DMRG2=DMRG2, sweep=sweeps[0],
+                    eigsh_params=eigsh_params,
                 )  # , v0=v0
                 # energy = self.eigensolver(H_eff=H, site=sites[i], v0=v0) # , v0=v0
                 # print(f"Time eigensolver: {abs(time.perf_counter()-t_start)}")
