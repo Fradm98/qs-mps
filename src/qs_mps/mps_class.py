@@ -74,7 +74,7 @@ class MPS:
         self.env_left_sm = []
         self.env_right_sm = []
         self.bc = bc
-        if self.model == "Z2":
+        if self.model in ("Z2", "Z2_dual"):
             self.cc = cc
             self.Z2 = MPO_ladder(
                 L=self.L,
@@ -3353,9 +3353,21 @@ class MPS:
         excited: bool = False,
         DMRG2: bool = False,
         eigsh_params: dict = None,
+        conv_criterion: str = "standard",
         **kwargs
     ):
+        """
+        conv_criterion: str - how to decide when the sweeping has converged.
+            "standard": compare the energy of the last two optimized sites within
+                the same sweep pair (the original behavior).
+            "mid_chain": track the energy obtained when optimizing the site in the
+                middle of the chain and compare it across consecutive sweeps
+                instead. The full per-sweep trace is stored in
+                self.mid_chain_energies regardless of which criterion is used.
+        """
         energies = []
+        mid_chain_energies = []
+        mid_site = (self.L + 1) // 2
         sweeps = ["right", "left"]
         # if self.bc == "pbc":
         #     sites = np.arange(1, self.L + 1).tolist()
@@ -3377,6 +3389,7 @@ class MPS:
         iter = 1
         H = None
         v0 = None
+        energy_dist = None
 
         # if self.bc == "pbc":
         #     self.L = self.L - 1
@@ -3400,6 +3413,8 @@ class MPS:
                 # energy = self.eigensolver(H_eff=H, site=sites[i], v0=v0) # , v0=v0
                 # print(f"Time eigensolver: {abs(time.perf_counter()-t_start)}")
                 energies.append(energy)
+                if sites[i] == mid_site:
+                    mid_chain_energies.append(energy)
                 # t_start = time.perf_counter()
                 s = self.update_state(
                     sweeps[0], sites[i], trunc_tol, trunc_chi, schmidt_tol, DMRG2=DMRG2
@@ -3424,37 +3439,26 @@ class MPS:
                 # print(f"Time update envs: {abs(time.perf_counter()-t_start)}")
                 iter += 1
 
-            if ((n % 2) - 1) == 0:
-                energy_dist = np.abs(energies[-1] - energies[-2]) / energies[-1]
-                if energy_dist < conv_tol:
-                    break
+            if conv_criterion == "mid_chain":
+                if len(mid_chain_energies) >= 2:
+                    energy_dist = np.abs(
+                        mid_chain_energies[-1] - mid_chain_energies[-2]
+                    ) / np.abs(mid_chain_energies[-1])
+                    if energy_dist < conv_tol:
+                        break
+            else:
+                if ((n % 2) - 1) == 0:
+                    energy_dist = np.abs(energies[-1] - energies[-2]) / np.abs(energies[-1])
+                    if energy_dist < conv_tol:
+                        break
 
             # print("reversing the sweep")
             sweeps.reverse()
             sites.reverse()
 
         t_dmrg = abs(dt.datetime.now() - t_start)
-        if energy_dist < conv_tol:
-            # print("##############################")
-            # print(
-            #     f"The energy between the two last updated states converged\n"
-            #     + f"to an order of {conv_tol} after:\n"
-            #     + f"{n} sweeps at site {sites[i]}\n"
-            #     + f"total iterations {iter}\n"
-            #     + f"total time: {t_dmrg}"
-            # )
-            # print("##############################")
-            return energies, entropy, schmidt_vals, t_dmrg
-        else:
-            # print("##############################")
-            # print(
-            #     f"The energy between the two last updated states converged\n"
-            #     + f"to an order of {energy_dist}\n"
-            #     + f"instead of the convergence tolerance {conv_tol}\n"
-            #     + f"total time: {t_dmrg}"
-            # )
-            # print("##############################")
-            return energies, entropy, schmidt_vals, t_dmrg
+        self.mid_chain_energies = mid_chain_energies
+        return energies, entropy, schmidt_vals, t_dmrg
 
     def environments_ev(self, site):
         a = np.array([1])

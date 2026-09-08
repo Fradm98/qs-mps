@@ -72,7 +72,9 @@ def ground_state_Z2_param(params):
         n_sweeps=args_mps["n_sweeps"],
         conv_tol=args_mps["conv_tol"],
         excited=args_mps["excited"],
+        conv_criterion=args_mps.get("conv_criterion", "standard"),
     )
+    print(f"mid-chain energy per sweep for h={param:.{precision}f}, chi={chi}:\n{ladder.mid_chain_energies}")
     # t_final = np.sum(t_dmrg)
     # t_final_gen = dt.timedelta(seconds=t_final)
     print(
@@ -439,7 +441,7 @@ def ground_state_heis(args_mps, multpr, interval, reps: int = 1):
     else:
         energies, entropies, schmidt_vals, times = [], [], [], []
         for p in interval:
-            print(f"\n*** Starting param: {p:.5f}, chi={args_mps["chi"]}, L={args_mps["L"]} in {dt.datetime.now()} ***\n")
+            print(f"\n*** Starting param: {p:.5f}, chi={args_mps['chi']}, L={args_mps['L']} in {dt.datetime.now()} ***\n")
             params = [args_mps, p]
             energy, entropy, schmidt_val, t_dmrg = ground_state_heis_param(params)
             energies.append(energy)

@@ -153,6 +153,15 @@ parser.add_argument(
     help="First excited state. By default False",
     action="store_true",
 )
+parser.add_argument(
+    "-cr",
+    "--conv_criterion",
+    help="Convergence criterion for the sweeping. 'standard' compares the energy of "
+    "the last two optimized sites within the same sweep pair. 'mid_chain' tracks the "
+    "energy of the middle site of the chain across consecutive sweeps. By default 'standard'",
+    default="standard",
+    type=str,
+)
 
 args = parser.parse_args()
 
@@ -244,6 +253,7 @@ for L in args.Ls:
             "bc": args.boundcond,
             "cc": args.chargeconv,
             "excited": args.excited,
+            "conv_criterion": args.conv_criterion,
         }
 
         if __name__ == "__main__":
