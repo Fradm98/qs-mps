@@ -946,7 +946,9 @@ class MPS:
             self.mpo_ANNNI(long=kwargs.get("long", "X"), deg_method=1)
 
         elif self.model == "Cluster":
-            self.mpo_Cluster(long=kwargs.get("long", "X"))
+            # eps = boundary pin on site 0; None keeps the historical default 1e-5
+            self.mpo_Cluster(long=kwargs.get("long", "X"),
+                             eps=1e-5 if self.eps is None else self.eps)
 
         elif self.model == "Cluster-XY":
             self.mpo_Cluster_xy(long=kwargs.get("long", "X"))
@@ -962,7 +964,7 @@ class MPS:
             self.mpo_heis()
 
         elif self.model == "Rydberg":
-            self.mpo_rydberg()
+            self.mpo_rydberg(n_neighbours=getattr(self, "rydberg_range", 3))
         
         elif self.model == "tj":
             if kwargs.get("defect"):
@@ -1131,33 +1133,37 @@ class MPS:
         self.w = w_tot
         return self
 
-    def mpo_rydberg(self):
+    def mpo_rydberg(self, n_neighbours: int = 3):
         """
-        mpo_Cluster
+        mpo_rydberg
 
-        This function defines the MPO for the 1D Cluster model.
-        It takes the same MPO for all sites.
+        MPO of the Rydberg chain (Omega = 1)
 
+            H = sum_i X_i - h sum_i n_i + J sum_{r=1}^{R} r^{-6} sum_i n_i n_{i+r},
+
+        with h = Delta / Omega, J = (R_b / a)^6 and the van der Waals tail truncated at
+        R = n_neighbours. Bond dimension R + 2: the first row opens n_i, rows 1..R-1 carry
+        it with identities, and row r closes it with J r^{-6} n_{i+r}. Same tensor on all
+        sites. n_neighbours = 3 reproduces the original MPO.
         """
         I = identity(2, dtype=complex).toarray()
         O = csc_array((2, 2), dtype=complex).toarray()
         n_op = csr_matrix([[0, 0], [0, 1]]).toarray()
         long_op = sparse_pauli_x(n=0, L=1).toarray()
 
-        w_tot = []
-
-        for i in range(self.L):
-            w = np.array(
-                [
-                    [I, n_op, O, O, -self.h * n_op + long_op],
-                    [O, O, I, O, + ((1)**6) * self.J * n_op],
-                    [O, O, O, I, + ((1/2)**6) * self.J * n_op],
-                    [O, O, O, O, + ((1/3)**6) * self.J * n_op],
-                    [O, O, O, O, I],
-                ]
-            )
-            w_tot.append(w)
-        self.w = w_tot
+        R = int(n_neighbours)
+        assert R >= 1
+        D = R + 2
+        w = np.array([[O for _ in range(D)] for _ in range(D)])
+        w[0, 0] = I
+        w[0, 1] = n_op
+        w[0, D - 1] = -self.h * n_op + long_op
+        for r in range(1, R + 1):
+            if r < R:
+                w[r, r + 1] = I
+            w[r, D - 1] = (1 / r) ** 6 * self.J * n_op
+        w[D - 1, D - 1] = I
+        self.w = [w.copy() for _ in range(self.L)]
         return self
     
     def mpo_heis(self):
@@ -2917,9 +2923,9 @@ class MPS:
             else:
                 # v0 = self.sites[self.site - 1]
                 # print(f"v0 at site {self.site - 1} has shape: {v0.shape}")
-                e, v = spla.eigsh(A, k=1, v0=v0, which="SA", **eigsh_params)
+                e, v = self._eigsh_capped(A, v0, eigsh_params)
         else:
-            e, v = spla.eigsh(H_eff, k=1, which="SA", v0=v0, **eigsh_params)
+            e, v = self._eigsh_capped(H_eff, v0, eigsh_params)
         # np.savetxt(
         #     f"/Users/fradm/mps/results/times_data/eigsh_eigensolver_site_{site}_h_{self.h:.2f}",
         #     [time.perf_counter() - time_eig],
@@ -3341,6 +3347,22 @@ class MPS:
         vec_eff = tm_mps.flatten()
         return vec_eff
 
+    def _eigsh_capped(self, A, v0, eigsh_params):
+        """eigsh for the lowest eigenpair. If ARPACK stops at its maxiter cap
+        (ArpackNoConvergence), keep the best Ritz pair it returns instead of failing:
+        the next sweep refines it. Without any Ritz pair, keep the current state v0 and
+        its Rayleigh quotient. Each such event is counted in self.eig_no_conv."""
+        try:
+            return spla.eigsh(A, k=1, v0=v0, which="SA", **eigsh_params)
+        except spla.ArpackNoConvergence as err:
+            self.eig_no_conv = getattr(self, "eig_no_conv", 0) + 1
+            if len(err.eigenvalues) > 0:
+                i = int(np.argmin(np.real(err.eigenvalues)))
+                return err.eigenvalues[i : i + 1], err.eigenvectors[:, i : i + 1]
+            x = np.asarray(v0, dtype=complex).reshape(-1)
+            x = x / np.linalg.norm(x)
+            return np.array([np.vdot(x, A @ x)]), x[:, None]
+
     def DMRG(
         self,
         trunc_tol: bool,
@@ -3354,6 +3376,9 @@ class MPS:
         DMRG2: bool = False,
         eigsh_params: dict = None,
         conv_criterion: str = "standard",
+        tol_schedule: list = None,
+        eig_tol_schedule: list = None,
+        max_sweeps: int = None,
         **kwargs
     ):
         """
@@ -3364,7 +3389,29 @@ class MPS:
                 middle of the chain and compare it across consecutive sweeps
                 instead. The full per-sweep trace is stored in
                 self.mid_chain_energies regardless of which criterion is used.
+
+        Staged convergence (optional; requires conv_criterion="mid_chain"):
+        tol_schedule: decreasing list of energy tolerances, e.g. [1e-5, 1e-8, 1e-12]; the
+            last one replaces conv_tol. Stage s is reached when the relative change of the
+            mid-chain energy between two consecutive (half-)sweeps is < tol_schedule[s];
+            then the next stage starts. The n_sweeps budget is split evenly over the stages
+            (at least 2 per stage). A stage not reached within its share gets
+            ceil(log10(dE / tol)) extra sweeps (orders of magnitude still missing), within
+            max_sweeps in total (default 2 * n_sweeps); if still not reached, the next stage
+            starts anyway, and an unreached last stage marks the run as not converged.
+        eig_tol_schedule: eigsh tolerance per stage (default min(1e-3, 0.1 * sqrt(tol))).
+            It overrides eigsh_params["tol"] stage by stage.
+        Diagnostics in self.dmrg_info: converged, stages reached, sweeps per stage, final dE,
+        number of eigsh calls that hit maxiter (self.eig_no_conv).
+        Without tol_schedule the behavior is unchanged.
         """
+        if tol_schedule is not None:
+            return self._DMRG_staged(
+                trunc_tol=trunc_tol, trunc_chi=trunc_chi, schmidt_tol=schmidt_tol,
+                n_sweeps=n_sweeps, bond=bond, where=where, DMRG2=DMRG2,
+                eigsh_params=eigsh_params, tol_schedule=tol_schedule,
+                eig_tol_schedule=eig_tol_schedule, max_sweeps=max_sweeps, **kwargs,
+            )
         energies = []
         mid_chain_energies = []
         mid_site = (self.L + 1) // 2
@@ -3459,6 +3506,98 @@ class MPS:
         t_dmrg = abs(dt.datetime.now() - t_start)
         self.mid_chain_energies = mid_chain_energies
         return energies, entropy, schmidt_vals, t_dmrg
+
+    def _DMRG_staged(
+        self, trunc_tol, trunc_chi, schmidt_tol, n_sweeps, bond, where, DMRG2,
+        eigsh_params, tol_schedule, eig_tol_schedule=None, max_sweeps=None, **kwargs
+    ):
+        """Staged-tolerance DMRG (see DMRG). Same half-sweep as DMRG with
+        conv_criterion="mid_chain"; only the eigsh tolerance and the stopping rule differ."""
+        tols = [float(t) for t in tol_schedule]
+        assert all(a > b for a, b in zip(tols, tols[1:])), "tol_schedule must decrease"
+        if eig_tol_schedule is None:
+            eig_tols = [min(1e-3, 0.1 * np.sqrt(t)) for t in tols]
+        else:
+            eig_tols = [float(t) for t in eig_tol_schedule]
+            assert len(eig_tols) == len(tols)
+        n_stages = len(tols)
+        share = max(2, n_sweeps // n_stages)
+        max_sweeps = 2 * n_sweeps if max_sweeps is None else max_sweeps
+        base_params = dict(eigsh_params or {})
+
+        energies, mid_chain_energies = [], []
+        mid_site = (self.L + 1) // 2
+        sweeps = ["right", "left"]
+        sites = np.arange(1, self.L + 1).tolist()
+        if self.w is None:
+            self.mpo(**kwargs)
+        self.envs(DMRG2=DMRG2)
+        self.eig_no_conv = 0
+        entropy, schmidt_vals = [], []
+        t_start = dt.datetime.now()
+
+        def half_sweep(params):
+            ent, sch = [], []
+            for i in range(self.L - 1):
+                H = self.H_eff(sites[i]) if trunc_tol else None     # as in DMRG
+                self.site = sites[i]
+                energy = self.eigensolver(v0=None, H_eff=H, excited=False, DMRG2=DMRG2,
+                                          sweep=sweeps[0], eigsh_params=params)
+                energies.append(energy)
+                if sites[i] == mid_site:
+                    mid_chain_energies.append(energy)
+                s = self.update_state(sweeps[0], sites[i], trunc_tol, trunc_chi, schmidt_tol, DMRG2=DMRG2)
+                if (not bond) or (sites[i] - 1 == where):
+                    ent.append(von_neumann_entropy(s))
+                    sch.append(s)
+                self.update_envs(sweeps[0], sites[i], DMRG2=DMRG2)
+            sweeps.reverse()
+            sites.reverse()
+            return ent, sch
+
+        def dE():
+            if len(mid_chain_energies) < 2:
+                return np.inf
+            return float(np.abs(mid_chain_energies[-1] - mid_chain_energies[-2])
+                         / np.abs(mid_chain_energies[-1]))
+
+        n_done, reached, per_stage, nc_stage, d = 0, [], [], [], np.inf
+        for s, (tol, etol) in enumerate(zip(tols, eig_tols)):
+            params = dict(base_params, tol=etol)
+            n_stage, budget, extra_given = 0, share, False
+            nc0 = self.eig_no_conv
+            while True:
+                if n_done >= max_sweeps:
+                    break
+                entropy, schmidt_vals = half_sweep(params)
+                n_done += 1
+                n_stage += 1
+                d = dE()
+                if d < tol and n_stage >= 1 and len(mid_chain_energies) >= 2:
+                    break
+                if n_stage >= budget:
+                    if extra_given or not np.isfinite(d):
+                        break
+                    budget += max(1, int(np.ceil(np.log10(d / tol))))
+                    extra_given = True
+            # A local solve stopped at maxiter can leave the state unchanged, so dE alone would
+            # fake convergence: a stage only counts as reached if none of its solves hit maxiter.
+            nc_stage.append(int(self.eig_no_conv - nc0))
+            reached.append(bool(d < tol) and nc_stage[-1] == 0)
+            per_stage.append(n_stage)
+            if n_done >= max_sweeps:
+                reached += [False] * (n_stages - len(reached))
+                per_stage += [0] * (n_stages - len(per_stage))
+                nc_stage += [0] * (n_stages - len(nc_stage))
+                break
+
+        self.mid_chain_energies = mid_chain_energies
+        self.dmrg_info = dict(converged=bool(reached[-1]), stages_reached=reached,
+                              eig_no_conv_per_stage=nc_stage,
+                              sweeps_per_stage=per_stage, n_sweeps=n_done, final_dE=d,
+                              tol_schedule=tols, eig_tol_schedule=eig_tols,
+                              eig_no_conv=int(self.eig_no_conv))
+        return energies, entropy, schmidt_vals, abs(dt.datetime.now() - t_start)
 
     def environments_ev(self, site):
         a = np.array([1])
